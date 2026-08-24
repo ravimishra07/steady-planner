@@ -7,7 +7,19 @@
   <script src="sam-theme.js"></script>
   <link rel="stylesheet" href="sam-tokens.css">
   <link rel="stylesheet" href="sam-shared.css">
-  <style>*{box-sizing:border-box;margin:0;padding:0}</style>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    .sam-ios .onboard-body h1{margin-bottom:var(--sam-space-sm)}
+    .sam-ios .lede{font-size:var(--sam-fs-md);color:var(--sam-text-secondary);line-height:var(--sam-lh-relaxed);margin-bottom:var(--sam-space-xl)}
+    .sam-ios .stack{display:flex;flex-direction:column;gap:var(--sam-space-md)}
+    .sam-ios .slide .knob{position:absolute;top:50%;width:26px;height:26px;border-radius:50%;background:var(--sam-brand);border:3px solid var(--sam-bg);transform:translate(-50%,-50%)}
+    .sam-ios .slide .track-line{position:relative}
+    .sam-ios .slide .ticks{display:flex;justify-content:space-between;margin-top:11px;font-size:var(--sam-fs-xs);color:var(--sam-text-muted);font-variant-numeric:tabular-nums}
+    .sam-ios .total{display:flex;align-items:center;gap:14px;background:var(--sam-brand-container);border-radius:var(--sam-r-md);padding:16px 18px}
+    .sam-ios .total b{font-size:var(--sam-fs-xxl);font-weight:700;color:var(--sam-brand-soft);font-variant-numeric:tabular-nums;line-height:1}
+    .sam-ios .total span{font-size:var(--sam-fs-sub);color:var(--sam-text-secondary);line-height:1.45}
+    .sam-ios .foot .note{font-size:var(--sam-fs-sm);color:var(--sam-text-muted);text-align:center;margin-top:var(--sam-space-md);line-height:1.45}
+  </style>
 </helmet>
 <div class="screen sam-ios">
   <div class="safe"></div>
@@ -17,14 +29,34 @@
     <span class="bar-sp" aria-hidden="true"></span>
   </div>
   <div class="onboard-body">
+    <p class="eyebrow">Step 4 of 4</p>
     <h1>Hours per day</h1>
-    <div class="onboard-stack">
-      <div class="slide"><div class="top"><b>Weekdays</b><i>4h</i></div><div class="track-line"><i style="width:23%"></i></div></div>
-      <div class="slide"><div class="top"><b>Weekends</b><i>7h</i></div><div class="track-line"><i style="width:40%"></i></div></div>
-      <div class="field"><label>Study spot</label><div class="val">Terrace</div></div>
+    <p class="lede">Be honest. The next screen tells you whether it is enough.</p>
+    <div class="stack">
+      <div class="slide">
+        <div class="top"><b>Weekdays</b><i>4 hrs</i></div>
+        <div class="track-line"><i style="width:27%"></i><span class="knob" style="left:27%"></span></div>
+        <div class="ticks"><span>1h</span><span>7h</span><span>14h</span></div>
+      </div>
+      <div class="slide">
+        <div class="top"><b>Weekends</b><i>7 hrs</i></div>
+        <div class="track-line"><i style="width:44%"></i><span class="knob" style="left:44%"></span></div>
+        <div class="ticks"><span>1h</span><span>8h</span><span>16h</span></div>
+      </div>
+      <div class="total">
+        <b>568</b>
+        <span>hours before the exam<br>at this pace</span>
+      </div>
+      <div class="field">
+        <label>Study spot</label>
+        <div class="val">Terrace</div>
+      </div>
     </div>
   </div>
-  <div class="foot"><button class="cta">Build plan</button></div>
+  <div class="foot">
+    <button class="cta">Build my plan</button>
+    <p class="note">Naming the place makes you far likelier to show up.</p>
+  </div>
   <div class="gesture"></div>
 </div>
 </x-dc>

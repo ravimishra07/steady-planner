@@ -7,7 +7,19 @@
   <script src="sam-theme.js"></script>
   <link rel="stylesheet" href="sam-tokens.css">
   <link rel="stylesheet" href="sam-shared.css">
-  <style>*{box-sizing:border-box;margin:0;padding:0}</style>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    .sam-ios .onboard-body h1{margin-bottom:var(--sam-space-sm)}
+    .sam-ios .lede{font-size:var(--sam-fs-md);color:var(--sam-text-secondary);line-height:var(--sam-lh-relaxed);margin-bottom:var(--sam-space-xl)}
+    .sam-ios .opt{min-height:74px;align-items:flex-start;padding-top:15px;padding-bottom:15px}
+    .sam-ios .opt .why{display:block;font-size:var(--sam-fs-sm);color:var(--sam-text-muted);line-height:1.4;margin-top:3px}
+    .sam-ios .opt .hrs{display:flex;gap:6px;margin-top:10px}
+    .sam-ios .opt .hrs span{font-size:var(--sam-fs-xs);font-weight:600;padding:3px 8px;border-radius:var(--sam-r-sm);background:var(--sam-elevated);color:var(--sam-text-secondary);font-variant-numeric:tabular-nums}
+    .sam-ios .opt.sel .hrs span{background:var(--sam-brand-container);color:var(--sam-brand-soft)}
+    .sam-ios .opt .tick{margin-top:2px}
+    .sam-ios .list{gap:var(--sam-space-sm)}
+    .sam-ios .foot .note{font-size:var(--sam-fs-sm);color:var(--sam-text-muted);text-align:center;margin-top:var(--sam-space-md);line-height:1.45}
+  </style>
 </helmet>
 <div class="screen sam-ios">
   <div class="safe"></div>
@@ -17,14 +29,40 @@
     <span class="bar-sp" aria-hidden="true"></span>
   </div>
   <div class="onboard-body">
+    <p class="eyebrow">Step 3 of 4</p>
     <h1>Your day shape</h1>
+    <p class="lede">A working aspirant needs a different plan, not just a shorter one.</p>
     <div class="list">
-      <button class="opt"><span><b>Full-time</b></span><span class="tick"></span></button>
-      <button class="opt"><span><b>Working</b></span><span class="tick"></span></button>
-      <button class="opt sel"><span><b>College</b></span><span class="tick"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <button class="opt">
+        <span>
+          <b>Full-time aspirant</b>
+          <span class="why">Preparation is the whole day</span>
+          <span class="hrs"><span>8h weekday</span><span>8h weekend</span></span>
+        </span>
+        <span class="tick"></span>
+      </button>
+      <button class="opt">
+        <span>
+          <b>Working a job</b>
+          <span class="why">Study before or after office</span>
+          <span class="hrs"><span>3h weekday</span><span>8h weekend</span></span>
+        </span>
+        <span class="tick"></span>
+      </button>
+      <button class="opt sel">
+        <span>
+          <b>In college</b>
+          <span class="why">Classes plus preparation</span>
+          <span class="hrs"><span>4h weekday</span><span>7h weekend</span></span>
+        </span>
+        <span class="tick"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
     </div>
   </div>
-  <div class="foot"><button class="cta">Continue</button></div>
+  <div class="foot">
+    <button class="cta">Continue</button>
+    <p class="note">These are starting numbers &mdash; you tune them next.</p>
+  </div>
   <div class="gesture"></div>
 </div>
 </x-dc>

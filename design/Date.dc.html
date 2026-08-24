@@ -7,7 +7,21 @@
   <script src="sam-theme.js"></script>
   <link rel="stylesheet" href="sam-tokens.css">
   <link rel="stylesheet" href="sam-shared.css">
-  <style>*{box-sizing:border-box;margin:0;padding:0}</style>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    .sam-ios .onboard-body h1{margin-bottom:var(--sam-space-sm)}
+    .sam-ios .lede{font-size:var(--sam-fs-md);color:var(--sam-text-secondary);line-height:var(--sam-lh-relaxed);margin-bottom:var(--sam-space-xl)}
+    .sam-ios .stack{display:flex;flex-direction:column;gap:var(--sam-space-md)}
+    .sam-ios .countdown{flex-direction:column;align-items:stretch;gap:0}
+    .sam-ios .cd-top{display:flex;align-items:baseline;gap:12px}
+    .sam-ios .cd-scale{display:flex;gap:3px;margin-top:18px}
+    .sam-ios .cd-scale i{flex:1;height:6px;border-radius:2px;background:var(--sam-elevated)}
+    .sam-ios .cd-scale i.on{background:var(--sam-brand-deep)}
+    .sam-ios .cd-legend{display:flex;justify-content:space-between;margin-top:9px;font-size:var(--sam-fs-xs);color:var(--sam-text-muted)}
+    .sam-ios .field .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .sam-ios .field .chev{color:var(--sam-text-muted);font-size:var(--sam-fs-subtitle)}
+    .sam-ios .foot .note{font-size:var(--sam-fs-sm);color:var(--sam-text-muted);text-align:center;margin-top:var(--sam-space-md);line-height:1.45}
+  </style>
 </helmet>
 <div class="screen sam-ios">
   <div class="safe"></div>
@@ -17,14 +31,29 @@
     <span class="bar-sp" aria-hidden="true"></span>
   </div>
   <div class="onboard-body">
+    <p class="eyebrow">Step 2 of 4</p>
     <h1>Exam date</h1>
-    <div class="onboard-stack">
-      <div class="countdown"><span class="n">118</span><span class="l">days left</span></div>
-      <div class="field"><label>Date</label><div class="val">19 Dec 2026</div></div>
-      <button class="ghost">Not announced yet</button>
+    <p class="lede">Everything gets planned backward from this day.</p>
+    <div class="stack">
+      <div class="countdown">
+        <div class="cd-top"><span class="n">118</span><span class="l">days left<br>16 weeks and 6 days</span></div>
+        <div class="cd-scale">
+          <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i>
+          <i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i>
+        </div>
+        <div class="cd-legend"><span>Today</span><span>19 Dec 2026</span></div>
+      </div>
+      <div class="field">
+        <label>Exam date</label>
+        <div class="row"><span class="val">19 Dec 2026</span><span class="chev">&#8250;</span></div>
+      </div>
+      <button class="ghost">Date not announced yet &rarr;</button>
     </div>
   </div>
-  <div class="foot"><button class="cta">Continue</button></div>
+  <div class="foot">
+    <button class="cta">Continue</button>
+    <p class="note">Change it any time. The plan rebuilds itself.</p>
+  </div>
   <div class="gesture"></div>
 </div>
 </x-dc>

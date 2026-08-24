@@ -9,40 +9,75 @@
   <link rel="stylesheet" href="sam-shared.css">
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    .topbar2{display:flex;align-items:center;justify-content:space-between;padding:4px var(--sam-screen-h) 18px;flex:none}
-    .restore{background:none;border:0;color:var(--sam-text-muted);font-size:var(--sam-fs-md);min-height:44px;padding:0 6px;cursor:pointer}
-    .mine{background:var(--sam-surface-tinted);border:var(--sam-card-border);border-radius:var(--sam-r-md);padding:18px}
-    .mrow{display:flex;justify-content:space-between;padding:6px 0;font-size:var(--sam-fs-md);line-height:var(--sam-lh-normal)}
-    .mrow span{color:var(--sam-text-muted)}.mrow b{font-weight:var(--sam-fw-semibold);color:var(--sam-text);font-variant-numeric:tabular-nums}
-    .mrow b.warn{color:var(--sam-danger)}
-    .mtrack{height:8px;border-radius:4px;overflow:hidden;display:flex;background:var(--sam-elevated);margin-top:14px}
-    .mtrack i{display:block;height:100%}.mtrack .g{background:var(--sam-success);width:36%}.mtrack .r{background:var(--sam-danger);width:64%}
-    .plan{min-height:72px}.pn{flex:1}.pn b{display:block;font-size:var(--sam-fs-lg);font-weight:var(--sam-fw-semibold);line-height:var(--sam-lh-snug)}.pn span{display:block;font-size:var(--sam-fs-md);color:var(--sam-text-muted);margin-top:4px;line-height:var(--sam-lh-normal)}
-    .best{font-size:var(--sam-fs-xs);font-weight:var(--sam-fw-semibold);letter-spacing:.06em;text-transform:uppercase;background:var(--sam-success-container);color:var(--sam-success);padding:5px 8px;border-radius:var(--sam-r-sm)}
-    .price{font-size:var(--sam-fs-headline);font-weight:var(--sam-fw-semibold);font-variant-numeric:tabular-nums}
-    .inc{margin-top:4px;font-size:var(--sam-fs-md);color:var(--sam-text-secondary);line-height:var(--sam-lh-normal)}
-    .inc div{padding:6px 0;display:flex;gap:10px;align-items:flex-start}.inc svg{color:var(--sam-success);flex:none;margin-top:2px}
+    .sam-ios .topbar .sp{flex:1}
+    .sam-ios .topbar .link{background:none;border:0;font-family:inherit;font-size:var(--sam-fs-md);color:var(--sam-brand-soft);cursor:pointer}
+    .sam-ios .content h1{font-size:var(--sam-fs-xxl);line-height:1.22;margin:var(--sam-space-xs) 0 var(--sam-space-md)}
+    .sam-ios .sumcard{background:var(--sam-surface-tinted);border:var(--sam-card-border);border-radius:var(--sam-r-md);padding:6px 18px 16px;margin-bottom:var(--sam-space-lg)}
+    .sam-ios .sumcard .r{display:flex;align-items:center;justify-content:space-between;min-height:38px}
+    .sam-ios .sumcard .r span{font-size:var(--sam-fs-sub);color:var(--sam-text-secondary)}
+    .sam-ios .sumcard .r b{font-size:var(--sam-fs-callout);font-weight:600;font-variant-numeric:tabular-nums}
+    .sam-ios .sumcard .r b.short{color:var(--sam-danger)}
+    .sam-ios .sumcard .bar{display:flex;height:10px;border-radius:5px;overflow:hidden;margin-top:12px}
+    .sam-ios .sumcard .bar i{display:block;height:100%}
+    .sam-ios .plan{min-height:70px}
+    .sam-ios .plan .ftxt{flex:1;min-width:0}
+    .sam-ios .plan .pick{margin-left:0}
+    .sam-ios .plan .best{font-size:var(--sam-fs-2xs);font-weight:600;letter-spacing:.09em;text-transform:uppercase;background:var(--sam-success-container);color:var(--sam-success);padding:3px 7px;border-radius:var(--sam-r-sm);flex:none}
+    .sam-ios .plan .price{font-size:var(--sam-fs-headline);font-weight:700;flex:none}
+    .sam-ios .list{gap:var(--sam-space-sm)}
+    .sam-ios .inc{margin-top:var(--sam-space-md);display:flex;flex-direction:column;gap:7px}
+    .sam-ios .inc div{display:flex;gap:11px;align-items:flex-start;font-size:var(--sam-fs-sub);color:var(--sam-text-secondary);line-height:1.45}
+    .sam-ios .inc svg{color:var(--sam-success);flex:none;margin-top:1px}
+    .sam-ios .foot .ghost{text-align:center;padding-top:10px}
   </style>
 </helmet>
 <div class="screen sam-ios">
   <div class="safe"></div>
-  <div class="topbar2"><button class="glass-btn" aria-label="Back"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M12.5 4.5L7 10l5.5 5.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button><button class="restore">Restore</button></div>
-  <div class="onboard-body">
-    <h1>Keep the plan honest</h1>
-    <div class="onboard-stack">
-      <div class="mine">
-        <div class="mrow"><span>Hours covered</span><b>568</b></div>
-        <div class="mrow"><span>Still short</span><b class="warn">244 hrs</b></div>
-        <div class="mtrack"><i class="g"></i><i class="r"></i></div>
+  <div class="topbar">
+    <button class="glass-btn" aria-label="Back"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M12.5 4.5L7 10l5.5 5.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="sp"></span>
+    <button class="link">Restore</button>
+  </div>
+  <div class="content">
+    <p class="eyebrow">Your plan is ready</p>
+    <h1>You are 244 hours short. Here is the way through.</h1>
+
+    <div class="sumcard">
+      <div class="r"><span>Exam</span><b>SSC CGL</b></div>
+      <div class="r"><span>Days left</span><b>118</b></div>
+      <div class="r"><span>Syllabus needs</span><b>812 hrs</b></div>
+      <div class="r"><span>You have</span><b class="short">568 hrs</b></div>
+      <div class="bar">
+        <i style="width:70%;background:var(--sam-brand-deep)"></i>
+        <i style="width:30%;background:var(--sam-danger)"></i>
       </div>
-      <div class="list">
-        <button class="plan sel"><span class="pick"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/></svg></span><span class="pn"><b>Annual</b><span>One full attempt</span></span><span class="best">Best</span><span class="price">&#8377;999</span></button>
-        <button class="plan"><span class="pick"></span><span class="pn"><b>Monthly</b><span>Try one month</span></span><span class="price">&#8377;149</span></button>
-      </div>
-      <div class="inc"><div><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/></svg>Rebalance when you fall behind</div></div>
+    </div>
+
+    <div class="list">
+      <button class="plan sel">
+        <span class="pick"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="ftxt"><b>Till your exam</b><span>One payment, full attempt</span></span>
+        <span class="best">Best</span>
+        <span class="price">&#8377;399</span>
+      </button>
+      <button class="plan">
+        <span class="pick"></span>
+        <span class="ftxt"><b>Monthly</b><span>Cancel any time</span></span>
+        <span class="price">&#8377;99</span>
+      </button>
+    </div>
+
+    <div class="inc">
+      <div><svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Daily plan rebuilt from your real hours</span></div>
+      <div><svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>One-tap rebalance when you miss days</span></div>
+      <div><svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Revision scheduled automatically</span></div>
+      <div><svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Works offline. No account needed.</span></div>
     </div>
   </div>
-  <div class="foot"><button class="cta">Start day 1 free</button></div>
+  <div class="foot">
+    <button class="cta">Unlock my plan &mdash; &#8377;399</button>
+    <button class="ghost" style="text-align:center">Not now</button>
+  </div>
   <div class="gesture"></div>
 </div>
 </x-dc>

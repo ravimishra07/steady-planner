@@ -9,18 +9,25 @@
   <link rel="stylesheet" href="sam-shared.css">
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    .verdict{display:flex;flex-direction:column;gap:6px}
-    .big{font-size:var(--sam-fs-display);font-weight:var(--sam-fw-bold);letter-spacing:-.04em;line-height:.92;color:var(--sam-danger)}
-    .bigunit{font-size:var(--sam-fs-subtitle);font-weight:var(--sam-fw-semibold);color:var(--sam-danger-soft);line-height:1.3}
-    .lede{font-size:var(--sam-fs-lg);line-height:var(--sam-lh-relaxed);color:var(--sam-text-secondary)}
-    .gaugecard{background:var(--sam-surface);border:var(--sam-card-border);border-radius:var(--sam-r-md);padding:18px;box-shadow:var(--sam-card-shadow)}
-    .gcap{display:flex;justify-content:space-between;font-size:var(--sam-fs-xs);font-weight:var(--sam-fw-semibold);text-transform:uppercase;letter-spacing:.06em;color:var(--sam-text-muted);margin-bottom:14px}
-    .gcap b{font-size:var(--sam-fs-sub);color:var(--sam-text);text-transform:none;letter-spacing:0;font-variant-numeric:tabular-nums}
-    .track{height:52px;border-radius:var(--sam-r-sm);overflow:hidden;display:flex;background:var(--sam-elevated)}
-    .track .have{background:var(--sam-brand-deep);display:flex;align-items:center;padding-left:12px;font-size:var(--sam-fs-xs);font-weight:var(--sam-fw-semibold);color:var(--sam-on-brand);font-variant-numeric:tabular-nums}
-    .track .short{background:repeating-linear-gradient(45deg,var(--sam-danger),var(--sam-danger) 4px,var(--sam-danger-stripe) 4px,var(--sam-danger-stripe) 8px);display:flex;align-items:center;padding-left:10px;font-size:var(--sam-fs-xs);font-weight:var(--sam-fw-semibold);color:var(--sam-on-brand);font-variant-numeric:tabular-nums}
-    .sec{font-size:var(--sam-fs-sm);font-weight:var(--sam-fw-semibold);letter-spacing:.08em;text-transform:uppercase;color:var(--sam-text-muted)}
-    .fixcard{min-height:68px}
+    .sam-ios .onboard-body h1{margin-bottom:var(--sam-space-sm)}
+    .sam-ios .verdict{display:flex;align-items:baseline;gap:12px;margin:var(--sam-space-sm) 0 var(--sam-space-md)}
+    .sam-ios .verdict .n{font-size:var(--sam-fs-hero);font-weight:700;letter-spacing:-.03em;line-height:1;color:var(--sam-danger);font-variant-numeric:tabular-nums}
+    .sam-ios .verdict .u{font-size:var(--sam-fs-lg);font-weight:600;color:var(--sam-danger);line-height:1.2}
+    .sam-ios .lede{font-size:var(--sam-fs-md);color:var(--sam-text-secondary);line-height:var(--sam-lh-relaxed);margin-bottom:var(--sam-space-lg)}
+    .sam-ios .gauge{background:var(--sam-surface);border:var(--sam-card-border);border-radius:var(--sam-r-md);padding:16px 18px;box-shadow:var(--sam-card-shadow);margin-bottom:var(--sam-space-lg)}
+    .sam-ios .gauge .cap{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+    .sam-ios .gauge .cap .k{font-size:var(--sam-fs-xs);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--sam-text-muted)}
+    .sam-ios .gauge .cap .v{font-size:var(--sam-fs-callout);font-weight:600;font-variant-numeric:tabular-nums}
+    .sam-ios .gauge .cap .v em{font-style:normal;color:var(--sam-text-muted);font-weight:400}
+    .sam-ios .gauge .bar{display:flex;height:46px;border-radius:var(--sam-r-sm);overflow:hidden}
+    .sam-ios .gauge .have{background:var(--sam-brand-deep);display:flex;align-items:center;padding-left:12px}
+    .sam-ios .gauge .have b{font-size:var(--sam-fs-sm);font-weight:600;color:var(--sam-on-brand);font-variant-numeric:tabular-nums}
+    .sam-ios .gauge .miss{background:var(--sam-danger);display:flex;align-items:center;padding-left:10px}
+    .sam-ios .gauge .miss b{font-size:var(--sam-fs-sm);font-weight:600;color:#fff;font-variant-numeric:tabular-nums}
+    .sam-ios .sec{font-size:var(--sam-fs-xs);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--sam-text-muted);margin-bottom:var(--sam-space-sm)}
+    .sam-ios .fixcard{min-height:66px;align-items:flex-start;padding-top:14px;padding-bottom:14px}
+    .sam-ios .fixcard .metric{color:var(--sam-brand-soft);font-weight:700}
+    .sam-ios .list{gap:var(--sam-space-sm)}
   </style>
 </helmet>
 <div class="screen sam-ios">
@@ -31,25 +38,35 @@
     <span class="bar-sp" aria-hidden="true"></span>
   </div>
   <div class="onboard-body">
-    <div class="onboard-stack">
-      <div class="verdict">
-        <p class="sec">Your plan</p>
-        <div class="big">244</div>
-        <div class="bigunit">hours short</div>
-        <p class="lede">At 4 hrs on weekdays you cover about 70% of the syllabus.</p>
+    <p class="eyebrow">Your plan</p>
+    <div class="verdict"><span class="n">244</span><span class="u">hours<br>short</span></div>
+    <p class="lede">At 4 hrs on weekdays you cover 70% of the syllabus before 19 Dec.</p>
+
+    <div class="gauge">
+      <div class="cap"><span class="k">Hours available</span><span class="v">568 <em>/ 812</em></span></div>
+      <div class="bar">
+        <span class="have" style="width:70%"><b>568h</b></span>
+        <span class="miss" style="width:30%"><b>244h</b></span>
       </div>
-      <div class="gaugecard">
-        <div class="gcap"><span>Against 812 hrs needed</span><b>568 / 812</b></div>
-        <div class="track"><div class="have" style="width:70%">568h</div><div class="short" style="width:30%">244h</div></div>
-      </div>
-      <div>
-        <p class="sec" style="margin-bottom:14px">Close the gap</p>
-        <div class="list">
-          <button class="fixcard"><span class="metric">+2.1h</span><span class="ftxt"><b>Add hours every day</b><span>6.1 hrs/day for 118 days</span></span><span class="chev">&#8250;</span></button>
-          <button class="fixcard"><span class="metric">&minus;18</span><span class="ftxt"><b>Drop lowest-yield topics</b><span>~13 marks last year</span></span><span class="chev">&#8250;</span></button>
-          <button class="fixcard"><span class="metric">45d</span><span class="ftxt"><b>Move target date back</b><span>Only if the date is yours</span></span><span class="chev">&#8250;</span></button>
-        </div>
-      </div>
+    </div>
+
+    <p class="sec">Close the gap</p>
+    <div class="list">
+      <button class="fixcard">
+        <span class="metric">+2.1h</span>
+        <span class="ftxt"><b>Add hours to every day</b><span>6.1 hrs a day, weekdays too</span></span>
+        <span class="chev">&#8250;</span>
+      </button>
+      <button class="fixcard">
+        <span class="metric">&minus;18</span>
+        <span class="ftxt"><b>Drop lowest-yield topics</b><span>About 13 marks last year</span></span>
+        <span class="chev">&#8250;</span>
+      </button>
+      <button class="fixcard">
+        <span class="metric">45d</span>
+        <span class="ftxt"><b>Move the target date</b><span>Only if it is yours to move</span></span>
+        <span class="chev">&#8250;</span>
+      </button>
     </div>
   </div>
   <div class="foot"><button class="cta">Start day 1</button></div>
