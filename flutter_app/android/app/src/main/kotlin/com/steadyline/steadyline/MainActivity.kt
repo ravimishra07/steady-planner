@@ -1,0 +1,5 @@
+package com.steadyline.steadyline
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()

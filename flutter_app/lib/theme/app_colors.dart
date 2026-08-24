@@ -109,7 +109,7 @@ class AppColors extends ThemeExtension<AppColors> {
     warningTint: DarkTokens.warningTint,
     warningRow: DarkTokens.warningRow,
     onSuccess: DarkTokens.onSuccess,
-    cardShadow: const [
+    cardShadow: [
       BoxShadow(color: Color(0x2E000000), blurRadius: 6, offset: Offset(0, 3)),
     ],
   );
@@ -146,7 +146,7 @@ class AppColors extends ThemeExtension<AppColors> {
     warningTint: LightTokens.warningTint,
     warningRow: LightTokens.warningRow,
     onSuccess: LightTokens.onSuccess,
-    cardShadow: const [
+    cardShadow: [
       BoxShadow(color: Color(0x14111827), blurRadius: 8, offset: Offset(0, 2)),
     ],
   );
