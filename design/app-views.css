@@ -1738,3 +1738,148 @@
 }
 .sam-ios .view-onboard .fixcard { min-height: 66px; }
 .sam-ios .view-onboard .fixcard .metric { color: var(--sam-brand-soft); font-weight: 700; }
+
+/* ============================================================
+   Rebalance — structure ported from the paper mockup:
+   slipped list with a total, a connector into the choices,
+   tabular metrics, and a landing state that answers
+   "where does this leave me" before you commit.
+   ============================================================ */
+
+.sam-ios .view-rebalance .reb-scroll { padding: 0 var(--sam-screen-h) var(--sam-space-xl); }
+.sam-ios .view-rebalance .eyebrow.danger { color: var(--sam-danger); }
+.sam-ios .view-rebalance h1 {
+  font-size: var(--sam-fs-title);
+  line-height: 1.18;
+  margin: var(--sam-space-sm) 0 var(--sam-space-sm);
+}
+.sam-ios .view-rebalance .lede {
+  font-size: var(--sam-fs-md);
+  color: var(--sam-text-secondary);
+  line-height: var(--sam-lh-relaxed);
+  margin-bottom: var(--sam-space-lg);
+}
+
+.sam-ios .view-rebalance .slip {
+  background: var(--sam-surface);
+  border: var(--sam-card-border);
+  border-radius: var(--sam-r-md);
+  box-shadow: var(--sam-card-shadow);
+  padding: 2px var(--sam-space-lg);
+}
+.sam-ios .view-rebalance .slip .r {
+  display: flex;
+  align-items: center;
+  gap: var(--sam-space-md);
+  min-height: 48px;
+  border-bottom: 1px solid var(--sam-hairline);
+}
+.sam-ios .view-rebalance .slip .r:last-child { border-bottom: 0; }
+.sam-ios .view-rebalance .slip .r b {
+  flex: 1;
+  font-size: var(--sam-fs-callout);
+  font-weight: var(--sam-fw-medium);
+  line-height: var(--sam-lh-snug);
+}
+.sam-ios .view-rebalance .slip .r em {
+  font-style: normal;
+  font-size: var(--sam-fs-sub);
+  color: var(--sam-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.sam-ios .view-rebalance .slip .tot { border-top: 1px solid var(--sam-border); }
+.sam-ios .view-rebalance .slip .tot b {
+  font-size: var(--sam-fs-xs);
+  font-weight: var(--sam-fw-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sam-text-muted);
+}
+.sam-ios .view-rebalance .slip .tot em {
+  font-size: var(--sam-fs-headline);
+  font-weight: var(--sam-fw-bold);
+  color: var(--sam-danger);
+}
+
+.sam-ios .view-rebalance .linkdown {
+  display: flex;
+  justify-content: center;
+  color: var(--sam-text-disabled);
+  padding: var(--sam-space-md) 0 var(--sam-space-sm);
+}
+
+.sam-ios .view-rebalance .pick-label {
+  font-size: var(--sam-fs-xs);
+  font-weight: var(--sam-fw-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sam-text-muted);
+  background: none;
+  margin-bottom: var(--sam-space-sm);
+}
+.sam-ios .view-rebalance .list { gap: var(--sam-space-sm); }
+.sam-ios .view-rebalance .fixcard {
+  min-height: 72px;
+  align-items: flex-start;
+  padding-top: 15px;
+  padding-bottom: 15px;
+}
+.sam-ios .view-rebalance .fixcard .metric {
+  width: 58px;
+  flex: none;
+  color: var(--sam-brand-soft);
+  font-weight: var(--sam-fw-bold);
+  font-size: var(--sam-fs-subtitle);
+}
+.sam-ios .view-rebalance .fixcard .metric em {
+  font-style: normal;
+  font-size: var(--sam-fs-sub);
+}
+.sam-ios .view-rebalance .fixcard.sel {
+  border-color: var(--sam-brand-deep);
+  box-shadow: inset 0 0 0 0.5px var(--sam-brand-deep);
+}
+.sam-ios .view-rebalance .fixcard .pick {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid var(--sam-text-disabled);
+  flex: none;
+  margin-left: auto;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sam-ios .view-rebalance .fixcard.sel .pick {
+  background: var(--sam-brand-deep);
+  border-color: var(--sam-brand-deep);
+  color: var(--sam-on-brand);
+}
+
+/* where the choice leaves you */
+.sam-ios .view-rebalance .landing {
+  display: flex;
+  align-items: center;
+  gap: var(--sam-space-md);
+  border-radius: var(--sam-r-md);
+  padding: var(--sam-space-lg);
+  margin-top: var(--sam-space-lg);
+}
+.sam-ios .view-rebalance .landing[hidden] { display: none; }
+.sam-ios .view-rebalance .landing .n {
+  font-size: var(--sam-fs-xxl);
+  font-weight: var(--sam-fw-bold);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.sam-ios .view-rebalance .landing p {
+  font-size: var(--sam-fs-sub);
+  line-height: var(--sam-lh-normal);
+  color: var(--sam-text-secondary);
+}
+.sam-ios .view-rebalance .landing.is-short { background: var(--sam-danger-container); }
+.sam-ios .view-rebalance .landing.is-short .n { color: var(--sam-danger); }
+.sam-ios .view-rebalance .landing.is-ok { background: var(--sam-success-container); }
+.sam-ios .view-rebalance .landing.is-ok .n { color: var(--sam-success); }
