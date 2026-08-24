@@ -2069,3 +2069,194 @@
   font-weight: var(--sam-fw-regular);
   color: var(--sam-text-secondary);
 }
+
+/* ============================================================
+   Syllabus — variant B (roomier). Own class, so variant A in
+   .view-syllabus is untouched and the two can sit side by side.
+   ============================================================ */
+
+.sam-ios .view-syllabus-b .syl-head {
+  flex: none;
+  padding: var(--sam-space-lg) var(--sam-screen-h) var(--sam-space-md);
+}
+.sam-ios .view-syllabus-b .syl-head h1 {
+  font-size: var(--sam-fs-hero);
+  font-weight: var(--sam-fw-bold);
+  letter-spacing: -0.03em;
+  line-height: var(--sam-lh-tight);
+}
+.sam-ios .view-syllabus-b .syl-sub {
+  font-size: var(--sam-fs-lg);
+  color: var(--sam-text-secondary);
+  margin-top: var(--sam-space-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.sam-ios .view-syllabus-b .subject-tabs {
+  flex: none;
+  display: flex;
+  gap: var(--sam-space-sm);
+  padding: var(--sam-space-md) var(--sam-screen-h) var(--sam-space-lg);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.sam-ios .view-syllabus-b .subject-tabs::-webkit-scrollbar { display: none; }
+.sam-ios .view-syllabus-b .subject-tab {
+  flex: none;
+  min-height: 44px;
+  padding: 0 var(--sam-space-xl);
+  border-radius: var(--sam-r-pill);
+  border: 1px solid var(--sam-border);
+  background: var(--sam-surface);
+  color: var(--sam-text-secondary);
+  font-family: inherit;
+  font-size: var(--sam-fs-lg);
+  font-weight: var(--sam-fw-medium);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sam-ios .view-syllabus-b .subject-tab.on {
+  background: var(--sam-brand-deep);
+  border-color: var(--sam-brand-deep);
+  color: var(--sam-on-brand);
+  font-weight: var(--sam-fw-semibold);
+}
+
+.sam-ios .view-syllabus-b .syl-scroll {
+  padding: 0 var(--sam-screen-h) var(--sam-space-xxxl);
+}
+.sam-ios .view-syllabus-b .tree {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sam-space-md);
+}
+
+/* each topic is its own card, with real padding around it */
+.sam-ios .view-syllabus-b .node.topcard {
+  background: var(--sam-surface);
+  border: var(--sam-card-border);
+  border-radius: var(--sam-r-md);
+  box-shadow: var(--sam-card-shadow);
+  padding: var(--sam-space-sm) var(--sam-space-lg) var(--sam-space-sm);
+}
+.sam-ios .view-syllabus-b .node.topcard.open {
+  padding-bottom: var(--sam-space-lg);
+}
+
+.sam-ios .view-syllabus-b .node .row {
+  display: flex;
+  align-items: center;
+  gap: var(--sam-space-md);
+  min-height: 60px;
+  padding: var(--sam-space-xs) 0;
+}
+.sam-ios .view-syllabus-b .node.d0 > .row { min-height: 64px; }
+
+.sam-ios .view-syllabus-b .kids {
+  display: none;
+  margin-left: 15px;
+  padding-left: var(--sam-space-lg);
+  border-left: 1.5px solid var(--sam-border);
+  margin-top: var(--sam-space-xs);
+}
+.sam-ios .view-syllabus-b .node.open > .kids { display: block; }
+
+.sam-ios .view-syllabus-b .toggle {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 50%;
+  border: 1.5px solid var(--sam-border);
+  background: var(--sam-surface-control);
+  color: var(--sam-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+.sam-ios .view-syllabus-b .toggle svg { width: 20px; height: 20px; display: block; }
+.sam-ios .view-syllabus-b .node.open > .row > .toggle {
+  color: var(--sam-brand-soft);
+  border-color: var(--sam-brand-deep);
+  background: var(--sam-brand-container);
+}
+.sam-ios .view-syllabus-b .leafdot { width: 32px; height: 32px; flex: none; position: relative; }
+.sam-ios .view-syllabus-b .leafdot::after {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 13px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sam-border);
+}
+
+.sam-ios .view-syllabus-b .tickbox {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  border: 1.5px solid var(--sam-text-disabled);
+  background: none;
+  color: var(--sam-on-success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+}
+.sam-ios .view-syllabus-b .tickbox svg { width: 17px; height: 17px; display: block; }
+.sam-ios .view-syllabus-b .tickbox.all {
+  background: var(--sam-success);
+  border-color: var(--sam-success);
+}
+.sam-ios .view-syllabus-b .tickbox.part { border-color: var(--sam-success); }
+.sam-ios .view-syllabus-b .tickbox.part::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background: var(--sam-success);
+}
+
+.sam-ios .view-syllabus-b .label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  color: var(--sam-text);
+  cursor: pointer;
+}
+.sam-ios .view-syllabus-b .nm {
+  display: block;
+  font-size: var(--sam-fs-lg);
+  font-weight: var(--sam-fw-medium);
+  line-height: var(--sam-lh-normal);
+}
+.sam-ios .view-syllabus-b .nm.all {
+  color: var(--sam-text-muted);
+  text-decoration: line-through;
+}
+.sam-ios .view-syllabus-b .hrs {
+  flex: none;
+  font-size: var(--sam-fs-md);
+  color: var(--sam-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.sam-ios .view-syllabus-b .node.d0 > .row > .label .nm {
+  font-size: var(--sam-fs-xl);
+  font-weight: var(--sam-fw-semibold);
+  letter-spacing: -0.01em;
+}
+.sam-ios .view-syllabus-b .node.d2 > .row > .label .nm {
+  font-size: var(--sam-fs-md);
+  font-weight: var(--sam-fw-regular);
+  color: var(--sam-text-secondary);
+}

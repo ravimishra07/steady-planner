@@ -7,6 +7,7 @@ import { NAV_TABS } from './sam-nav.js';
 import { mountSplash } from './views/splash.js';
 import { mountToday } from './views/today.js';
 import { mountSyllabus } from './views/syllabus.js';
+import { mountSyllabusRoomy } from './views/syllabus-roomy.js';
 import { mountOnboarding } from './views/onboarding.js';
 import { mountFocus } from './views/focus.js';
 import { mountRebalance } from './views/rebalance.js';
@@ -27,6 +28,7 @@ const ROUTES = {
 
   today: { mount: mountToday, tab: 'today', nav: true, title: 'Today' },
   syllabus: { mount: mountSyllabus, tab: 'syllabus', nav: true, title: 'Syllabus' },
+  'syllabus-b': { mount: mountSyllabusRoomy, tab: 'syllabus', nav: true, title: 'Syllabus B' },
   focus: { mount: mountFocus, tab: 'focus', nav: true, title: 'Focus' },
   progress: { mount: mountProgress, tab: 'progress', nav: true, title: 'Progress' },
   more: { mount: mountMore, tab: 'more', nav: true, title: 'More' },

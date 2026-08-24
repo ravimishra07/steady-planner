@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Syllabus · A vs B</title>
+  <script src="sam-theme.js"></script>
+  <link rel="stylesheet" href="sam-tokens.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100dvh;
+      font-family: var(--sam-font);
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(109,53,200,.12), transparent 55%),
+        var(--sam-bg-deep);
+      color: var(--sam-text);
+      padding: 28px 20px 40px;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1 { font-size: var(--sam-fs-xxl); font-weight: var(--sam-fw-bold); letter-spacing: -.02em; }
+    .sub { font-size: var(--sam-fs-md); color: var(--sam-text-secondary); margin-top: 6px; }
+    .sub a { color: var(--sam-brand-soft); }
+    .pair {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      margin-top: 28px;
+    }
+    .col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .cap { display: flex; align-items: baseline; gap: 10px; }
+    .cap b { font-size: var(--sam-fs-lg); font-weight: var(--sam-fw-semibold); }
+    .cap span { font-size: var(--sam-fs-sm); color: var(--sam-text-muted); }
+    /* real iPhone 17 geometry, same as the app shell */
+    .frame {
+      width: 402px;
+      height: 874px;
+      border-radius: 54px;
+      overflow: hidden;
+      background: var(--sam-bg);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.07), 0 28px 90px rgba(0,0,0,.62);
+    }
+    .frame iframe { width: 402px; height: 874px; border: 0; display: block; }
+    @media (max-width: 940px) { .pair { gap: 28px; } }
+  </style>
+</head>
+<body>
+  <h1>Syllabus — A vs B</h1>
+  <p class="sub">Same data, same logic, same tick state. B has more vertical room. &middot;
+    <a href="app.html#/syllabus">open A</a> &middot;
+    <a href="app.html#/syllabus-b">open B</a></p>
+
+  <div class="pair">
+    <div class="col">
+      <div class="cap"><b>A</b><span>current — dense</span></div>
+      <div class="frame"><iframe src="app.html#/syllabus" title="Syllabus A"></iframe></div>
+    </div>
+    <div class="col">
+      <div class="cap"><b>B</b><span>roomier — topic cards</span></div>
+      <div class="frame"><iframe src="app.html#/syllabus-b" title="Syllabus B"></iframe></div>
+    </div>
+  </div>
+</body>
+</html>
