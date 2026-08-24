@@ -1,0 +1,35 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your days</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Devanagari:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+</head><body>
+<div class="phone">
+ <div class="bar"><button class="back" onclick="location.href='02-date.html'">&#8592;</button>
+   <div class="dots"><i class="dot done"></i><i class="dot done"></i><i class="dot done"></i><i class="dot"></i></div></div>
+ <div class="body">
+   <p class="eyebrow">Step 3 of 4</p>
+   <h1>How are your days shaped?</h1>
+   <p class="sub">Working aspirants get a different plan, not just a shorter one.</p>
+   <div id="list"></div>
+ </div>
+ <div class="foot"><button class="cta" id="go" disabled>Continue</button></div>
+</div>
+<script src="data.js"></script>
+<script>
+const S=loadState();
+document.getElementById('list').innerHTML=WORK.map(w=>
+ `<button class="opt" data-id="${w.id}">${w.t}<span>${w.s}</span></button>`).join('');
+document.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));
+  b.classList.add('sel');
+  const w=WORK.find(x=>x.id===b.dataset.id);
+  S.work=w.id; S.wd=w.wd; S.we=w.we; saveState(S);
+  document.getElementById('go').disabled=false;
+});
+if(S.work){const b=document.querySelector('.opt[data-id="'+S.work+'"]');
+  if(b){b.classList.add('sel');document.getElementById('go').disabled=false;}}
+document.getElementById('go').onclick=()=>location.href='04-hours.html';
+</script></body></html>

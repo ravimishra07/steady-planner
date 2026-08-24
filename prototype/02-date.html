@@ -1,0 +1,38 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Exam date</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Devanagari:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+</head><body>
+<div class="phone">
+ <div class="bar"><button class="back" onclick="location.href='01-exam.html'">&#8592;</button>
+   <div class="dots"><i class="dot done"></i><i class="dot done"></i><i class="dot"></i><i class="dot"></i></div></div>
+ <div class="body">
+   <p class="eyebrow">Step 2 of 4</p>
+   <h1>When is the exam?</h1>
+   <p class="sub">Everything gets planned backward from this date.</p>
+   <div class="countdown"><span class="n" id="n">&mdash;</span><span class="l" id="l">days from today</span></div>
+   <div class="field"><label>Exam date</label><input type="date" id="d"></div>
+   <button class="ghost" id="nodate">Date not announced yet &#8594;</button>
+ </div>
+ <div class="foot"><button class="cta" id="go" disabled>Continue</button></div>
+</div>
+<script src="data.js"></script>
+<script>
+const S=loadState(), n=document.getElementById('n'), l=document.getElementById('l'), go=document.getElementById('go');
+function show(days,label){n.textContent=days;l.innerHTML=label;go.disabled=false;}
+document.getElementById('d').onchange=e=>{
+  if(!e.target.value)return;
+  S.date=e.target.value; S.days=daysUntil(e.target.value); saveState(S);
+  show(S.days,'days from today');
+};
+document.getElementById('nodate').onclick=()=>{
+  S.date=null; S.days=150; saveState(S);
+  show(150,'days &mdash; your own target,<br>change it any time');
+};
+if(S.date){document.getElementById('d').value=S.date;show(S.days,'days from today');}
+else if(S.days){show(S.days,'days from today');}
+go.onclick=()=>location.href='03-shape.html';
+</script></body></html>

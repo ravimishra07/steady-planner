@@ -1,0 +1,132 @@
+/* sam-md.css — Material Design 3 component primitives (web prototype) */
+
+/* ── Small top app bar (64dp) ──
+   Ref: M3 TopAppBar · title = Title Large · actions = 48dp icon buttons */
+.md-top-app-bar {
+  flex: none;
+  flex-shrink: 0;
+  height: var(--md-top-bar-h);
+  min-height: var(--md-top-bar-h);
+  background: var(--sam-surface);
+  border-bottom: 1px solid var(--sam-hairline-soft);
+  box-sizing: border-box;
+}
+
+.md-top-app-bar__row {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding-left: var(--md-pad-screen);
+  padding-right: var(--md-pad-actions);
+  gap: var(--sam-space-sm);
+}
+
+.md-top-app-bar__title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--md-title-lg);
+  line-height: var(--md-title-lg-lh);
+  font-weight: var(--sam-fw-regular);
+  letter-spacing: 0;
+  color: var(--sam-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.md-top-app-bar__actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-right: calc(var(--md-pad-actions) * -1 + 4px);
+}
+
+/* M3 icon button: 48×48 touch, 24px icon, circular state layer */
+.md-icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--md-touch-min);
+  height: var(--md-touch-min);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--sam-text-secondary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.md-icon-btn svg {
+  width: var(--md-icon);
+  height: var(--md-icon);
+}
+.md-icon-btn:active {
+  background: color-mix(in srgb, var(--sam-text) 8%, transparent);
+}
+.md-icon-btn[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--sam-brand) 12%, transparent);
+  color: var(--sam-brand-soft);
+}
+
+/* M3 menu surface */
+.md-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 220px;
+  max-width: min(280px, 90vw);
+  background: var(--sam-surface-3);
+  border-radius: var(--md-menu-r);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.14),
+    0 6px 16px rgba(0, 0, 0, 0.22);
+  padding: var(--sam-space-sm) 0;
+  z-index: 30;
+}
+.md-menu__head {
+  padding: var(--sam-space-sm) var(--md-pad-screen) var(--sam-space-xs);
+  font-size: var(--md-label-lg);
+  line-height: var(--md-label-lg-lh);
+  font-weight: var(--sam-fw-medium);
+  color: var(--sam-text-muted);
+  letter-spacing: 0.006em;
+}
+.md-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sam-space-md);
+  width: 100%;
+  min-height: var(--md-touch-min);
+  padding: 0 var(--md-pad-screen);
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: var(--md-body-lg);
+  line-height: var(--sam-lh-normal);
+  color: var(--sam-text);
+  text-align: left;
+  cursor: pointer;
+}
+.md-menu-item:active {
+  background: color-mix(in srgb, var(--sam-text) 8%, transparent);
+}
+.md-menu-item__check {
+  width: var(--md-icon);
+  height: var(--md-icon);
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sam-brand-deep);
+}
+.md-menu-item__text {
+  flex: 1;
+}
+
+.md-menu-anchor {
+  position: relative;
+  flex: none;
+}

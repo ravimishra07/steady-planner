@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>06 · Home</title>
+  <script src="sam-theme.js"></script>
+  <link rel="stylesheet" href="sam-tokens.css">
+  <link rel="stylesheet" href="sam-shared.css">
+  <link rel="stylesheet" href="sam-nav.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: var(--sam-bg); }
+    body { display: flex; justify-content: center; }
+
+    .phone.sam-ios {
+      width: 390px;
+      max-width: 100vw;
+      height: 100vh;
+      max-height: 844px;
+      background: var(--sam-bg);
+      color: var(--sam-text);
+      font-family: var(--sam-font);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      position: relative;
+    }
+
+    /* ── Top bar ── */
+    .home-top {
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: var(--sam-space-sm);
+      padding: 6px var(--sam-screen-h) var(--sam-space-sm);
+    }
+    .home-top .glass-btn { width: 40px; height: 40px; }
+    .exam-pill {
+      flex: 1;
+      min-width: 0;
+      height: 40px;
+      border-radius: var(--sam-r-pill);
+      background: var(--sam-glass-tint);
+      border: 1px solid var(--sam-glass-stroke);
+      color: var(--sam-text-secondary);
+      font-family: inherit;
+      font-size: var(--sam-fs-md);
+      font-weight: var(--sam-fw-medium);
+      padding: 0 var(--sam-space-lg);
+      cursor: pointer;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .exam-pill:active { opacity: 0.82; }
+
+    /* ── Cushion strip ── */
+    .cushion-strip {
+      flex: none;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: var(--sam-space-md);
+      padding: var(--sam-space-md) var(--sam-screen-h);
+      border: 0;
+      border-top: 1px solid var(--sam-hairline-soft);
+      border-bottom: 1px solid var(--sam-hairline-soft);
+      font-family: inherit;
+      font-size: var(--sam-fs-md);
+      font-weight: var(--sam-fw-semibold);
+      text-align: left;
+      cursor: pointer;
+    }
+    .cushion-strip.short {
+      background: var(--sam-danger-container);
+      color: var(--sam-danger-soft);
+    }
+    .cushion-strip.buffer {
+      background: var(--sam-success-container);
+      color: var(--sam-success);
+    }
+    .cushion-strip b { flex: 1; font-weight: var(--sam-fw-semibold); }
+    .cushion-strip svg { flex: none; opacity: 0.85; }
+
+    /* ── Scroll area ── */
+    .home-scroll {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-bottom: var(--sam-space-sm);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* ── Today card ── */
+    .today-card {
+      margin: var(--sam-space-md) var(--sam-screen-h) var(--sam-space-lg);
+      padding: var(--sam-space-lg);
+      background: var(--sam-surface-tinted);
+      border: var(--sam-card-border);
+      border-radius: var(--sam-r-lg);
+      box-shadow: var(--sam-card-shadow);
+    }
+    .today-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--sam-space-md);
+      margin-bottom: var(--sam-space-sm);
+    }
+    .today-head h2 {
+      font-size: var(--sam-fs-xl);
+      font-weight: var(--sam-fw-bold);
+      letter-spacing: -0.02em;
+      line-height: var(--sam-lh-tight);
+    }
+    .today-sched {
+      text-align: right;
+      flex: none;
+    }
+    .today-sched b {
+      display: block;
+      font-size: var(--sam-fs-title);
+      font-weight: var(--sam-fw-bold);
+      line-height: 1;
+      color: var(--sam-text);
+      font-variant-numeric: tabular-nums;
+    }
+    .today-sched span {
+      display: block;
+      font-size: var(--sam-fs-sm);
+      color: var(--sam-text-muted);
+      margin-top: 4px;
+    }
+    .today-sub {
+      font-size: var(--sam-fs-md);
+      color: var(--sam-text-secondary);
+      line-height: var(--sam-lh-normal);
+      margin-bottom: var(--sam-space-lg);
+    }
+    .today-bar {
+      height: 5px;
+      border-radius: 3px;
+      background: var(--sam-elevated);
+      overflow: hidden;
+      margin-bottom: var(--sam-space-sm);
+    }
+    .today-bar i {
+      display: block;
+      height: 100%;
+      background: var(--sam-success);
+      border-radius: 3px;
+      transition: width 0.25s ease;
+    }
+    .today-foot {
+      display: flex;
+      justify-content: space-between;
+      font-size: var(--sam-fs-md);
+    }
+    .today-foot b { font-weight: var(--sam-fw-semibold); }
+    .today-foot .mono {
+      font-size: var(--sam-fs-sm);
+      color: var(--sam-text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Empty state ── */
+    .empty-card {
+      margin: var(--sam-space-md) var(--sam-screen-h) var(--sam-space-lg);
+      padding: var(--sam-space-xxl) var(--sam-space-lg);
+      text-align: center;
+      background: var(--sam-surface);
+      border: var(--sam-card-border);
+      border-radius: var(--sam-r-lg);
+      box-shadow: var(--sam-card-shadow);
+    }
+    .empty-card h2 {
+      font-size: var(--sam-fs-xl);
+      font-weight: var(--sam-fw-bold);
+      margin-bottom: var(--sam-space-sm);
+    }
+    .empty-card p {
+      font-size: var(--sam-fs-md);
+      color: var(--sam-text-secondary);
+      line-height: var(--sam-lh-relaxed);
+      margin-bottom: var(--sam-space-xl);
+    }
+    .empty-card .cta { max-width: 240px; margin: 0 auto; }
+
+    /* ── Time blocks ── */
+    .time-group { margin-bottom: var(--sam-space-lg); }
+    .time-label {
+      font-size: var(--sam-fs-xs);
+      font-weight: var(--sam-fw-semibold);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--sam-text-muted);
+      padding: 0 var(--sam-screen-h) var(--sam-space-sm);
+    }
+    .block-row {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--sam-space-md);
+      padding: 0 var(--sam-screen-h) var(--sam-space-md);
+    }
+    .block-time {
+      font-size: var(--sam-fs-xs);
+      color: var(--sam-text-muted);
+      width: 38px;
+      flex: none;
+      text-align: right;
+      padding-top: 14px;
+      line-height: 1.2;
+      font-variant-numeric: tabular-nums;
+    }
+    .block-card {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: var(--sam-space-md);
+      padding: var(--sam-space-md);
+      background: var(--sam-surface);
+      border: var(--sam-card-border);
+      border-radius: var(--sam-r-md);
+      box-shadow: var(--sam-card-shadow);
+    }
+    .block-card.revise {
+      background: var(--sam-brand-container);
+      border-color: transparent;
+      box-shadow: inset 0 0 0 0.5px var(--sam-brand-deep);
+    }
+    .block-card.break {
+      background: transparent;
+      border: 1.5px dashed var(--sam-border);
+      box-shadow: none;
+      justify-content: center;
+      min-height: 44px;
+      padding: var(--sam-space-md) var(--sam-space-lg);
+    }
+    .block-card.break b {
+      font-size: var(--sam-fs-md);
+      font-weight: var(--sam-fw-regular);
+      color: var(--sam-text-muted);
+    }
+    .block-chk {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1.5px solid var(--sam-text-disabled);
+      flex: none;
+      position: relative;
+      background: none;
+      padding: 0;
+      cursor: pointer;
+    }
+    .block-chk.on {
+      background: var(--sam-success);
+      border-color: var(--sam-success);
+    }
+    .block-chk.on svg {
+      position: absolute;
+      left: 3px;
+      top: 3px;
+      color: var(--sam-on-success);
+    }
+    .block-body { flex: 1; min-width: 0; }
+    .block-body b {
+      display: block;
+      font-size: var(--sam-fs-callout);
+      font-weight: var(--sam-fw-semibold);
+      line-height: var(--sam-lh-snug);
+    }
+    .block-body b.done {
+      color: var(--sam-text-muted);
+      text-decoration: line-through;
+      font-weight: var(--sam-fw-medium);
+    }
+    .block-body span {
+      display: block;
+      font-size: var(--sam-fs-sub);
+      color: var(--sam-text-muted);
+      margin-top: 3px;
+      line-height: var(--sam-lh-normal);
+    }
+    .block-card .tag { text-transform: uppercase; font-size: var(--sam-fs-xxs); }
+
+    /* ── Dock: FAB + nav ── */
+    .home-dock {
+      flex: none;
+      position: relative;
+      background: var(--sam-bg);
+    }
+    .fab {
+      display: block;
+      width: calc(100% - var(--sam-screen-h) * 2);
+      margin: 0 auto var(--sam-space-sm);
+      min-height: 50px;
+      background: var(--sam-brand-deep);
+      color: var(--sam-on-brand);
+      border: 1px solid var(--sam-cta-border);
+      border-radius: var(--sam-r-pill);
+      font-family: inherit;
+      font-size: var(--sam-fs-lg);
+      font-weight: var(--sam-fw-semibold);
+      cursor: pointer;
+      padding: 0 var(--sam-space-xl);
+    }
+    .fab:active { opacity: 0.9; }
+    .fab[hidden] { display: none; }
+
+    .phone.sam-ios .gesture {
+      flex: none;
+      height: 34px;
+      background: var(--sam-tab-bg);
+    }
+  </style>
+</head>
+<body>
+  <div class="phone sam-ios" id="app">
+    <div class="safe"></div>
+
+    <header class="home-top">
+      <button type="button" class="glass-btn" aria-label="Menu">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M3.5 5.5h13M3.5 10h13M3.5 14.5h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <button type="button" class="exam-pill" id="exam-pill" aria-label="Switch exam">—</button>
+      <button type="button" class="glass-btn" aria-label="Settings">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <circle cx="10" cy="10" r="2.8" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 2.5v2.2M10 15.3v2.2M2.5 10h2.2M15.3 10h2.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <button type="button" class="cushion-strip short" id="cushion" hidden>
+      <b id="cushion-text"></b>
+      <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path d="M7.5 4.5L13 10l-5.5 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    <div class="home-scroll" id="scroll">
+      <div id="today-area"></div>
+      <div id="blocks-area"></div>
+    </div>
+
+    <div class="home-dock">
+      <button type="button" class="fab" id="fab" hidden>Start focus session</button>
+      <div id="nav-root"></div>
+    </div>
+    <div class="gesture"></div>
+  </div>
+
+  <script type="module">
+    import {
+      loadState,
+      saveState,
+      seedDemoPlan,
+      examFor,
+      cushion,
+      todayBudget,
+      todayBlocks,
+      BLOCK_GROUPS,
+      TAG_LABELS,
+      doneMinutes,
+      formatDayLine,
+      blockIsDone,
+    } from './data.js';
+    import { mountNav, themeQueryFromLocation } from './sam-nav.js';
+
+    const params = new URLSearchParams(location.search);
+    const themeQ = themeQueryFromLocation();
+
+    const demoEmpty = params.get('demo') === 'empty';
+
+    if (params.get('empty') === '1') {
+      try { localStorage.removeItem('plan'); } catch (_) {}
+    } else if (params.get('seed') === '1') {
+      seedDemoPlan();
+    }
+
+    let state = demoEmpty ? null : loadState();
+    const blocks = todayBlocks();
+
+    const examPill = document.getElementById('exam-pill');
+    const cushionEl = document.getElementById('cushion');
+    const cushionText = document.getElementById('cushion-text');
+    const todayArea = document.getElementById('today-area');
+    const blocksArea = document.getElementById('blocks-area');
+    const fab = document.getElementById('fab');
+
+    mountNav(document.getElementById('nav-root'), 'today', { themeQuery: themeQ });
+
+    examPill.addEventListener('click', () => {
+      examPill.style.transform = 'scale(0.98)';
+      setTimeout(() => { examPill.style.transform = ''; }, 120);
+    });
+
+    cushionEl.addEventListener('click', () => {
+      location.href = 'Rebalance.dc.html' + themeQ;
+    });
+
+    fab.addEventListener('click', () => {
+      location.href = 'Focus.dc.html' + themeQ;
+    });
+
+    function renderEmpty() {
+      cushionEl.hidden = true;
+      fab.hidden = true;
+      examPill.textContent = 'No exam selected';
+      todayArea.innerHTML = `
+        <div class="empty-card">
+          <h2>No plan yet</h2>
+          <p>Finish onboarding to get a daily schedule built from your syllabus and hours.</p>
+          <button type="button" class="cta" id="onboard-cta">Set up my plan</button>
+        </div>`;
+      blocksArea.innerHTML = '';
+      document.getElementById('onboard-cta').addEventListener('click', () => {
+        location.href = 'Exam.dc.html' + themeQ;
+      });
+    }
+
+    function renderCushion(c) {
+      cushionEl.hidden = false;
+      cushionEl.classList.toggle('short', c.short);
+      cushionEl.classList.toggle('buffer', !c.short);
+      cushionText.textContent = c.short
+        ? `${c.gap} hrs behind the syllabus`
+        : `${Math.abs(c.gap)} hrs of buffer in hand`;
+    }
+
+    function renderTodayCard() {
+      const budget = todayBudget(state);
+      const doneMins = doneMinutes(blocks, state.blocksDone || {});
+      const doneHrs = (doneMins / 60).toFixed(1);
+      const pct = budget > 0 ? Math.min(100, Math.round((doneMins / (budget * 60)) * 100)) : 0;
+
+      todayArea.innerHTML = `
+        <div class="today-card">
+          <div class="today-head">
+            <h2>Today&rsquo;s plan</h2>
+            <div class="today-sched">
+              <b>${budget}h</b>
+              <span>scheduled</span>
+            </div>
+          </div>
+          <p class="today-sub">${formatDayLine(state)}</p>
+          <div class="today-bar"><i style="width:${pct}%"></i></div>
+          <div class="today-foot">
+            <b>${pct}% complete</b>
+            <span class="mono">${doneHrs} of ${budget} hrs</span>
+          </div>
+        </div>`;
+    }
+
+    function renderBlocks() {
+      const done = state.blocksDone || {};
+      const checkSvg = '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+      blocksArea.innerHTML = BLOCK_GROUPS.map((group) => {
+        const items = blocks.filter((b) => b.group === group.id);
+        if (!items.length) return '';
+        const rows = items.map((b) => {
+          if (b.break) {
+            return `
+              <div class="block-row">
+                <span class="block-time">${b.time}</span>
+                <div class="block-card break"><b>Break — ${b.mins} min</b></div>
+              </div>`;
+          }
+          const isDone = blockIsDone(done, b.id);
+          const tagCls = b.tag === 'prac' ? 'prac' : b.tag === 'rev' ? 'revt' : 'read';
+          const reviseCls = b.tag === 'rev' ? ' revise' : '';
+          return `
+            <div class="block-row" data-id="${b.id}">
+              <span class="block-time">${b.time}</span>
+              <div class="block-card${reviseCls}">
+                <button type="button" class="block-chk${isDone ? ' on' : ''}" aria-label="Mark complete" aria-pressed="${isDone}">
+                  ${isDone ? checkSvg : ''}
+                </button>
+                <div class="block-body">
+                  <b class="${isDone ? 'done' : ''}">${b.title}</b>
+                  <span>${b.sub}</span>
+                </div>
+                <span class="tag ${tagCls}">${TAG_LABELS[b.tag] || b.tag}</span>
+              </div>
+            </div>`;
+        }).join('');
+        return `<section class="time-group"><p class="time-label">${group.label}</p>${rows}</section>`;
+      }).join('');
+
+      blocksArea.querySelectorAll('.block-chk').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const row = btn.closest('.block-row');
+          const id = row.dataset.id;
+          const numId = /^\d+$/.test(id) ? Number(id) : id;
+          const wasDone = blockIsDone(state.blocksDone, numId);
+          const next = !wasDone;
+          state.blocksDone = { ...(state.blocksDone || {}), [numId]: next };
+          if (!next) {
+            const copy = { ...state.blocksDone };
+            delete copy[numId];
+            delete copy[String(numId)];
+            state.blocksDone = copy;
+          }
+          saveState(state);
+          renderTodayCard();
+          btn.classList.toggle('on', next);
+          btn.setAttribute('aria-pressed', String(next));
+          btn.innerHTML = next ? checkSvg : '';
+          const title = btn.nextElementSibling.querySelector('b');
+          title.classList.toggle('done', next);
+        });
+      });
+    }
+
+    function renderPlan() {
+      const exam = examFor(state.exam);
+      examPill.textContent = `${exam.name} · ${state.days} days`;
+      const c = cushion(state);
+      renderCushion(c);
+      renderTodayCard();
+      renderBlocks();
+      fab.hidden = false;
+    }
+
+    if (!state) {
+      renderEmpty();
+    } else {
+      renderPlan();
+    }
+  </script>
+</body>
+</html>

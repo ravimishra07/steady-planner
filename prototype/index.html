@@ -1,0 +1,32 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prototype index</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Devanagari:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+</head><body>
+<style>
+.idx{width:100%;max-width:420px;background:var(--paper);border-radius:20px;padding:24px}
+.idx a{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line);text-decoration:none;color:var(--ink)}
+.idx a:last-of-type{border-bottom:0}
+.idx a em{font-family:"IBM Plex Mono",monospace;font-size:11px;font-style:normal;color:var(--ink-3);width:22px;flex:none}
+.idx a b{flex:1;font-size:14px;font-weight:500}
+.idx a span{font-size:11.5px;color:var(--ink-3)}
+</style>
+<div class="idx">
+ <p class="eyebrow">Exam planner</p>
+ <h1 style="font-size:22px;margin-bottom:16px">Prototype screens</h1>
+ <a href="01-exam.html"><em>01</em><b>Pick exam</b></a>
+ <a href="02-date.html"><em>02</em><b>Exam date</b></a>
+ <a href="03-shape.html"><em>03</em><b>Day shape</b></a>
+ <a href="04-hours.html"><em>04</em><b>Hours</b></a>
+ <a href="05-cushion.html"><em>05</em><b>Cushion</b><span>the payoff</span></a>
+ <a href="10-paywall.html"><em>10</em><b>Paywall</b></a>
+ <a href="06-home-plan.html"><em>06</em><b>Home &mdash; today's plan</b></a>
+ <a href="07-home-syllabus.html"><em>07</em><b>Home &mdash; syllabus</b></a>
+ <a href="08-focus.html"><em>08</em><b>Focus session</b></a>
+ <a href="09-rebalance.html"><em>09</em><b>Rebalance</b><span>4 days missed</span></a>
+ <button class="cta" style="margin-top:18px" onclick="resetState();alert('State cleared. Start at 01.')">Reset saved state</button>
+</div>
+<script src="data.js"></script></body></html>

@@ -1,0 +1,126 @@
+/* Shared screen patterns — uses tokens from sam-tokens.css */
+
+/* Onboarding shell — content from top, CTA pinned bottom */
+.sam-ios .onboard-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 4px var(--sam-screen-h) 18px;
+}
+.sam-ios .onboard-bar .bar-sp { width: 44px; flex: none; }
+.sam-ios .onboard-body {
+  flex: 0 1 auto;
+  padding: 6px var(--sam-screen-h) 0;
+  overflow: hidden;
+}
+.sam-ios .onboard-body > * + * { margin-top: 0; }
+.sam-ios .onboard-stack { display: flex; flex-direction: column; gap: var(--sam-section-gap); }
+
+.sam-ios .content { flex: 1; padding: 4px var(--sam-screen-h) 0; overflow: hidden; }
+.sam-ios .backrow { display: flex; align-items: center; gap: 12px; padding: 0 0 var(--sam-space-md); }
+.sam-ios .dots { display: flex; gap: 6px; flex: 1; }
+.sam-ios .dots i { height: 4px; flex: 1; border-radius: 2px; background: var(--sam-elevated); }
+.sam-ios .dots i.on { background: var(--sam-brand-deep); }
+.sam-ios .ghost {
+  width: 100%; min-height: 48px; background: none; border: 0;
+  color: var(--sam-text-muted); font-family: inherit; font-size: var(--sam-fs-callout);
+  cursor: pointer; text-align: left; padding: 14px 0 4px;
+}
+.sam-ios .field {
+  background: var(--sam-surface); border: var(--sam-card-border);
+  border-radius: var(--sam-r-md); padding: 16px 18px; margin-bottom: 0;
+  box-shadow: var(--sam-card-shadow);
+}
+.sam-ios .field label {
+  display: block; font-size: var(--sam-fs-xs); font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--sam-text-muted); margin-bottom: 10px;
+}
+.sam-ios .field .val { font-size: var(--sam-fs-headline); color: var(--sam-text); line-height: 1.35; }
+.sam-ios .countdown {
+  background: var(--sam-surface-tinted); border: var(--sam-card-border);
+  border-radius: var(--sam-r-md); padding: 22px 22px 20px;
+  display: flex; align-items: baseline; gap: 14px;
+}
+.sam-ios .countdown .n { font-size: var(--sam-fs-countdown); font-weight: 700; line-height: .92; letter-spacing: -.03em; color: var(--sam-text); }
+.sam-ios .countdown .l { font-size: var(--sam-fs-callout); color: var(--sam-text-secondary); line-height: 1.45; }
+.sam-ios .list { display: flex; flex-direction: column; gap: var(--sam-space-md); }
+.sam-ios .opt, .sam-ios .exam, .sam-ios .fixcard, .sam-ios .plan {
+  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+  background: var(--sam-surface); border: var(--sam-card-border); border-radius: var(--sam-r-md);
+  padding: 16px 18px; cursor: pointer; font-family: inherit; color: var(--sam-text);
+  box-shadow: var(--sam-card-shadow);
+}
+.sam-ios .opt { min-height: 56px; }
+.sam-ios .exam { min-height: 56px; }
+.sam-ios .opt.sel, .sam-ios .exam.sel, .sam-ios .plan.sel {
+  border-color: var(--sam-brand-deep);
+  box-shadow: inset 0 0 0 0.5px var(--sam-brand-deep);
+}
+.sam-ios .opt > span:first-child,
+.sam-ios .exam > span:first-child { flex: 1; min-width: 0; }
+.sam-ios .opt b, .sam-ios .exam h3 { font-size: var(--sam-fs-lg); font-weight: 600; margin: 0; display: block; }
+.sam-ios .tick, .sam-ios .pick {
+  width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--sam-text-disabled);
+  flex: none; margin-left: auto; position: relative;
+}
+.sam-ios .opt.sel .tick, .sam-ios .exam.sel .tick, .sam-ios .plan.sel .pick {
+  background: var(--sam-brand-deep); border-color: var(--sam-brand-deep);
+}
+.sam-ios .opt.sel .tick svg, .sam-ios .exam.sel .tick svg, .sam-ios .plan.sel .pick svg {
+  position: absolute; left: 3px; top: 3px; color: var(--sam-on-brand);
+}
+.sam-ios .slide {
+  background: var(--sam-surface); border: var(--sam-card-border);
+  border-radius: var(--sam-r-md); padding: 18px; box-shadow: var(--sam-card-shadow);
+}
+.sam-ios .slide .top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
+.sam-ios .slide .top b { font-size: var(--sam-fs-callout); font-weight: 600; }
+.sam-ios .slide .top i { font-style: normal; font-size: var(--sam-fs-subtitle); font-weight: 600; color: var(--sam-brand); font-variant-numeric: tabular-nums; }
+.sam-ios .track-line { height: 5px; background: var(--sam-elevated); border-radius: 3px; position: relative; }
+.sam-ios .track-line i { position: absolute; left: 0; top: 0; height: 100%; background: var(--sam-brand-deep); border-radius: 2px; }
+.sam-ios .note { font-size: var(--sam-fs-sub); color: var(--sam-text-muted); line-height: 1.5; }
+
+/* Shared list-row typography (Today, Main, Rebalance) */
+.sam-ios .metric {
+  font-size: var(--sam-fs-headline);
+  font-weight: var(--sam-fw-semibold);
+  color: var(--sam-text-secondary);
+  width: 54px;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+.sam-ios .ftxt b,
+.sam-ios .rt b {
+  display: block;
+  font-size: var(--sam-fs-callout);
+  font-weight: var(--sam-fw-semibold);
+  line-height: var(--sam-lh-snug);
+}
+.sam-ios .ftxt span,
+.sam-ios .rt span {
+  display: block;
+  font-size: var(--sam-fs-sub);
+  color: var(--sam-text-muted);
+  margin-top: 2px;
+  line-height: var(--sam-lh-normal);
+}
+.sam-ios .chev { color: var(--sam-text-muted); margin-left: auto; font-size: var(--sam-fs-subtitle); }
+.sam-ios .nav-title { flex: 1; font-size: var(--sam-fs-headline); font-weight: var(--sam-fw-semibold); }
+
+/* Tags + tinted rows */
+.sam-ios .tag {
+  font-size: var(--sam-fs-xs);
+  font-weight: var(--sam-fw-semibold);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 4px 7px;
+  border-radius: var(--sam-r-sm);
+  flex: none;
+}
+.sam-ios .tag.read { background: var(--sam-info-tint); color: var(--sam-info); }
+.sam-ios .tag.prac { background: var(--sam-success-container); color: var(--sam-success); }
+.sam-ios .tag.revt { background: var(--sam-warning-tint); color: var(--sam-warning); }
+.sam-ios .tag.short { background: var(--sam-danger-container); color: var(--sam-danger); }
+.sam-ios .row.rev { background: var(--sam-warning-row); }

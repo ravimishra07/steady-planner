@@ -1,0 +1,48 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rebalance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Devanagari:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+</head><body>
+<style>
+.slip{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:6px 15px;margin-bottom:14px}
+.slip .r{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line)}
+.slip .r:last-child{border-bottom:0}
+.slip .r b{flex:1;font-size:13px;font-weight:500}
+.slip .r em{font-family:"IBM Plex Mono",monospace;font-size:11px;font-style:normal;color:var(--red)}
+.arrow{text-align:center;color:var(--ink-3);font-size:18px;margin:2px 0 10px}
+</style>
+<div class="phone">
+ <div class="bar"><button class="back" onclick="location.href='06-home-plan.html'">&#8592;</button>
+  <div class="dots"><i class="dot done"></i><i class="dot done"></i><i class="dot done"></i><i class="dot done"></i></div></div>
+ <div class="body">
+  <p class="eyebrow">4 days missed</p>
+  <h1>Here is what slipped.</h1>
+  <p class="sub">Nothing is lost. It has to go somewhere, and you choose where.</p>
+  <div class="slip">
+   <div class="r"><b>Geometry &mdash; Circles</b><em>6 hrs</em></div>
+   <div class="r"><b>Mensuration &mdash; Solids</b><em>7 hrs</em></div>
+   <div class="r"><b>Revision: Ratio &amp; Proportion</b><em>2 hrs</em></div>
+   <div class="r"><b>Current Affairs &times; 4 days</b><em>2 hrs</em></div>
+  </div>
+  <p class="arrow">&#8595;</p>
+  <p class="eyebrow">Pick one</p>
+  <div class="fix">
+   <div class="row"><b>+0.4h</b><span>Spread all 17 hrs across your remaining days. No day gains more than 25 minutes.</span></div>
+   <div class="row"><b>&minus;2</b><span>Drop Mensuration &mdash; Solids and one revision pass. Costs about 1.5 marks.</span></div>
+   <div class="row"><b>3d</b><span>Push your target date back 3 days and keep everything.</span></div>
+  </div>
+  <div class="verdict short" id="after"><h2 id="ah"></h2><p>This is where you land after rebalancing. Your cushion updates the moment you pick.</p></div>
+ </div>
+ <div class="foot"><button class="cta" onclick="location.href='06-home-plan.html'">Spread it across my days</button></div>
+</div>
+<script src="data.js"></script>
+<script>
+const S=loadState(), c=cushion(S);
+const after=c.gap+17;
+const el=document.getElementById('after');
+if(after>0){el.className='verdict short';document.getElementById('ah').textContent=after+' hours short';}
+else{el.className='verdict ok';document.getElementById('ah').textContent=Math.abs(after)+' hours to spare';}
+</script></body></html>

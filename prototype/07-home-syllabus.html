@@ -1,0 +1,52 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Syllabus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Devanagari:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+</head><body>
+<div class="phone">
+ <div class="hbar">
+  <div class="r1"><div><p class="ex" id="ex"></p><h2>Syllabus</h2></div>
+   <div class="days"><b id="dl"></b><span>days left</span></div></div>
+  <div class="chip"><i id="cdot"></i><span id="ctxt"></span></div>
+ </div>
+ <div class="tabs">
+  <button class="tab" onclick="location.href='06-home-plan.html'">Plan</button>
+  <button class="tab on">Syllabus</button>
+ </div>
+ <div class="pane on">
+  <p class="daylabel">Tap any topic to mark it done. Add or remove anything.</p>
+  <div id="syl"></div>
+  <p class="note">Seeded from the official notification.<br>Everything here is yours to edit.</p>
+ </div>
+</div>
+<script src="data.js"></script>
+<script>
+const S=loadState(), c=cushion(S), E=examFor(S.exam), SY=syllabusFor(S.exam);
+document.getElementById('ex').textContent=E.name;
+document.getElementById('dl').textContent=S.days;
+document.getElementById('cdot').style.background=c.short?'var(--red)':'var(--dot-green)';
+document.getElementById('ctxt').textContent=c.short?(c.gap+' hrs behind the syllabus'):(Math.abs(c.gap)+' hrs of buffer in hand');
+document.getElementById('syl').innerHTML=SY.map((s,i)=>{
+ const h=s.t.reduce((a,b)=>a+b[1],0);
+ const dn=s.t.filter((t,j)=>S.done[i+'_'+j]).length;
+ return '<div class="sec" id="sec'+i+'"><button onclick="tog('+i+')">'+
+  '<div class="nm"><b>'+s.n+'</b><span>'+s.t.length+' topics \u00B7 '+h+' hrs \u00B7 '+s.q+' questions</span></div>'+
+  '<div class="mini"><i id="m'+i+'" style="width:'+Math.round(dn/s.t.length*100)+'%"></i></div>'+
+  '<span class="caret">\u203A</span></button><div class="topics">'+
+  s.t.map((t,j)=>'<div class="tp"><div class="box sm'+(S.done[i+'_'+j]?' chk':'')+'" onclick="tick('+i+','+j+',this)"></div>'+
+   '<b id="tn'+i+'_'+j+'"'+(S.done[i+'_'+j]?' class="done"':'')+'>'+t[0]+'</b><em>'+t[1]+'h</em></div>').join('')+
+  '<button class="addrow">+ Add a topic</button></div></div>';
+}).join('');
+function tog(i){document.getElementById('sec'+i).classList.toggle('open');}
+function tick(i,j,el){
+ el.classList.toggle('chk');
+ document.getElementById('tn'+i+'_'+j).classList.toggle('done');
+ S.done[i+'_'+j]=el.classList.contains('chk'); saveState(S);
+ const sec=document.getElementById('sec'+i);
+ const n=sec.querySelectorAll('.tp .box.chk').length;
+ document.getElementById('m'+i).style.width=Math.round(n/SY[i].t.length*100)+'%';
+}
+</script></body></html>

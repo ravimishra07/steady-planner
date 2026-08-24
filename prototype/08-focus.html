@@ -1,0 +1,49 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Focus session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Devanagari:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+</head><body>
+<style>
+.dark{background:var(--ink);flex:1;display:flex;flex-direction:column;padding:26px 22px 22px;color:#fff}
+.clock{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:74px;letter-spacing:-.04em;line-height:1;margin:auto 0 6px}
+.att{font-size:13.5px;color:var(--on-dark);line-height:1.5;margin-bottom:auto}
+.att b{color:#fff;display:block;font-size:15px;font-weight:600;margin-bottom:3px}
+.ring{height:4px;background:rgba(255,255,255,.14);border-radius:2px;margin:22px 0 18px;overflow:hidden}
+.ring i{display:block;height:100%;background:#fff;width:34%}
+.perm{background:rgba(255,255,255,.07);border-radius:var(--r);padding:15px;margin-bottom:14px}
+.perm b{display:block;font-size:13.5px;font-weight:600;margin-bottom:4px}
+.perm p{font-size:12px;color:var(--on-dark);line-height:1.5;margin-bottom:12px}
+.perm button{width:100%;background:#fff;color:var(--ink);border:0;border-radius:10px;padding:12px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.blocked{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.blocked span{font-family:"IBM Plex Mono",monospace;font-size:10px;background:rgba(255,255,255,.1);padding:5px 9px;border-radius:6px;color:var(--on-dark-2)}
+.stop{width:100%;background:transparent;border:1px solid rgba(255,255,255,.24);color:#fff;border-radius:var(--r);padding:15px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+</style>
+<div class="phone">
+ <div class="dark">
+  <p class="eyebrow" style="color:var(--ink-3)">Focus session &middot; 50 min</p>
+  <div class="clock" id="clk">32:47</div>
+  <p class="att"><b>Geometry &mdash; Triangles: similarity</b>Logged against this task, not as loose minutes</p>
+  <div class="ring"><i></i></div>
+  <div class="perm" id="perm">
+   <b>Block distracting apps?</b>
+   <p>We will hide the apps you pick until this session ends. Android will ask for two permissions.</p>
+   <button onclick="grant()">Choose apps to block</button>
+  </div>
+  <div class="perm" id="on" style="display:none">
+   <b>4 apps blocked</b>
+   <p>They come back the moment this session ends.</p>
+   <div class="blocked"><span>YouTube</span><span>Instagram</span><span>WhatsApp</span><span>Telegram</span></div>
+  </div>
+  <button class="stop" onclick="location.href='06-home-plan.html'">End session</button>
+ </div>
+</div>
+<script src="data.js"></script>
+<script>
+let s=32*60+47;
+setInterval(()=>{if(s>0)s--;const m=String(Math.floor(s/60)).padStart(2,'0'),x=String(s%60).padStart(2,'0');
+ document.getElementById('clk').textContent=m+':'+x;},1000);
+function grant(){document.getElementById('perm').style.display='none';document.getElementById('on').style.display='block';}
+</script></body></html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your hours</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Devanagari:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+</head><body>
+<div class="phone">
+ <div class="bar"><button class="back" onclick="location.href='03-shape.html'">&#8592;</button>
+   <div class="dots"><i class="dot done"></i><i class="dot done"></i><i class="dot done"></i><i class="dot done"></i></div></div>
+ <div class="body">
+   <p class="eyebrow">Step 4 of 4</p>
+   <h1>How many hours can you really give?</h1>
+   <p class="sub">Be honest. The next screen tells you if it's enough.</p>
+   <div class="slide"><div class="top"><b>Weekdays</b><i id="wdV"></i></div>
+     <input type="range" id="wd" min="1" max="14" step="0.5"></div>
+   <div class="slide"><div class="top"><b>Weekends</b><i id="weV"></i></div>
+     <input type="range" id="we" min="1" max="16" step="0.5"></div>
+   <div class="field"><label>Where will you study?</label>
+     <input class="text" id="place" placeholder="Library, terrace, corner desk"></div>
+   <p class="note">Naming the place makes you far more likely to actually show up.</p>
+ </div>
+ <div class="foot"><button class="cta" id="go">Build my plan</button></div>
+</div>
+<script src="data.js"></script>
+<script>
+const S=loadState(),wd=document.getElementById('wd'),we=document.getElementById('we');
+wd.value=S.wd; we.value=S.we; document.getElementById('place').value=S.place||'';
+function draw(){document.getElementById('wdV').textContent=wd.value+' hrs';
+  document.getElementById('weV').textContent=we.value+' hrs';}
+wd.oninput=we.oninput=draw; draw();
+document.getElementById('go').onclick=()=>{
+  S.wd=+wd.value; S.we=+we.value; S.place=document.getElementById('place').value.trim();
+  saveState(S); location.href='05-cushion.html';
+};
+</script></body></html>

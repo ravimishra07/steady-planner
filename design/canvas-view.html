@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Exam planner · prototype canvas</title>
+  <link rel="stylesheet" href="canvas-shell.css">
+</head>
+<body class="canvas-shell">
+  <header class="bar">
+    <div>
+      <h1>Exam planner · SAM design system</h1>
+      <p>
+        Light + dark rows &middot;
+        <a href="app.html"><strong>Full app demo</strong></a>
+        &middot;
+        <a href="home-canvas-view.html">Home interactive</a>
+        &middot;
+        <a href="syllabus-canvas-view.html">Syllabus interactive</a>
+      </p>
+    </div>
+    <span class="hint">design/canvas-view.html</span>
+  </header>
+
+  <div class="workspace">
+    <aside class="screen-nav" id="screen-nav">
+      <div class="nav-head">User flow</div>
+      <div class="flow-nav-hint">Next → walks the app click-by-click. ← → keys work too.</div>
+      <div class="nav-list"></div>
+      <div class="nav-foot">Double-click highlighted screen to advance</div>
+    </aside>
+
+    <main class="canvas-main" id="canvas-main">
+      <div class="canvas" id="canvas"></div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { mountScreenNav } from './canvas-nav.js';
+    import { mountFlowWalkthrough } from './canvas-flow.js';
+
+    const GAP = 80;
+    const COL_W = 393;
+    const yLight = 40;
+    const yDark = 960;
+    const ySystem = 1880;
+
+    const screens = [
+      { num: 1,  t: 'Pick exam',   f: 'Exam.dc.html' },
+      { num: 2,  t: 'Exam date',   f: 'Date.dc.html' },
+      { num: 3,  t: 'Day shape',   f: 'Shape.dc.html' },
+      { num: 4,  t: 'Hours',       f: 'Hours.dc.html' },
+      { num: 5,  t: 'Cushion',     f: 'Main.dc.html' },
+      { num: 10, t: 'Paywall',     f: 'Paywall.dc.html' },
+      { num: 6,  t: 'Home',        f: 'home.html',       mobile: true },
+      { num: 7,  t: 'Syllabus',    f: 'syllabus.html',   mobile: true },
+      { num: 8,  t: 'Focus',       f: 'Focus.dc.html' },
+      { num: 9,  t: 'Rebalance',   f: 'Rebalance.dc.html' },
+    ];
+
+    const root = document.getElementById('canvas');
+    const navItems = [];
+
+    const labels = [
+      { text: 'Light theme', x: 24, y: 16, cls: 'light' },
+      { text: 'Dark theme (default · ships in Steadyline)', x: 24, y: 936 },
+      { text: 'Tokens + CMP notes', x: 24, y: 1856 },
+    ];
+    labels.forEach((l) => {
+      const el = document.createElement('div');
+      el.className = 'row-label' + (l.cls ? ' ' + l.cls : '');
+      el.style.left = l.x + 'px';
+      el.style.top = l.y + 'px';
+      el.textContent = l.text;
+      root.appendChild(el);
+    });
+
+    screens.forEach((s, i) => {
+      const colId = `screen-${i}`;
+      const x = i * (COL_W + GAP);
+
+      const col = document.createElement('div');
+      col.className = 'screen-col';
+      col.id = colId;
+      col.style.left = x + 'px';
+      col.style.width = COL_W + 'px';
+      col.style.height = (yDark + 920) + 'px';
+
+      navItems.push({
+        id: colId,
+        num: s.num,
+        label: s.t,
+        sub: String(s.num).padStart(2, '0') + ' · ' + s.f.replace('.dc.html', '').replace('.html', ''),
+      });
+
+      [
+        { theme: 'light', cls: 'light', label: s.t + ' · light', y: yLight },
+        { theme: 'dark', cls: 'dark', label: s.t + ' · dark', y: yDark },
+      ].forEach((row) => {
+        const wrap = document.createElement('div');
+        const isMobile = s.mobile || s.f === 'home.html' || s.f === 'syllabus.html';
+        wrap.className = 'artboard' + (row.cls ? ' ' + row.cls : '') + (isMobile ? ' mobile' : '');
+        wrap.style.position = 'absolute';
+        wrap.style.left = '0';
+        wrap.style.top = row.y + 'px';
+
+        const cap = document.createElement('div');
+        cap.className = 'label';
+        cap.textContent = `${String(s.num).padStart(2, '0')} · ${row.label}`;
+
+        const iframe = document.createElement('iframe');
+        iframe.className = 'frame';
+        const qs = new URLSearchParams();
+        if (row.theme) qs.set('theme', row.theme);
+        if (s.f === 'home.html') qs.set('seed', '1');
+        iframe.src = s.f + (qs.toString() ? '?' + qs.toString() : '');
+        iframe.title = row.label;
+
+        wrap.appendChild(cap);
+        wrap.appendChild(iframe);
+        col.appendChild(wrap);
+      });
+
+      root.appendChild(col);
+    });
+
+    // Design system panel (full width row)
+    const sysWrap = document.createElement('div');
+    sysWrap.className = 'artboard wide dark';
+    sysWrap.id = 'screen-system';
+    sysWrap.style.left = '0';
+    sysWrap.style.top = ySystem + 'px';
+    sysWrap.innerHTML = `
+      <div class="label">Design system · tokens + CMP notes</div>`;
+    const sysFrame = document.createElement('iframe');
+    sysFrame.className = 'frame';
+    sysFrame.src = 'SamSystem.dc.html';
+    sysFrame.style.width = '880px';
+    sysFrame.style.height = '1180px';
+    sysFrame.title = 'Design system';
+    sysWrap.appendChild(sysFrame);
+    root.appendChild(sysWrap);
+
+    navItems.push({
+      id: 'screen-system',
+      num: '—',
+      label: 'Design system',
+      sub: 'Tokens + CMP',
+    });
+
+    const flowSteps = [
+      { id: 'screen-0', label: '01 · Pick exam',      action: 'Tap Continue after choosing exam' },
+      { id: 'screen-1', label: '02 · Exam date',      action: 'Set date → Continue' },
+      { id: 'screen-2', label: '03 · Day shape',      action: 'Pick study pattern → Continue' },
+      { id: 'screen-3', label: '04 · Hours',          action: 'Set weekday/weekend hours → Build plan' },
+      { id: 'screen-4', label: '05 · Cushion',        action: 'See hours short → Start day 1' },
+      { id: 'screen-5', label: '10 · Paywall',        action: 'Pick plan → Start day 1 free' },
+      { id: 'screen-6', label: '06 · Home',           action: 'Daily loop — Today tab' },
+      { id: 'screen-7', label: '07 · Syllabus',       action: 'Tick topics · Rebuild plan' },
+      { id: 'screen-8', label: '08 · Focus',          action: 'Start focus session' },
+      { id: 'screen-9', label: '09 · Rebalance',      action: 'Fix plan when behind' },
+    ];
+
+    let flowController;
+
+    const nav = mountScreenNav(document.getElementById('screen-nav'), navItems, {
+      scrollRoot: document.getElementById('canvas-main'),
+      onSelect: (id) => {
+        const idx = flowSteps.findIndex((s) => s.id === id);
+        if (idx >= 0 && flowController) flowController.goStep(idx);
+      },
+    });
+
+    flowController = mountFlowWalkthrough({
+      scrollRoot: document.getElementById('canvas-main'),
+      nav,
+      steps: flowSteps,
+    });
+  </script>
+</body>
+</html>

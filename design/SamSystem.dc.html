@@ -1,0 +1,158 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <script src="sam-theme.js"></script>
+  <link rel="stylesheet" href="sam-tokens.css">
+  <link rel="stylesheet" href="sam-shared.css">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{margin:0;font-family:var(--sam-font);color:var(--sam-text);background:var(--sam-bg)}
+    .sheet{width:880px;min-height:1180px;background:var(--sam-bg);padding:40px 44px 48px}
+
+    .head{margin-bottom:34px}
+    .head p{font-size:var(--sam-fs-xxs);letter-spacing:.14em;text-transform:uppercase;color:var(--sam-text-muted)}
+    .head h1{font-size:var(--sam-fs-hero);font-weight:700;letter-spacing:-.03em;margin-top:8px}
+    .head .n{font-size:var(--sam-fs-md);line-height:1.55;color:var(--sam-text-secondary);max-width:580px;margin-top:8px}
+    .head .src{font-size:var(--sam-fs-sm);color:var(--sam-brand-soft);margin-top:10px}
+
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+    .panel{background:var(--sam-surface);border:1px solid var(--sam-border-subtle);border-radius:var(--sam-r-md);padding:22px}
+    .panel.wide{grid-column:span 2}
+    .ph{font-size:var(--sam-fs-xxs);letter-spacing:.14em;text-transform:uppercase;color:var(--sam-text-muted);margin-bottom:16px}
+
+    .sw{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+    .sc{display:flex;flex-direction:column;gap:6px}
+    .sc .chip{height:48px;border-radius:8px;border:1px solid var(--sam-hairline)}
+    .sc b{font-size:var(--sam-fs-xs);font-weight:600}
+    .sc span{font-size:var(--sam-fs-2xs);color:var(--sam-text-muted)}
+
+    .ramp{display:flex;flex-direction:column;gap:12px}
+    .rr{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--sam-hairline);padding-bottom:11px}
+    .rr:last-child{border-bottom:0;padding-bottom:0}
+    .rr .spec{font-size:var(--sam-fs-2xs);color:var(--sam-text-muted);width:120px;flex:none;line-height:1.5}
+    .d1{font-size:var(--sam-fs-hero);font-weight:700;letter-spacing:-.03em;line-height:1}
+    .d2{font-size:var(--sam-fs-xxl);font-weight:600;letter-spacing:-.02em;line-height:1.1}
+    .b1{font-size:var(--sam-fs-callout);line-height:1.5;color:var(--sam-text-secondary)}
+    .m1{font-size:var(--sam-fs-xxs);letter-spacing:.12em;text-transform:uppercase;color:var(--sam-text-muted)}
+    .t-headline{font-size:var(--sam-fs-headline);font-weight:600;font-variant-numeric:tabular-nums;color:var(--sam-brand-soft)}
+
+    table{width:100%;border-collapse:collapse;font-size:var(--sam-fs-sm)}
+    th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--sam-hairline);vertical-align:top}
+    th{font-size:var(--sam-fs-2xs);letter-spacing:.1em;text-transform:uppercase;color:var(--sam-text-muted);font-weight:600}
+    td code{font-size:var(--sam-fs-xxs);color:var(--sam-brand-soft)}
+
+    .row3{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .cta{height:50px;padding:0 22px;background:var(--sam-brand);color:var(--sam-on-brand);border:0;border-radius:var(--sam-r-md);font-family:inherit;font-size:var(--sam-fs-callout);font-weight:600;cursor:pointer}
+    .ghost{height:44px;padding:0 14px;background:none;border:0;color:var(--sam-brand-soft);font-family:inherit;font-size:var(--sam-fs-md);cursor:pointer}
+  </style>
+</helmet>
+
+<div class="sheet">
+  <div class="head">
+    <p>iOS design system &middot; project-sam</p>
+    <h1>Steadyline tokens &rarr; exam planner</h1>
+    <p class="n">Single token file for light + dark. <code>sam-theme.js</code> sets <code>html.sam-light</code> or <code>html.sam-dark</code> before paint. All screens use <code>--sam-*</code> color, type, and spacing vars — no hardcoded theme colors.</p>
+    <p class="src">Source: /Users/ravimishra/Desktop/project-sam</p>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <p class="ph">Surfaces</p>
+      <div class="sw">
+        <div class="sc"><div class="chip" style="background:#0A0A0F"></div><b>Background</b><span>#0A0A0F</span></div>
+        <div class="sc"><div class="chip" style="background:#1C1C24"></div><b>Surface</b><span>#1C1C24</span></div>
+        <div class="sc"><div class="chip" style="background:#2A2A36"></div><b>Raised</b><span>#2A2A36</span></div>
+        <div class="sc"><div class="chip" style="background:#252530"></div><b>Border</b><span>#252530</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="ph">Brand + semantic</p>
+      <div class="sw">
+        <div class="sc"><div class="chip" style="background:#7C3AED"></div><b>Brand</b><span>#7C3AED</span></div>
+        <div class="sc"><div class="chip" style="background:#B098FB"></div><b>Brand soft</b><span>#B098FB</span></div>
+        <div class="sc"><div class="chip" style="background:#34D399"></div><b>Success</b><span>#34D399</span></div>
+        <div class="sc"><div class="chip" style="background:#EF4444"></div><b>Danger</b><span>#EF4444</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="ph">Type scale (SF Pro only)</p>
+      <div class="ramp">
+        <div class="rr"><span class="spec">Hero<br>34 / 700</span><span class="d1">Today</span></div>
+        <div class="rr"><span class="spec">Title 1<br>28 / 700</span><span style="font-size:var(--sam-fs-title);font-weight:700">Which exam?</span></div>
+        <div class="rr"><span class="spec">Title 2<br>22 / 600</span><span class="d2">Your plan</span></div>
+        <div class="rr"><span class="spec">Headline<br>17 / 600</span><span class="t-headline">568 / 812</span></div>
+        <div class="rr"><span class="spec">Body<br>16 / 400</span><span style="font-size:var(--sam-fs-lg)">List option title</span></div>
+        <div class="rr"><span class="spec">Callout<br>15 / 400</span><span class="b1">At 4 hrs on weekdays you cover about 70%.</span></div>
+        <div class="rr"><span class="spec">Subhead<br>13 / 400</span><span style="font-size:var(--sam-fs-sub);color:var(--sam-text-muted)">Secondary line under a row</span></div>
+        <div class="rr"><span class="spec">Eyebrow<br>12 / 600 caps</span><span class="m1">Your plan</span></div>
+        <div class="rr"><span class="spec">Tab label<br>10 / 500</span><span style="font-size:var(--sam-fs-xxs)">Home</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="ph">Spacing &amp; radius</p>
+      <div class="ramp">
+        <div class="rr"><span class="spec">Screen H</span><span class="b1">20px horizontal inset</span></div>
+        <div class="rr"><span class="spec">Scale</span><span class="b1">4 &middot; 8 &middot; 12 &middot; 16 &middot; 20 &middot; 24</span></div>
+        <div class="rr"><span class="spec">Radius sm/md/lg</span><span class="b1">10 &middot; 14 &middot; 20</span></div>
+        <div class="rr"><span class="spec">CTA height</span><span class="b1">54px &middot; brand fill &middot; md radius</span></div>
+        <div class="rr"><span class="spec">Tab bar</span><span class="b1">Frosted glass &middot; brand-deep selected tint</span></div>
+      </div>
+    </div>
+
+    <div class="panel wide">
+      <p class="ph">Exam-planner semantics mapped to Steadyline</p>
+      <table>
+        <thead><tr><th>Meaning</th><th>Android (exam-planner)</th><th>iOS (Steadyline)</th><th>CSS var</th></tr></thead>
+        <tbody>
+          <tr><td>Background</td><td>Paper #ECEFEA</td><td>Background #0A0A0F</td><td><code>--sam-bg</code></td></tr>
+          <tr><td>Primary text</td><td>Ink #16233A</td><td>White @ 100%</td><td><code>--sam-text</code></td></tr>
+          <tr><td>CTA / accent</td><td>Ink button</td><td>Brand violet</td><td><code>--sam-brand</code></td></tr>
+          <tr><td>Hours short</td><td>Red #C6362C</td><td>Danger #EF4444</td><td><code>--sam-danger</code></td></tr>
+          <tr><td>On track / done</td><td>Green #25664A</td><td>Success #34D399</td><td><code>--sam-success</code></td></tr>
+          <tr><td>Revision row</td><td>Ochre tint</td><td>Warning #FFB74D</td><td><code>--sam-warning-tint</code></td></tr>
+          <tr><td>UI font</td><td>Bricolage Grotesque</td><td>SF Pro (system)</td><td><code>--sam-font</code></td></tr>
+          <tr><td>Numbers / hours</td><td>IBM Plex Mono</td><td>Same SF Pro + tabular-nums</td><td><code>font-variant-numeric</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <p class="ph">Components</p>
+      <div class="row3" style="margin-bottom:14px">
+        <button class="cta">Start day 1</button>
+        <button class="ghost">Skip for now</button>
+      </div>
+      <div class="row3">
+        <span class="tag read">Read</span>
+        <span class="tag prac">Practice</span>
+        <span class="tag revt">Revise</span>
+        <span class="tag short">244h short</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="ph">iOS artboards (this canvas)</p>
+      <div class="ramp">
+        <div class="rr"><span class="spec">Onboarding</span><span class="b1">ExamIOS &middot; CushionIOS</span></div>
+        <div class="rr"><span class="spec">Daily loop</span><span class="b1">TodayIOS (grouped list + tab bar)</span></div>
+        <div class="rr"><span class="spec">Tokens file</span><span class="b1">design/sam-tokens.css</span></div>
+        <div class="rr"><span class="spec">Shell class</span><span class="b1"><code>.sam-ios.screen</code></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

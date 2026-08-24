@@ -1,0 +1,237 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+  <style>
+    :root{
+      --ink:#16233A; --ink-2:#3D4C68; --ink-3:#7A87A0;
+      --paper:#ECEFEA; --card:#FFFFFF; --line:#D6DBD4;
+      --ochre:#B87514; --ochre-soft:#F6EAD4;
+      --red:#C6362C; --red-soft:#FAE3E1;
+      --green:#25664A; --green-soft:#DDEDE4;
+      --lift:0 1px 2px rgba(22,35,58,.05), 0 10px 24px -16px rgba(22,35,58,.20);
+      --disp:"Bricolage Grotesque","Trebuchet MS",sans-serif;
+      --sans:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+      --mono:"IBM Plex Mono",ui-monospace,"SF Mono",monospace;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--paper)}
+    a{color:var(--ochre);text-decoration:none}
+    a:hover{color:#8F5A0F}
+    .sheet{width:880px;min-height:1180px;background:var(--paper);padding:40px 44px 48px}
+
+    .head{margin-bottom:34px}
+    .head p{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+    .head h1{font-family:var(--disp);font-size:38px;font-weight:800;letter-spacing:-.032em;margin-top:8px}
+    .head .n{font-size:13.5px;line-height:1.55;color:var(--ink-2);max-width:560px;margin-top:8px;text-wrap:pretty}
+
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:26px}
+    .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--lift);padding:22px}
+    .panel.wide{grid-column:span 2}
+    .ph{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:18px}
+
+    .ramp{display:flex;flex-direction:column;gap:14px}
+    .rr{display:flex;align-items:baseline;gap:16px;border-bottom:1px solid #F1F3EF;padding-bottom:13px}
+    .rr:last-child{border-bottom:0;padding-bottom:0}
+    .rr .spec{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);width:132px;flex:none;line-height:1.5}
+    .d1{font-family:var(--disp);font-size:34px;font-weight:800;letter-spacing:-.032em;line-height:1}
+    .d2{font-family:var(--disp);font-size:27px;font-weight:600;letter-spacing:-.022em;line-height:1.1}
+    .b1{font-size:13.5px;line-height:1.5;color:var(--ink-2)}
+    .m1{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+
+    .sw{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    .sc{display:flex;flex-direction:column;gap:7px}
+    .sc .chip{height:52px;border-radius:8px;border:1px solid rgba(22,35,58,.10)}
+    .sc b{font-size:11px;font-weight:600}
+    .sc span{font-family:var(--mono);font-size:9.5px;color:var(--ink-3)}
+
+    .stack{display:flex;flex-direction:column;gap:12px}
+    .row3{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+    .cta{height:50px;padding:0 22px;background:var(--ink);color:#fff;border:0;border-radius:14px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+    .cta.dis{opacity:.28;cursor:default}
+    .ghost{height:50px;padding:0 18px;background:none;border:0;color:var(--ink-3);font-family:inherit;font-size:12.5px;cursor:pointer}
+    .outline{height:50px;padding:0 20px;background:none;border:1px solid var(--line);color:var(--ink);border-radius:14px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+
+    .choice{display:flex;align-items:center;gap:13px;min-height:66px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 13px;font-family:inherit;color:var(--ink);text-align:left;cursor:pointer;width:100%}
+    .choice.sel{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+    .choice .metric{font-family:var(--mono);font-size:17px;font-weight:500;color:var(--ochre);width:54px;flex:none}
+    .choice .ftxt b{display:block;font-size:13.5px;font-weight:600}
+    .choice .ftxt span{display:block;font-size:11.5px;color:var(--ink-3);margin-top:3px}
+    .pick{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);flex:none;margin-left:auto;position:relative}
+    .choice.sel .pick{background:var(--ink);border-color:var(--ink)}
+    .choice.sel .pick svg{position:absolute;left:2.5px;top:2.5px;color:#fff}
+
+    .tag{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;padding:4px 7px;border-radius:4px}
+    .tag.read{background:#E3E8F0;color:var(--ink-2)}
+    .tag.prac{background:var(--green-soft);color:var(--green)}
+    .tag.revt{background:#EFD9AE;color:var(--ochre)}
+    .tag.mock{background:var(--red-soft);color:var(--red)}
+
+    .box{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--ink-3);position:relative;flex:none}
+    .box.chk{background:var(--green);border-color:var(--green)}
+    .box.chk svg{position:absolute;left:3px;top:3px;color:#fff}
+    .box.rd{border-radius:50%}
+
+    .gz{display:flex;height:44px;border-radius:8px;overflow:hidden;background:var(--paper)}
+    .gz .have{background:var(--ink);display:flex;align-items:center;padding-left:10px}
+    .gz .have b{font-family:var(--mono);font-size:10.5px;color:#fff;font-weight:500}
+    .gz .short{background:repeating-linear-gradient(45deg,var(--red),var(--red) 4px,#D8564D 4px,#D8564D 8px);display:flex;align-items:center;padding-left:8px}
+    .gz .short b{font-family:var(--mono);font-size:10.5px;color:#fff;font-weight:500}
+    .ring{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+    .ring .in{width:27px;height:27px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9.5px;font-weight:600;color:var(--ink-2)}
+
+    .fork{width:100%;border-collapse:collapse}
+    .fork th{text-align:left;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);padding:0 14px 11px 0;font-weight:400;border-bottom:1px solid var(--line)}
+    .fork td{padding:11px 14px 11px 0;font-size:12.5px;line-height:1.45;color:var(--ink-2);border-bottom:1px solid #F1F3EF;vertical-align:top}
+    .fork td:first-child{font-weight:600;color:var(--ink);width:200px}
+    .fork tr:last-child td{border-bottom:0}
+    .pill{display:inline-block;font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border-radius:4px}
+    .pill.sh{background:var(--green-soft);color:var(--green)}
+    .pill.fk{background:var(--ochre-soft);color:var(--ochre)}
+  </style>
+</helmet>
+
+<div class="sheet">
+  <div class="head">
+    <p>Exam planner &middot; Compose Multiplatform</p>
+    <h1>Design system</h1>
+    <p class="n">Values lifted from <b>tokens.css</b> in the repo, not re-picked. Everything below maps to a Compose theme in <b>commonMain</b>; the fork table at the bottom lists the only places the two platforms should diverge.</p>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <p class="ph">Type</p>
+      <div class="ramp">
+        <div class="rr"><span class="spec">Bricolage 800<br>34 / 1.05 / &minus;.032em</span><span class="d1">244 hours</span></div>
+        <div class="rr"><span class="spec">Bricolage 600<br>27 / 1.14 / &minus;.022em</span><span class="d2">Here is what slipped</span></div>
+        <div class="rr"><span class="spec">Plex Sans 400<br>13.5 / 1.55</span><span class="b1">Nothing is lost. It has to go somewhere, and you choose where.</span></div>
+        <div class="rr"><span class="spec">Plex Mono 400<br>10.5 / .14em / caps</span><span class="m1">Step 3 of 4</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="ph">Color</p>
+      <div class="sw">
+        <div class="sc"><span class="chip" style="background:#16233A"></span><b>ink</b><span>#16233A</span></div>
+        <div class="sc"><span class="chip" style="background:#3D4C68"></span><b>ink-2</b><span>#3D4C68</span></div>
+        <div class="sc"><span class="chip" style="background:#7A87A0"></span><b>ink-3</b><span>#7A87A0</span></div>
+        <div class="sc"><span class="chip" style="background:#ECEFEA"></span><b>paper</b><span>#ECEFEA</span></div>
+        <div class="sc"><span class="chip" style="background:#B87514"></span><b>ochre</b><span>#B87514</span></div>
+        <div class="sc"><span class="chip" style="background:#C6362C"></span><b>red</b><span>#C6362C</span></div>
+        <div class="sc"><span class="chip" style="background:#25664A"></span><b>green</b><span>#25664A</span></div>
+        <div class="sc"><span class="chip" style="background:#D6DBD4"></span><b>line</b><span>#D6DBD4</span></div>
+      </div>
+      <p class="ph" style="margin:20px 0 12px">Meaning</p>
+      <div class="row3">
+        <span class="tag read">Read</span>
+        <span class="tag prac">Practice</span>
+        <span class="tag revt">Revise</span>
+        <span class="tag mock">Mock</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="ph">Actions &middot; 50px, radius 14</p>
+      <div class="stack">
+        <div class="row3">
+          <button class="cta">Start day 1</button>
+          <button class="outline">Skip</button>
+        </div>
+        <div class="row3">
+          <button class="cta dis">Continue</button>
+          <button class="ghost">Not now</button>
+        </div>
+      </div>
+      <p class="ph" style="margin:22px 0 12px">Selection</p>
+      <div class="row3">
+        <span class="box"></span>
+        <span class="box chk"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+        <span class="box rd"></span>
+        <span class="box rd chk"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+        <span class="ring" style="background:conic-gradient(#25664A 0 21%, #D6DBD4 0)"><span class="in">21%</span></span>
+        <span class="ring" style="background:conic-gradient(#25664A 0 68%, #D6DBD4 0)"><span class="in">68%</span></span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="ph">Choice row &mdash; default and selected</p>
+      <div class="stack">
+        <button class="choice sel">
+          <span class="metric">+2.1h</span>
+          <span class="ftxt"><b>Add hours to every day</b><span>6.1 hrs a day for 118 days.</span></span>
+          <span class="pick"><svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+        </button>
+        <button class="choice">
+          <span class="metric">&minus;18</span>
+          <span class="ftxt"><b>Drop the lowest-yield topics</b><span>Worth about 13 marks last year.</span></span>
+          <span class="pick"></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="panel wide">
+      <p class="ph">Cushion gauge &mdash; the one loud element in the product</p>
+      <div class="gz">
+        <div class="have" style="width:70%"><b>568h you have</b></div>
+        <div class="short" style="width:30%"><b>244h missing</b></div>
+      </div>
+      <p class="n" style="font-size:12.5px;color:var(--ink-3);margin-top:12px;line-height:1.5">Self-labelling: the numbers sit inside the regions they describe, so the chart survives being read at a glance on a phone. It is the only place hatching and full-bleed red are allowed.</p>
+    </div>
+
+    <div class="panel wide">
+      <p class="ph">Platform fork &mdash; everything else is one Compose tree</p>
+      <table class="fork">
+        <tr>
+          <th>Surface</th><th>Android</th><th>iOS</th>
+        </tr>
+        <tr>
+          <td>Screen header</td>
+          <td><span class="pill fk">forks</span> Dark app bar, title inline with countdown</td>
+          <td><span class="pill fk">forks</span> Large title on paper, countdown as trailing accessory</td>
+        </tr>
+        <tr>
+          <td>Tab bar</td>
+          <td><span class="pill fk">forks</span> Indicator pill under the active item, 52px</td>
+          <td><span class="pill fk">forks</span> Hairline border, no pill, 49px</td>
+        </tr>
+        <tr>
+          <td>Day plan</td>
+          <td><span class="pill fk">forks</span> Timeline rail with nodes and a now-marker</td>
+          <td><span class="pill fk">forks</span> Inset grouped list, separators inset to the text edge</td>
+        </tr>
+        <tr>
+          <td>Back</td>
+          <td><span class="pill fk">forks</span> Arrow, plus predictive-back gesture</td>
+          <td><span class="pill fk">forks</span> Chevron with the previous title, edge swipe</td>
+        </tr>
+        <tr>
+          <td>Type, color, spacing, radii</td>
+          <td colspan="2"><span class="pill sh">shared</span> One theme in commonMain &mdash; no per-platform values</td>
+        </tr>
+        <tr>
+          <td>Scheduler, syllabus, state</td>
+          <td colspan="2"><span class="pill sh">shared</span> Ports straight from lib/data.ts &mdash; pure, no UI dependency</td>
+        </tr>
+        <tr>
+          <td>App blocking during focus</td>
+          <td colspan="2"><span class="pill fk">forks</span> Android only. iOS has no equivalent API &mdash; the focus screen must degrade to a timer, not show a dead switch</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

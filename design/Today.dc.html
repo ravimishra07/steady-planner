@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><script src="./support.js"></script></head>
+<body>
+<x-dc>
+<helmet>
+  <script src="sam-theme.js"></script>
+  <link rel="stylesheet" href="sam-tokens.css">
+  <link rel="stylesheet" href="sam-shared.css">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    .scroll{flex:1;overflow:hidden;padding-bottom:var(--sam-space-sm)}
+    .hero{margin:0 var(--sam-screen-h) var(--sam-space-md);padding:var(--sam-space-lg)}
+    .hero-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+    .hero-top h2{font-size:var(--sam-fs-xl);font-weight:var(--sam-fw-bold)}
+    .hero-top .days{text-align:right}
+    .hero-top .days b{display:block;font-size:var(--sam-fs-title);font-weight:var(--sam-fw-bold);color:var(--sam-text)}
+    .hero-top .days span{font-size:var(--sam-fs-sm);color:var(--sam-text-muted)}
+    .hero-sub{font-size:var(--sam-fs-md);color:var(--sam-text-secondary);margin-bottom:14px}
+    .hero-bar{height:5px;border-radius:3px;background:var(--sam-elevated);overflow:hidden}
+    .hero-bar i{display:block;height:100%;width:50%;background:var(--sam-success);border-radius:3px}
+    .hero-foot{display:flex;justify-content:space-between;margin-top:var(--sam-space-sm);font-size:var(--sam-fs-sub)}
+    .hero-foot b{font-weight:var(--sam-fw-semibold)}.hero-foot span{color:var(--sam-text-muted)}
+    .warn{margin:0 var(--sam-screen-h) var(--sam-space-md);display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--sam-danger-container);border:var(--sam-card-border);border-radius:var(--sam-r-md)}
+    .warn i{width:7px;height:7px;border-radius:50%;background:var(--sam-danger);flex:none}
+    .warn b{flex:1;font-size:var(--sam-fs-md);font-weight:var(--sam-fw-medium);color:var(--sam-danger-soft)}
+    .sec{font-size:var(--sam-fs-sm);font-weight:var(--sam-fw-semibold);letter-spacing:.06em;text-transform:uppercase;color:var(--sam-text-muted);padding:0 var(--sam-screen-h) var(--sam-space-sm)}
+    .row{display:flex;align-items:center;gap:12px;min-height:60px;padding:11px 14px;position:relative}
+    .row+.row:before{content:"";position:absolute;left:52px;right:0;top:0;height:.5px;background:var(--sam-hairline)}
+    .chk{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--sam-text-disabled);flex:none;position:relative}
+    .chk.on{background:var(--sam-success);border-color:var(--sam-success)}
+    .chk.on svg{position:absolute;left:3px;top:3px;color:var(--sam-on-success)}
+    .rt{flex:1;min-width:0}
+    .rt b.done{color:var(--sam-text-muted);text-decoration:line-through;font-weight:var(--sam-fw-medium)}
+    .tm{font-size:var(--sam-fs-xs);color:var(--sam-text-muted);width:34px;text-align:right;flex:none}
+    .spacer{flex:1}
+  </style>
+</helmet>
+<div class="screen sam-ios">
+  <div class="safe"></div>
+  <div class="topbar">
+    <button class="glass-btn" aria-label="Menu"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3.5 5.5h13M3.5 10h13M3.5 14.5h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+    <div class="glass-pill">SSC CGL &middot; 118 days</div>
+    <button class="glass-btn" aria-label="Settings"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.8" stroke="currentColor" stroke-width="1.5"/><path d="M10 2.5v2.2M10 15.3v2.2M2.5 10h2.2M15.3 10h2.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="scroll">
+    <div class="card-hero hero">
+      <div class="hero-top"><h2>Today&rsquo;s plan</h2><div class="days"><b>7h</b><span>scheduled</span></div></div>
+      <p class="hero-sub">Sunday 23 Aug &middot; Terrace &middot; 3.5 hrs done</p>
+      <div class="hero-bar"><i></i></div>
+      <div class="hero-foot"><b>50% complete</b><span>3.5 of 7 hrs</span></div>
+    </div>
+    <div class="warn"><i></i><b>244 hrs behind the syllabus</b><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M7.5 4.5L13 10l-5.5 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+    <p class="sec">Morning</p>
+    <div class="group">
+      <div class="row"><span class="tm">06:30</span><span class="chk on"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="rt"><b class="done">Geometry &mdash; Triangles</b><span>90 min</span></span><span class="tag read">Read</span></div>
+      <div class="row"><span class="tm">08:15</span><span class="chk on"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="rt"><b class="done">40 practice questions</b><span>75 min</span></span><span class="tag prac">Practice</span></div>
+      <div class="row rev"><span class="tm">09:30</span><span class="chk"></span><span class="rt"><b>Revision: Percentage</b><span>30 min</span></span><span class="tag revt">Revise</span></div>
+      <div class="row"><span class="tm">10:00</span><span class="chk"></span><span class="rt"><b>Current Affairs</b><span>30 min daily</span></span><span class="tag read">Read</span></div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div class="tabbar">
+    <button class="tabi on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4.5 10.5 12 4l7.5 6.5V19a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 19v-8.5Z"/></svg></button>
+    <button class="tabi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 12.5h8M8 16h5"/></svg></button>
+    <button class="tabi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v4.5l3 2"/></svg></button>
+    <button class="tabi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 18V6l8 5 8-5v12"/></svg></button>
+    <button class="tabi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 6.5h14M5 12h14M5 17.5h9"/></svg></button>
+  </div>
+  <div class="gesture"></div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{}'>class Component extends DCLogic { renderVals(){return{}} }</script>
+</body>
+</html>

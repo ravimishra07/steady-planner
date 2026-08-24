@@ -1,69 +1,41 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
 
-export default function Home() {
+import Link from 'next/link';
+import { usePlan } from '@/lib/state';
+
+const SCREENS: [string, string, string, string?][] = [
+  ['01', '/exam', 'Pick exam'],
+  ['02', '/date', 'Exam date'],
+  ['03', '/shape', 'Day shape'],
+  ['04', '/hours', 'Hours'],
+  ['05', '/cushion', 'Cushion', 'the payoff'],
+  ['10', '/paywall', 'Paywall'],
+  ['06', '/home', "Home — today's plan"],
+  ['07', '/syllabus', 'Home — syllabus'],
+  ['08', '/focus', 'Focus session'],
+  ['09', '/rebalance', 'Rebalance', '4 days missed'],
+];
+
+export default function Index() {
+  const { reset } = usePlan();
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>
-            To get started, edit the{" "}
-            <code className={styles.code}>page.tsx</code> file.
-          </h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="idx">
+      <p className="eyebrow">Exam planner</p>
+      <h1 style={{ fontSize: 22, marginBottom: 16 }}>Prototype screens</h1>
+      {SCREENS.map(([n, href, label, note]) => (
+        <Link key={href} href={href}>
+          <em>{n}</em>
+          <b>{label}</b>
+          {note && <span>{note}</span>}
+        </Link>
+      ))}
+      <button
+        className="cta"
+        style={{ marginTop: 18 }}
+        onClick={() => { reset(); alert('State cleared. Start at 01.'); }}
+      >
+        Reset saved state
+      </button>
     </div>
   );
 }

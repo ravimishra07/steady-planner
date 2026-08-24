@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# netlify
+.netlify
+
+# claude code local overrides (launch.json is shared, settings.local.json is not)
+.claude/settings.local.json

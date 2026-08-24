@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><script src="./support.js"></script></head>
+<body>
+<x-dc>
+<helmet>
+  <script src="sam-theme.js"></script>
+  <link rel="stylesheet" href="sam-tokens.css">
+  <link rel="stylesheet" href="sam-shared.css">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    .topbar2{display:flex;align-items:center;justify-content:space-between;padding:4px var(--sam-screen-h) 18px;flex:none}
+    .restore{background:none;border:0;color:var(--sam-text-muted);font-size:var(--sam-fs-md);min-height:44px;padding:0 6px;cursor:pointer}
+    .mine{background:var(--sam-surface-tinted);border:var(--sam-card-border);border-radius:var(--sam-r-md);padding:18px}
+    .mrow{display:flex;justify-content:space-between;padding:6px 0;font-size:var(--sam-fs-md);line-height:var(--sam-lh-normal)}
+    .mrow span{color:var(--sam-text-muted)}.mrow b{font-weight:var(--sam-fw-semibold);color:var(--sam-text);font-variant-numeric:tabular-nums}
+    .mrow b.warn{color:var(--sam-danger)}
+    .mtrack{height:8px;border-radius:4px;overflow:hidden;display:flex;background:var(--sam-elevated);margin-top:14px}
+    .mtrack i{display:block;height:100%}.mtrack .g{background:var(--sam-success);width:36%}.mtrack .r{background:var(--sam-danger);width:64%}
+    .plan{min-height:72px}.pn{flex:1}.pn b{display:block;font-size:var(--sam-fs-lg);font-weight:var(--sam-fw-semibold);line-height:var(--sam-lh-snug)}.pn span{display:block;font-size:var(--sam-fs-md);color:var(--sam-text-muted);margin-top:4px;line-height:var(--sam-lh-normal)}
+    .best{font-size:var(--sam-fs-xs);font-weight:var(--sam-fw-semibold);letter-spacing:.06em;text-transform:uppercase;background:var(--sam-success-container);color:var(--sam-success);padding:5px 8px;border-radius:var(--sam-r-sm)}
+    .price{font-size:var(--sam-fs-headline);font-weight:var(--sam-fw-semibold);font-variant-numeric:tabular-nums}
+    .inc{margin-top:4px;font-size:var(--sam-fs-md);color:var(--sam-text-secondary);line-height:var(--sam-lh-normal)}
+    .inc div{padding:6px 0;display:flex;gap:10px;align-items:flex-start}.inc svg{color:var(--sam-success);flex:none;margin-top:2px}
+  </style>
+</helmet>
+<div class="screen sam-ios">
+  <div class="safe"></div>
+  <div class="topbar2"><button class="glass-btn" aria-label="Back"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M12.5 4.5L7 10l5.5 5.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button><button class="restore">Restore</button></div>
+  <div class="onboard-body">
+    <h1>Keep the plan honest</h1>
+    <div class="onboard-stack">
+      <div class="mine">
+        <div class="mrow"><span>Hours covered</span><b>568</b></div>
+        <div class="mrow"><span>Still short</span><b class="warn">244 hrs</b></div>
+        <div class="mtrack"><i class="g"></i><i class="r"></i></div>
+      </div>
+      <div class="list">
+        <button class="plan sel"><span class="pick"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/></svg></span><span class="pn"><b>Annual</b><span>One full attempt</span></span><span class="best">Best</span><span class="price">&#8377;999</span></button>
+        <button class="plan"><span class="pick"></span><span class="pn"><b>Monthly</b><span>Try one month</span></span><span class="price">&#8377;149</span></button>
+      </div>
+      <div class="inc"><div><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/></svg>Rebalance when you fall behind</div></div>
+    </div>
+  </div>
+  <div class="foot"><button class="cta">Start day 1 free</button></div>
+  <div class="gesture"></div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{}'>class Component extends DCLogic { renderVals(){return{}} }</script>
+</body>
+</html>

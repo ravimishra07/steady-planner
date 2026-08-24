@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><script src="./support.js"></script></head>
+<body>
+<x-dc>
+<helmet>
+  <script src="sam-theme.js"></script>
+  <link rel="stylesheet" href="sam-tokens.css">
+  <link rel="stylesheet" href="sam-shared.css">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    .verdict{display:flex;flex-direction:column;gap:6px}
+    .big{font-size:var(--sam-fs-display);font-weight:var(--sam-fw-bold);letter-spacing:-.04em;line-height:.92;color:var(--sam-danger)}
+    .bigunit{font-size:var(--sam-fs-subtitle);font-weight:var(--sam-fw-semibold);color:var(--sam-danger-soft);line-height:1.3}
+    .lede{font-size:var(--sam-fs-lg);line-height:var(--sam-lh-relaxed);color:var(--sam-text-secondary)}
+    .gaugecard{background:var(--sam-surface);border:var(--sam-card-border);border-radius:var(--sam-r-md);padding:18px;box-shadow:var(--sam-card-shadow)}
+    .gcap{display:flex;justify-content:space-between;font-size:var(--sam-fs-xs);font-weight:var(--sam-fw-semibold);text-transform:uppercase;letter-spacing:.06em;color:var(--sam-text-muted);margin-bottom:14px}
+    .gcap b{font-size:var(--sam-fs-sub);color:var(--sam-text);text-transform:none;letter-spacing:0;font-variant-numeric:tabular-nums}
+    .track{height:52px;border-radius:var(--sam-r-sm);overflow:hidden;display:flex;background:var(--sam-elevated)}
+    .track .have{background:var(--sam-brand-deep);display:flex;align-items:center;padding-left:12px;font-size:var(--sam-fs-xs);font-weight:var(--sam-fw-semibold);color:var(--sam-on-brand);font-variant-numeric:tabular-nums}
+    .track .short{background:repeating-linear-gradient(45deg,var(--sam-danger),var(--sam-danger) 4px,var(--sam-danger-stripe) 4px,var(--sam-danger-stripe) 8px);display:flex;align-items:center;padding-left:10px;font-size:var(--sam-fs-xs);font-weight:var(--sam-fw-semibold);color:var(--sam-on-brand);font-variant-numeric:tabular-nums}
+    .sec{font-size:var(--sam-fs-sm);font-weight:var(--sam-fw-semibold);letter-spacing:.08em;text-transform:uppercase;color:var(--sam-text-muted)}
+    .fixcard{min-height:68px}
+  </style>
+</helmet>
+<div class="screen sam-ios">
+  <div class="safe"></div>
+  <div class="onboard-bar">
+    <button class="glass-btn" aria-label="Back"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M12.5 4.5L7 10l5.5 5.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+    <span class="bar-sp" aria-hidden="true"></span>
+  </div>
+  <div class="onboard-body">
+    <div class="onboard-stack">
+      <div class="verdict">
+        <p class="sec">Your plan</p>
+        <div class="big">244</div>
+        <div class="bigunit">hours short</div>
+        <p class="lede">At 4 hrs on weekdays you cover about 70% of the syllabus.</p>
+      </div>
+      <div class="gaugecard">
+        <div class="gcap"><span>Against 812 hrs needed</span><b>568 / 812</b></div>
+        <div class="track"><div class="have" style="width:70%">568h</div><div class="short" style="width:30%">244h</div></div>
+      </div>
+      <div>
+        <p class="sec" style="margin-bottom:14px">Close the gap</p>
+        <div class="list">
+          <button class="fixcard"><span class="metric">+2.1h</span><span class="ftxt"><b>Add hours every day</b><span>6.1 hrs/day for 118 days</span></span><span class="chev">&#8250;</span></button>
+          <button class="fixcard"><span class="metric">&minus;18</span><span class="ftxt"><b>Drop lowest-yield topics</b><span>~13 marks last year</span></span><span class="chev">&#8250;</span></button>
+          <button class="fixcard"><span class="metric">45d</span><span class="ftxt"><b>Move target date back</b><span>Only if the date is yours</span></span><span class="chev">&#8250;</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><button class="cta">Start day 1</button></div>
+  <div class="gesture"></div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{}'>class Component extends DCLogic { renderVals(){return{}} }</script>
+</body>
+</html>

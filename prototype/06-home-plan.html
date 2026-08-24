@@ -1,0 +1,52 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Today</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Devanagari:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+</head><body>
+<div class="phone">
+ <div class="hbar">
+  <div class="r1"><div><p class="ex" id="ex"></p><h2>Today</h2></div>
+   <div class="days"><b id="dl"></b><span>days left</span></div></div>
+  <div class="chip"><i id="cdot"></i><span id="ctxt"></span></div>
+ </div>
+ <div class="tabs">
+  <button class="tab on">Plan</button>
+  <button class="tab" onclick="location.href='07-home-syllabus.html'">Syllabus</button>
+ </div>
+ <div class="pane on">
+  <p class="daylabel" id="day"></p>
+  <div id="blocks"></div>
+  <button class="cta" style="margin-top:14px" onclick="location.href='08-focus.html'">Start focus session</button>
+  <button class="ghost" onclick="location.href='09-rebalance.html'">I missed some days &#8594;</button>
+ </div>
+</div>
+<script src="data.js"></script>
+<script>
+const S=loadState(), c=cushion(S), E=examFor(S.exam);
+document.getElementById('ex').textContent=E.name;
+document.getElementById('dl').textContent=S.days;
+document.getElementById('cdot').style.background=c.short?'var(--red)':'var(--dot-green)';
+document.getElementById('ctxt').textContent=c.short?(c.gap+' hrs behind the syllabus'):(Math.abs(c.gap)+' hrs of buffer in hand');
+const t=new Date();
+document.getElementById('day').textContent=
+ t.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short'})+
+ ' \u00B7 '+todayBudget(S)+' hrs planned'+(S.place?' \u00B7 '+S.place:'');
+const PLAN=[
+ {t:'06:30',n:'Geometry \u2014 Triangles: similarity',s:'Your book, sections 4.1\u20134.4 \u00B7 90 min',k:'read'},
+ {t:'08:00',brk:1},
+ {t:'08:15',n:'Geometry \u2014 40 practice questions',s:'Previous-year set, 2019\u20132023',k:'prac'},
+ {t:'09:30',n:'Revision: Percentage',s:'Done 6 days ago \u00B7 4th touch',k:'rev'},
+ {t:'10:00',n:'Current Affairs \u2014 this week',s:'Rolling topic \u00B7 30 min daily',k:'read'},
+];
+const LBL={read:'Read',prac:'Practice',rev:'Revise'};
+document.getElementById('blocks').innerHTML=PLAN.map(b=>b.brk
+ ?'<div class="block"><div class="time">'+b.t+'</div><div class="cardw"><div class="tk brk"><div class="t"><b style="font-weight:400;color:var(--ink-3);font-size:12.5px">Break \u2014 15 min</b></div></div></div></div>'
+ :'<div class="block"><div class="time">'+b.t+'</div><div class="cardw"><div class="tk'+(b.k==='rev'?' rev':'')+'">'+
+  '<div class="box"></div><div class="t"><b>'+b.n+'</b><span>'+b.s+'</span></div>'+
+  '<div class="tag '+b.k+'">'+LBL[b.k]+'</div></div></div></div>').join('');
+document.querySelectorAll('.box').forEach(b=>b.onclick=()=>{
+  b.classList.toggle('chk'); b.nextElementSibling.classList.toggle('done');});
+</script></body></html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pick your exam</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Devanagari:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+</head><body>
+<div class="phone">
+ <div class="bar"><div class="dots"><i class="dot done"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i></div></div>
+ <div class="body">
+   <p class="eyebrow">Step 1 of 4</p>
+   <h1>Which exam are you preparing for?</h1>
+   <p class="sub">Pick the one you're actually sitting. You can add a second exam later.</p>
+   <div id="list"></div>
+ </div>
+ <div class="foot"><button class="cta" id="go" disabled>Continue</button></div>
+</div>
+<script src="data.js"></script>
+<script>
+const S=loadState();
+document.getElementById('list').innerHTML=EXAMS.map(e=>
+ `<button class="exam" data-id="${e.id}"><div><h3>${e.name}</h3><p>${e.meta}</p></div><div class="tick"></div></button>`).join('');
+document.querySelectorAll('.exam').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.exam').forEach(x=>x.classList.remove('sel'));
+  b.classList.add('sel'); S.exam=b.dataset.id; saveState(S);
+  document.getElementById('go').disabled=false;
+});
+if(S.exam){const b=document.querySelector('.exam[data-id="'+S.exam+'"]');
+  if(b){b.classList.add('sel');document.getElementById('go').disabled=false;}}
+document.getElementById('go').onclick=()=>location.href='02-date.html';
+</script></body></html>

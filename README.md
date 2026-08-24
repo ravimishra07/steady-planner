@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Exam planner — Next.js prototype
 
-## Getting Started
-
-First, run the development server:
+Android app prototype, running as a web app. Every screen is a phone frame on a dark page.
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Routes
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Route | Screen |
+|---|---|
+| `/` | Prototype index + reset state |
+| `/exam` | 1 · Pick exam |
+| `/date` | 2 · Exam date |
+| `/shape` | 3 · Day shape |
+| `/hours` | 4 · Hours + study place |
+| `/cushion` | 5 · Cushion — the payoff screen |
+| `/paywall` | 10 · Paywall |
+| `/home` | 6 · Today's plan |
+| `/syllabus` | 7 · Syllabus tree |
+| `/focus` | 8 · Focus session |
+| `/rebalance` | 9 · Missed days |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Layout
 
-## Learn More
+- `lib/data.ts` — exams, syllabus trees, the scheduler (`cushion()`), state shape.
+  **Product rule: topic names and effort estimates only. No notes, questions, or solutions.**
+- `lib/state.tsx` — `PlanProvider` / `usePlan()`. localStorage-backed under key `plan`.
+  Renders defaults on the server, hydrates in an effect, so there is no mismatch.
+- `app/globals.css` — the design system, ported from `prototype/tokens.css`.
+  Font families come from `next/font` variables set in `app/layout.tsx`.
+- `components/` — `Phone`/`Body`/`Foot`, `Bar` (back + step dots), `HomeHeader` (dark header + tabs).
+- `prototype/` — the original static HTML prototype, kept for reference.
 
-To learn more about Next.js, take a look at the following resources:
+## Known prototype gaps
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `SYLLABUS` only has `cgl`. Other exams fall back to it.
+- `/home` renders a hardcoded `PLAN` array; it is not generated from the syllabus.
+- Topic ticks on `/syllabus` persist but do not feed back into `cushion()`.
+- `/rebalance` slipped-topic list is hardcoded; the arithmetic below it is live.

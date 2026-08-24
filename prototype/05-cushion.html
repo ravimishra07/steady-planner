@@ -1,0 +1,55 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Devanagari:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+</head><body>
+<div class="phone">
+ <div class="bar"><button class="back" onclick="location.href='04-hours.html'">&#8592;</button>
+   <div class="dots"><i class="dot done"></i><i class="dot done"></i><i class="dot done"></i><i class="dot done"></i></div></div>
+ <div class="body">
+   <p class="eyebrow">Your plan</p>
+   <div class="verdict" id="v"><h2 id="vh"></h2><p id="vp"></p></div>
+   <div class="gauge">
+     <div class="cap"><span>Hours you have</span><span id="cap"></span></div>
+     <div class="track" id="track"></div>
+     <div class="legend" id="legend"></div>
+   </div>
+   <p class="eyebrow" id="fixLabel"></p>
+   <div class="fix" id="fix"></div>
+ </div>
+ <div class="foot"><button class="cta" id="go">Start day 1</button></div>
+</div>
+<script src="data.js"></script>
+<script>
+const S=loadState(), c=cushion(S);
+document.getElementById('cap').textContent=c.have+' / '+c.need+' hrs';
+const v=document.getElementById('v');
+if(c.short){
+  v.className='verdict short';
+  document.getElementById('vh').textContent=c.gap+' hours short';
+  document.getElementById('vp').textContent='At '+S.wd+' hrs on weekdays you cover about '+c.coverage+'% of the syllabus before the exam. Three ways to fix it below.';
+  document.getElementById('track').innerHTML='<div class="have" style="width:'+c.coverage+'%"></div><div class="gap" style="width:'+(100-c.coverage)+'%"></div>';
+  document.getElementById('legend').innerHTML='<span><i style="background:var(--ink)"></i>Available</span><span><i style="background:var(--red)"></i>Shortfall</span>';
+  document.getElementById('fixLabel').textContent='Close the gap';
+  document.getElementById('fix').innerHTML=
+   '<div class="row"><b>+'+c.extraPerDay+'h</b><span>Add '+c.extraPerDay+' hrs to every single day between now and the exam</span></div>'+
+   '<div class="row"><b>&minus;'+c.topicsToDrop+'</b><span>Drop the '+c.topicsToDrop+' lowest-yield topics &mdash; worth about '+Math.round(c.topicsToDrop*0.7)+' marks last year</span></div>'+
+   '<div class="row"><b>'+c.daysToPush+'d</b><span>Or move your target date back by '+c.daysToPush+' days</span></div>';
+}else{
+  v.className='verdict ok';
+  document.getElementById('vh').textContent=Math.abs(c.gap)+' hours to spare';
+  document.getElementById('vp').textContent='You finish the syllabus with room left for a full extra revision pass. Keep this pace and do not add hours.';
+  const p=Math.round(c.need/c.have*100);
+  document.getElementById('track').innerHTML='<div class="have" style="width:'+p+'%"></div><div class="spare" style="width:'+(100-p)+'%"></div>';
+  document.getElementById('legend').innerHTML='<span><i style="background:var(--ink)"></i>Syllabus</span><span><i style="background:var(--green-soft);border:1px solid var(--green-line)"></i>Buffer</span>';
+  document.getElementById('fixLabel').textContent='What the buffer buys you';
+  document.getElementById('fix').innerHTML=
+   '<div class="row"><b>2&times;</b><span>Full revision passes fit inside your timeline</span></div>'+
+   '<div class="row"><b>'+c.bufferDays+'d</b><span>Buffer days for when life interrupts &mdash; built in, not borrowed</span></div>'+
+   '<div class="row"><b>18</b><span>Full-length mocks scheduled in the last 6 weeks</span></div>';
+}
+document.getElementById('go').onclick=()=>location.href='10-paywall.html';
+</script></body></html>

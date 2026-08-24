@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>07 · Syllabus</title>
+  <script src="sam-theme.js"></script>
+  <link rel="stylesheet" href="sam-tokens.css">
+  <link rel="stylesheet" href="sam-shared.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: var(--sam-bg); }
+    body { display: flex; justify-content: center; }
+    .phone.sam-ios {
+      width: 390px;
+      max-width: 100vw;
+      height: 100vh;
+      max-height: 844px;
+      background: var(--sam-bg);
+      color: var(--sam-text);
+      font-family: var(--sam-font);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    .header {
+      flex: none;
+      padding: 0 var(--sam-screen-h) var(--sam-space-lg);
+    }
+    .header h1 {
+      font-size: var(--sam-fs-title);
+      font-weight: var(--sam-fw-bold);
+      letter-spacing: -0.02em;
+      line-height: var(--sam-lh-tight);
+      margin-bottom: var(--sam-space-sm);
+    }
+    .meta {
+      font-size: var(--sam-fs-md);
+      line-height: var(--sam-lh-normal);
+      color: var(--sam-text-secondary);
+      margin-bottom: var(--sam-space-lg);
+    }
+    .prog {
+      height: 6px;
+      border-radius: 3px;
+      overflow: hidden;
+      display: flex;
+      background: var(--sam-elevated);
+    }
+    .prog span { height: 100%; min-width: 0; transition: flex-grow 0.25s ease; }
+    .prog .done { background: var(--sam-success); flex-grow: 0; }
+    .prog .behind { background: var(--sam-danger); flex-grow: 0; }
+    .prog .planned { background: var(--sam-brand-deep); flex-grow: 1; }
+    .legend {
+      display: flex;
+      gap: var(--sam-space-lg);
+      margin-top: var(--sam-space-md);
+      font-size: var(--sam-fs-xs);
+      color: var(--sam-text-muted);
+    }
+    .legend i {
+      display: inline-block;
+      width: var(--sam-space-sm);
+      height: var(--sam-space-sm);
+      border-radius: 2px;
+      margin-right: 5px;
+      vertical-align: -1px;
+    }
+    .legend .ld { background: var(--sam-success); }
+    .legend .lb { background: var(--sam-danger); }
+    .legend .lp { background: var(--sam-brand-deep); }
+
+    .tiers {
+      flex: none;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--sam-space-md);
+      padding: 0 var(--sam-screen-h) var(--sam-space-lg);
+    }
+    .tier {
+      position: relative;
+      text-align: left;
+      border-radius: var(--sam-r-md);
+      border: var(--sam-card-border);
+      background: var(--sam-surface);
+      padding: var(--sam-space-lg) var(--sam-space-lg) 13px;
+      box-shadow: var(--sam-card-shadow);
+      font-family: inherit;
+      color: var(--sam-text);
+      cursor: default;
+    }
+    .tier.tappable { cursor: pointer; }
+    .tier.on {
+      border-color: var(--sam-brand-deep);
+      background: var(--sam-brand-container);
+      box-shadow: inset 0 0 0 0.5px var(--sam-brand-deep);
+    }
+    .tier b {
+      display: block;
+      font-size: var(--sam-fs-callout);
+      font-weight: var(--sam-fw-semibold);
+      margin-bottom: var(--sam-space-xs);
+    }
+    .tier span {
+      font-size: var(--sam-fs-xs);
+      color: var(--sam-text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .tier .mark {
+      position: absolute;
+      top: var(--sam-space-md);
+      right: var(--sam-space-md);
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1.5px solid var(--sam-text-disabled);
+    }
+    .tier.on .mark {
+      background: var(--sam-brand-deep);
+      border-color: var(--sam-brand-deep);
+    }
+    .tier.on .mark svg {
+      position: absolute;
+      left: 2px;
+      top: 2px;
+      color: var(--sam-on-brand);
+    }
+
+    .scroll {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 0 var(--sam-screen-h) var(--sam-space-md);
+      -webkit-overflow-scrolling: touch;
+    }
+    .sec {
+      background: var(--sam-surface);
+      border: var(--sam-card-border);
+      border-radius: var(--sam-r-md);
+      margin-bottom: var(--sam-space-md);
+      overflow: hidden;
+      box-shadow: var(--sam-card-shadow);
+    }
+    .sechead {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: var(--sam-space-md);
+      padding: var(--sam-space-lg) var(--sam-space-lg) var(--sam-space-md);
+      background: none;
+      border: 0;
+      cursor: pointer;
+      font-family: inherit;
+      color: var(--sam-text);
+      text-align: left;
+      position: relative;
+    }
+    .sechead .info { flex: 1; min-width: 0; }
+    .sechead .info b {
+      display: block;
+      font-size: var(--sam-fs-callout);
+      font-weight: var(--sam-fw-semibold);
+      line-height: var(--sam-lh-snug);
+      margin-bottom: var(--sam-space-xs);
+    }
+    .sechead .info em {
+      display: block;
+      font-size: var(--sam-fs-xs);
+      font-style: normal;
+      color: var(--sam-text-muted);
+      line-height: 1.35;
+      font-variant-numeric: tabular-nums;
+    }
+    .sechead .count {
+      font-size: var(--sam-fs-sm);
+      color: var(--sam-text-muted);
+      flex: none;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    .sechead .count .dn { color: var(--sam-success); font-weight: var(--sam-fw-semibold); }
+    .sechead .chev {
+      color: var(--sam-text-muted);
+      flex: none;
+      font-size: var(--sam-fs-subtitle);
+      line-height: 1;
+      transition: transform 0.18s ease;
+    }
+    .sec.open .sechead .chev { transform: rotate(90deg); }
+    .secbar {
+      height: 3px;
+      background: var(--sam-elevated);
+      overflow: hidden;
+    }
+    .secbar i {
+      display: block;
+      height: 100%;
+      background: var(--sam-success);
+      transition: width 0.2s ease;
+    }
+    .topics { display: none; border-top: 1px solid var(--sam-hairline); }
+    .sec.open .topics { display: block; }
+    .tp {
+      display: flex;
+      align-items: center;
+      gap: var(--sam-space-md);
+      padding: var(--sam-space-md) var(--sam-space-lg);
+      border-top: 1px solid var(--sam-hairline);
+    }
+    .tp:first-child { border-top: 0; }
+    .box {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: 1.5px solid var(--sam-text-disabled);
+      flex: none;
+      cursor: pointer;
+      position: relative;
+      background: none;
+      padding: 0;
+    }
+    .box.on {
+      background: var(--sam-success);
+      border-color: var(--sam-success);
+    }
+    .box.on svg {
+      position: absolute;
+      left: 3px;
+      top: 3px;
+      color: var(--sam-on-success);
+    }
+    .box.partial {
+      background: var(--sam-success-container);
+      border-color: var(--sam-success);
+    }
+    .box.partial::after {
+      content: "";
+      position: absolute;
+      left: 5px;
+      right: 5px;
+      top: 50%;
+      height: 2px;
+      margin-top: -1px;
+      background: var(--sam-success);
+      border-radius: 1px;
+    }
+    .box.sm {
+      width: 17px;
+      height: 17px;
+      border-radius: 5px;
+      flex: none;
+    }
+    .box.sm.on svg,
+    .box.sm.partial::after { left: 3px; right: 3px; }
+    .box.sm.on svg { left: 2px; top: 2px; }
+    .tp .nm {
+      flex: 1;
+      font-size: var(--sam-fs-md);
+      font-weight: var(--sam-fw-medium);
+      line-height: var(--sam-lh-snug);
+    }
+    .tp .nm.done,
+    .subhead .nm.done,
+    .leaf-txt.done {
+      color: var(--sam-text-muted);
+      text-decoration: line-through;
+    }
+    .tp .nm.partial,
+    .subhead .nm.partial,
+    .leaf-txt.partial {
+      color: var(--sam-text-secondary);
+    }
+    .tp .hrs {
+      font-size: var(--sam-fs-xs);
+      color: var(--sam-text-muted);
+      flex: none;
+      font-variant-numeric: tabular-nums;
+    }
+    .addrow {
+      width: calc(100% - 28px);
+      margin: var(--sam-space-sm) var(--sam-space-lg) var(--sam-space-md);
+      min-height: 44px;
+      border: 1.5px dashed var(--sam-hairline);
+      border-radius: var(--sam-r-sm);
+      background: transparent;
+      color: var(--sam-text-muted);
+      font-family: inherit;
+      font-size: var(--sam-fs-md);
+      cursor: pointer;
+    }
+    .hint {
+      text-align: center;
+      font-size: var(--sam-fs-sm);
+      line-height: var(--sam-lh-normal);
+      color: var(--sam-text-muted);
+      margin-top: var(--sam-space-md);
+      padding: 0 var(--sam-space-sm);
+    }
+    .source {
+      font-size: var(--sam-fs-xs);
+      color: var(--sam-text-muted);
+      line-height: var(--sam-lh-normal);
+      margin-top: var(--sam-space-sm);
+      padding: 0 var(--sam-screen-h);
+    }
+    .source em { font-style: normal; color: var(--sam-brand-soft); }
+
+    /* ── Nested subtopics (official breakdown) ── */
+    .subtree-wrap { display: none; background: var(--sam-surface-ink); border-top: 1px solid var(--sam-hairline); }
+    .subtree-wrap.open { display: block; }
+    .subbranch { border-top: 1px solid var(--sam-hairline-soft); }
+    .subbranch:first-child { border-top: 0; }
+    .subrow {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--sam-space-sm);
+      padding: var(--sam-space-md) var(--sam-space-lg) var(--sam-space-md) 36px;
+    }
+    .subrow .box.sm { margin-top: 2px; }
+    .subhead {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: var(--sam-space-sm);
+      padding: 0;
+      background: none;
+      border: 0;
+      cursor: pointer;
+      font-family: inherit;
+      color: var(--sam-text-secondary);
+      text-align: left;
+      font-size: var(--sam-fs-md);
+      font-weight: var(--sam-fw-medium);
+    }
+    .subhead .chev {
+      color: var(--sam-text-muted);
+      font-size: var(--sam-fs-md);
+      flex: none;
+      transition: transform 0.18s ease;
+      width: 12px;
+    }
+    .subbranch.open .subhead .chev { transform: rotate(90deg); }
+    .subhead .nm { flex: 1; min-width: 0; line-height: var(--sam-lh-snug); }
+    .subhead .ref {
+      font-size: var(--sam-fs-2xs);
+      color: var(--sam-text-disabled);
+      flex: none;
+    }
+    .subbranch > .subtree { display: none; padding-bottom: var(--sam-space-xs); }
+    .subbranch.open > .subtree { display: block; }
+    .leaf-row {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--sam-space-sm);
+      padding: 7px var(--sam-space-lg) 7px 56px;
+    }
+    .leaf-row .box.sm { margin-top: 1px; flex: none; }
+    .leaf-txt {
+      flex: 1;
+      min-width: 0;
+      font-size: var(--sam-fs-sm);
+      color: var(--sam-text-muted);
+      line-height: var(--sam-lh-normal);
+    }
+    .tp .subtoggle {
+      flex: none;
+      width: 28px;
+      height: 28px;
+      border: 0;
+      background: none;
+      color: var(--sam-text-muted);
+      font-size: var(--sam-fs-lg);
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
+    .tp .subtoggle[aria-expanded="true"] { color: var(--sam-brand-soft); }
+
+    .nm-wrap { flex: 1; min-width: 0; }
+    .nm-wrap .nm { display: block; }
+    .src-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .src-tag {
+      font-size: var(--sam-fs-2xs);
+      font-weight: var(--sam-fw-semibold);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: var(--sam-brand-container);
+      color: var(--sam-brand-soft);
+      line-height: 1.2;
+    }
+    .subhead .src-tags { margin-top: 0; margin-left: auto; flex: none; }
+    .leaf .src-tags { margin-top: 4px; padding-left: 0; }
+    .method {
+      font-size: var(--sam-fs-xs);
+      color: var(--sam-text-muted);
+      line-height: var(--sam-lh-normal);
+      margin: var(--sam-space-sm) var(--sam-screen-h) 0;
+      padding: var(--sam-space-md);
+      background: var(--sam-surface);
+      border: var(--sam-card-border);
+      border-radius: var(--sam-r-sm);
+    }
+    .method b { display: block; font-size: var(--sam-fs-sm); color: var(--sam-text-secondary); margin-bottom: 6px; }
+    .method ol { margin: 0; padding-left: 18px; }
+    .method li { margin-bottom: 4px; }
+    .src-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: var(--sam-space-sm);
+    }
+    .src-legend span {
+      font-size: var(--sam-fs-2xs);
+      color: var(--sam-text-muted);
+      line-height: 1.3;
+    }
+    .src-legend .src-tag { cursor: default; }
+  </style>
+</head>
+<body>
+  <div class="phone sam-ios" id="root">
+    <div class="safe"></div>
+    <header class="header" id="hdr"></header>
+    <div class="tiers" id="tiers"></div>
+    <div class="scroll" id="list"></div>
+    <div class="method" id="method"></div>
+    <p class="source" id="source"></p>
+    <div class="bottom">
+      <button type="button" class="cta" id="rebuild">Rebuild plan</button>
+      <p class="hint" id="hint"></p>
+    </div>
+    <nav class="tabbar" aria-label="Main">
+      <button type="button" class="tabi" aria-label="Today">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4.5 10.5 12 4l7.5 6.5V19a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 19v-8.5Z"/></svg>
+      </button>
+      <button type="button" class="tabi on" aria-label="Syllabus">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 12.5h8M8 16h5"/></svg>
+      </button>
+      <button type="button" class="tabi" aria-label="Focus">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v4.5l3 2"/></svg>
+      </button>
+      <button type="button" class="tabi" aria-label="Insights">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 18V6l8 5 8-5v12"/></svg>
+      </button>
+      <button type="button" class="tabi" aria-label="More">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 6.5h14M5 12h14M5 17.5h9"/></svg>
+      </button>
+    </nav>
+    <div class="gesture"></div>
+  </div>
+
+  <script type="module">
+    import { CGL, tierMeta, SYLLABUS_META, topicHours, SOURCES } from './syllabus-cgl.js';
+
+    const REV = 1.28;
+    const PLAN_AVAILABLE = 568;
+    const CHECK = '<svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const CHECK_SM = '<svg width="11" height="11" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    const SEED_DONE = [
+      't1_0_0_0_0', 't1_0_0_0_1', 't1_0_0_1_0',
+      't1_1_0_0_0', 't1_1_0_1_0', 't1_1_1_0_0',
+      't1_2_0_0_0', 't1_2_0_1_0', 't1_2_1_0_0',
+      't1_3_0_0_0', 't1_3_0_1_0', 't1_3_1_0_0',
+    ];
+
+    function load() {
+      const base = {
+        tier2: false,
+        expanded: ['t1_0'],
+        expandedSub: ['t1_0_0'],
+        done: Object.fromEntries(SEED_DONE.map((k) => [k, true])),
+      };
+      try {
+        const raw = localStorage.getItem('syllabus_ui');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return {
+            ...base,
+            ...parsed,
+            expandedSub: parsed.expandedSub || base.expandedSub,
+            expanded: parsed.expanded || base.expanded,
+          };
+        }
+      } catch (_) {}
+      return base;
+    }
+
+    function save() {
+      try { localStorage.setItem('syllabus_ui', JSON.stringify(state)); } catch (_) {}
+    }
+
+    let state = load();
+
+    function activeSections() {
+      const rows = CGL.tier1.map((s, i) => ({ tier: 't1', i, s }));
+      if (state.tier2) {
+        CGL.tier2.forEach((s, i) => rows.push({ tier: 't2', i, s }));
+      }
+      return rows;
+    }
+
+    function key(tier, si, ti) {
+      return `${tier}_${si}_${ti}`;
+    }
+
+    function sectionHoursSum(sec) {
+      return sec.t.reduce((h, topic) => h + topicHours(topic), 0);
+    }
+
+    /** Collect deepest leaf keys under a node */
+    function collectLeafKeys(node, pathKey) {
+      if (!node.c || !node.c.length) return [pathKey];
+      return node.c.flatMap((child, ci) => collectLeafKeys(child, `${pathKey}_${ci}`));
+    }
+
+    function checkState(leafKeys) {
+      const done = leafKeys.filter((k) => state.done[k]).length;
+      if (done === 0) return 'none';
+      if (done === leafKeys.length) return 'all';
+      return 'partial';
+    }
+
+    function renderCheckBox(leafKeys, small) {
+      const st = checkState(leafKeys);
+      const sm = small ? ' sm' : '';
+      const cls = st === 'all' ? ' on' : st === 'partial' ? ' partial' : '';
+      const icon = st === 'all' ? (small ? CHECK_SM : CHECK) : '';
+      return `<button type="button" class="box${sm}${cls}" data-leaves="${leafKeys.join(',')}" aria-label="Toggle done" aria-pressed="${st === 'all'}">${icon}</button>`;
+    }
+
+    function nameClass(leafKeys) {
+      const st = checkState(leafKeys);
+      if (st === 'all') return ' done';
+      if (st === 'partial') return ' partial';
+      return '';
+    }
+
+    function toggleLeaves(leafKeys) {
+      const allDone = leafKeys.every((k) => state.done[k]);
+      leafKeys.forEach((k) => {
+        if (allDone) delete state.done[k];
+        else state.done[k] = true;
+      });
+    }
+
+    function topicFraction(topic, topicKey) {
+      const leaves = collectLeafKeys(topic, topicKey);
+      const done = leaves.filter((k) => state.done[k]).length;
+      return { leaves, done, total: leaves.length, frac: leaves.length ? done / leaves.length : (state.done[topicKey] ? 1 : 0) };
+    }
+
+    function renderChildren(children, parentKey) {
+      if (!children || !children.length) return '';
+      return children.map((child, ci) => {
+        const k = `${parentKey}_${ci}`;
+        const hasKids = child.c && child.c.length;
+        const leafKeys = collectLeafKeys(child, k);
+        if (!hasKids) {
+          return `<div class="leaf-row">
+            ${renderCheckBox(leafKeys, true)}
+            <div class="leaf-txt${nameClass(leafKeys)}">
+              ${esc(child.n)}
+              ${srcBadges(child.src)}
+            </div>
+          </div>`;
+        }
+        const open = (state.expandedSub || []).includes(k);
+        return `<div class="subbranch${open ? ' open' : ''}" data-branch="${k}">
+          <div class="subrow">
+            ${renderCheckBox(leafKeys, true)}
+            <button type="button" class="subhead" data-sub="${k}" aria-expanded="${open}">
+              <span class="chev" aria-hidden="true">›</span>
+              <span class="nm${nameClass(leafKeys)}">${esc(child.n)}</span>
+              ${srcBadges(child.src)}
+              ${child.r ? `<span class="ref">${esc(child.r)}</span>` : ''}
+            </button>
+          </div>
+          <div class="subtree">${renderChildren(child.c, k)}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function totals() {
+      const rows = activeSections();
+      let rawTotal = 0;
+      let doneHrs = 0;
+      rows.forEach(({ tier, i, s }) => {
+        s.t.forEach((topic, ti) => {
+          const tk = key(tier, i, ti);
+          const hrs = topicHours(topic);
+          rawTotal += hrs;
+          doneHrs += hrs * topicFraction(topic, tk).frac;
+        });
+      });
+      const need = Math.round(rawTotal * REV);
+      const remaining = Math.max(0, need - doneHrs);
+      const gap = Math.max(0, need - PLAN_AVAILABLE);
+      const behind = gap > 0
+        ? Math.min(remaining, Math.round(gap * (remaining / Math.max(need, 1))))
+        : 0;
+      const planned = Math.max(0, remaining - behind);
+      return { rawTotal, need, doneHrs, remaining, behind, planned };
+    }
+
+    function sectionDoneCount(tier, si, s) {
+      let sum = 0;
+      s.t.forEach((topic, ti) => {
+        sum += topicFraction(topic, key(tier, si, ti)).frac;
+      });
+      return sum;
+    }
+
+    function formatSectionCount(n, total) {
+      if (Math.abs(n - Math.round(n)) < 0.05) return `${Math.round(n)} / ${total}`;
+      return `${n.toFixed(1)} / ${total}`;
+    }
+
+    function migrateLegacyDone() {
+      activeSections().forEach(({ tier, i, s }) => {
+        s.t.forEach((topic, ti) => {
+          const tk = key(tier, i, ti);
+          const topicKey = `${tier}_${i}_${ti}`;
+          if (state.done[tk] && topic.c && topic.c.length) {
+            collectLeafKeys(topic, topicKey).forEach((lk) => { state.done[lk] = true; });
+            delete state.done[tk];
+          }
+        });
+      });
+    }
+
+    function esc(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    }
+
+    function srcBadges(ids, title) {
+      if (!ids || !ids.length) return '';
+      const tags = ids.map((id) => {
+        const s = SOURCES[id];
+        if (!s) return '';
+        const tip = esc(s.label + ' — ' + s.detail);
+        return `<span class="src-tag" title="${tip}">${esc(s.short)}</span>`;
+      }).join('');
+      return `<span class="src-tags"${title ? ` title="${esc(title)}"` : ''}>${tags}</span>`;
+    }
+
+    function renderHeader() {
+      const t = totals();
+      document.getElementById('hdr').innerHTML = `
+        <h1>Syllabus</h1>
+        <p class="meta">${t.doneHrs} hrs done · ${t.remaining} to go · SSC CGL</p>
+        <div class="prog" role="img" aria-label="Progress">
+          <span class="done" style="flex-grow:${t.doneHrs}"></span>
+          <span class="behind" style="flex-grow:${t.behind}"></span>
+          <span class="planned" style="flex-grow:${Math.max(t.planned, 1)}"></span>
+        </div>
+        <div class="legend">
+          <span><i class="ld"></i>Done</span>
+          <span><i class="lb"></i>Behind</span>
+          <span><i class="lp"></i>Planned</span>
+        </div>`;
+    }
+
+    function renderTiers() {
+      const m1 = tierMeta(CGL.tier1);
+      const m2 = tierMeta(CGL.tier2);
+      document.getElementById('tiers').innerHTML = `
+        <div class="tier on" aria-current="true">
+          <span class="mark">${CHECK}</span>
+          <b>Tier 1</b>
+          <span>${m1.sections} sections · ${m1.hours}h</span>
+        </div>
+        <button type="button" class="tier tappable${state.tier2 ? ' on' : ''}" id="tier2btn" aria-pressed="${state.tier2}">
+          <span class="mark">${state.tier2 ? CHECK : ''}</span>
+          <b>Tier 2</b>
+          <span>${m2.sections} sections · ${m2.hours}h</span>
+        </button>`;
+      document.getElementById('tier2btn').addEventListener('click', () => {
+        state.tier2 = !state.tier2;
+        save();
+        render();
+      });
+    }
+
+    function renderList() {
+      const html = activeSections().map(({ tier, i, s }) => {
+        const id = `${tier}_${i}`;
+        const open = state.expanded.includes(id);
+        const doneFrac = sectionDoneCount(tier, i, s);
+        const total = s.t.length;
+        const hrs = sectionHoursSum(s);
+        const pct = total ? Math.round((doneFrac / total) * 100) : 0;
+        const prefix = tier === 't2' ? 'TIER 2 · ' : '';
+        const topics = s.t.map((topic, ti) => {
+          const topicKey = `${tier}_${i}_${ti}`;
+          const leafKeys = collectLeafKeys(topic, topicKey);
+          const hrs = topicHours(topic);
+          const hasKids = topic.c && topic.c.length;
+          const subOpen = (state.expandedSub || []).includes(topicKey);
+          const subtree = hasKids
+            ? `<div class="subtree-wrap${subOpen ? ' open' : ''}">${renderChildren(topic.c, topicKey)}</div>`
+            : '';
+          return `<div class="tp${hasKids ? ' has-sub' : ''}">
+            ${renderCheckBox(leafKeys, false)}
+            <span class="nm-wrap">
+              <span class="nm${nameClass(leafKeys)}">${esc(topic.n)}</span>
+              ${srcBadges(topic.src)}
+            </span>
+            <span class="hrs">${hrs}h</span>
+            ${hasKids ? `<button type="button" class="subtoggle" data-sub="${topicKey}" aria-expanded="${subOpen}" aria-label="Show subtopics">${subOpen ? '▾' : '›'}</button>` : ''}
+          </div>${subtree}`;
+        }).join('');
+        return `<article class="sec${open ? ' open' : ''}" data-sec="${id}">
+          <button type="button" class="sechead">
+            <span class="info">
+              <b>${esc(s.n)}</b>
+              <em>${prefix}${hrs}h · ${s.q} questions${s.r ? ' · ' + esc(s.r) : ''}</em>
+            </span>
+            <span class="count"><span class="dn">${doneFrac % 1 < 0.05 ? Math.round(doneFrac) : doneFrac.toFixed(1)}</span> / ${total}</span>
+            <span class="chev" aria-hidden="true">›</span>
+          </button>
+          <div class="topics">${topics}<button type="button" class="addrow">+ Add a topic</button></div>
+          <div class="secbar"><i style="width:${pct}%"></i></div>
+        </article>`;
+      }).join('');
+      const el = document.getElementById('list');
+      el.innerHTML = html;
+
+      el.querySelectorAll('.sechead').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const id = btn.closest('.sec').dataset.sec;
+          const ix = state.expanded.indexOf(id);
+          if (ix >= 0) state.expanded.splice(ix, 1);
+          else state.expanded.push(id);
+          save();
+          renderList();
+          renderHeader();
+          renderHint();
+        });
+      });
+
+      el.querySelectorAll('.box[data-leaves]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const leafKeys = btn.dataset.leaves.split(',').filter(Boolean);
+          toggleLeaves(leafKeys);
+          save();
+          renderList();
+          renderHeader();
+          renderHint();
+        });
+      });
+
+      function toggleSub(id) {
+        if (!state.expandedSub) state.expandedSub = [];
+        const ix = state.expandedSub.indexOf(id);
+        if (ix >= 0) state.expandedSub.splice(ix, 1);
+        else state.expandedSub.push(id);
+        save();
+        renderList();
+      }
+
+      el.querySelectorAll('.subtoggle, .subhead').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          toggleSub(btn.dataset.sub);
+        });
+      });
+    }
+
+    function renderHint() {
+      const t = totals();
+      const el = document.getElementById('hint');
+      el.textContent = state.tier2
+        ? `Planning for both tiers · ${t.rawTotal} hrs of syllabus`
+        : 'Tier 1 only · turn on Tier 2 when you clear it';
+    }
+
+    function renderMethodology() {
+      const m = SYLLABUS_META.methodology;
+      if (!m) return;
+      document.getElementById('method').innerHTML = `
+        <b>${esc(m.title)}</b>
+        <ol>${m.steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>`;
+    }
+
+    function renderSource() {
+      const legend = Object.values(SOURCES).map((s) =>
+        `<span><span class="src-tag">${esc(s.short)}</span> ${esc(s.label)}</span>`,
+      ).join('');
+      document.getElementById('source').innerHTML = `
+        <em>${esc(SYLLABUS_META.source)}</em>
+        <div class="src-legend">${legend}</div>`;
+    }
+
+    function render() {
+      renderHeader();
+      renderTiers();
+      renderList();
+      renderHint();
+      renderMethodology();
+      renderSource();
+    }
+
+    document.getElementById('rebuild').addEventListener('click', () => {
+      document.getElementById('rebuild').textContent = 'Plan updated';
+      setTimeout(() => { document.getElementById('rebuild').textContent = 'Rebuild plan'; }, 1400);
+    });
+
+    migrateLegacyDone();
+    render();
+  </script>
+</body>
+</html>

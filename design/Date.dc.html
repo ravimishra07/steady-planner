@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><script src="./support.js"></script></head>
+<body>
+<x-dc>
+<helmet>
+  <script src="sam-theme.js"></script>
+  <link rel="stylesheet" href="sam-tokens.css">
+  <link rel="stylesheet" href="sam-shared.css">
+  <style>*{box-sizing:border-box;margin:0;padding:0}</style>
+</helmet>
+<div class="screen sam-ios">
+  <div class="safe"></div>
+  <div class="onboard-bar">
+    <button class="glass-btn" aria-label="Back"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M12.5 4.5L7 10l5.5 5.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="dots"><i class="on"></i><i class="on"></i><i></i><i></i></div>
+    <span class="bar-sp" aria-hidden="true"></span>
+  </div>
+  <div class="onboard-body">
+    <h1>Exam date</h1>
+    <div class="onboard-stack">
+      <div class="countdown"><span class="n">118</span><span class="l">days left</span></div>
+      <div class="field"><label>Date</label><div class="val">19 Dec 2026</div></div>
+      <button class="ghost">Not announced yet</button>
+    </div>
+  </div>
+  <div class="foot"><button class="cta">Continue</button></div>
+  <div class="gesture"></div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{}'>class Component extends DCLogic { renderVals(){return{}} }</script>
+</body>
+</html>

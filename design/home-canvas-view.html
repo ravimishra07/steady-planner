@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Home · interactive canvas</title>
+  <link rel="stylesheet" href="canvas-shell.css">
+  <style>
+    .canvas-main .canvas { min-width: 1200px; min-height: 1000px; }
+    .screen-col { height: 920px !important; }
+  </style>
+</head>
+<body class="canvas-shell">
+  <header class="bar">
+    <div>
+      <h1>06 · Home — interactive</h1>
+      <p>
+        <a href="canvas-view.html">← Main canvas</a>
+        &middot;
+        <a href="home.html?seed=1" target="_blank">Open seeded</a>
+        &middot;
+        <a href="home.html" target="_blank">Empty state</a>
+      </p>
+    </div>
+    <span class="hint">design/home-canvas-view.html</span>
+  </header>
+
+  <div class="workspace">
+    <aside class="screen-nav" id="screen-nav">
+      <div class="nav-head">Screens</div>
+      <div class="nav-list"></div>
+      <div class="nav-foot">Click to scroll</div>
+    </aside>
+
+    <main class="canvas-main" id="canvas-main">
+      <div class="canvas" id="canvas"></div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { mountScreenNav } from './canvas-nav.js';
+
+    const boards = [
+      { id: 'screen-0', num: 6, t: 'Home · dark',  q: 'seed=1',           x: 0,   y: 40 },
+      { id: 'screen-1', num: 6, t: 'Home · light', q: 'seed=1&theme=light', x: 470, y: 40 },
+      { id: 'screen-2', num: 6, t: 'Empty state',  q: 'demo=empty',       x: 940, y: 40 },
+    ];
+
+    const root = document.getElementById('canvas');
+    const navItems = boards.map((b) => ({
+      id: b.id,
+      num: b.num,
+      label: b.t,
+      sub: b.q.includes('light') ? 'Light' : b.q.includes('empty') ? 'No plan' : 'Dark + seed',
+    }));
+
+    boards.forEach((b) => {
+      const col = document.createElement('div');
+      col.className = 'screen-col';
+      col.id = b.id;
+      col.style.left = b.x + 'px';
+      col.style.width = '390px';
+
+      const wrap = document.createElement('div');
+      wrap.className = 'artboard mobile' + (b.q.includes('light') ? ' light' : '');
+      wrap.style.position = 'absolute';
+      wrap.style.left = '0';
+      wrap.style.top = b.y + 'px';
+
+      const cap = document.createElement('div');
+      cap.className = 'label';
+      cap.textContent = b.t;
+
+      const iframe = document.createElement('iframe');
+      iframe.className = 'frame';
+      iframe.src = 'home.html?' + b.q;
+      iframe.title = b.t;
+      iframe.style.width = '390px';
+      iframe.style.height = '844px';
+
+      wrap.appendChild(cap);
+      wrap.appendChild(iframe);
+      col.appendChild(wrap);
+      root.appendChild(col);
+    });
+
+    mountScreenNav(document.getElementById('screen-nav'), navItems, {
+      scrollRoot: document.getElementById('canvas-main'),
+    });
+  </script>
+</body>
+</html>

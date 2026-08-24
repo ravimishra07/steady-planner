@@ -1,0 +1,171 @@
+/* app.css — full-screen phone shell (prototype app entry) */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  height: 100dvh;
+  background: var(--sam-bg);
+  color: var(--sam-text);
+  font-family: var(--sam-font);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+#app-shell {
+  width: 100%;
+  max-width: 430px;
+  height: 100dvh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--sam-bg);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+.view-host {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.view-host > .view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: viewIn 0.22s ease;
+}
+
+@keyframes viewIn {
+  from { opacity: 0.55; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.app-nav-dock {
+  flex: none;
+  background: var(--sam-bg);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.app-nav-dock[hidden] { display: none; }
+
+.home-indicator {
+  flex: none;
+  height: max(4px, env(safe-area-inset-bottom, 0px));
+  background: var(--sam-tab-bg);
+}
+
+/* Onboarding + secondary screens share scroll body */
+.view-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.view-foot {
+  flex: none;
+  padding: var(--sam-space-xl) var(--sam-screen-h) var(--sam-space-md);
+  background: var(--sam-bg);
+}
+
+.view-foot .cta { width: 100%; }
+
+.back-chev svg { display: block; }
+
+.stub-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sam-space-xxl) var(--sam-screen-h);
+  text-align: center;
+  gap: var(--sam-space-md);
+}
+
+.stub-screen h2 {
+  font-size: var(--sam-fs-xl);
+  font-weight: var(--sam-fw-bold);
+}
+
+.stub-screen p {
+  font-size: var(--sam-fs-md);
+  color: var(--sam-text-secondary);
+  line-height: var(--sam-lh-relaxed);
+  max-width: 280px;
+}
+
+/* ── More menu ── */
+.view-more .more-head {
+  flex: none;
+  padding: var(--sam-space-md) var(--sam-screen-h) var(--sam-space-lg);
+}
+.view-more .more-head h1 {
+  font-size: var(--sam-fs-title);
+  font-weight: var(--sam-fw-bold);
+  letter-spacing: -0.02em;
+  line-height: var(--sam-lh-tight);
+}
+.view-more .more-sub {
+  font-size: var(--sam-fs-md);
+  color: var(--sam-text-secondary);
+  margin-top: var(--sam-space-xs);
+}
+.view-more .more-scroll { padding-bottom: var(--sam-space-lg); }
+.view-more .more-sec {
+  font-size: var(--sam-fs-sm);
+  font-weight: var(--sam-fw-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sam-text-muted);
+  padding: var(--sam-space-md) var(--sam-screen-h) var(--sam-space-sm);
+}
+.view-more .more-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sam-space-md);
+  padding: 0 var(--sam-screen-h);
+}
+.view-more .more-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sam-space-md);
+  width: 100%;
+  text-align: left;
+  padding: var(--sam-space-lg);
+  background: var(--sam-surface);
+  border: var(--sam-card-border);
+  border-radius: var(--sam-r-md);
+  box-shadow: var(--sam-card-shadow);
+  font-family: inherit;
+  color: var(--sam-text);
+  cursor: pointer;
+  min-height: 64px;
+}
+.view-more .more-row:active { opacity: 0.85; }
+.view-more .more-row.danger .ftxt b { color: var(--sam-danger-soft); }
+.view-more .more-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--sam-r-sm);
+  background: var(--sam-brand-container);
+  color: var(--sam-brand-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--sam-fs-lg);
+  flex: none;
+}
+.view-more .more-row .ftxt { flex: 1; min-width: 0; }
+.view-more .more-row .chev { flex: none; color: var(--sam-text-muted); font-size: var(--sam-fs-subtitle); }

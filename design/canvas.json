@@ -1,0 +1,26 @@
+{
+  "platform": "cmp-shared",
+  "designSystem": "project-sam / Steadyline",
+  "themes": ["light", "dark"],
+  "defaultTheme": "dark",
+  "tokenFiles": ["sam-tokens.css", "sam-shared.css", "sam-theme.js"],
+  "artboards": [
+    { "file": "Exam.dc.html",      "themes": ["light", "dark"] },
+    { "file": "Date.dc.html",      "themes": ["light", "dark"] },
+    { "file": "Shape.dc.html",     "themes": ["light", "dark"] },
+    { "file": "Hours.dc.html",     "themes": ["light", "dark"] },
+    { "file": "Main.dc.html",      "themes": ["light", "dark"], "title": "05 · Cushion" },
+    { "file": "Paywall.dc.html",   "themes": ["light", "dark"] },
+    { "file": "Today.dc.html",     "themes": ["light", "dark"] },
+    { "file": "syllabus.html",  "themes": ["light", "dark"], "width": 390, "interactive": true, "title": "07 · Syllabus" },
+    { "file": "Focus.dc.html",     "themes": ["light", "dark"] },
+    { "file": "Rebalance.dc.html", "themes": ["light", "dark"] },
+    { "file": "SamSystem.dc.html", "themes": ["dark"], "wide": true }
+  ],
+  "layout": {
+    "row1": { "y": 40,  "theme": "light", "label": "Light theme" },
+    "row2": { "y": 960, "theme": "dark",  "label": "Dark theme" },
+    "row3": { "y": 1880, "label": "Design system" }
+  },
+  "launch": { "view": "canvas" }
+}

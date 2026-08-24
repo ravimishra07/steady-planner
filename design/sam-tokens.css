@@ -1,0 +1,366 @@
+/* ============================================================
+   sam-tokens.css — single source: color · type · spacing
+   Themes: html = dark (default) · html.sam-light = light
+   Load sam-theme.js in <head> before paint.
+
+   Typography: one font (--sam-font = SF Pro). Use --sam-fs-* tokens
+   only — never raw px. Numbers use font-variant-numeric: tabular-nums.
+   ============================================================ */
+
+/* ── Structure (theme-agnostic) ── */
+:root {
+  --sam-space-xs: 4px;
+  --sam-space-sm: 8px;
+  --sam-space-md: 12px;
+  --sam-space-lg: 16px;
+  --sam-space-xl: 20px;
+  --sam-space-xxl: 24px;
+  --sam-space-xxxl: 32px;
+  --sam-screen-h: 20px;
+  --sam-section-gap: 20px;
+
+  /* Material 3 layout (toolbar, touch targets, chips) */
+  --md-top-bar-h: 64px;
+  --md-touch-min: 48px;
+  --md-icon: 24px;
+  --md-title-lg: 22px;
+  --md-title-lg-lh: 28px;
+  --md-label-lg: 14px;
+  --md-label-lg-lh: 20px;
+  --md-body-lg: 16px;
+  --md-chip-h: 32px;
+  --md-chip-r: 8px;
+  --md-menu-r: 4px;
+  --md-pad-screen: 16px;
+  --md-pad-actions: 4px;
+
+  --sam-r-sm: 10px;
+  --sam-r-md: 14px;
+  --sam-r-lg: 20px;
+  --sam-r-pill: 50px;
+
+  /* One UI font — SF Pro stack everywhere (no separate mono face) */
+  --sam-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+  --sam-font-mono: var(--sam-font);
+
+  /* iOS-aligned type scale — use tokens only, never raw px */
+  --sam-fs-2xs: 9px;       /* micro labels, source pills */
+  --sam-fs-xxs: 10px;      /* tab bar labels */
+  --sam-fs-xs: 11px;       /* caption 2, eyebrows, tags */
+  --sam-fs-sm: 12px;       /* caption 1, footnotes */
+  --sam-fs-sub: 13px;      /* subheadline */
+  --sam-fs-md: 14px;       /* secondary body */
+  --sam-fs-callout: 15px;  /* callout, ghost buttons */
+  --sam-fs-lg: 16px;       /* body, list titles */
+  --sam-fs-headline: 17px; /* headline, nav title, field values, metrics */
+  --sam-fs-subtitle: 18px; /* subtitle, chevrons, slider values */
+  --sam-fs-xl: 20px;       /* title 3 */
+  --sam-fs-xxl: 22px;      /* title 2 */
+  --sam-fs-title: 28px;    /* title 1 */
+  --sam-fs-hero: 34px;     /* large title */
+  --sam-fs-mega: 48px;     /* emphasis numerals */
+  --sam-fs-countdown: 52px;/* countdown hero */
+  --sam-fs-display: 56px;  /* focus timer, large display */
+
+  --sam-fw-regular: 400;
+  --sam-fw-medium: 500;
+  --sam-fw-semibold: 600;
+  --sam-fw-bold: 700;
+
+  --sam-lh-tight: 1.12;
+  --sam-lh-snug: 1.28;
+  --sam-lh-normal: 1.45;
+  --sam-lh-relaxed: 1.5;
+
+  /* Brand + semantic (same hue both themes) */
+  --sam-brand: #7C3AED;
+  --sam-brand-soft: #B098FB;
+  --sam-brand-deep: #6D35C8;
+  --sam-accent-cyan: #5BC8E6;
+  --sam-success: #34D399;
+  --sam-success-strong: #10BE84;
+  --sam-warning: #FFB74D;
+  --sam-danger: #EF4444;
+  --sam-info: #8B95D6;
+  --sam-mood: #4DD0E1;
+  --sam-energy: #81C784;
+  --sam-sleep: #9FA8DA;
+  --sam-on-brand: #FFFFFF;
+  --sam-tab-selected: #6D35C8;
+}
+
+/* ── Dark theme (default) ── */
+html,
+html.sam-dark {
+  color-scheme: dark;
+
+  --sam-bg: #0A0A0F;
+  --sam-bg-deep: #080511;
+  --sam-surface: #1C1C24;
+  --sam-surface-tinted: #151519;
+  --sam-elevated: #24242E;
+  --sam-surface-3: #2A2A36;
+  --sam-surface-card: #1E1E28;
+  --sam-surface-control: #1A1B22;
+  --sam-surface-ink: #121216;
+
+  --sam-border: #252530;
+  --sam-border-subtle: #1A1B22;
+  --sam-hairline: rgba(255, 255, 255, 0.08);
+  --sam-hairline-soft: rgba(255, 255, 255, 0.06);
+
+  --sam-text: #FFFFFF;
+  --sam-text-secondary: rgba(255, 255, 255, 0.78);
+  --sam-text-muted: rgba(255, 255, 255, 0.58);
+  --sam-text-disabled: rgba(255, 255, 255, 0.38);
+
+  --sam-brand-container: #1A1530;
+  --sam-success-container: #1B2D1B;
+  --sam-danger-container: #2D1B1B;
+  --sam-danger-soft: #EEA3A3;
+  --sam-danger-stripe: #DC2626;
+
+  --sam-glass-tint: rgba(255, 255, 255, 0.055);
+  --sam-glass-stroke: rgba(255, 255, 255, 0.14);
+  --sam-tab-bg: rgba(10, 10, 15, 0.72);
+  --sam-tab-unselected: rgba(255, 255, 255, 0.35);
+
+  --sam-card-shadow: 0 3px 6px rgba(0, 0, 0, 0.18);
+  --sam-card-border: 0.45px solid rgba(255, 255, 255, 0.08);
+  --sam-cta-border: rgba(176, 152, 251, 0.24);
+  --sam-on-success: #0A0A0F;
+
+  --sam-info-tint: rgba(139, 149, 214, 0.14);
+  --sam-warning-tint: rgba(255, 183, 77, 0.12);
+  --sam-warning-row: rgba(255, 183, 77, 0.06);
+}
+
+/* ── Light theme ── */
+html.sam-light {
+  color-scheme: light;
+
+  --sam-bg: #FFFFFF;
+  --sam-bg-deep: #F5F7FA;
+  --sam-surface: #F0F4F8;
+  --sam-surface-tinted: #EDE7FF;
+  --sam-elevated: #E8ECF2;
+  --sam-surface-3: #E0E4EC;
+  --sam-surface-card: #F0F4F8;
+  --sam-surface-control: #E8ECF2;
+  --sam-surface-ink: #F5F7FA;
+
+  --sam-border: #D8DEE8;
+  --sam-border-subtle: #E3E8F0;
+  --sam-hairline: rgba(0, 0, 0, 0.08);
+  --sam-hairline-soft: rgba(0, 0, 0, 0.06);
+
+  --sam-text: #111827;
+  --sam-text-secondary: #374151;
+  --sam-text-muted: #4B5563;
+  --sam-text-disabled: #64748B;
+
+  --sam-brand-container: #EDE7FF;
+  --sam-success-container: #EAF8F0;
+  --sam-danger-container: #FDECEC;
+  --sam-danger-soft: #B91C1C;
+  --sam-danger-stripe: #DC2626;
+
+  --sam-glass-tint: rgba(0, 0, 0, 0.04);
+  --sam-glass-stroke: rgba(0, 0, 0, 0.10);
+  --sam-tab-bg: rgba(255, 255, 255, 0.92);
+  --sam-tab-unselected: rgba(17, 24, 39, 0.38);
+
+  --sam-card-shadow: 0 2px 8px rgba(17, 24, 39, 0.08);
+  --sam-card-border: 0.45px solid #E3E8F0;
+  --sam-cta-border: rgba(109, 53, 200, 0.20);
+  --sam-on-success: #FFFFFF;
+
+  --sam-info-tint: rgba(109, 53, 200, 0.10);
+  --sam-warning-tint: rgba(255, 183, 77, 0.20);
+  --sam-warning-row: rgba(255, 183, 77, 0.10);
+}
+
+/* ── Document base ── */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--sam-bg);
+  color: var(--sam-text);
+  font-family: var(--sam-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Screen shell ── */
+.sam-ios.screen,
+.sam-ios.phone {
+  width: 393px;
+  height: 852px;
+  background: var(--sam-bg);
+  color: var(--sam-text);
+  font-family: var(--sam-font);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sam-ios .safe { height: 54px; flex: none; }
+.sam-ios .gesture { height: 34px; flex: none; background: var(--sam-tab-bg); }
+
+/* ── Typography ── */
+.sam-ios .eyebrow {
+  font-size: var(--sam-fs-sm);
+  font-weight: var(--sam-fw-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sam-text-muted);
+}
+.sam-ios h1 {
+  font-size: var(--sam-fs-title);
+  font-weight: var(--sam-fw-bold);
+  letter-spacing: -0.02em;
+  line-height: var(--sam-lh-tight);
+  color: var(--sam-text);
+}
+.sam-ios .onboard-body h1 {
+  font-size: var(--sam-fs-title);
+  line-height: 1.18;
+  margin-bottom: var(--sam-section-gap);
+}
+.sam-ios .sub {
+  font-size: var(--sam-fs-lg);
+  font-weight: var(--sam-fw-regular);
+  line-height: var(--sam-lh-relaxed);
+  color: var(--sam-text-secondary);
+}
+
+/* ── Glass controls ── */
+.sam-ios .glass-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--sam-glass-tint);
+  border: 1px solid var(--sam-glass-stroke);
+  color: var(--sam-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  cursor: pointer;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.sam-ios .glass-pill {
+  flex: 1;
+  height: 44px;
+  border-radius: var(--sam-r-pill);
+  background: var(--sam-glass-tint);
+  border: 1px solid var(--sam-glass-stroke);
+  color: var(--sam-text-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--sam-space-sm);
+  padding: 0 var(--sam-space-lg);
+  font-size: var(--sam-fs-callout);
+  font-weight: var(--sam-fw-medium);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.sam-ios .topbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--sam-space-sm);
+  padding: 9px var(--sam-screen-h);
+}
+
+/* ── Cards ── */
+.sam-ios .card,
+.sam-ios .card-hero,
+.sam-ios .group {
+  border: var(--sam-card-border);
+  border-radius: var(--sam-r-md);
+  box-shadow: var(--sam-card-shadow);
+}
+.sam-ios .card,
+.sam-ios .group {
+  background: var(--sam-surface);
+}
+.sam-ios .card-hero {
+  background: var(--sam-surface-tinted);
+  border-radius: var(--sam-r-lg);
+}
+.sam-ios .group {
+  margin: 0 var(--sam-screen-h);
+  overflow: hidden;
+}
+
+/* ── CTA ── */
+.sam-ios .cta {
+  width: 100%;
+  min-height: 54px;
+  background: var(--sam-brand-deep);
+  color: var(--sam-on-brand);
+  border: 1px solid var(--sam-cta-border);
+  border-radius: var(--sam-r-pill);
+  font-family: inherit;
+  font-size: var(--sam-fs-lg);
+  font-weight: var(--sam-fw-semibold);
+  cursor: pointer;
+  padding: 0 var(--sam-space-xl);
+}
+.sam-ios .cta:disabled {
+  background: var(--sam-surface-control);
+  color: var(--sam-text-disabled);
+  border-color: transparent;
+  opacity: 0.6;
+}
+.sam-ios .foot {
+  flex: none;
+  padding: var(--sam-space-xl) var(--sam-screen-h) var(--sam-space-md);
+  margin-top: auto;
+  background: var(--sam-bg);
+}
+
+/* ── Tab bar ── */
+.sam-ios .tabbar {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  background: var(--sam-tab-bg);
+  backdrop-filter: blur(24px) saturate(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  border-top: 1px solid var(--sam-hairline-soft);
+  padding: 6px 0 2px;
+  min-height: 49px;
+}
+.sam-ios .tabi {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--sam-tab-unselected);
+  padding: 0;
+}
+.sam-ios .tabi.on { color: var(--sam-tab-selected); }
+.sam-ios .tabi svg { width: 25px; height: 25px; }
+
+/* Tabular numerals for hours, prices, timers — same font, aligned digits */
+.sam-tabnums,
+.sam-ios .metric,
+.sam-ios .price,
+.sam-ios .tm {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Bottom action area (syllabus etc.) ── */
+.sam-ios .bottom {
+  flex: none;
+  padding: var(--sam-space-md) var(--sam-screen-h) var(--sam-space-sm);
+  border-top: 1px solid var(--sam-hairline-soft);
+  background: var(--sam-bg);
+}

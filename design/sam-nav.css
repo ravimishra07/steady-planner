@@ -1,0 +1,52 @@
+/* Shared main-app bottom nav — icons + labels. Mount via sam-nav.js */
+
+.sam-ios .main-nav {
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  background: var(--sam-tab-bg);
+  backdrop-filter: blur(24px) saturate(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  border-top: 1px solid var(--sam-hairline-soft);
+  padding: var(--sam-space-xs) 0 2px;
+  min-height: 56px;
+}
+
+.sam-ios .main-nav .nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 48px;
+  padding: 2px var(--sam-space-xs) 4px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--sam-tab-unselected);
+  font-family: inherit;
+  text-decoration: none;
+}
+
+.sam-ios .main-nav .nav-item svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+
+.sam-ios .main-nav .nav-item span {
+  font-size: var(--sam-fs-xxs);
+  font-weight: var(--sam-fw-medium);
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+}
+
+.sam-ios .main-nav .nav-item.on {
+  color: var(--sam-tab-selected);
+}
+
+.sam-ios .main-nav .nav-item:active {
+  opacity: 0.72;
+}
