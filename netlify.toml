@@ -1,4 +1,10 @@
-# Static prototype — no build step. The app is plain ES modules in design/.
+# Static prototype. The app in design/ is plain ES modules — no build step,
+# no framework, no dependencies.
+#
+# The Next.js port lives in next-port/ deliberately, NOT at the repo root:
+# Netlify runs framework detection against the base directory, and a root
+# package.json listing `next` makes it auto-install @netlify/plugin-nextjs,
+# which then fails the build looking for Next output in design/.
 [build]
   publish = "design"
   command = ""
@@ -9,7 +15,7 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "no-referrer"
 
-# Never let a stale module hang around; everything here is small.
+# Small files, and staleness is worse than a re-fetch.
 [[headers]]
   for = "/*.js"
   [headers.values]

@@ -5,6 +5,8 @@
       "name": "study-planner",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
+        "--prefix",
+        "next-port",
         "run",
         "dev"
       ],

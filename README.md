@@ -1,41 +1,48 @@
-# Exam planner — Next.js prototype
+# Steadyline — exam planner
 
-Android app prototype, running as a web app. Every screen is a phone frame on a dark page.
+A study planner that starts from arithmetic: a syllabus needs some number of
+hours, your calendar supplies another, and the gap between them is the thing
+that matters.
 
-```bash
-npm run dev
+## Run it
+
+```sh
+sh design/serve.sh
 ```
 
-## Routes
-
-| Route | Screen |
-|---|---|
-| `/` | Prototype index + reset state |
-| `/exam` | 1 · Pick exam |
-| `/date` | 2 · Exam date |
-| `/shape` | 3 · Day shape |
-| `/hours` | 4 · Hours + study place |
-| `/cushion` | 5 · Cushion — the payoff screen |
-| `/paywall` | 10 · Paywall |
-| `/home` | 6 · Today's plan |
-| `/syllabus` | 7 · Syllabus tree |
-| `/focus` | 8 · Focus session |
-| `/rebalance` | 9 · Missed days |
+Opens <http://localhost:8765/app.html>. Same URL works from a phone on the
+same Wi-Fi. See [design/README.md](design/README.md) for routes, storage keys
+and architecture.
 
 ## Layout
 
-- `lib/data.ts` — exams, syllabus trees, the scheduler (`cushion()`), state shape.
-  **Product rule: topic names and effort estimates only. No notes, questions, or solutions.**
-- `lib/state.tsx` — `PlanProvider` / `usePlan()`. localStorage-backed under key `plan`.
-  Renders defaults on the server, hydrates in an effect, so there is no mismatch.
-- `app/globals.css` — the design system, ported from `prototype/tokens.css`.
-  Font families come from `next/font` variables set in `app/layout.tsx`.
-- `components/` — `Phone`/`Body`/`Foot`, `Bar` (back + step dots), `HomeHeader` (dark header + tabs).
-- `prototype/` — the original static HTML prototype, kept for reference.
+| Path | What it is |
+|---|---|
+| `design/` | **The app.** Plain ES modules, hash-routed, no build step. This is what deploys. |
+| `design-archive/screens/` | Hi-fi mockups as standalone HTML. Design reference only — they use an older palette. |
+| `prototype/` | The original static HTML screens, kept for reference. |
+| `next-port/` | A Next.js port of the same flow. Superseded by `design/`. |
 
-## Known prototype gaps
+### Why `next-port/` is not at the repo root
 
-- `SYLLABUS` only has `cgl`. Other exams fall back to it.
-- `/home` renders a hardcoded `PLAN` array; it is not generated from the syllabus.
-- Topic ticks on `/syllabus` persist but do not feed back into `cushion()`.
-- `/rebalance` slipped-topic list is hardcoded; the arithmetic below it is live.
+Netlify runs framework detection against the base directory. A root
+`package.json` listing `next` makes it auto-install `@netlify/plugin-nextjs`,
+which then fails the build hunting for Next.js output in `design/`. Keeping the
+port in a subdirectory stops the detection.
+
+To work on it: `npm --prefix next-port install && npm --prefix next-port run dev`
+
+## Deploy
+
+Netlify, from the repo root. `netlify.toml` publishes `design/` with no build
+command; `design/_redirects` serves the app at `/`. Nothing to install.
+
+## What is real and what is not
+
+Real: the cushion arithmetic, the SSC CGL syllabus tree (4 sections, 49 topics,
+634 hrs, with nested subtopics and per-source attribution), syllabus progress in
+hours, the focus timer, theming.
+
+Not yet: the daily plan is fixed demo data rather than generated from the
+syllabus; only SSC CGL has a tree; payments are not wired. There is no backend —
+everything is stored on the device.
