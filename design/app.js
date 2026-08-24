@@ -127,6 +127,24 @@ function render() {
   document.title = 'Steadyline · ' + (def.title || 'Exam planner');
 }
 
+/* Desktop preview: keep the frame a true 402x874 iPhone 17 and scale the
+   whole thing down to fit the window. On a real phone the shell is
+   position:fixed edge-to-edge and this is a no-op. */
+function fitPhoneFrame() {
+  const shell = document.getElementById('app-shell');
+  if (!shell) return;
+  const framed = window.matchMedia('(min-width: 480px) and (min-height: 600px)').matches;
+  if (!framed) {
+    shell.style.removeProperty('--phone-scale');
+    return;
+  }
+  const scale = Math.min(1, (window.innerHeight - 48) / 874, (window.innerWidth - 32) / 402);
+  shell.style.setProperty('--phone-scale', String(Math.max(0.3, scale)));
+}
+
+window.addEventListener('resize', fitPhoneFrame);
+fitPhoneFrame();
+
 window.addEventListener('hashchange', render);
 
 // Demo helpers: ?seed=1 loads a demo plan, ?reset=1 wipes and restarts onboarding.

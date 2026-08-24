@@ -57,31 +57,39 @@ body.app-body {
       var(--sam-bg-deep);
   }
 
+  /* iPhone 17 — 402 x 874 CSS px (DPR 3).
+     Height is driven and width derived from aspect-ratio, so the frame keeps
+     the real proportion instead of squashing on a short window. The third
+     term caps height so the derived width still fits the page. */
   #app-shell {
-    --phone-w: 390px;
-    --phone-h: min(844px, calc(100dvh - 48px));
     position: relative;
     inset: auto;
-    width: var(--phone-w);
-    max-width: var(--phone-w);
-    height: var(--phone-h);
-    max-height: var(--phone-h);
-    border-radius: 44px;
+    width: 402px;
+    max-width: none;
+    height: 874px;
+    max-height: none;
+    /* Always a real 402x874 device; --phone-scale (set in app.js) shrinks the
+       whole phone to fit the window instead of narrowing the screen, so the
+       layout inside is exactly what a real iPhone 17 renders. */
+    transform: scale(var(--phone-scale, 1));
+    transform-origin: center center;
+    border-radius: 54px;
     box-shadow:
       0 0 0 1px rgba(255, 255, 255, 0.07),
       0 28px 90px rgba(0, 0, 0, 0.62);
-    padding-top: 48px;
+    padding-top: 54px;
     padding-bottom: 0;
   }
 
+  /* Dynamic Island — 125 x 36 pt */
   #app-shell::before {
     content: "";
     position: absolute;
-    top: 10px;
+    top: 12px;
     left: 50%;
     transform: translateX(-50%);
-    width: 108px;
-    height: 32px;
+    width: 125px;
+    height: 36px;
     border-radius: 20px;
     background: #000;
     z-index: 40;
@@ -89,7 +97,7 @@ body.app-body {
   }
 
   .home-indicator {
-    border-radius: 0 0 44px 44px;
+    border-radius: 0 0 54px 54px;
   }
 }
 
