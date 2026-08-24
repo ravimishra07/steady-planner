@@ -11,8 +11,11 @@ sh design/serve.sh
 ```
 
 Opens <http://localhost:8765/app.html>. Same URL works from a phone on the
-same Wi-Fi. See [design/README.md](design/README.md) for routes, storage keys
-and architecture.
+same Wi-Fi.
+
+[design/SCREENS.md](design/SCREENS.md) lists every screen, what it is for and
+how finished it is. [design/README.md](design/README.md) covers routes, storage
+keys and architecture.
 
 ## Layout
 
