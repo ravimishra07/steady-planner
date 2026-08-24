@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+  <style>
+    :root{
+      --ink:#16233A; --ink-3:#7A87A0;
+      --ochre:#B87514; --green:#25664A;
+      --on-dark:#9FAEC6; --on-dark-2:#C8D2E2; --dot-green:#5FCF9B;
+      --disp:"Bricolage Grotesque","Trebuchet MS",sans-serif;
+      --sans:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+      --mono:"IBM Plex Mono",ui-monospace,"SF Mono",monospace;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{margin:0;font-family:var(--sans);color:#fff;background:var(--ink)}
+    a{color:#E0B96B;text-decoration:none}
+    a:hover{color:#F0D9A8}
+    .screen{width:393px;height:852px;background:#141F33;display:flex;flex-direction:column;overflow:hidden;position:relative}
+    .glow{position:absolute;left:50%;top:130px;width:420px;height:420px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle,rgba(95,207,155,.13),rgba(95,207,155,0) 68%);pointer-events:none}
+    .safe{height:48px;flex:none}
+    .top{flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;min-height:44px;position:relative}
+    .top .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--on-dark)}
+    .icobtn{width:44px;height:44px;margin-right:-12px;background:none;border:0;color:var(--on-dark-2);display:flex;align-items:center;justify-content:center;cursor:pointer}
+
+    .dial{flex:none;display:flex;align-items:center;justify-content:center;margin-top:26px;position:relative}
+    .dial svg{display:block;transform:rotate(-90deg)}
+    .dialtxt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+    .clock{font-family:var(--disp);font-weight:800;font-size:60px;line-height:1;letter-spacing:-.045em;font-variant-numeric:tabular-nums}
+    .of{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--on-dark)}
+
+    .beads{flex:none;display:flex;gap:7px;justify-content:center;margin-top:24px}
+    .beads i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.18)}
+    .beads i.on{background:var(--dot-green)}
+    .beads i.cur{background:#fff}
+
+    .task{flex:none;margin:26px 20px 0;padding:15px;border:1px solid rgba(255,255,255,.13);border-radius:14px;position:relative}
+    .task .tag{display:inline-block;font-family:var(--mono);font-size:8.5px;letter-spacing:.11em;text-transform:uppercase;color:#141F33;background:var(--dot-green);padding:3px 6px;border-radius:4px;margin-bottom:9px}
+    .task b{display:block;font-size:15.5px;font-weight:600;line-height:1.3;margin-bottom:5px}
+    .task p{font-size:12px;line-height:1.5;color:var(--on-dark)}
+
+    .spacer{flex:1}
+
+    .perm{flex:none;margin:0 20px 14px;background:rgba(255,255,255,.07);border-radius:14px;padding:15px;position:relative}
+    .permrow{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+    .permrow b{flex:1;font-size:13.5px;font-weight:600}
+    .permrow .sw{width:40px;height:23px;border-radius:12px;background:var(--dot-green);flex:none;position:relative}
+    .permrow .sw i{position:absolute;right:2.5px;top:2.5px;width:18px;height:18px;border-radius:50%;background:#fff}
+    .perm p{font-size:11.5px;line-height:1.5;color:var(--on-dark);margin-bottom:11px}
+    .blocked{display:flex;gap:7px;flex-wrap:wrap}
+    .blocked span{font-family:var(--mono);font-size:10px;background:rgba(255,255,255,.1);padding:5px 9px;border-radius:6px;color:var(--on-dark-2)}
+
+    .acts{flex:none;padding:0 20px;display:flex;gap:9px;position:relative}
+    .stop{flex:1;min-height:52px;background:transparent;border:1px solid rgba(255,255,255,.24);color:#fff;border-radius:14px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+    .pause{width:52px;height:52px;flex:none;background:#fff;color:var(--ink);border:0;border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+    .gesture{height:34px;flex:none}
+  </style>
+</helmet>
+
+<div class="screen">
+  <div class="glow"></div>
+  <div class="safe"></div>
+
+  <div class="top">
+    <span class="lbl">Focus &middot; 50 min</span>
+    <button class="icobtn" aria-label="Session settings">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="5" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="12" cy="19" r="1.6"></circle></svg>
+    </button>
+  </div>
+
+  <div class="dial">
+    <svg width="248" height="248" viewBox="0 0 248 248" fill="none">
+      <circle cx="124" cy="124" r="108" stroke="rgba(255,255,255,.10)" stroke-width="10"></circle>
+      <circle cx="124" cy="124" r="108" stroke="#5FCF9B" stroke-width="10" stroke-linecap="round" stroke-dasharray="678.6" stroke-dashoffset="230.7"></circle>
+    </svg>
+    <div class="dialtxt">
+      <div class="clock">32:45</div>
+      <div class="of">17:15 elapsed</div>
+    </div>
+  </div>
+
+  <div class="beads"><i class="on"></i><i class="on"></i><i class="cur"></i><i></i></div>
+
+  <div class="task">
+    <span class="tag">Read</span>
+    <b>Geometry &mdash; Triangles: similarity</b>
+    <p>Logged against this topic, not as loose minutes. Your book, sections 4.1&ndash;4.4.</p>
+  </div>
+
+  <div class="spacer"></div>
+
+  <div class="perm">
+    <div class="permrow">
+      <b>4 apps blocked</b>
+      <span class="sw"><i></i></span>
+    </div>
+    <p>They come back the moment this session ends.</p>
+    <div class="blocked"><span>YouTube</span><span>Instagram</span><span>WhatsApp</span><span>Telegram</span></div>
+  </div>
+
+  <div class="acts">
+    <button class="stop">End session</button>
+    <button class="pause" aria-label="Pause">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6.5" y="5" width="4" height="14" rx="1.4"></rect><rect x="13.5" y="5" width="4" height="14" rx="1.4"></rect></svg>
+    </button>
+  </div>
+  <div class="gesture"></div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

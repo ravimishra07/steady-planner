@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+  <style>
+    :root{
+      --ink:#16233A; --ink-2:#3D4C68; --ink-3:#7A87A0;
+      --paper:#ECEFEA; --card:#FFFFFF; --line:#D6DBD4;
+      --ochre:#B87514; --red:#C6362C; --green:#25664A; --green-soft:#DDEDE4;
+      --on-dark:#9FAEC6; --dot-red:#FF8E82;
+      --lift:0 1px 2px rgba(22,35,58,.05), 0 10px 24px -16px rgba(22,35,58,.20);
+      --disp:"Bricolage Grotesque","Trebuchet MS",sans-serif;
+      --sans:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+      --mono:"IBM Plex Mono",ui-monospace,"SF Mono",monospace;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--paper)}
+    a{color:var(--ochre);text-decoration:none}
+    a:hover{color:#8F5A0F}
+    .screen{width:393px;height:852px;background:var(--paper);display:flex;flex-direction:column;overflow:hidden}
+    .safe{height:48px;flex:none}
+    .appbar{min-height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px}
+    .back{width:44px;height:44px;margin-left:-12px;border:0;background:none;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer}
+    .restore{background:none;border:0;font-family:inherit;font-size:12px;color:var(--ink-3);cursor:pointer;min-height:44px;padding:0 4px}
+    .content{flex:1;padding:4px 20px 0;overflow:hidden}
+    .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+    h1{font-family:var(--disp);font-size:26px;font-weight:600;letter-spacing:-.022em;line-height:1.16;margin:9px 0 6px}
+    .sub{font-size:13px;line-height:1.5;color:var(--ink-2);margin-bottom:16px;text-wrap:pretty}
+
+    .mine{background:var(--ink);color:#fff;border-radius:14px;padding:15px 16px 16px;margin-bottom:16px}
+    .mrow{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0}
+    .mrow span{font-size:12px;color:var(--on-dark)}
+    .mrow b{font-family:var(--mono);font-size:13px;font-weight:500}
+    .mrow b.warn{color:var(--dot-red)}
+    .mtrack{height:10px;border-radius:5px;overflow:hidden;display:flex;background:rgba(255,255,255,.12);margin-top:11px}
+    .mtrack i{display:block;height:100%}
+
+    .plans{display:flex;flex-direction:column;gap:9px}
+    .plan{display:flex;align-items:center;gap:12px;min-height:70px;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--lift);padding:13px 14px;cursor:pointer;font-family:inherit;color:var(--ink)}
+    .plan.sel{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink),var(--lift)}
+    .pick{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);flex:none;position:relative}
+    .plan.sel .pick{background:var(--ink);border-color:var(--ink)}
+    .plan.sel .pick svg{position:absolute;left:2.5px;top:2.5px;color:#fff}
+    .pn{flex:1;min-width:0}
+    .pn b{display:block;font-size:14px;font-weight:600}
+    .pn span{display:block;font-size:11.5px;color:var(--ink-3);margin-top:3px}
+    .best{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;background:var(--green-soft);color:var(--green);padding:3px 6px;border-radius:4px;flex:none}
+    .price{font-family:var(--mono);font-size:16px;font-weight:500;flex:none}
+
+    .inc{margin-top:16px;display:flex;flex-direction:column;gap:2px}
+    .inc div{display:flex;gap:10px;align-items:flex-start;padding:5px 0;font-size:12.5px;color:var(--ink-2);line-height:1.45}
+    .inc svg{color:var(--green);flex:none;margin-top:1px}
+
+    .foot{flex:none;padding:12px 20px 8px}
+    .cta{width:100%;height:52px;background:var(--ink);color:#fff;border:0;border-radius:14px;font-family:inherit;font-size:14.5px;font-weight:600;cursor:pointer}
+    .ghost{width:100%;min-height:44px;background:none;border:0;color:var(--ink-3);font-family:inherit;font-size:12.5px;cursor:pointer}
+    .gesture{height:24px;flex:none}
+  </style>
+</helmet>
+
+<div class="screen">
+  <div class="safe"></div>
+  <div class="appbar">
+    <button class="back" aria-label="Back">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12.5 4.5L7 10l5.5 5.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    </button>
+    <button class="restore">Restore purchase</button>
+  </div>
+
+  <div class="content">
+    <p class="eyebrow">Your plan is ready</p>
+    <h1>You are 244 hours short.<br>Here is the way through.</h1>
+    <p class="sub">Keep it updated every single day until you sit the paper.</p>
+
+    <div class="mine">
+      <div class="mrow"><span>Exam</span><b>SSC CGL &middot; 19 Dec</b></div>
+      <div class="mrow"><span>Days left</span><b>118</b></div>
+      <div class="mrow"><span>Syllabus needs</span><b>812 hrs</b></div>
+      <div class="mrow"><span>You have</span><b class="warn">568 hrs</b></div>
+      <div class="mtrack">
+        <i style="width:70%;background:#fff"></i>
+        <i style="width:30%;background:var(--dot-red)"></i>
+      </div>
+    </div>
+
+    <div class="plans">
+      <button class="plan sel">
+        <span class="pick"><svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+        <span class="pn"><b>Till your exam</b><span>One payment, covers the full attempt</span></span>
+        <span class="best">Best</span>
+        <span class="price">&#8377;399</span>
+      </button>
+      <button class="plan">
+        <span class="pick"></span>
+        <span class="pn"><b>Monthly</b><span>Cancel any time</span></span>
+        <span class="price">&#8377;99</span>
+      </button>
+    </div>
+
+    <div class="inc">
+      <div><svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Daily plan rebuilt from your real hours</div>
+      <div><svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>One-tap rebalance when you miss days</div>
+      <div><svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Revision scheduled automatically, spaced out</div>
+      <div><svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>App blocking during focus sessions</div>
+      <div><svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Works fully offline. No account needed.</div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <button class="cta">Unlock my plan &mdash; &#8377;399</button>
+    <button class="ghost">Not now</button>
+  </div>
+  <div class="gesture"></div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

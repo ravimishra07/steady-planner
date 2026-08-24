@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+  <style>
+    :root{
+      --ink:#16233A; --ink-2:#3D4C68; --ink-3:#7A87A0;
+      --paper:#ECEFEA; --card:#FFFFFF; --line:#D6DBD4;
+      --ochre:#B87514; --ochre-soft:#F6EAD4;
+      --red:#C6362C; --red-soft:#FAE3E1;
+      --green:#25664A; --green-soft:#DDEDE4;
+      --lift:0 1px 2px rgba(22,35,58,.05), 0 10px 24px -16px rgba(22,35,58,.20);
+      --disp:"Bricolage Grotesque","Trebuchet MS",sans-serif;
+      --sans:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+      --mono:"IBM Plex Mono",ui-monospace,"SF Mono",monospace;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--paper)}
+    a{color:var(--ochre);text-decoration:none}
+    a:hover{color:#8F5A0F}
+    .screen{width:393px;height:852px;background:var(--paper);display:flex;flex-direction:column;overflow:hidden}
+    .safe{height:48px;flex:none}
+    .appbar{height:44px;flex:none;display:flex;align-items:center;gap:12px;padding:0 20px}
+    .back{width:44px;height:44px;margin-left:-12px;border:0;background:none;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer}
+    .dots{display:flex;gap:5px;flex:1}
+    .dots i{height:3px;flex:1;border-radius:2px;background:var(--line)}
+    .dots i.on{background:var(--ink)}
+    .content{flex:1;padding:8px 20px 0;display:flex;flex-direction:column}
+    .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+
+    .verdict{display:flex;align-items:flex-start;gap:12px;margin:14px 0 10px}
+    .big{font-family:var(--disp);font-weight:800;font-size:78px;line-height:.82;letter-spacing:-.045em;color:var(--red)}
+    .bigunit{font-family:var(--disp);font-weight:600;font-size:19px;line-height:1.1;letter-spacing:-.01em;color:var(--red);padding-top:7px}
+    .lede{font-size:13.5px;line-height:1.55;color:var(--ink-2);margin-bottom:20px;text-wrap:pretty}
+    .lede strong{color:var(--ink);font-weight:600}
+
+    .gaugecard{background:var(--card);border:1px solid var(--line);border-radius:var(--r,14px);box-shadow:var(--lift);padding:16px 15px 14px;margin-bottom:22px}
+    .gcap{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px}
+    .gcap .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+    .gcap .v{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--ink)}
+    .gcap .v span{color:var(--ink-3)}
+    .track{height:58px;border-radius:8px;overflow:hidden;display:flex;background:var(--paper)}
+    .track .have{background:var(--ink);height:100%;display:flex;align-items:center;padding-left:11px}
+    .track .have b{font-family:var(--mono);font-size:11px;font-weight:500;color:#fff}
+    .track .short{height:100%;display:flex;align-items:center;padding-left:9px;background:repeating-linear-gradient(45deg,var(--red),var(--red) 4px,#D8564D 4px,#D8564D 8px)}
+    .track .short b{font-family:var(--mono);font-size:11px;font-weight:500;color:#fff}
+    .scale{display:flex;justify-content:space-between;margin-top:7px}
+    .scale span{font-family:var(--mono);font-size:9px;color:var(--ink-3);letter-spacing:.04em}
+    .legend{display:flex;gap:16px;margin-top:11px;padding-top:11px;border-top:1px solid var(--line)}
+    .legend div{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-2)}
+    .legend i{width:9px;height:9px;border-radius:2px;flex:none}
+
+    .fixes{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+    .fixcard{display:flex;align-items:center;gap:13px;min-height:66px;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:var(--r,14px);box-shadow:var(--lift);padding:12px 13px;cursor:pointer;font-family:inherit;color:var(--ink)}
+    .metric{font-family:var(--mono);font-size:17px;font-weight:500;color:var(--ochre);width:56px;flex:none;letter-spacing:-.02em}
+    .metric em{font-style:normal;font-size:12px}
+    .ftxt{flex:1;display:flex;flex-direction:column;gap:3px}
+    .ftxt b{font-size:13.5px;font-weight:600;line-height:1.25}
+    .ftxt span{font-size:11.5px;line-height:1.4;color:var(--ink-3)}
+    .chev{color:var(--ink-3);flex:none}
+
+    .foot{flex:none;padding:14px 20px 10px}
+    .cta{width:100%;height:52px;background:var(--ink);color:#fff;border:0;border-radius:var(--r,14px);font-family:inherit;font-size:14.5px;font-weight:600;cursor:pointer}
+    .gesture{height:24px;flex:none}
+  </style>
+</helmet>
+
+<div class="screen">
+  <div class="safe"></div>
+
+  <div class="appbar">
+    <button class="back" aria-label="Back">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12.5 4.5L7 10l5.5 5.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    </button>
+    <div class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+  </div>
+
+  <div class="content">
+    <p class="eyebrow">Your plan</p>
+
+    <div class="verdict">
+      <div class="big">244</div>
+      <div class="bigunit">hours<br>short</div>
+    </div>
+
+    <p class="lede">At 4 hrs on weekdays you cover <strong>70% of the syllabus</strong> before the exam. Three ways to close it — pick one now, change it later.</p>
+
+    <div class="gaugecard">
+      <div class="gcap">
+        <span class="k">Against 812 hrs needed</span>
+        <span class="v">568<span> / 812</span></span>
+      </div>
+      <div class="track">
+        <div class="have" style="width:70%"><b>568h</b></div>
+        <div class="short" style="width:30%"><b>244h</b></div>
+      </div>
+      <div class="scale"><span>0</span><span>200</span><span>400</span><span>600</span><span>812</span></div>
+      <div class="legend">
+        <div><i style="background:var(--ink)"></i>Hours you have</div>
+        <div><i style="background:var(--red)"></i>Shortfall</div>
+      </div>
+    </div>
+
+    <p class="eyebrow">Close the gap</p>
+    <div class="fixes">
+      <button class="fixcard">
+        <span class="metric">+2.1<em>h</em></span>
+        <span class="ftxt"><b>Add hours to every day</b><span>6.1 hrs a day, weekdays included, for 118 days.</span></span>
+        <span class="chev"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M7.5 4.5L13 10l-5.5 5.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+      </button>
+      <button class="fixcard">
+        <span class="metric">&minus;18</span>
+        <span class="ftxt"><b>Drop the lowest-yield topics</b><span>Worth about 13 marks in last year&rsquo;s paper.</span></span>
+        <span class="chev"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M7.5 4.5L13 10l-5.5 5.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+      </button>
+      <button class="fixcard">
+        <span class="metric">45<em>d</em></span>
+        <span class="ftxt"><b>Move the target date back</b><span>Only if the date is actually yours to move.</span></span>
+        <span class="chev"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M7.5 4.5L13 10l-5.5 5.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="foot"><button class="cta">Start day 1</button></div>
+  <div class="gesture"></div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

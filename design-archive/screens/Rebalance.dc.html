@@ -1,0 +1,129 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+  <style>
+    :root{
+      --ink:#16233A; --ink-2:#3D4C68; --ink-3:#7A87A0;
+      --paper:#ECEFEA; --card:#FFFFFF; --line:#D6DBD4;
+      --ochre:#B87514; --ochre-soft:#F6EAD4;
+      --red:#C6362C; --red-soft:#FAE3E1;
+      --green:#25664A; --green-soft:#DDEDE4; --green-line:#B9D6C6;
+      --lift:0 1px 2px rgba(22,35,58,.05), 0 10px 24px -16px rgba(22,35,58,.20);
+      --disp:"Bricolage Grotesque","Trebuchet MS",sans-serif;
+      --sans:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+      --mono:"IBM Plex Mono",ui-monospace,"SF Mono",monospace;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--paper)}
+    a{color:var(--ochre);text-decoration:none}
+    a:hover{color:#8F5A0F}
+    .screen{width:393px;height:852px;background:var(--paper);display:flex;flex-direction:column;overflow:hidden}
+    .safe{height:48px;flex:none}
+    .appbar{min-height:44px;flex:none;display:flex;align-items:center;padding:0 20px}
+    .back{width:44px;height:44px;margin-left:-12px;border:0;background:none;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer}
+    .content{flex:1;padding:6px 20px 0;overflow:hidden}
+    .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--red)}
+    .eyebrow.q{color:var(--ink-3)}
+    h1{font-family:var(--disp);font-size:27px;font-weight:600;letter-spacing:-.02em;line-height:1.14;margin:9px 0 6px}
+    .sub{font-size:13.5px;line-height:1.55;color:var(--ink-2);margin-bottom:18px;text-wrap:pretty}
+
+    .slip{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--lift);padding:2px 14px}
+    .slip .r{display:flex;align-items:center;gap:11px;min-height:44px;border-bottom:1px solid #F1F3EF}
+    .slip .r b{flex:1;font-size:12.5px;font-weight:500;line-height:1.3}
+    .slip .r em{font-family:var(--mono);font-size:11px;font-style:normal;color:var(--ink-3)}
+    .slip .tot{display:flex;align-items:center;gap:11px;min-height:46px;border-top:1px solid var(--line)}
+    .slip .tot b{flex:1;font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3)}
+    .slip .tot em{font-family:var(--mono);font-size:15px;font-style:normal;font-weight:500;color:var(--red)}
+
+    .link{display:flex;justify-content:center;padding:10px 0 12px}
+    .link i{width:1.5px;height:22px;background:var(--line);display:block;position:relative}
+    .link i:after{content:"";position:absolute;left:-3.5px;bottom:0;width:8px;height:8px;border-right:1.5px solid var(--line);border-bottom:1.5px solid var(--line);transform:rotate(45deg)}
+
+    .fixes{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+    .fixcard{display:flex;align-items:center;gap:13px;min-height:66px;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--lift);padding:12px 13px;cursor:pointer;font-family:inherit;color:var(--ink)}
+    .fixcard.sel{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink),var(--lift)}
+    .metric{font-family:var(--mono);font-size:17px;font-weight:500;color:var(--ochre);width:54px;flex:none;letter-spacing:-.02em}
+    .metric em{font-style:normal;font-size:12px}
+    .ftxt{flex:1;display:flex;flex-direction:column;gap:3px}
+    .ftxt b{font-size:13.5px;font-weight:600;line-height:1.25}
+    .ftxt span{font-size:11.5px;line-height:1.4;color:var(--ink-3)}
+    .pick{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);flex:none;position:relative}
+    .fixcard.sel .pick{background:var(--ink);border-color:var(--ink)}
+    .fixcard.sel .pick svg{position:absolute;left:2.5px;top:2.5px;color:#fff}
+
+    .land{display:flex;align-items:center;gap:12px;background:var(--red-soft);border:1px solid #EFC0BB;border-radius:14px;padding:13px 15px;margin-top:16px}
+    .land .n{font-family:var(--disp);font-size:26px;font-weight:800;letter-spacing:-.03em;color:var(--red);line-height:1}
+    .land p{flex:1;font-size:11.5px;line-height:1.45;color:var(--ink-2)}
+
+    .foot{flex:none;padding:14px 20px 10px}
+    .cta{width:100%;height:52px;background:var(--ink);color:#fff;border:0;border-radius:14px;font-family:inherit;font-size:14.5px;font-weight:600;cursor:pointer}
+    .gesture{height:24px;flex:none}
+  </style>
+</helmet>
+
+<div class="screen">
+  <div class="safe"></div>
+  <div class="appbar">
+    <button class="back" aria-label="Back">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12.5 4.5L7 10l5.5 5.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    </button>
+  </div>
+
+  <div class="content">
+    <p class="eyebrow">4 days missed</p>
+    <h1>Here is what slipped.</h1>
+    <p class="sub">Nothing is lost. It has to go somewhere, and you choose where.</p>
+
+    <div class="slip">
+      <div class="r"><b>Geometry &mdash; Circles</b><em>6 hrs</em></div>
+      <div class="r"><b>Mensuration &mdash; Solids</b><em>7 hrs</em></div>
+      <div class="r"><b>Revision: Ratio &amp; Proportion</b><em>2 hrs</em></div>
+      <div class="r"><b>Current Affairs &times; 4 days</b><em>2 hrs</em></div>
+      <div class="tot"><b>Total slipped</b><em>17 hrs</em></div>
+    </div>
+
+    <div class="link"><i></i></div>
+
+    <p class="eyebrow q">Pick one</p>
+    <div class="fixes">
+      <button class="fixcard sel">
+        <span class="metric">+0.1<em>h</em></span>
+        <span class="ftxt"><b>Spread it across every day</b><span>9 extra minutes a day. Nothing gets dropped.</span></span>
+        <span class="pick"><svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+      </button>
+      <button class="fixcard">
+        <span class="metric">&minus;2</span>
+        <span class="ftxt"><b>Drop Solids and one revision pass</b><span>Costs about 1.5 marks.</span></span>
+        <span class="pick"></span>
+      </button>
+      <button class="fixcard">
+        <span class="metric">3<em>d</em></span>
+        <span class="ftxt"><b>Push the target date back</b><span>Keeps everything, moves the finish line.</span></span>
+        <span class="pick"></span>
+      </button>
+    </div>
+
+    <div class="land">
+      <span class="n">261</span>
+      <p>hours short after rebalancing &mdash; up from 244. Your cushion updates as you pick.</p>
+    </div>
+  </div>
+
+  <div class="foot"><button class="cta">Spread it across my days</button></div>
+  <div class="gesture"></div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

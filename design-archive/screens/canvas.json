@@ -1,0 +1,109 @@
+{
+  "artboards": [
+    {
+      "file": "Exam.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 393,
+      "h": 852,
+      "title": "01 · Pick exam"
+    },
+    {
+      "file": "Main.dc.html",
+      "x": 473,
+      "y": 0,
+      "w": 393,
+      "h": 852,
+      "title": "05 · Cushion — the payoff"
+    },
+    {
+      "file": "Paywall.dc.html",
+      "x": 946,
+      "y": 0,
+      "w": 393,
+      "h": 852,
+      "title": "10 · Paywall"
+    },
+    {
+      "file": "Today.dc.html",
+      "x": 0,
+      "y": 960,
+      "w": 393,
+      "h": 852,
+      "title": "06 · Today — Android"
+    },
+    {
+      "file": "Syllabus.dc.html",
+      "x": 473,
+      "y": 960,
+      "w": 393,
+      "h": 852,
+      "title": "07 · Syllabus"
+    },
+    {
+      "file": "Focus.dc.html",
+      "x": 946,
+      "y": 960,
+      "w": 393,
+      "h": 852,
+      "title": "08 · Focus session"
+    },
+    {
+      "file": "Rebalance.dc.html",
+      "x": 0,
+      "y": 1920,
+      "w": 393,
+      "h": 852,
+      "title": "09 · Rebalance"
+    },
+    {
+      "file": "TodayIOS.dc.html",
+      "x": 473,
+      "y": 1920,
+      "w": 393,
+      "h": 852,
+      "title": "06 · Today — iOS"
+    },
+    {
+      "file": "System.dc.html",
+      "x": 0,
+      "y": 2880,
+      "w": 880,
+      "h": 1180,
+      "title": "Design system"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "row-onboard",
+      "x": -320,
+      "y": 0,
+      "w": 250,
+      "text": "ONBOARDING → PAYOFF\n\nFour questions, then the verdict. The cushion screen is the whole product in one number — it now leads with 244 set at 78px instead of burying it in a tinted box.\n\nOnly SSC CGL has a real syllabus tree in data.js, so it is the only card showing hour counts. The other five need trees before they can show anything."
+    },
+    {
+      "id": "row-daily",
+      "x": -320,
+      "y": 960,
+      "w": 250,
+      "text": "THE DAILY LOOP\n\nWhat the prototype was thinnest on. Added: a real timeline rail with state-carrying nodes, a now-marker, and a day-progress bar that answers \"am I on track today\" before you read a single card.\n\nBottom nav replaces the two top tabs — thumb-reachable, and it makes room for Focus and You."
+    },
+    {
+      "id": "row-recovery",
+      "x": -320,
+      "y": 1920,
+      "w": 250,
+      "text": "RECOVERY + PLATFORM\n\nRebalance reuses the exact choice-row component from the cushion screen, so \"pick one of three\" is one learned pattern, not two.\n\nRight: the same Today screen adapted to iOS. Compare the header, the list treatment and the tab bar — that is the entire visual fork."
+    },
+    {
+      "id": "row-system",
+      "x": -320,
+      "y": 2880,
+      "w": 250,
+      "text": "SYSTEM\n\nEvery value lifted from tokens.css rather than re-picked, so the CMP theme is a transcription job.\n\nThe fork table at the bottom is the part worth arguing about before any Kotlin gets written."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

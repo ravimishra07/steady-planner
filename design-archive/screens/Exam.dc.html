@@ -1,0 +1,129 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+  <style>
+    :root{
+      --ink:#16233A; --ink-2:#3D4C68; --ink-3:#7A87A0;
+      --paper:#ECEFEA; --card:#FFFFFF; --line:#D6DBD4;
+      --ochre:#B87514; --green:#25664A;
+      --lift:0 1px 2px rgba(22,35,58,.05), 0 10px 24px -16px rgba(22,35,58,.20);
+      --disp:"Bricolage Grotesque","Trebuchet MS",sans-serif;
+      --sans:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+      --mono:"IBM Plex Mono",ui-monospace,"SF Mono",monospace;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--paper)}
+    a{color:var(--ochre);text-decoration:none}
+    a:hover{color:#8F5A0F}
+    .screen{width:393px;height:852px;background:var(--paper);display:flex;flex-direction:column;overflow:hidden}
+    .safe{height:48px;flex:none}
+    .appbar{min-height:44px;flex:none;display:flex;align-items:center;gap:12px;padding:0 20px}
+    .dots{display:flex;gap:5px;flex:1}
+    .dots i{height:3px;flex:1;border-radius:2px;background:var(--line)}
+    .dots i.on{background:var(--ink)}
+    .content{flex:1;padding:8px 20px 0;overflow:hidden}
+    .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+    h1{font-family:var(--disp);font-size:28px;font-weight:600;letter-spacing:-.022em;line-height:1.14;margin:10px 0 7px}
+    .sub{font-size:13.5px;line-height:1.55;color:var(--ink-2);margin-bottom:20px;text-wrap:pretty}
+
+    .list{display:flex;flex-direction:column;gap:9px}
+    .exam{display:flex;align-items:center;gap:13px;min-height:70px;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--lift);padding:13px 14px;cursor:pointer;font-family:inherit;color:var(--ink)}
+    .exam.sel{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink),var(--lift)}
+    .xt{flex:1;min-width:0}
+    .xt h3{font-size:14.5px;font-weight:600;line-height:1.25}
+    .xt p{font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-top:4px;letter-spacing:.02em}
+    .load{display:flex;align-items:center;gap:7px;margin-top:7px}
+    .load .bar{width:52px;height:3px;border-radius:2px;background:var(--line);overflow:hidden;flex:none}
+    .load .bar i{display:block;height:100%;background:var(--ink-3);opacity:.5}
+    .load span{font-family:var(--mono);font-size:9.5px;color:var(--ink-3)}
+    .tick{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line);flex:none;position:relative}
+    .exam.sel .tick{background:var(--ink);border-color:var(--ink)}
+    .exam.sel .tick svg{position:absolute;left:3px;top:3px;color:#fff}
+
+    .foot{flex:none;padding:14px 20px 10px}
+    .cta{width:100%;height:52px;background:var(--ink);color:#fff;border:0;border-radius:14px;font-family:inherit;font-size:14.5px;font-weight:600;cursor:pointer}
+    .gesture{height:24px;flex:none}
+  </style>
+</helmet>
+
+<div class="screen">
+  <div class="safe"></div>
+  <div class="appbar">
+    <div class="dots"><i class="on"></i><i></i><i></i><i></i></div>
+  </div>
+
+  <div class="content">
+    <p class="eyebrow">Step 1 of 4</p>
+    <h1>Which exam are you<br>preparing for?</h1>
+    <p class="sub">Pick the one you are actually sitting. You can add a second exam later.</p>
+
+    <div class="list">
+      <button class="exam sel">
+        <span class="xt">
+          <h3>SSC CGL</h3>
+          <p>28.1 lakh applied &middot; Tier 1 + Tier 2</p>
+          <span class="load"><span class="bar"><i style="width:100%"></i></span><span>634 hrs of syllabus &middot; 49 topics</span></span>
+        </span>
+        <span class="tick"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+      </button>
+
+      <button class="exam">
+        <span class="xt">
+          <h3>SSC CHSL</h3>
+          <p>30 lakh applied &middot; Tier 1 + Tier 2</p>
+                </span>
+        <span class="tick"></span>
+      </button>
+
+      <button class="exam">
+        <span class="xt">
+          <h3>RRB NTPC</h3>
+          <p>1.22 crore applied &middot; CBT 1 + CBT 2</p>
+                </span>
+        <span class="tick"></span>
+      </button>
+
+      <button class="exam">
+        <span class="xt">
+          <h3>NEET UG</h3>
+          <p>22.8 lakh applied &middot; single paper</p>
+                </span>
+        <span class="tick"></span>
+      </button>
+
+      <button class="exam">
+        <span class="xt">
+          <h3>JEE Main</h3>
+          <p>15 lakh applied &middot; 2 sessions</p>
+                </span>
+        <span class="tick"></span>
+      </button>
+
+      <button class="exam">
+        <span class="xt">
+          <h3>IBPS PO</h3>
+          <p>12.4 lakh applied &middot; Prelims + Mains</p>
+                </span>
+        <span class="tick"></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="foot"><button class="cta">Continue</button></div>
+  <div class="gesture"></div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
