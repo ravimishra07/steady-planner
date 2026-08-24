@@ -2260,3 +2260,178 @@
   font-weight: var(--sam-fw-regular);
   color: var(--sam-text-secondary);
 }
+
+/* ============================================================
+   Syllabus — variant C (midway). Flat list like A, sizes halfway
+   between A and B. Own class; A and B are untouched.
+   ============================================================ */
+
+.sam-ios .view-syllabus-c .syl-head {
+  flex: none;
+  padding: var(--sam-space-lg) var(--sam-screen-h) var(--sam-space-sm);
+}
+.sam-ios .view-syllabus-c .syl-head h1 {
+  font-size: var(--sam-fs-title);
+  font-weight: var(--sam-fw-bold);
+  letter-spacing: -0.025em;
+  line-height: var(--sam-lh-tight);
+}
+.sam-ios .view-syllabus-c .syl-sub {
+  font-size: var(--sam-fs-callout);
+  color: var(--sam-text-secondary);
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sam-ios .view-syllabus-c .subject-tabs {
+  flex: none;
+  display: flex;
+  gap: var(--sam-space-sm);
+  padding: var(--sam-space-md) var(--sam-screen-h) var(--sam-space-md);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.sam-ios .view-syllabus-c .subject-tabs::-webkit-scrollbar { display: none; }
+.sam-ios .view-syllabus-c .subject-tab {
+  flex: none;
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: var(--sam-r-pill);
+  border: 1px solid var(--sam-border);
+  background: var(--sam-surface);
+  color: var(--sam-text-secondary);
+  font-family: inherit;
+  font-size: var(--sam-fs-callout);
+  font-weight: var(--sam-fw-medium);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sam-ios .view-syllabus-c .subject-tab.on {
+  background: var(--sam-brand-deep);
+  border-color: var(--sam-brand-deep);
+  color: var(--sam-on-brand);
+  font-weight: var(--sam-fw-semibold);
+}
+
+.sam-ios .view-syllabus-c .syl-scroll {
+  padding: 0 var(--sam-screen-h) var(--sam-space-xxl);
+}
+
+.sam-ios .view-syllabus-c .node { position: relative; }
+.sam-ios .view-syllabus-c .node .row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 2px 0;
+}
+.sam-ios .view-syllabus-c .node.d0 > .row { min-height: 58px; }
+.sam-ios .view-syllabus-c .node.d0 { border-bottom: 1px solid var(--sam-hairline); }
+.sam-ios .view-syllabus-c .node.d0:last-child { border-bottom: 0; }
+/* the open topic gets a little air without becoming a card */
+.sam-ios .view-syllabus-c .node.d0.open { padding-bottom: var(--sam-space-sm); }
+
+.sam-ios .view-syllabus-c .kids {
+  display: none;
+  margin-left: 14px;
+  padding-left: 16px;
+  border-left: 1.5px solid var(--sam-border);
+}
+.sam-ios .view-syllabus-c .node.open > .kids { display: block; }
+
+.sam-ios .view-syllabus-c .toggle {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 50%;
+  border: 1.5px solid var(--sam-border);
+  background: var(--sam-surface);
+  color: var(--sam-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+.sam-ios .view-syllabus-c .toggle svg { width: 19px; height: 19px; display: block; }
+.sam-ios .view-syllabus-c .node.open > .row > .toggle {
+  color: var(--sam-brand-soft);
+  border-color: var(--sam-brand-deep);
+}
+.sam-ios .view-syllabus-c .leafdot { width: 30px; height: 30px; flex: none; position: relative; }
+.sam-ios .view-syllabus-c .leafdot::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sam-border);
+}
+
+.sam-ios .view-syllabus-c .tickbox {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  border: 1.5px solid var(--sam-text-disabled);
+  background: none;
+  color: var(--sam-on-success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+}
+.sam-ios .view-syllabus-c .tickbox svg { width: 16px; height: 16px; display: block; }
+.sam-ios .view-syllabus-c .tickbox.all {
+  background: var(--sam-success);
+  border-color: var(--sam-success);
+}
+.sam-ios .view-syllabus-c .tickbox.part { border-color: var(--sam-success); }
+.sam-ios .view-syllabus-c .tickbox.part::after {
+  content: "";
+  position: absolute;
+  inset: 5.5px;
+  border-radius: 50%;
+  background: var(--sam-success);
+}
+
+.sam-ios .view-syllabus-c .label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  color: var(--sam-text);
+  cursor: pointer;
+}
+.sam-ios .view-syllabus-c .nm {
+  display: block;
+  font-size: var(--sam-fs-callout);
+  font-weight: var(--sam-fw-medium);
+  line-height: var(--sam-lh-snug);
+}
+.sam-ios .view-syllabus-c .nm.all {
+  color: var(--sam-text-muted);
+  text-decoration: line-through;
+}
+.sam-ios .view-syllabus-c .hrs {
+  flex: none;
+  font-size: var(--sam-fs-sub);
+  color: var(--sam-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.sam-ios .view-syllabus-c .node.d0 > .row > .label .nm {
+  font-size: var(--sam-fs-subtitle);
+  font-weight: var(--sam-fw-semibold);
+}
+.sam-ios .view-syllabus-c .node.d2 > .row > .label .nm {
+  font-size: var(--sam-fs-sub);
+  font-weight: var(--sam-fw-regular);
+  color: var(--sam-text-secondary);
+}

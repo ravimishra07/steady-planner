@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Syllabus · A vs B</title>
+  <title>Syllabus · A / C / B</title>
   <script src="sam-theme.js"></script>
   <link rel="stylesheet" href="sam-tokens.css">
   <style>
@@ -23,12 +23,14 @@
     .sub a { color: var(--sam-brand-soft); }
     .pair {
       display: flex;
-      gap: 40px;
-      justify-content: center;
+      gap: 32px;
+      justify-content: flex-start;
       align-items: flex-start;
-      flex-wrap: wrap;
       margin-top: 28px;
+      overflow-x: auto;
+      padding-bottom: 16px;
     }
+    .col { flex: none; }
     .col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
     .cap { display: flex; align-items: baseline; gap: 10px; }
     .cap b { font-size: var(--sam-fs-lg); font-weight: var(--sam-fw-semibold); }
@@ -47,15 +49,20 @@
   </style>
 </head>
 <body>
-  <h1>Syllabus — A vs B</h1>
-  <p class="sub">Same data, same logic, same tick state. B has more vertical room. &middot;
+  <h1>Syllabus — A / C / B</h1>
+  <p class="sub">Same data, same logic, same tick state — only spacing differs. &middot;
     <a href="app.html#/syllabus">open A</a> &middot;
+    <a href="app.html#/syllabus-c">open C</a> &middot;
     <a href="app.html#/syllabus-b">open B</a></p>
 
   <div class="pair">
     <div class="col">
       <div class="cap"><b>A</b><span>current — dense</span></div>
       <div class="frame"><iframe src="app.html#/syllabus" title="Syllabus A"></iframe></div>
+    </div>
+    <div class="col">
+      <div class="cap"><b>C</b><span>midway</span></div>
+      <div class="frame"><iframe src="app.html#/syllabus-c" title="Syllabus C"></iframe></div>
     </div>
     <div class="col">
       <div class="cap"><b>B</b><span>roomier — topic cards</span></div>
