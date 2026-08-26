@@ -1,7 +1,18 @@
 # Steadyline Android — architecture
 
-Kotlin + Jetpack Compose, Android only. The domain layer is pure Kotlin with no
-Android imports, so it can become KMP `commonMain` if iOS ever matters.
+Kotlin + Jetpack Compose, Android only.
+
+`:domain` is a plain Kotlin/JVM Gradle module with no Android dependency. That is
+ordinary clean architecture, not a KMP construct — there is no `commonMain` here.
+It earns its place three ways: JVM-only tests run in milliseconds instead of
+needing Robolectric, the build physically prevents `Context` leaking into the
+scheduler, and it skips resource and manifest processing so it compiles faster.
+That it could later become a KMP source set is a free side effect, not the
+reason for it.
+
+Module boundaries cost nothing at runtime. After R8 it is all one DEX in one ART
+process; a call across modules compiles to the same invoke as a call within one.
+The only cost is Gradle configuration time.
 
 This document is the contract. Any agent adding code follows it or the change is
 rejected. It exists because the fastest way to ruin an app this size is to let
@@ -240,6 +251,24 @@ feature/home/
 - Loading and error are fields on that state, not separate screens.
 - Screen-level composables take lambdas, not the ViewModel, so previews work.
 
+### High-frequency state is the exception
+
+One immutable `UiState` per screen is right for almost everything, but it is
+wrong for values that change many times a second. The focus timer is the case in
+this app: copying a whole `UiState` every tick and recomposing the screen around
+it is pure waste.
+
+For those, keep the changing value in its own small state and let only the widget
+that draws it read that state:
+
+```kotlin
+// the rest of the screen never recomposes on a tick
+val remaining by viewModel.remainingSeconds.collectAsStateWithLifecycle()
+```
+
+Rule: if a value updates more than about twice a second, it does not belong in
+the screen's `UiState`.
+
 ### Compose performance rules
 
 - Hoist state. Pass the smallest thing a composable needs, never the whole state.
@@ -289,6 +318,9 @@ An agent doing any of these has broken the architecture:
 - Android imports inside `:domain`
 - Hardcoded colours, font sizes, radii or spacing in UI code
 - `LiveData`, RxJava, or a second DI framework
+- A `UseCase` class that only forwards to a repository, or a mapper between two
+  near-identical models. Layers are justified by behaviour, not by symmetry.
+- Putting a per-second value in a screen-wide `UiState`
 - Adding a Gradle module without recording why in section 2
 
 ---
