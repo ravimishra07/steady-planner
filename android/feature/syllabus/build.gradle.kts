@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.steadyline.feature.syllabus"
+    namespace = "com.exam.assistant.feature.syllabus"
     compileSdk = 35
     defaultConfig { minSdk = 24 }
     compileOptions {
@@ -24,7 +24,7 @@ dependencies {
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
-    implementation(libs.compose.material3)
+    implementation(libs.compose.material.icons)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.lifecycle.viewmodel.compose)
 }

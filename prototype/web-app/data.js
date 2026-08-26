@@ -12,9 +12,9 @@ export const EXAMS = [
 ];
 
 export const WORK = [
-  { id: 'ft', t: 'Full-time aspirant', s: 'Preparation is the whole day', wd: 8, we: 8 },
-  { id: 'job', t: 'Working a job', s: 'Study before or after office', wd: 3, we: 8 },
-  { id: 'col', t: 'In college', s: 'Classes plus preparation', wd: 4, we: 7 },
+  { id: 'ft', t: 'Full-time', s: 'Preparation is the whole day', wd: 8, we: 8 },
+  { id: 'job', t: 'Working', s: 'Study before or after office', wd: 3, we: 8 },
+  { id: 'col', t: 'College', s: 'Classes plus preparation', wd: 4, we: 7 },
 ];
 
 export const DEFAULT_STATE = {

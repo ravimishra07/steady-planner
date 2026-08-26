@@ -10,9 +10,10 @@
   padding: 4px var(--sam-screen-h) 18px;
 }
 .sam-ios .onboard-bar .bar-sp { width: 44px; flex: none; }
+.sam-ios .onboard-bar .bar-flex { flex: 1; min-width: 0; }
 .sam-ios .onboard-body {
   flex: 0 1 auto;
-  padding: 6px var(--sam-screen-h) 0;
+  padding: 2px var(--sam-screen-h) 0;
   overflow: hidden;
 }
 .sam-ios .onboard-body > * + * { margin-top: 0; }

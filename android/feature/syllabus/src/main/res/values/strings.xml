@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="syllabus_title">Syllabus</string>
+    <string name="syllabus_summary">%1$d of %2$d hrs done · %3$d topics</string>
+    <string name="syllabus_expand">Expand</string>
+    <string name="syllabus_collapse">Collapse</string>
+    <string name="syllabus_mark_done">Mark done</string>
+    <string name="syllabus_subject_quant">Quant</string>
+    <string name="syllabus_subject_reasoning">Reasoning</string>
+    <string name="syllabus_subject_ga">GA</string>
+    <string name="syllabus_subject_english">English</string>
+</resources>

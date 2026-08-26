@@ -5,12 +5,16 @@ const BACK = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path 
 
 const STEPS = ['exam', 'date', 'shape', 'hours', 'cushion'];
 const STEP_IX = Object.fromEntries(STEPS.map((s, i) => [s, i]));
+/** Progress bar only on the four setup steps — cushion is the payoff. */
+const PROGRESS = ['exam', 'date', 'shape', 'hours'];
 
-/** Syllabus hours are only real for the exam that has a tree. */
-const SYLLABUS_KNOWN = { cgl: { hrs: 634, topics: 49 } };
+const SYLLABUS_READY = new Set(['cgl']);
 
-const dots = (step) =>
-  STEPS.map((_, i) => `<i class="${i <= STEP_IX[step] ? 'on' : ''}"></i>`).join('');
+function progressBar(step) {
+  const ix = PROGRESS.indexOf(step);
+  if (ix < 0) return '<span class="bar-flex" aria-hidden="true"></span>';
+  return `<div class="dots" aria-hidden="true">${PROGRESS.map((_, i) => `<i class="${i <= ix ? 'on' : ''}"></i>`).join('')}</div>`;
+}
 
 function loadDraft() {
   const base = { ...DEFAULT_STATE, exam: 'cgl', work: 'col', wd: 4, we: 7, days: 118, place: 'Terrace' };
@@ -36,23 +40,21 @@ export function mountOnboarding(root, { navigate }, step) {
     try { sessionStorage.setItem('onboard_draft', JSON.stringify(draft)); } catch (_) {}
   };
 
-  function shell({ eyebrow, title, lede, body, cta, note }, onContinue) {
+  function shell({ title, body, cta, lede }, onContinue) {
     root.innerHTML = `
       <div class="onboard-bar">
         ${prev ? `<button type="button" class="glass-btn back-chev" aria-label="Back">${BACK}</button>`
                : '<span class="bar-sp" aria-hidden="true"></span>'}
-        <div class="dots">${dots(step)}</div>
+        ${progressBar(step)}
         <span class="bar-sp" aria-hidden="true"></span>
       </div>
       <div class="onboard-body">
-        <p class="eyebrow">${eyebrow}</p>
         <h1>${title}</h1>
         ${lede ? `<p class="lede">${lede}</p>` : ''}
         ${body}
       </div>
       <div class="view-foot">
         <button type="button" class="cta" id="ob-cta">${cta}</button>
-        ${note ? `<p class="foot-note">${note}</p>` : ''}
       </div>`;
     const back = root.querySelector('.back-chev');
     if (back && prev) back.addEventListener('click', () => navigate(prev));
@@ -61,26 +63,19 @@ export function mountOnboarding(root, { navigate }, step) {
 
   // ── 1 · exam ──────────────────────────────────────────────
   if (step === 'exam') {
-    const list = EXAMS.map((e) => {
-      const sel = e.id === draft.exam ? ' sel' : '';
-      const k = SYLLABUS_KNOWN[e.id];
-      return `<button type="button" class="exam${sel}" data-id="${e.id}">
-        <span>
-          <h3>${e.name}</h3>
-          <span class="meta">${e.meta}</span>
-          ${k ? `<span class="load"><span class="bar"><i style="width:100%"></i></span><em>${k.hrs} hrs &middot; ${k.topics} topics</em></span>` : ''}
-        </span>
+    const ready = EXAMS.filter((e) => SYLLABUS_READY.has(e.id));
+    const list = ready.map((e) => {
+      const sel = e.id === draft.exam;
+      return `<button type="button" class="exam${sel ? ' sel' : ''}" data-id="${e.id}">
+        <span class="exam-label"><h3>${e.name}</h3></span>
         <span class="tick">${sel ? TICK : ''}</span>
       </button>`;
     }).join('');
 
     shell({
-      eyebrow: 'Step 1 of 4',
       title: 'Which exam?',
-      lede: 'Pick the one you are actually sitting. You can add a second later.',
       body: `<div class="list">${list}</div>`,
       cta: 'Continue',
-      note: 'Only SSC CGL has a full syllabus tree so far.',
     }, () => navigate('onboarding/date'));
 
     root.querySelectorAll('.exam').forEach((btn) => {
@@ -88,8 +83,9 @@ export function mountOnboarding(root, { navigate }, step) {
         draft.exam = btn.dataset.id;
         saveDraft();
         root.querySelectorAll('.exam').forEach((b) => {
-          b.classList.toggle('sel', b === btn);
-          b.querySelector('.tick').innerHTML = b === btn ? TICK : '';
+          const on = b === btn;
+          b.classList.toggle('sel', on);
+          b.querySelector('.tick').innerHTML = on ? TICK : '';
         });
       });
     });
@@ -102,26 +98,22 @@ export function mountOnboarding(root, { navigate }, step) {
     const filled = Math.max(1, Math.round((draft.days / 180) * segs));
 
     shell({
-      eyebrow: 'Step 2 of 4',
-      title: 'Exam date',
-      lede: 'Everything gets planned backward from this day.',
+      title: "When's the exam?",
       body: `<div class="onboard-stack">
         <div class="countdown">
           <div class="cd-top">
             <span class="n">${draft.days}</span>
-            <span class="l">days left<br>${weeks} weeks and ${rem} day${rem === 1 ? '' : 's'}</span>
+            <span class="l">days left<br>${weeks}w ${rem}d</span>
           </div>
           <div class="cd-scale">${Array.from({ length: segs }, (_, i) => `<i class="${i < filled ? 'on' : ''}"></i>`).join('')}</div>
           <div class="cd-legend"><span>Today</span><span>${examDateLabel(draft.days)}</span></div>
         </div>
-        <div class="field">
-          <label>Exam date</label>
+        <div class="field field-tap">
           <div class="fieldrow"><span class="val">${examDateLabel(draft.days)}</span><span class="chev">&#8250;</span></div>
         </div>
-        <button type="button" class="ghost" id="no-date">Date not announced yet &rarr;</button>
+        <button type="button" class="ghost" id="no-date">Date not announced</button>
       </div>`,
       cta: 'Continue',
-      note: 'Change it any time. The plan rebuilds itself.',
     }, () => navigate('onboarding/shape'));
 
     root.querySelector('#no-date').addEventListener('click', () => {
@@ -137,7 +129,6 @@ export function mountOnboarding(root, { navigate }, step) {
       return `<button type="button" class="opt${sel}" data-id="${w.id}">
         <span>
           <b>${w.t}</b>
-          <span class="why">${w.s}</span>
           <span class="hrs"><span>${w.wd}h weekday</span><span>${w.we}h weekend</span></span>
         </span>
         <span class="tick">${sel ? TICK : ''}</span>
@@ -145,12 +136,9 @@ export function mountOnboarding(root, { navigate }, step) {
     }).join('');
 
     shell({
-      eyebrow: 'Step 3 of 4',
-      title: 'Your day shape',
-      lede: 'A working aspirant needs a different plan, not just a shorter one.',
+      title: 'Your schedule',
       body: `<div class="list">${list}</div>`,
       cta: 'Continue',
-      note: 'These are starting numbers — you tune them next.',
     }, () => navigate('onboarding/hours'));
 
     root.querySelectorAll('.opt').forEach((btn) => {
@@ -169,9 +157,7 @@ export function mountOnboarding(root, { navigate }, step) {
   // ── 4 · hours ─────────────────────────────────────────────
   } else if (step === 'hours') {
     shell({
-      eyebrow: 'Step 4 of 4',
       title: 'Hours per day',
-      lede: 'Be honest. The next screen tells you whether it is enough.',
       body: `<div class="onboard-stack">
         <div class="slide">
           <div class="top"><b>Weekdays</b><i id="wd-v">${draft.wd} hrs</i></div>
@@ -183,14 +169,13 @@ export function mountOnboarding(root, { navigate }, step) {
           <input type="range" id="we" min="1" max="16" step="0.5" value="${draft.we}" aria-label="Weekend hours">
           <div class="ticks"><span>1h</span><span>8h</span><span>16h</span></div>
         </div>
-        <div class="total"><b id="tot">0</b><span>hours before the exam<br>at this pace</span></div>
+        <div class="total"><b id="tot">0</b><span>hours total</span></div>
         <div class="field">
           <label>Study spot</label>
-          <input type="text" class="text-field" id="place" value="${(draft.place || '').replace(/"/g, '&quot;')}" placeholder="Library, terrace, corner desk">
+          <input type="text" class="text-field" id="place" value="${(draft.place || '').replace(/"/g, '&quot;')}" placeholder="Library, terrace, desk">
         </div>
       </div>`,
       cta: 'Build my plan',
-      note: 'Naming the place makes you far likelier to show up.',
     }, () => navigate('onboarding/cushion'));
 
     const wd = root.querySelector('#wd');
@@ -220,50 +205,49 @@ export function mountOnboarding(root, { navigate }, step) {
     const short = c.short;
 
     shell({
-      eyebrow: 'Your plan',
-      title: '',
-      lede: '',
+      title: 'Your plan',
+      lede: `${c.coverage}% of syllabus before ${examDateLabel(draft.days)}.`,
       body: `<div class="verdict ${short ? 'is-short' : 'is-ok'}">
           <span class="n">${Math.abs(c.gap)}</span>
           <span class="u">hours<br>${short ? 'short' : 'spare'}</span>
         </div>
-        <p class="lede">At ${draft.wd} hrs on weekdays you cover ${c.coverage}% of the syllabus before ${examDateLabel(draft.days)}.</p>
         <div class="gauge">
-          <div class="cap"><span class="k">Hours available</span><span class="v">${c.have} <em>/ ${c.need}</em></span></div>
+          <div class="cap"><span class="k">Hours</span><span class="v">${c.have} <em>/ ${c.need}</em></span></div>
           <div class="bar">
             <span class="have" style="width:${short ? c.coverage : 100}%"><b>${c.have}h</b></span>
             ${short ? `<span class="miss" style="width:${100 - c.coverage}%"><b>${c.gap}h</b></span>` : ''}
           </div>
         </div>
-        <p class="sec">${short ? 'Close the gap' : 'What the buffer buys you'}</p>
+        ${short ? `<p class="sec">Close the gap</p>
         <div class="list">
-          ${short ? `
           <button type="button" class="fixcard">
             <span class="metric">+${c.extraPerDay}h</span>
-            <span class="ftxt"><b>Add hours to every day</b><span>${(draft.wd + c.extraPerDay).toFixed(1)} hrs a day, weekdays too</span></span>
+            <span class="ftxt"><b>More hours daily</b><span>${(draft.wd + c.extraPerDay).toFixed(1)}h per day</span></span>
             <span class="chev">&#8250;</span>
           </button>
           <button type="button" class="fixcard">
             <span class="metric">&minus;${c.topicsToDrop}</span>
-            <span class="ftxt"><b>Drop lowest-yield topics</b><span>Saves about ${c.topicsToDrop * 14} hrs</span></span>
+            <span class="ftxt"><b>Drop topics</b><span>Lowest-yield first</span></span>
             <span class="chev">&#8250;</span>
           </button>
           <button type="button" class="fixcard">
             <span class="metric">${c.daysToPush}d</span>
-            <span class="ftxt"><b>Move the target date</b><span>Only if it is yours to move</span></span>
+            <span class="ftxt"><b>Later date</b><span>If you can move it</span></span>
             <span class="chev">&#8250;</span>
-          </button>` : `
+          </button>
+        </div>` : `<p class="sec">Buffer</p>
+        <div class="list">
           <button type="button" class="fixcard">
             <span class="metric">2&times;</span>
-            <span class="ftxt"><b>Full revision passes fit</b><span>Inside your timeline</span></span>
+            <span class="ftxt"><b>Revision passes</b><span>Fit in your timeline</span></span>
             <span class="chev">&#8250;</span>
           </button>
           <button type="button" class="fixcard">
             <span class="metric">${c.bufferDays}d</span>
-            <span class="ftxt"><b>Buffer days</b><span>Built in, not borrowed</span></span>
+            <span class="ftxt"><b>Buffer days</b><span>Built in</span></span>
             <span class="chev">&#8250;</span>
-          </button>`}
-        </div>`,
+          </button>
+        </div>`}`,
       cta: 'Start day 1',
     }, () => {
       draft.date = new Date(Date.now() + draft.days * 86400000).toISOString().slice(0, 10);

@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.steadyline.feature.progress"
+    namespace = "com.exam.assistant.feature.progress"
     compileSdk = 35
     defaultConfig { minSdk = 24 }
     compileOptions {

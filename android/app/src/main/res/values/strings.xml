@@ -1,3 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Steadyline</string>
+    <string name="tab_today">Today</string>
+    <string name="tab_syllabus">Syllabus</string>
+    <string name="tab_focus">Focus</string>
+    <string name="tab_progress">Progress</string>
+    <string name="tab_more">More</string>
 </resources>

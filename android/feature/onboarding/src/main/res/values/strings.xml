@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_back">Back</string>
+
+    <string name="onboarding_exam_title">Which exam?</string>
+    <string name="onboarding_exam_cgl">SSC CGL</string>
+    <string name="onboarding_exam_chsl">SSC CHSL</string>
+    <string name="onboarding_exam_ntpc">RRB NTPC</string>
+    <string name="onboarding_exam_neet">NEET UG</string>
+    <string name="onboarding_exam_jee">JEE Main</string>
+    <string name="onboarding_exam_ibps">IBPS PO</string>
+    <string name="onboarding_continue">Continue</string>
+
+    <string name="onboarding_date_title">When\'s the exam?</string>
+    <string name="onboarding_date_days_left">days left</string>
+    <string name="onboarding_date_weeks_format">%1$dw %2$dd</string>
+    <string name="onboarding_date_today">Today</string>
+    <string name="onboarding_date_not_announced">Date not announced</string>
+
+    <string name="onboarding_shape_title">Your schedule</string>
+    <string name="onboarding_shape_fulltime">Full-time</string>
+    <string name="onboarding_shape_working">Working</string>
+    <string name="onboarding_shape_college">College</string>
+    <string name="onboarding_shape_weekday_hours">%1$sh weekday</string>
+    <string name="onboarding_shape_weekend_hours">%1$sh weekend</string>
+
+    <string name="onboarding_hours_title">Hours per day</string>
+    <string name="onboarding_hours_weekdays">Weekdays</string>
+    <string name="onboarding_hours_weekends">Weekends</string>
+    <string name="onboarding_hours_value">%1$s hrs</string>
+    <string name="onboarding_hours_slider_min">1h</string>
+    <string name="onboarding_hours_slider_mid_weekday">7h</string>
+    <string name="onboarding_hours_slider_max_weekday">14h</string>
+    <string name="onboarding_hours_slider_mid_weekend">8h</string>
+    <string name="onboarding_hours_slider_max_weekend">16h</string>
+    <string name="onboarding_hours_total_label">hours total</string>
+    <string name="onboarding_hours_study_spot">Study spot</string>
+    <string name="onboarding_hours_study_spot_hint">Library, terrace, desk</string>
+    <string name="onboarding_build_plan">Build my plan</string>
+
+    <string name="onboarding_plan_title">Your plan</string>
+    <string name="onboarding_plan_coverage">%1$d%% of syllabus before %2$s.</string>
+    <string name="onboarding_plan_hours_short">hours\nshort</string>
+    <string name="onboarding_plan_hours_spare">hours\nspare</string>
+    <string name="onboarding_plan_hours_label">Hours</string>
+    <string name="onboarding_plan_hours_ratio">%1$d / %2$d</string>
+    <string name="onboarding_plan_hours_have">%1$dh</string>
+    <string name="onboarding_plan_hours_gap">%1$dh</string>
+    <string name="onboarding_plan_close_gap">Close the gap</string>
+    <string name="onboarding_plan_buffer">Buffer</string>
+    <string name="onboarding_plan_fix_more_hours">More hours daily</string>
+    <string name="onboarding_plan_fix_more_hours_sub">%1$sh per day</string>
+    <string name="onboarding_plan_fix_drop_topics">Drop topics</string>
+    <string name="onboarding_plan_fix_drop_topics_sub">Lowest-yield first</string>
+    <string name="onboarding_plan_fix_later_date">Later date</string>
+    <string name="onboarding_plan_fix_later_date_sub">If you can move it</string>
+    <string name="onboarding_plan_fix_revision">Revision passes</string>
+    <string name="onboarding_plan_fix_revision_sub">Fit in your timeline</string>
+    <string name="onboarding_plan_fix_buffer_days">Buffer days</string>
+    <string name="onboarding_plan_fix_buffer_days_sub">Built in</string>
+    <string name="onboarding_start_day_one">Start day 1</string>
+</resources>

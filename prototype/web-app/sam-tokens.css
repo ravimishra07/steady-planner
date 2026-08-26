@@ -173,7 +173,7 @@ html.sam-light {
   --sam-card-shadow: 0 2px 8px rgba(17, 24, 39, 0.08);
   --sam-card-border: 0.45px solid #E3E8F0;
   --sam-cta-border: rgba(109, 53, 200, 0.20);
-  --sam-on-success: #FFFFFF;
+  --sam-on-success: #0A0A0F;
 
   --sam-info-tint: rgba(109, 53, 200, 0.10);
   --sam-warning-tint: rgba(255, 183, 77, 0.20);

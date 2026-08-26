@@ -10,10 +10,10 @@
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     .sam-ios .onboard-body h1{margin-bottom:var(--sam-space-sm)}
-    .sam-ios .verdict{display:flex;align-items:baseline;gap:12px;margin:var(--sam-space-sm) 0 var(--sam-space-md)}
+    .sam-ios .verdict{display:flex;align-items:baseline;gap:12px;margin:0 0 var(--sam-space-md)}
     .sam-ios .verdict .n{font-size:var(--sam-fs-hero);font-weight:700;letter-spacing:-.03em;line-height:1;color:var(--sam-danger);font-variant-numeric:tabular-nums}
     .sam-ios .verdict .u{font-size:var(--sam-fs-lg);font-weight:600;color:var(--sam-danger);line-height:1.2}
-    .sam-ios .lede{font-size:var(--sam-fs-md);color:var(--sam-text-secondary);line-height:var(--sam-lh-relaxed);margin-bottom:var(--sam-space-lg)}
+    .sam-ios .lede{font-size:var(--sam-fs-md);color:var(--sam-text-secondary);line-height:var(--sam-lh-relaxed);margin:calc(-1 * var(--sam-space-sm)) 0 var(--sam-space-lg)}
     .sam-ios .gauge{background:var(--sam-surface);border:var(--sam-card-border);border-radius:var(--sam-r-md);padding:16px 18px;box-shadow:var(--sam-card-shadow);margin-bottom:var(--sam-space-lg)}
     .sam-ios .gauge .cap{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
     .sam-ios .gauge .cap .k{font-size:var(--sam-fs-xs);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--sam-text-muted)}
@@ -26,24 +26,25 @@
     .sam-ios .gauge .miss b{font-size:var(--sam-fs-sm);font-weight:600;color:#fff;font-variant-numeric:tabular-nums}
     .sam-ios .sec{font-size:var(--sam-fs-xs);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--sam-text-muted);margin-bottom:var(--sam-space-sm)}
     .sam-ios .fixcard{min-height:66px;align-items:flex-start;padding-top:14px;padding-bottom:14px}
-    .sam-ios .fixcard .metric{color:var(--sam-brand-soft);font-weight:700}
+    .sam-ios .fixcard .metric{color:var(--sam-brand-deep);font-weight:700}
     .sam-ios .list{gap:var(--sam-space-sm)}
+    .sam-ios .onboard-bar .bar-flex{flex:1}
   </style>
 </helmet>
 <div class="screen sam-ios">
   <div class="safe"></div>
   <div class="onboard-bar">
     <button class="glass-btn" aria-label="Back"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M12.5 4.5L7 10l5.5 5.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <div class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+    <span class="bar-flex" aria-hidden="true"></span>
     <span class="bar-sp" aria-hidden="true"></span>
   </div>
   <div class="onboard-body">
-    <p class="eyebrow">Your plan</p>
+    <h1>Your plan</h1>
+    <p class="lede">70% of syllabus before 19 Dec.</p>
     <div class="verdict"><span class="n">244</span><span class="u">hours<br>short</span></div>
-    <p class="lede">At 4 hrs on weekdays you cover 70% of the syllabus before 19 Dec.</p>
 
     <div class="gauge">
-      <div class="cap"><span class="k">Hours available</span><span class="v">568 <em>/ 812</em></span></div>
+      <div class="cap"><span class="k">Hours</span><span class="v">568 <em>/ 812</em></span></div>
       <div class="bar">
         <span class="have" style="width:70%"><b>568h</b></span>
         <span class="miss" style="width:30%"><b>244h</b></span>
@@ -54,17 +55,17 @@
     <div class="list">
       <button class="fixcard">
         <span class="metric">+2.1h</span>
-        <span class="ftxt"><b>Add hours to every day</b><span>6.1 hrs a day, weekdays too</span></span>
+        <span class="ftxt"><b>More hours daily</b><span>6.1h per day</span></span>
         <span class="chev">&#8250;</span>
       </button>
       <button class="fixcard">
         <span class="metric">&minus;18</span>
-        <span class="ftxt"><b>Drop lowest-yield topics</b><span>About 13 marks last year</span></span>
+        <span class="ftxt"><b>Drop topics</b><span>Lowest-yield first</span></span>
         <span class="chev">&#8250;</span>
       </button>
       <button class="fixcard">
         <span class="metric">45d</span>
-        <span class="ftxt"><b>Move the target date</b><span>Only if it is yours to move</span></span>
+        <span class="ftxt"><b>Later date</b><span>If you can move it</span></span>
         <span class="chev">&#8250;</span>
       </button>
     </div>

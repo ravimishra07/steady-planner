@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Today · Study picker</title>
+  <script src="sam-theme.js"></script>
+  <link rel="stylesheet" href="sam-tokens.css">
+  <link rel="stylesheet" href="sam-shared.css">
+  <link rel="stylesheet" href="sam-md.css">
+  <link rel="stylesheet" href="sam-nav.css">
+  <link rel="stylesheet" href="app-views.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: #111; }
+    body { display: flex; justify-content: center; }
+
+    .phone.sam-ios {
+      width: 390px;
+      max-width: 100vw;
+      height: 100vh;
+      max-height: 844px;
+      background: var(--sam-bg);
+      color: var(--sam-text);
+      font-family: var(--sam-font);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .today-main {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .today-home {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .today-home[hidden] { display: none; }
+
+    .cal-top { flex: none; padding: var(--sam-space-sm) var(--sam-screen-h); }
+    .cal-month {
+      font-size: var(--sam-fs-xl);
+      font-weight: var(--sam-fw-bold);
+      letter-spacing: -0.02em;
+    }
+
+    .timeline-wrap {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--sam-space-md) var(--sam-screen-h);
+    }
+    .tl-empty {
+      text-align: center;
+      color: var(--sam-text-muted);
+      font-size: var(--sam-fs-md);
+      padding: var(--sam-space-xxl) var(--sam-space-lg);
+      line-height: var(--sam-lh-relaxed);
+    }
+
+    .fab-dock {
+      flex: none;
+      display: flex;
+      justify-content: flex-end;
+      padding: 0 var(--sam-screen-h) var(--sam-space-md);
+    }
+
+    .phone > .main-nav { flex: none; z-index: 10; }
+
+    /* ── Full-screen study frame ── */
+    .study-frame {
+      flex: 1;
+      min-height: 0;
+      display: none;
+      flex-direction: column;
+      background: var(--sam-bg);
+    }
+    .study-frame.open { display: flex; }
+
+    .study-frame .md-top-app-bar {
+      background: var(--sam-bg);
+      border-bottom-color: var(--sam-hairline-soft);
+    }
+    .study-frame .md-top-app-bar__title {
+      font-weight: var(--sam-fw-regular);
+    }
+    .study-frame #back-btn.is-hidden {
+      display: none;
+    }
+
+    .study-search {
+      flex: none;
+      padding: var(--sam-space-md) var(--sam-screen-h) var(--sam-space-lg);
+    }
+
+  /* M3 filled search field */
+    .md-search {
+      display: flex;
+      align-items: center;
+      gap: var(--sam-space-sm);
+      min-height: var(--md-touch-min);
+      padding: 0 var(--sam-space-lg);
+      background: var(--sam-surface);
+      border: 1px solid var(--sam-border);
+      border-radius: var(--sam-r-lg);
+    }
+    .md-search:focus-within {
+      border-color: var(--sam-brand-deep);
+      box-shadow: 0 0 0 1px var(--sam-brand-deep);
+    }
+    .md-search svg { flex: none; color: var(--sam-text-muted); }
+    .md-search input {
+      flex: 1;
+      min-width: 0;
+      height: 46px;
+      border: 0;
+      background: transparent;
+      color: var(--sam-text);
+      font-family: inherit;
+      font-size: var(--sam-fs-lg);
+      outline: none;
+    }
+    .md-search input::placeholder { color: var(--sam-text-disabled); }
+
+    .study-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 0 var(--sam-screen-h) var(--sam-space-xxl);
+    }
+
+    .frame-step[hidden] { display: none; }
+
+    .section-label {
+      font-size: var(--sam-fs-xs);
+      font-weight: var(--sam-fw-semibold);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--sam-text-muted);
+      margin-bottom: var(--sam-space-md);
+    }
+
+    /* Reuse onboarding list cards */
+    .study-frame .list { gap: var(--sam-space-sm); }
+    .study-frame .exam {
+      min-height: 60px;
+      padding: var(--sam-space-md) var(--sam-space-lg);
+      border-radius: var(--sam-r-lg);
+      box-shadow: none;
+      align-items: center;
+    }
+    .study-frame .exam:active {
+      background: var(--sam-elevated);
+    }
+    .study-frame .exam-label {
+      display: flex;
+      flex-direction: column;
+    }
+    .study-frame .exam h3 {
+      font-size: var(--sam-fs-lg);
+      font-weight: var(--sam-fw-semibold);
+      line-height: var(--sam-lh-snug);
+    }
+    .study-frame .exam .meta {
+      display: block;
+      margin: 2px 0 0;
+      font-size: var(--sam-fs-sm);
+      color: var(--sam-text-muted);
+      font-weight: var(--sam-fw-regular);
+      line-height: var(--sam-lh-normal);
+    }
+    .study-frame .exam .chev {
+      font-size: var(--sam-fs-subtitle);
+      color: var(--sam-text-muted);
+      margin-left: auto;
+      flex: none;
+    }
+
+    .empty-hint {
+      padding: var(--sam-space-xxxl) var(--sam-space-lg);
+      text-align: center;
+      font-size: var(--sam-fs-md);
+      color: var(--sam-text-muted);
+      line-height: var(--sam-lh-relaxed);
+    }
+
+    /* Duration step */
+    .duration-body {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sam-section-gap);
+      padding-top: var(--sam-space-xs);
+    }
+    .sprint-facts {
+      border: 1px solid var(--sam-border);
+      border-radius: var(--sam-r-lg);
+      background: var(--sam-surface);
+      padding: var(--sam-space-xs) var(--sam-space-lg);
+    }
+    .fact {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 48px;
+    }
+    .fact + .fact { border-top: 1px solid var(--sam-hairline-soft); }
+    .fact-k {
+      font-size: var(--sam-fs-md);
+      color: var(--sam-text-secondary);
+    }
+    .fact-v {
+      font-size: var(--sam-fs-md);
+      color: var(--sam-text);
+      font-weight: var(--sam-fw-semibold);
+    }
+
+    .picked-card {
+      background: var(--sam-surface);
+      border: 1px solid var(--sam-border);
+      border-radius: var(--sam-r-lg);
+      padding: var(--sam-space-lg) var(--sam-space-xl);
+    }
+    .picked-card .topic-name {
+      font-size: var(--sam-fs-headline);
+      font-weight: var(--sam-fw-semibold);
+      line-height: var(--sam-lh-snug);
+      color: var(--sam-text);
+    }
+    .picked-card .topic-path {
+      margin-top: var(--sam-space-sm);
+      font-size: var(--sam-fs-sm);
+      color: var(--sam-text-muted);
+      line-height: var(--sam-lh-normal);
+    }
+    .duration-label {
+      font-size: var(--sam-fs-md);
+      font-weight: var(--sam-fw-medium);
+      color: var(--sam-text-secondary);
+      margin-bottom: var(--sam-space-sm);
+    }
+    .study-frame .seg {
+      border-radius: var(--sam-r-lg);
+      padding: var(--sam-space-xs);
+      gap: var(--sam-space-xs);
+    }
+    .study-frame .seg-opt {
+      min-height: var(--md-touch-min);
+      font-size: var(--sam-fs-headline);
+      font-weight: var(--sam-fw-semibold);
+      border-radius: calc(var(--sam-r-lg) - 4px);
+    }
+
+    .study-foot {
+      flex: none;
+      padding: var(--sam-space-lg) var(--sam-screen-h) var(--sam-space-md);
+      background: linear-gradient(to top, var(--sam-bg) 70%, transparent);
+    }
+    .study-foot[hidden] { display: none; }
+
+    /* Timer */
+    .timer-body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: min(52vh, 420px);
+      text-align: center;
+      gap: var(--sam-space-md);
+    }
+    .timer-body .time {
+      font-size: var(--sam-fs-display);
+      font-weight: var(--sam-fw-bold);
+      color: var(--sam-brand-deep);
+      letter-spacing: -0.03em;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .timer-body .topic {
+      font-size: var(--sam-fs-md);
+      color: var(--sam-text-secondary);
+      line-height: var(--sam-lh-relaxed);
+      max-width: 300px;
+      padding: 0 var(--sam-space-lg);
+    }
+    .timer-body .cta { max-width: 280px; }
+  </style>
+</head>
+<body>
+  <div class="phone sam-ios">
+    <div class="today-main">
+      <div class="today-home" id="today-home">
+        <header class="cal-top">
+          <h1 class="cal-month">August 2026</h1>
+        </header>
+        <div class="week-strip" id="week-strip" aria-label="Week"></div>
+        <div class="day-bar" id="day-bar"></div>
+        <div class="timeline-wrap">
+          <p class="tl-empty">Tap + to pick a topic and start studying.</p>
+        </div>
+        <div class="fab-dock">
+          <button type="button" class="fab-round cta" id="fab" aria-label="Start studying" style="width:56px;height:56px;border-radius:50%;padding:0;min-height:0">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <section class="study-frame" id="study-frame" aria-label="Study picker">
+        <header class="md-top-app-bar">
+          <div class="md-top-app-bar__row">
+            <button type="button" class="md-icon-btn" id="back-btn" aria-label="Back">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 6.5 9 12l5.5 5.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <h1 class="md-top-app-bar__title" id="frame-title">Start studying</h1>
+            <div class="md-top-app-bar__actions">
+              <button type="button" class="md-icon-btn" id="close-btn" aria-label="Close">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div class="study-search" id="search-wrap">
+          <label class="md-search">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5" stroke-linecap="round"/></svg>
+            <input type="search" id="search-input" placeholder="Search topics…" autocomplete="off" enterkeyhint="search">
+          </label>
+        </div>
+
+        <div class="study-scroll">
+          <div class="frame-step" id="step-pick">
+            <p class="section-label" id="results-label">Browse by subject</p>
+            <div class="list" id="pick-list"></div>
+            <p class="empty-hint" id="empty-hint" hidden>No topics match. Try another word.</p>
+          </div>
+
+          <div class="frame-step" id="step-duration" hidden>
+            <div class="duration-body">
+              <div class="picked-card">
+                <p class="topic-name" id="picked-name">—</p>
+                <p class="topic-path" id="picked-path">—</p>
+              </div>
+              <div>
+                <p class="duration-label">Sprint length</p>
+                <div class="seg" id="duration-seg" role="group" aria-label="Duration"></div>
+              </div>
+              <div class="sprint-facts">
+                <div class="fact">
+                  <span class="fact-k">Ends at</span>
+                  <span class="fact-v" id="fact-end">—</span>
+                </div>
+                <div class="fact">
+                  <span class="fact-k">Revision due</span>
+                  <span class="fact-v" id="fact-revision">—</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="frame-step" id="step-timer" hidden>
+            <div class="timer-body">
+              <div class="time" id="timer-display">30:00</div>
+              <p class="topic" id="timer-topic">—</p>
+              <button type="button" class="cta" id="done-btn">Done</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="study-foot" id="study-foot" hidden>
+          <button type="button" class="cta" id="start-btn">Start studying</button>
+        </div>
+      </section>
+    </div>
+
+    <nav class="main-nav" aria-label="Main">
+      <button type="button" class="nav-item on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4.5 10.5 12 4l7.5 6.5V19a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 19v-8.5Z"/></svg><span>Today</span></button>
+      <button type="button" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 12.5h8M8 16h5"/></svg><span>Syllabus</span></button>
+      <button type="button" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v4.5l3 2"/></svg><span>Focus</span></button>
+      <button type="button" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 18V6l8 5 8-5v12"/></svg><span>Progress</span></button>
+      <button type="button" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 6.5h14M5 12h14M5 17.5h9"/></svg><span>More</span></button>
+    </nav>
+  </div>
+
+  <script type="module">
+    import { CGL } from './syllabus-cgl.js';
+
+    const SHORT = {
+      'Quantitative Aptitude': 'Quant',
+      'General Intelligence & Reasoning': 'Reasoning',
+      'General Awareness': 'GA',
+      'English Comprehension': 'English',
+    };
+    const CHEV = '›';
+    const DURATIONS = [15, 30, 45];
+    const sections = CGL.tier1;
+
+    function sectionLabel(sec) {
+      return SHORT[sec.n] || sec.n;
+    }
+
+    function topicHours(node) {
+      if (node.h != null) return node.h;
+      if (!node.c?.length) return 0;
+      return node.c.reduce((n, c) => n + topicHours(c), 0);
+    }
+
+    function buildSearchIndex() {
+      const items = [];
+      sections.forEach((sec, si) => {
+        const subject = sectionLabel(sec);
+        sec.t.forEach((topic, ti) => walk(topic, topic.n, subject, si, ti, []));
+      });
+      return items;
+
+      function walk(node, rootTopic, subject, si, ti, path) {
+        const parent = path.length ? path[path.length - 1] : rootTopic;
+        if (!node.c?.length) {
+          items.push({
+            id: `${si}_${ti}_${path.join('_')}`,
+            name: node.n,
+            parent: parent === node.n ? rootTopic : parent,
+            rootTopic,
+            subject,
+            search: `${node.n} ${parent} ${rootTopic} ${subject}`.toLowerCase(),
+          });
+          return;
+        }
+        node.c.forEach((child) => walk(child, rootTopic, subject, si, ti, [...path, node.n]));
+      }
+    }
+
+    const searchIndex = buildSearchIndex();
+
+    const state = {
+      step: 'pick',
+      mode: 'subjects',
+      sectionIdx: null,
+      topicIdx: null,
+      query: '',
+      picked: null,
+      durationMin: 30,
+    };
+
+    let timerId = null;
+    let remainingSec = 0;
+
+    const todayHome = document.getElementById('today-home');
+    const frame = document.getElementById('study-frame');
+    const fab = document.getElementById('fab');
+    const backBtn = document.getElementById('back-btn');
+    const closeBtn = document.getElementById('close-btn');
+    const frameTitle = document.getElementById('frame-title');
+    const searchWrap = document.getElementById('search-wrap');
+    const searchInput = document.getElementById('search-input');
+    const resultsLabel = document.getElementById('results-label');
+    const pickList = document.getElementById('pick-list');
+    const emptyHint = document.getElementById('empty-hint');
+    const studyFoot = document.getElementById('study-foot');
+
+    function cardRow(title, meta, attrs = '', chevron = false) {
+      return `<button type="button" class="exam"${attrs}>
+        <span class="exam-label">
+          <h3>${title}</h3>
+          ${meta ? `<span class="meta">${meta}</span>` : ''}
+        </span>
+        ${chevron ? `<span class="chev" aria-hidden="true">${CHEV}</span>` : ''}
+      </button>`;
+    }
+
+    function renderWeek() {
+      const labels = ['S','M','T','W','T','F','S'];
+      const today = new Date();
+      const start = new Date(today);
+      start.setDate(today.getDate() - today.getDay());
+      document.getElementById('week-strip').innerHTML = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        const on = d.toDateString() === today.toDateString();
+        return `<button type="button" class="week-day${on ? ' on' : ''}" style="flex:1;border:0;background:none;font-family:inherit;cursor:pointer;padding:6px 0">
+          <span class="wd" style="display:block;font-size:11px;color:var(--sam-text-muted)">${labels[i]}</span>
+          <span class="wn" style="display:inline-flex;width:32px;height:32px;align-items:center;justify-content:center;border-radius:50%;font-size:15px;${on ? 'background:var(--sam-brand-deep);color:var(--sam-on-brand)' : 'color:var(--sam-text-secondary)'}">${d.getDate()}</span>
+        </button>`;
+      }).join('');
+      document.getElementById('day-bar').innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px 8px">
+          <span style="font-weight:600">Today</span>
+          <span style="font-size:13px;color:var(--sam-text-muted);padding:4px 12px;background:var(--sam-surface-control);border-radius:50px">4h · 0%</span>
+        </div>`;
+    }
+
+    function renderPickList() {
+      syncBack();
+      const q = state.query.trim().toLowerCase();
+
+      if (q) {
+        state.mode = 'search';
+        resultsLabel.textContent = 'Suggestions';
+        const hits = searchIndex.filter((it) => it.search.includes(q)).slice(0, 40);
+        pickList.innerHTML = hits.map((it) =>
+          cardRow(it.name, `${it.parent} · ${it.subject}`, ` data-id="${it.id}"`)
+        ).join('');
+        emptyHint.hidden = hits.length > 0;
+        pickList.hidden = hits.length === 0;
+        wirePick((btn) => {
+          const item = searchIndex.find((x) => x.id === btn.dataset.id);
+          if (item) pickItem(item);
+        });
+        return;
+      }
+
+      if (state.mode === 'topics' && state.sectionIdx != null) {
+        const sec = sections[state.sectionIdx];
+        resultsLabel.textContent = sectionLabel(sec);
+        pickList.hidden = false;
+        emptyHint.hidden = true;
+        pickList.innerHTML = sec.t.map((topic, i) => {
+          const leaves = countLeaves(topic);
+          return cardRow(topic.n, `${leaves} subtopics · ${topicHours(topic)}h`, ` data-topic="${i}"`, true);
+        }).join('');
+        wirePick((btn) => {
+          if (btn.dataset.topic == null) return;
+          state.topicIdx = +btn.dataset.topic;
+          state.mode = 'subtopics';
+          renderPickList();
+        });
+        return;
+      }
+
+      if (state.mode === 'subtopics' && state.sectionIdx != null && state.topicIdx != null) {
+        const topic = sections[state.sectionIdx].t[state.topicIdx];
+        const subject = sectionLabel(sections[state.sectionIdx]);
+        resultsLabel.textContent = topic.n;
+        const leaves = flattenLeaves(topic, topic.n, subject, state.sectionIdx, state.topicIdx);
+        pickList.hidden = false;
+        emptyHint.hidden = true;
+        pickList.innerHTML = leaves.map((it) =>
+          cardRow(it.name, `${it.parent} · ${it.subject}`, ` data-id="${it.id}"`)
+        ).join('');
+        wirePick((btn) => {
+          const item = leaves.find((x) => x.id === btn.dataset.id);
+          if (item) pickItem(item);
+        });
+        return;
+      }
+
+      state.mode = 'subjects';
+      resultsLabel.textContent = 'Browse by subject';
+      pickList.hidden = false;
+      emptyHint.hidden = true;
+      pickList.innerHTML = sections.map((sec, i) =>
+        cardRow(
+          sectionLabel(sec),
+          `${sec.t.length} topics · ${sec.t.reduce((n, t) => n + topicHours(t), 0)}h`,
+          ` data-sec="${i}"`,
+          true,
+        )
+      ).join('');
+      wirePick((btn) => {
+        if (btn.dataset.sec == null) return;
+        state.sectionIdx = +btn.dataset.sec;
+        state.topicIdx = null;
+        state.mode = 'topics';
+        renderPickList();
+      });
+    }
+
+    function countLeaves(node) {
+      if (!node.c?.length) return 1;
+      return node.c.reduce((n, c) => n + countLeaves(c), 0);
+    }
+
+    function flattenLeaves(node, rootTopic, subject, si, ti, path = []) {
+      const out = [];
+      const parent = path.length ? path[path.length - 1] : rootTopic;
+      if (!node.c?.length) {
+        out.push({
+          id: `${si}_${ti}_${path.join('_')}`,
+          name: node.n,
+          parent: parent === node.n ? rootTopic : parent,
+          rootTopic,
+          subject,
+        });
+        return out;
+      }
+      node.c.forEach((child) => {
+        out.push(...flattenLeaves(child, rootTopic, subject, si, ti, [...path, node.n]));
+      });
+      return out;
+    }
+
+    function wirePick(handler) {
+      pickList.querySelectorAll('.exam').forEach((btn) => {
+        btn.addEventListener('click', () => handler(btn));
+      });
+    }
+
+    function renderDurations() {
+      document.getElementById('duration-seg').innerHTML = DURATIONS.map((m) =>
+        `<button type="button" class="seg-opt${m === state.durationMin ? ' on' : ''}" data-m="${m}">${m} min</button>`
+      ).join('');
+      document.querySelectorAll('.seg-opt').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.durationMin = +btn.dataset.m;
+          renderDurations();
+        });
+      });
+      renderSprintFacts();
+    }
+
+    /* Day-3 revision is the product's core loop — surface it before the sprint starts. */
+    const REVISION_INTERVAL_DAYS = 3;
+
+    function renderSprintFacts() {
+      const end = new Date(Date.now() + state.durationMin * 60000);
+      const rev = new Date();
+      rev.setDate(rev.getDate() + REVISION_INTERVAL_DAYS);
+      const t = (d) => d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      const d = (x) => x.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+      document.getElementById('fact-end').textContent = t(end);
+      document.getElementById('fact-revision').textContent = d(rev);
+    }
+
+    function showStep(name) {
+      state.step = name;
+      document.querySelectorAll('.frame-step').forEach((el) => { el.hidden = true; });
+      document.getElementById(`step-${name}`).hidden = false;
+
+      const titles = {
+        pick: 'Start studying',
+        duration: 'Set duration',
+        timer: 'Studying',
+      };
+      frameTitle.textContent = titles[name];
+      searchWrap.hidden = name !== 'pick';
+      studyFoot.hidden = name !== 'duration';
+      syncBack();
+
+      if (name === 'pick') renderPickList();
+    }
+
+    function syncBack() {
+      backBtn.classList.toggle(
+        'is-hidden',
+        state.step === 'pick' && state.mode === 'subjects' && !state.query
+      );
+    }
+
+    function openFrame() {
+      state.mode = 'subjects';
+      state.sectionIdx = null;
+      state.topicIdx = null;
+      state.query = '';
+      state.picked = null;
+      searchInput.value = '';
+      todayHome.hidden = true;
+      frame.classList.add('open');
+      showStep('pick');
+    }
+
+    function closeFrame() {
+      frame.classList.remove('open');
+      todayHome.hidden = false;
+      if (timerId) clearInterval(timerId);
+    }
+
+    function pickItem(item) {
+      state.picked = item;
+      document.getElementById('picked-name').textContent = item.name;
+      document.getElementById('picked-path').textContent = `${item.parent} · ${item.subject}`;
+      document.getElementById('timer-topic').textContent = item.name;
+      showStep('duration');
+    }
+
+    function startTimer() {
+      remainingSec = state.durationMin * 60;
+      updateTimerDisplay();
+      showStep('timer');
+      if (timerId) clearInterval(timerId);
+      timerId = setInterval(() => {
+        remainingSec -= 1;
+        updateTimerDisplay();
+        if (remainingSec <= 0) finishTimer();
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const m = Math.floor(remainingSec / 60);
+      const s = remainingSec % 60;
+      document.getElementById('timer-display').textContent =
+        `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function finishTimer() {
+      if (timerId) clearInterval(timerId);
+      closeFrame();
+    }
+
+    function goBack() {
+      if (state.step === 'duration') { showStep('pick'); return; }
+      if (state.step === 'timer') { showStep('duration'); return; }
+      if (state.query) {
+        state.query = '';
+        searchInput.value = '';
+        showStep('pick');
+        return;
+      }
+      if (state.mode === 'subtopics') {
+        state.mode = 'topics';
+        state.topicIdx = null;
+        showStep('pick');
+        return;
+      }
+      if (state.mode === 'topics') {
+        state.mode = 'subjects';
+        state.sectionIdx = null;
+        showStep('pick');
+      }
+    }
+
+    fab.addEventListener('click', openFrame);
+    closeBtn.addEventListener('click', closeFrame);
+    backBtn.addEventListener('click', goBack);
+    document.getElementById('start-btn').addEventListener('click', startTimer);
+    document.getElementById('done-btn').addEventListener('click', finishTimer);
+    searchInput.addEventListener('input', () => {
+      state.query = searchInput.value;
+      renderPickList();
+    });
+
+    renderWeek();
+    renderDurations();
+  </script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="more_title">More</string>
+    <string name="more_your_plan">Your plan</string>
+    <string name="more_no_plan">No plan yet</string>
+    <string name="more_plan_subtitle">%1$s · %2$d days left</string>
+    <string name="more_section_plan">Plan</string>
+    <string name="more_rebalance">Rebalance</string>
+    <string name="more_rebalance_sub">Recover when you fall behind</string>
+    <string name="more_upgrade">Upgrade</string>
+    <string name="more_upgrade_sub">Unlock the full plan</string>
+    <string name="more_redo_onboarding">Redo onboarding</string>
+    <string name="more_redo_onboarding_sub">Change exam, date or hours</string>
+    <string name="more_section_app">App</string>
+    <string name="more_settings">Settings</string>
+    <string name="more_settings_sub">Theme, hours, focus length, data</string>
+    <string name="more_account">Account</string>
+    <string name="more_account_sub">Your details and sign out</string>
+    <string name="more_section_about">About</string>
+    <string name="more_privacy">Privacy</string>
+    <string name="more_privacy_sub">What is stored and where</string>
+    <string name="more_terms">Terms of use</string>
+    <string name="more_terms_sub">The short version</string>
+    <string name="more_about">About Steadyline</string>
+    <string name="more_about_sub">Version and credits</string>
+    <string name="more_footer">Steadyline · offline app</string>
+
+    <string name="settings_detail_title">Settings</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_theme_mode">Mode</string>
+    <string name="settings_theme_color">Accent color</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_palette_violet">Violet</string>
+    <string name="settings_palette_indigo">Indigo</string>
+    <string name="settings_palette_teal">Teal</string>
+    <string name="settings_palette_ocean">Ocean</string>
+    <string name="settings_palette_forest">Forest</string>
+    <string name="settings_palette_sunset">Sunset</string>
+    <string name="settings_palette_rose">Rose</string>
+    <string name="settings_hours">Your hours</string>
+    <string name="settings_weekdays">Weekdays</string>
+    <string name="settings_weekends">Weekends</string>
+    <string name="settings_study_spot">Study spot</string>
+    <string name="settings_study_spot_hint">Library, terrace, desk</string>
+    <string name="settings_focus">Focus</string>
+    <string name="settings_focus_length">Session length</string>
+    <string name="settings_focus_minutes">%1$d min</string>
+    <string name="settings_data">Data</string>
+    <string name="settings_clear_plan">Clear plan and restart</string>
+    <string name="settings_clear_confirm">Erase your plan, syllabus ticks, and focus sessions?</string>
+    <string name="settings_clear_yes">Clear everything</string>
+    <string name="settings_clear_no">Cancel</string>
+    <string name="settings_back">Back</string>
+
+    <string name="policy_privacy_title">Privacy</string>
+    <string name="policy_privacy_body">Everything stays on your phone. Your plan, syllabus ticks, and focus sessions are stored locally. Nothing is sent to a server.</string>
+    <string name="policy_terms_title">Terms</string>
+    <string name="policy_terms_body">Steadyline is a study planning tool. Hours and coverage are estimates, not guarantees. Use your own judgment for exam prep.</string>
+    <string name="policy_about_title">About Steadyline</string>
+    <string name="policy_about_body">Steadyline helps you plan exam prep day by day. Version 0.1.0. Built offline-first for serious students.</string>
+</resources>

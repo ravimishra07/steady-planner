@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.steadyline.core.common"
+    namespace = "com.exam.assistant.core.common"
     compileSdk = 35
     defaultConfig { minSdk = 24 }
     compileOptions {

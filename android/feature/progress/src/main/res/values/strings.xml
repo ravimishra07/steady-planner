@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="progress_title">Progress</string>
+    <string name="progress_days_to_go">%1$d days to go</string>
+    <string name="progress_hours_short">hrs short</string>
+    <string name="progress_hours_spare">hrs spare</string>
+    <string name="progress_hours_available">%1$d of %2$d hrs available before the exam</string>
+    <string name="progress_today">Today</string>
+    <string name="progress_today_hours">%1$s of %2$d hrs</string>
+    <string name="progress_focus_sessions">%1$d focus sessions completed</string>
+    <string name="progress_focus_sessions_one">1 focus session completed</string>
+    <string name="progress_syllabus_header">Syllabus · %1$d of %2$d hrs</string>
+    <string name="progress_section_meta">%1$d of %2$d topics · %3$d/%4$d hrs · %5$d questions</string>
+    <string name="progress_footnote">History starts from the day you begin ticking topics. Nothing before that is stored.</string>
+    <string name="progress_no_plan">Finish onboarding to see your progress.</string>
+</resources>

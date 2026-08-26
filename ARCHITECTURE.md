@@ -212,6 +212,49 @@ If the graph ever exceeds ~20 entries, revisit — and record the decision here.
 
 ---
 
+## 5b. Colour pairing
+
+Source of truth is `tokens.json` at the repo root (exported from
+`prototype/web-app/sam-tokens.css`). After editing either, run
+`python3 tools/gen_theme.py` to regenerate `Palette.kt`. Do not hand-edit
+generated Kotlin.
+
+**Read path.** Feature code uses `AppTheme.colors.*`. Material stock components
+use `MaterialTheme.colorScheme` inside `:core:design` only. No raw `Color(0x…)`
+in feature modules.
+
+**Three layers.**
+
+| Layer | Where | Examples |
+|---|---|---|
+| Shared hues | `tokens.json` → `structure` | `brand`, `brandDeep`, `success`, `danger`, `accentCyan` |
+| Per-theme surfaces & text | `dark` / `light` blocks | `bg`, `surface`, `text`, `textMuted` |
+| On-colours | per-theme or shared | `onBrand`, `onSuccess`, `onBrandContainer` |
+
+Shared hues are identical in both themes. Surfaces and text swap. The user picks
+System / Light / Dark — there is no accent-theme picker in v1.
+
+**Pairing law.** Every fill has a documented foreground. Do not invent new pairs.
+
+| Fill / background | Foreground | Use |
+|---|---|---|
+| `brandDeep` or `brand` | `onBrand` | Primary CTA, FAB |
+| `brandContainer` | `onBrandContainer` | Metric chips, selected pills (dark → `brandSoft`, light → `brandDeep`) |
+| `success` (solid) | `onSuccess` | Done badges, solid success buttons |
+| `successContainer` | `text` or `successStrong` | Soft success rows |
+| `danger` (solid) | `onBrand` | Error buttons (large label only — 3.8:1) |
+| `dangerContainer` | `dangerSoft` or `text` | Error banners |
+| `bg`, `surface`, `elevated` | `text` / `textSecondary` / `textMuted` | Body copy |
+| `warning`, `accentCyan`, `info` | not for body text on `bg` | Icons, chart strokes, small accents |
+
+`accentCyan`, `mood`, `energy`, and `sleep` are category/chart accents — never
+button fills without an `on-*` pair.
+
+**Material mapping.** `SteadylineTheme` fills `ColorScheme` from the same
+`AppColors` values so M3 components cannot drift from the palette.
+
+---
+
 ## 6. Remote config
 
 Ships as an interface with compile-time defaults from day one, so nothing has to

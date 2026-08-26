@@ -21,7 +21,7 @@ Reached automatically when no plan is stored. Answers are held in
 
 | # | Route | Screen | What it asks / shows |
 |---|---|---|---|
-| 1 | `#/onboarding/exam` | Pick exam | Six exams with applicant counts and paper structure. Only SSC CGL has a syllabus tree, so only it shows hours. |
+| 1 | `#/onboarding/exam` | Pick exam | SSC CGL only for now — more exams when syllabus trees land. |
 | 2 | `#/onboarding/date` | Exam date | Countdown broken into weeks, with a scale from today to the exam. |
 | 3 | `#/onboarding/shape` | Day shape | Full-time / working / college — each shows the weekday and weekend hours it implies. |
 | 4 | `#/onboarding/hours` | Hours per day | Two live sliders and a study spot. Recomputes total hours before the exam as you drag. |

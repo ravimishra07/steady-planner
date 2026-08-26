@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="focus_title">Focus</string>
+    <string name="focus_running">Focus · running</string>
+    <string name="focus_paused">Focus · paused</string>
+    <string name="focus_complete">Focus · complete</string>
+    <string name="focus_close">Close</string>
+    <string name="focus_of_minutes">of %1$d min</string>
+    <string name="focus_logged_minutes">%1$d min logged</string>
+    <string name="focus_done">Done</string>
+    <string name="focus_start_session">Start %1$d-minute session</string>
+    <string name="focus_stop">Stop</string>
+    <string name="focus_pause">Pause</string>
+    <string name="focus_resume">Resume</string>
+    <string name="focus_start_another">Start another</string>
+    <string name="focus_back_today">Back to today</string>
+    <string name="focus_empty_title">Nothing left today</string>
+    <string name="focus_empty_body">Every block is checked off. Start one anyway if you want extra time.</string>
+    <string name="focus_stop_confirm">Stop this session? It will not be counted.</string>
+    <string name="focus_stop_confirm_yes">Stop</string>
+    <string name="focus_stop_confirm_no">Keep going</string>
+    <string name="focus_tag_read">Read</string>
+    <string name="focus_tag_practice">Practice</string>
+    <string name="focus_tag_revise">Revise</string>
+</resources>

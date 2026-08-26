@@ -1581,11 +1581,46 @@
 .sam-ios .view-rebalance .fixcard.sel .chev { color: var(--sam-brand-soft); }
 
 /* ============================================================
-   Onboarding — the real app screens (views/onboarding.js).
+   Onboarding — M3-aligned surfaces (same radius, spacing, contrast).
    ============================================================ */
 
-/* .onboard-body carries .view-scroll too; sam-shared's flex:0 1 auto wins on
-   specificity and stops it growing, which left the CTA floating mid-screen. */
+.sam-ios .view-onboard .list { gap: var(--sam-space-sm); }
+.sam-ios .view-onboard .view-foot { margin-top: 0; padding-top: var(--sam-space-lg); }
+.sam-ios .view-onboard .view-foot .cta {
+  border-radius: var(--sam-r-lg);
+  min-height: 52px;
+  border: none;
+}
+
+/* Shared surface: 20px corners, 1px outline, no drop shadow — matches M3 cards + filled button */
+.sam-ios .view-onboard .exam,
+.sam-ios .view-onboard .opt,
+.sam-ios .view-onboard .fixcard,
+.sam-ios .view-onboard .field,
+.sam-ios .view-onboard .slide,
+.sam-ios .view-onboard .countdown,
+.sam-ios .view-onboard .gauge {
+  border-radius: var(--sam-r-lg);
+  box-shadow: none;
+  border: 1px solid var(--sam-border);
+}
+.sam-ios .view-onboard .exam,
+.sam-ios .view-onboard .opt,
+.sam-ios .view-onboard .fixcard {
+  min-height: 56px;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--sam-surface);
+}
+.sam-ios .view-onboard .exam.sel,
+.sam-ios .view-onboard .opt.sel {
+  background: var(--sam-brand-container);
+  border-color: var(--sam-brand-deep);
+  box-shadow: none;
+}
+.sam-ios .view-onboard .exam h3,
+.sam-ios .view-onboard .opt b { margin: 0; }
+
 .sam-ios .view-onboard .onboard-body {
   flex: 1;
   min-height: 0;
@@ -1594,70 +1629,37 @@
   padding-bottom: var(--sam-space-md);
 }
 .sam-ios .view-onboard .onboard-body h1 {
-  margin-bottom: var(--sam-space-sm);
+  margin-bottom: var(--sam-space-lg);
 }
 .sam-ios .view-onboard .onboard-body h1:empty { display: none; }
 .sam-ios .view-onboard .lede {
   font-size: var(--sam-fs-md);
   color: var(--sam-text-secondary);
   line-height: var(--sam-lh-relaxed);
-  margin-bottom: var(--sam-space-xl);
+  margin: calc(-1 * var(--sam-space-sm)) 0 var(--sam-space-lg);
 }
-.sam-ios .view-onboard .list { gap: var(--sam-space-sm); }
-.sam-ios .view-onboard .view-foot { margin-top: 0; }
-.sam-ios .view-onboard .foot-note {
-  font-size: var(--sam-fs-sm);
-  color: var(--sam-text-muted);
-  text-align: center;
-  margin-top: var(--sam-space-md);
-  line-height: 1.45;
-}
+.sam-ios .view-onboard .field-tap { padding: 16px; }
 
-/* exam rows */
-.sam-ios .view-onboard .exam {
-  min-height: 68px;
-  align-items: flex-start;
-  padding-top: 14px;
-  padding-bottom: 14px;
-}
-.sam-ios .view-onboard .exam h3 { margin-bottom: 3px; }
-.sam-ios .view-onboard .exam .meta {
-  display: block;
-  font-size: var(--sam-fs-sm);
-  color: var(--sam-text-muted);
-  line-height: 1.4;
-}
-.sam-ios .view-onboard .exam .load { display: flex; align-items: center; gap: 8px; margin-top: 9px; }
-.sam-ios .view-onboard .exam .load .bar {
-  width: 56px; height: 4px; border-radius: 2px;
-  background: var(--sam-elevated); overflow: hidden; flex: none;
-}
-.sam-ios .view-onboard .exam .load .bar i { display: block; height: 100%; background: var(--sam-brand-deep); }
-.sam-ios .view-onboard .exam .load em {
-  font-style: normal; font-size: var(--sam-fs-xs);
-  color: var(--sam-text-muted); font-variant-numeric: tabular-nums;
-}
-.sam-ios .view-onboard .exam .tick { margin-top: 2px; }
-
-/* day-shape rows */
-.sam-ios .view-onboard .opt {
-  min-height: 74px; align-items: flex-start;
-  padding-top: 15px; padding-bottom: 15px;
-}
-.sam-ios .view-onboard .opt .why {
-  display: block; font-size: var(--sam-fs-sm);
-  color: var(--sam-text-muted); line-height: 1.4; margin-top: 3px;
-}
-.sam-ios .view-onboard .opt .hrs { display: flex; gap: 6px; margin-top: 10px; }
+/* day-shape hour pills */
+.sam-ios .view-onboard .opt .hrs { display: flex; gap: 6px; margin-top: 8px; }
 .sam-ios .view-onboard .opt .hrs span {
   font-size: var(--sam-fs-xs); font-weight: 600; padding: 3px 8px;
   border-radius: var(--sam-r-sm); background: var(--sam-elevated);
   color: var(--sam-text-secondary); font-variant-numeric: tabular-nums;
 }
 .sam-ios .view-onboard .opt.sel .hrs span {
-  background: var(--sam-brand-container); color: var(--sam-brand-soft);
+  background: var(--sam-elevated);
+  color: var(--sam-text);
 }
-.sam-ios .view-onboard .opt .tick { margin-top: 2px; }
+.sam-ios .view-onboard .exam .tick,
+.sam-ios .view-onboard .opt .tick {
+  border-color: var(--sam-border);
+}
+.sam-ios .view-onboard .exam.sel .tick,
+.sam-ios .view-onboard .opt.sel .tick {
+  background: var(--sam-brand-deep);
+  border-color: var(--sam-brand-deep);
+}
 
 /* date */
 .sam-ios .view-onboard .countdown { flex-direction: column; align-items: stretch; gap: 0; }
