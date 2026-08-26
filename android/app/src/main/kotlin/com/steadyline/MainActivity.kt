@@ -34,7 +34,14 @@ class MainActivity : ComponentActivity() {
             val state by viewModel.state.collectAsStateWithLifecycle()
             SteadylineTheme(choice = state.theme) {
                 if (state.ready) {
-                    SteadylineNavHost(startInOnboarding = !state.hasPlan)
+                    // Phase 0 has no onboarding yet, so it boots to the tabs — otherwise the
+                    // app lands on an empty placeholder with no navigation out of it.
+                    // Restore `!state.hasPlan` when Phase 1 lands.
+                    SteadylineNavHost(
+                        startInOnboarding = false,
+                        themeChoice = state.theme,
+                        onThemeChoice = viewModel::setTheme,
+                    )
                 }
             }
         }

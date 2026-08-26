@@ -15,6 +15,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.steadyline.core.design.AppTheme
+import com.steadyline.core.design.ThemeChoice
 import com.steadyline.feature.focus.FocusScreen
 import com.steadyline.feature.home.HomeScreen
 import com.steadyline.feature.onboarding.OnboardingScreen
@@ -25,6 +26,8 @@ import com.steadyline.feature.syllabus.SyllabusScreen
 @Composable
 fun SteadylineNavHost(
     startInOnboarding: Boolean,
+    themeChoice: ThemeChoice,
+    onThemeChoice: (ThemeChoice) -> Unit,
     navController: NavHostController = rememberNavController(),
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -66,7 +69,13 @@ fun SteadylineNavHost(
             composable(Route.Syllabus.path) { SyllabusScreen(Modifier.padding(padding)) }
             composable(Route.Focus.path) { FocusScreen(Modifier.padding(padding)) }
             composable(Route.Progress.path) { ProgressScreen(Modifier.padding(padding)) }
-            composable(Route.Settings.path) { SettingsScreen(Modifier.padding(padding)) }
+            composable(Route.Settings.path) {
+                SettingsScreen(
+                    modifier = Modifier.padding(padding),
+                    choice = themeChoice,
+                    onChoose = onThemeChoice,
+                )
+            }
         }
     }
 }

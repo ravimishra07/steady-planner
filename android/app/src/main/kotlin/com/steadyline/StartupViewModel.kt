@@ -48,6 +48,19 @@ class StartupViewModel(
         }
     }
 
+    /** Persists the choice; the theme flow pushes the new value back into state. */
+    fun setTheme(choice: ThemeChoice) {
+        viewModelScope.launch {
+            settings.setThemeChoice(
+                when (choice) {
+                    ThemeChoice.Light -> SettingsStore.LIGHT
+                    ThemeChoice.Dark -> SettingsStore.DARK
+                    ThemeChoice.System -> SettingsStore.SYSTEM
+                }
+            )
+        }
+    }
+
     /** Live updates once the app is running, e.g. from Settings. */
     fun observeTheme() {
         viewModelScope.launch {
