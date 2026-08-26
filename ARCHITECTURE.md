@@ -340,9 +340,18 @@ cd android && ./gradlew :app:assembleDebug
 open -R app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Build the APK, reveal it in Finder, stop. Testing happens on a real device,
-by hand. Claim only what the build proves — it compiles, tests pass, APK size —
-and never that a screen "works" without having seen it.
+Getting it onto the phone, without a cable:
+
+```sh
+python3 tools/serve_apk.py       # http://<mac-ip>:8787, open it on the phone
+```
+
+Or wireless adb — pair once from Developer options, then `adb install -r`
+pushes straight to the device. `adb install` to a real device is fine; the
+prohibition is the emulator only.
+
+Claim only what the build proves — it compiles, tests pass, APK size — and
+never that a screen "works" without having seen it.
 
 `gradle/wrapper/gradle-wrapper.properties` points at the `-all` distribution
 because that is the one in the local Gradle cache; the `-bin` URL times out.
