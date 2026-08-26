@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      The system splash. Not a splash Activity: that would add a whole extra
+      Activity launch to cold start, making startup slower in the name of
+      looking after startup.
+    -->
+    <style name="Theme.Steadyline.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_bg</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.Steadyline</item>
+    </style>
+
+    <style name="Theme.Steadyline" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/splash_bg</item>
+    </style>
+</resources>
