@@ -325,7 +325,31 @@ An agent doing any of these has broken the architecture:
 
 ---
 
-## 10. Build order
+## 10. Delivery
+
+**Never launch an emulator, install a system image, or run `adb install`.**
+This machine cannot run the emulator, and the AVDs on it reference system
+images that are not installed. Attempting it wastes minutes on a boot that
+always times out.
+
+The handoff for any Android change is:
+
+```sh
+export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+cd android && ./gradlew :app:assembleDebug
+open -R app/build/outputs/apk/debug/app-debug.apk
+```
+
+Build the APK, reveal it in Finder, stop. Testing happens on a real device,
+by hand. Claim only what the build proves — it compiles, tests pass, APK size —
+and never that a screen "works" without having seen it.
+
+`gradle/wrapper/gradle-wrapper.properties` points at the `-all` distribution
+because that is the one in the local Gradle cache; the `-bin` URL times out.
+
+---
+
+## 11. Build order
 
 Each phase ends with something installable that gets judged on a real device.
 
