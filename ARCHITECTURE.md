@@ -340,15 +340,8 @@ cd android && ./gradlew :app:assembleDebug
 open -R app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Getting it onto the phone, without a cable:
-
-```sh
-python3 tools/serve_apk.py       # http://<mac-ip>:8787, open it on the phone
-```
-
-Or wireless adb — pair once from Developer options, then `adb install -r`
-pushes straight to the device. `adb install` to a real device is fine; the
-prohibition is the emulator only.
+Never suggest enabling Developer options or wireless debugging — that breaks
+banking apps on the device. No emulator, no adb.
 
 Claim only what the build proves — it compiles, tests pass, APK size — and
 never that a screen "works" without having seen it.
