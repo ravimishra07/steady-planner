@@ -22,4 +22,50 @@
     <string name="focus_tag_read">Read</string>
     <string name="focus_tag_practice">Practice</string>
     <string name="focus_tag_revise">Revise</string>
+
+    <string name="focus_lock_title">Focus Lock</string>
+    <string name="focus_lock_subtitle">Block distracting apps automatically while you study.</string>
+    <string name="focus_lock_status_off">Off</string>
+    <string name="focus_lock_status_needs_setup">Needs setup</string>
+    <string name="focus_lock_status_needs_attention">Needs attention</string>
+    <string name="focus_lock_status_ready">Ready</string>
+    <string name="focus_lock_status_active">Active</string>
+    <string name="focus_lock_off_body">Turn it on to block distracting apps during study sessions.</string>
+    <string name="focus_lock_needs_setup_body">Choose which apps to block to finish setting up Focus Lock.</string>
+    <string name="focus_lock_choose_distractions">Choose distractions</string>
+    <string name="focus_lock_needs_attention_body">Android access is required for distraction blocking.</string>
+    <string name="focus_lock_fix_setup">Fix setup</string>
+    <string name="focus_lock_apps_selected">%1$d distracting apps selected</string>
+    <string name="focus_lock_auto_activates">Automatically activates during study sessions.</string>
+    <string name="focus_lock_manage_apps">Manage apps</string>
+    <string name="focus_lock_min_remaining">%1$d min remaining</string>
+    <string name="focus_lock_apps_blocked_active">%1$d apps blocked · Active while you study</string>
+    <string name="focus_lock_status_line_active">Focus Lock · Active · %1$d apps blocked</string>
+
+    <string name="focus_lock_setup_title">Set up Focus Lock</string>
+    <string name="focus_lock_setup_body">Focus Lock can keep distracting apps unavailable while your study timer is running.</string>
+    <string name="focus_lock_setup_step_1">Allow required access</string>
+    <string name="focus_lock_setup_step_2">Choose distracting apps</string>
+    <string name="focus_lock_setup_step_3">Focus Lock is ready</string>
+    <string name="focus_lock_continue">Continue</string>
+    <string name="focus_lock_not_now">Not now</string>
+
+    <string name="focus_lock_permissions_title">Allow required access</string>
+    <string name="focus_lock_permission_usage_label">Usage access</string>
+    <string name="focus_lock_permission_usage_description">Lets Focus Lock notice when a blocked app opens.</string>
+    <string name="focus_lock_permission_overlay_label">Display over other apps</string>
+    <string name="focus_lock_permission_overlay_description">Lets Focus Lock show its blocking screen over the blocked app.</string>
+    <string name="focus_lock_permission_notifications_label">Notifications</string>
+    <string name="focus_lock_permission_notifications_description">Shows a quiet reminder while Focus Lock is protecting a session.</string>
+    <string name="focus_lock_grant">Grant</string>
+
+    <string name="focus_lock_choose_distractions_body">These apps will be unavailable while you\'re studying.</string>
+    <string name="focus_lock_search_apps">Search apps…</string>
+    <string name="focus_lock_select_all">Select all</string>
+    <string name="focus_lock_clear">Clear</string>
+    <string name="focus_lock_loading_apps">Loading apps…</string>
+    <string name="focus_lock_suggested">Suggested</string>
+    <string name="focus_lock_all_apps">All apps</string>
+    <string name="focus_lock_no_apps_match">No apps match \"%1$s\".</string>
+    <string name="focus_lock_save_and_enable">Save &amp; Enable</string>
 </resources>

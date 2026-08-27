@@ -106,3 +106,26 @@ val FOCUS_LOCK_PROTECTED_PACKAGE_PREFIXES = listOf(
 
 fun isProtectedPackage(packageName: String): Boolean =
     FOCUS_LOCK_PROTECTED_PACKAGE_PREFIXES.any { packageName == it || packageName.startsWith("$it.") }
+
+/**
+ * Common distraction package names, offered as a "Suggested" shortcut in the app
+ * picker. Best-effort and hardcoded — there is no on-device signal for "popular app"
+ * — so this only ever surfaces entries the student actually has installed.
+ */
+val FOCUS_LOCK_SUGGESTED_PACKAGES = listOf(
+    "com.instagram.android",
+    "com.whatsapp",
+    "com.zhiliaoapp.musically",
+    "com.ss.android.ugc.trill",
+    "com.google.android.youtube",
+    "com.facebook.katana",
+    "com.snapchat.android",
+    "com.twitter.android",
+    "com.reddit.frontpage",
+    "org.telegram.messenger",
+    "com.netflix.mediaclient",
+    "com.spotify.music",
+    "com.pinterest",
+    "com.discord",
+    "com.linkedin.android",
+)

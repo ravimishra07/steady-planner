@@ -69,6 +69,6 @@ enum class Tab(
     Home(Route.Home, R.string.tab_today, Icons.Outlined.Home),
     Syllabus(Route.Syllabus, R.string.tab_syllabus, Icons.AutoMirrored.Outlined.MenuBook),
     Focus(Route.Focus, R.string.tab_focus, Icons.Outlined.Timer),
-    Progress(Route.Progress, R.string.tab_progress, Icons.Outlined.BarChart),
+    Progress(Route.Progress, R.string.tab_insights, Icons.Outlined.BarChart),
     Settings(Route.Settings, R.string.tab_more, Icons.Outlined.MoreHoriz),
 }

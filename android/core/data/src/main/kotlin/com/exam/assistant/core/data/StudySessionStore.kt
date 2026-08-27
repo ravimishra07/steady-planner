@@ -38,6 +38,13 @@ class StudySessionStore(
         saveAll(all)
     }
 
+    /** Merges many records in one read-modify-write — for upsert() in a loop use this instead. */
+    suspend fun upsertAll(sessions: List<StudySessionRecord>) = withContext(dispatchers.io) {
+        val all = loadAll().associateBy { it.id }.toMutableMap()
+        sessions.forEach { all[it.id] = it }
+        saveAll(all.values.toList())
+    }
+
     suspend fun clear() = withContext(dispatchers.io) {
         context.studySessionDataStore.edit { it.remove(sessionsKey) }
         Unit

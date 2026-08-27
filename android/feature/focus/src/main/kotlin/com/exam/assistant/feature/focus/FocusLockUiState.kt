@@ -15,6 +15,7 @@ data class FocusLockUiState(
     val installedApps: List<InstalledAppInfo> = emptyList(),
     val selectedPackages: Set<String> = emptySet(),
     val appsLoading: Boolean = false,
+    val appSearchQuery: String = "",
 ) {
     val requiredPermissionsGranted: Boolean get() = usageAccessGranted && overlayGranted
 }

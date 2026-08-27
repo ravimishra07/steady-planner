@@ -26,12 +26,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -45,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
@@ -54,6 +58,7 @@ import com.exam.assistant.core.data.InstalledAppInfo
 import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Spacing
+import com.exam.assistant.domain.FOCUS_LOCK_SUGGESTED_PACKAGES
 import com.exam.assistant.domain.FocusLockDisplayState
 
 /** Re-checks real system permission state whenever the screen resumes — covers returning from Settings. */
@@ -89,13 +94,13 @@ internal fun FocusLockCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Focus Lock",
+                        text = stringResource(R.string.focus_lock_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = colors.text,
                     )
                     Text(
-                        text = "Block distracting apps automatically while you study.",
+                        text = stringResource(R.string.focus_lock_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.textSecondary,
                         modifier = Modifier.padding(top = 2.dp),
@@ -112,18 +117,18 @@ internal fun FocusLockCard(
 
             when (val display = state.display) {
                 is FocusLockDisplayState.Off -> {
-                    StatusLine(label = "Off", color = colors.textMuted)
+                    StatusLine(label = stringResource(R.string.focus_lock_status_off), color = colors.textMuted)
                     Text(
-                        text = "Turn it on to block distracting apps during study sessions.",
+                        text = stringResource(R.string.focus_lock_off_body),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.textMuted,
                         modifier = Modifier.padding(top = Spacing.xs, bottom = Spacing.md),
                     )
                 }
                 is FocusLockDisplayState.NeedsSetup -> {
-                    StatusLine(label = "Needs setup", color = colors.warning)
+                    StatusLine(label = stringResource(R.string.focus_lock_status_needs_setup), color = colors.warning)
                     Text(
-                        text = "Choose which apps to block to finish setting up Focus Lock.",
+                        text = stringResource(R.string.focus_lock_needs_setup_body),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.textMuted,
                         modifier = Modifier.padding(top = Spacing.xs, bottom = Spacing.md),
@@ -132,12 +137,12 @@ internal fun FocusLockCard(
                         onClick = onStartSetup,
                         colors = ButtonDefaults.buttonColors(containerColor = colors.brandDeep, contentColor = colors.onBrand),
                         shape = RoundedCornerShape(Radius.lg),
-                    ) { Text("Choose distractions") }
+                    ) { Text(stringResource(R.string.focus_lock_choose_distractions)) }
                 }
                 is FocusLockDisplayState.NeedsAttention -> {
-                    StatusLine(label = "Needs attention", color = colors.warning)
+                    StatusLine(label = stringResource(R.string.focus_lock_status_needs_attention), color = colors.warning)
                     Text(
-                        text = "Android access is required for distraction blocking.",
+                        text = stringResource(R.string.focus_lock_needs_attention_body),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.textMuted,
                         modifier = Modifier.padding(top = Spacing.xs, bottom = Spacing.md),
@@ -146,36 +151,36 @@ internal fun FocusLockCard(
                         onClick = onFixSetup,
                         colors = ButtonDefaults.buttonColors(containerColor = colors.brandDeep, contentColor = colors.onBrand),
                         shape = RoundedCornerShape(Radius.lg),
-                    ) { Text("Fix setup") }
+                    ) { Text(stringResource(R.string.focus_lock_fix_setup)) }
                 }
                 is FocusLockDisplayState.Ready -> {
-                    StatusLine(label = "Ready", color = colors.success)
+                    StatusLine(label = stringResource(R.string.focus_lock_status_ready), color = colors.success)
                     Text(
-                        text = "${display.blockedCount} distracting apps selected",
+                        text = stringResource(R.string.focus_lock_apps_selected, display.blockedCount),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.textMuted,
                         modifier = Modifier.padding(top = Spacing.xs, bottom = 2.dp),
                     )
                     Text(
-                        text = "Automatically activates during study sessions.",
+                        text = stringResource(R.string.focus_lock_auto_activates),
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.textMuted,
                         modifier = Modifier.padding(bottom = Spacing.md),
                     )
-                    TextButton(onClick = onOpenManageApps) { Text("Manage apps") }
+                    TextButton(onClick = onOpenManageApps) { Text(stringResource(R.string.focus_lock_manage_apps)) }
                 }
                 is FocusLockDisplayState.Active -> {
-                    StatusLine(label = "Active", color = colors.brandSoft)
+                    StatusLine(label = stringResource(R.string.focus_lock_status_active), color = colors.brandSoft)
                     val minutes = display.session.remainingSec / 60
                     Text(
-                        text = "$minutes min remaining",
+                        text = stringResource(R.string.focus_lock_min_remaining, minutes),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = colors.text,
                         modifier = Modifier.padding(top = Spacing.xs),
                     )
                     Text(
-                        text = "${display.blockedCount} apps blocked · Active while you study",
+                        text = stringResource(R.string.focus_lock_apps_blocked_active, display.blockedCount),
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.textMuted,
                         modifier = Modifier.padding(top = 2.dp, bottom = Spacing.sm),
@@ -206,6 +211,7 @@ internal fun FocusLockSetupFlow(
     onSelectAll: () -> Unit,
     onClearAll: () -> Unit,
     onSaveAndEnable: () -> Unit,
+    onSearchQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (state.setupStep == FocusLockSetupStep.None) return
@@ -230,6 +236,7 @@ internal fun FocusLockSetupFlow(
                 onClearAll = onClearAll,
                 onSave = onSaveAndEnable,
                 onCancel = onDismiss,
+                onSearchQueryChange = onSearchQueryChange,
             )
             FocusLockSetupStep.None -> Unit
         }
@@ -240,24 +247,29 @@ internal fun FocusLockSetupFlow(
 private fun ExplainStep(onContinue: () -> Unit, onCancel: () -> Unit) {
     val colors = AppTheme.colors
     Column(modifier = Modifier.fillMaxSize().padding(Spacing.xl)) {
-        Text("Set up Focus Lock", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = colors.text)
         Text(
-            text = "Focus Lock can keep distracting apps unavailable while your study timer is running.",
+            stringResource(R.string.focus_lock_setup_title),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = colors.text,
+        )
+        Text(
+            text = stringResource(R.string.focus_lock_setup_body),
             style = MaterialTheme.typography.bodyLarge,
             color = colors.textSecondary,
             modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.xl),
         )
-        SetupStepRow(number = 1, label = "Allow required access")
-        SetupStepRow(number = 2, label = "Choose distracting apps")
-        SetupStepRow(number = 3, label = "Focus Lock is ready")
+        SetupStepRow(number = 1, label = stringResource(R.string.focus_lock_setup_step_1))
+        SetupStepRow(number = 2, label = stringResource(R.string.focus_lock_setup_step_2))
+        SetupStepRow(number = 3, label = stringResource(R.string.focus_lock_setup_step_3))
         Spacer(Modifier.weight(1f))
         Button(
             onClick = onContinue,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(Radius.lg),
             colors = ButtonDefaults.buttonColors(containerColor = colors.brandDeep, contentColor = colors.onBrand),
-        ) { Text("Continue") }
-        TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Not now") }
+        ) { Text(stringResource(R.string.focus_lock_continue)) }
+        TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.focus_lock_not_now)) }
     }
 }
 
@@ -291,18 +303,23 @@ private fun PermissionsStep(
     val notificationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { onRefresh() }
 
     Column(modifier = Modifier.fillMaxSize().padding(Spacing.xl)) {
-        Text("Allow required access", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = colors.text)
+        Text(
+            stringResource(R.string.focus_lock_permissions_title),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = colors.text,
+        )
         Spacer(Modifier.height(Spacing.lg))
 
         PermissionRow(
-            label = "Usage access",
-            description = "Lets Focus Lock notice when a blocked app opens.",
+            label = stringResource(R.string.focus_lock_permission_usage_label),
+            description = stringResource(R.string.focus_lock_permission_usage_description),
             granted = state.usageAccessGranted,
             onGrant = { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) },
         )
         PermissionRow(
-            label = "Display over other apps",
-            description = "Lets Focus Lock show its blocking screen over the blocked app.",
+            label = stringResource(R.string.focus_lock_permission_overlay_label),
+            description = stringResource(R.string.focus_lock_permission_overlay_description),
             granted = state.overlayGranted,
             onGrant = {
                 context.startActivity(
@@ -312,8 +329,8 @@ private fun PermissionsStep(
         )
         if (notificationsPermissionAvailable) {
             PermissionRow(
-                label = "Notifications",
-                description = "Shows a quiet reminder while Focus Lock is protecting a session.",
+                label = stringResource(R.string.focus_lock_permission_notifications_label),
+                description = stringResource(R.string.focus_lock_permission_notifications_description),
                 granted = state.notificationsGranted,
                 onGrant = { notificationLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS) },
             )
@@ -326,8 +343,8 @@ private fun PermissionsStep(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(Radius.lg),
             colors = ButtonDefaults.buttonColors(containerColor = colors.brandDeep, contentColor = colors.onBrand),
-        ) { Text("Continue") }
-        TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Not now") }
+        ) { Text(stringResource(R.string.focus_lock_continue)) }
+        TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.focus_lock_not_now)) }
     }
 }
 
@@ -350,7 +367,7 @@ private fun PermissionRow(label: String, description: String, granted: Boolean, 
                 Icon(Icons.Filled.Check, contentDescription = null, tint = colors.successStrong, modifier = Modifier.size(18.dp))
             }
         } else {
-            TextButton(onClick = onGrant) { Text("Grant") }
+            TextButton(onClick = onGrant) { Text(stringResource(R.string.focus_lock_grant)) }
         }
     }
 }
@@ -363,8 +380,20 @@ private fun AppPickerStep(
     onClearAll: () -> Unit,
     onSave: () -> Unit,
     onCancel: () -> Unit,
+    onSearchQueryChange: (String) -> Unit,
 ) {
     val colors = AppTheme.colors
+    val query = state.appSearchQuery.trim()
+    val matches = if (query.isBlank()) {
+        state.installedApps
+    } else {
+        state.installedApps.filter { it.label.contains(query, ignoreCase = true) }
+    }
+    val suggested = matches.filter { it.packageName in FOCUS_LOCK_SUGGESTED_PACKAGES }
+        .sortedBy { FOCUS_LOCK_SUGGESTED_PACKAGES.indexOf(it.packageName) }
+    val suggestedKeys = suggested.map { it.packageName }.toSet()
+    val others = matches.filterNot { it.packageName in suggestedKeys }
+
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = Spacing.xl, vertical = Spacing.lg)) {
         Text("Choose distractions", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = colors.text)
         Text(
@@ -373,7 +402,27 @@ private fun AppPickerStep(
             color = colors.textSecondary,
             modifier = Modifier.padding(top = Spacing.xs, bottom = Spacing.md),
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        OutlinedTextField(
+            value = state.appSearchQuery,
+            onValueChange = onSearchQueryChange,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            placeholder = { Text("Search apps…") },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = colors.textMuted) },
+            shape = RoundedCornerShape(Radius.lg),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = colors.brandDeep,
+                unfocusedBorderColor = colors.border,
+                focusedContainerColor = colors.surface,
+                unfocusedContainerColor = colors.surface,
+                focusedTextColor = colors.text,
+                unfocusedTextColor = colors.text,
+            ),
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            modifier = Modifier.padding(top = Spacing.md),
+        ) {
             TextButton(onClick = onSelectAll) { Text("Select all") }
             TextButton(onClick = onClearAll) { Text("Clear") }
         }
@@ -381,8 +430,27 @@ private fun AppPickerStep(
             Text("Loading apps…", style = MaterialTheme.typography.bodyMedium, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.lg))
         } else {
             LazyColumn(modifier = Modifier.weight(1f)) {
-                items(state.installedApps, key = { it.packageName }) { app ->
-                    AppRow(app = app, checked = app.packageName in state.selectedPackages, onToggle = { onToggleApp(app.packageName) })
+                if (suggested.isNotEmpty()) {
+                    item { SectionLabel("Suggested") }
+                    items(suggested, key = { it.packageName }) { app ->
+                        AppRow(app = app, checked = app.packageName in state.selectedPackages, onToggle = { onToggleApp(app.packageName) })
+                    }
+                }
+                if (others.isNotEmpty()) {
+                    item { SectionLabel(if (suggested.isNotEmpty()) "All apps" else "") }
+                    items(others, key = { it.packageName }) { app ->
+                        AppRow(app = app, checked = app.packageName in state.selectedPackages, onToggle = { onToggleApp(app.packageName) })
+                    }
+                }
+                if (matches.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No apps match \"$query\".",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.textMuted,
+                            modifier = Modifier.padding(top = Spacing.lg),
+                        )
+                    }
                 }
             }
         }
@@ -395,6 +463,17 @@ private fun AppPickerStep(
         ) { Text("Save & Enable") }
         TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Not now") }
     }
+}
+
+@Composable
+private fun SectionLabel(text: String) {
+    if (text.isBlank()) return
+    Text(
+        text = text.uppercase(),
+        style = MaterialTheme.typography.labelMedium,
+        color = AppTheme.colors.textMuted,
+        modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.xs),
+    )
 }
 
 @Composable

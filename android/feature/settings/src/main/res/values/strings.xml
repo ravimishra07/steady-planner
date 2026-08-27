@@ -21,9 +21,9 @@
     <string name="more_privacy_sub">What is stored and where</string>
     <string name="more_terms">Terms of use</string>
     <string name="more_terms_sub">The short version</string>
-    <string name="more_about">About Steadyline</string>
+    <string name="more_about">About PrepTracker</string>
     <string name="more_about_sub">Version and credits</string>
-    <string name="more_footer">Steadyline · offline app</string>
+    <string name="more_footer">PrepTracker · offline app</string>
 
     <string name="settings_detail_title">Settings</string>
     <string name="settings_appearance">Appearance</string>
@@ -49,6 +49,16 @@
     <string name="settings_focus_minutes">%1$d min</string>
     <string name="settings_data">Data</string>
     <string name="settings_clear_plan">Clear plan and restart</string>
+    <string name="settings_seed_button">Preview: fill in last 45 days</string>
+    <string name="settings_seed_in_progress">Generating history…</string>
+    <string name="settings_seed_title">Fill in last 45 days?</string>
+    <string name="settings_seed_confirm">This adds 45 days of fake completed study sessions, worked through your real syllabus, so you can see how a full app looks. It does not touch today.</string>
+    <string name="settings_seed_yes">Fill it in</string>
+    <string name="settings_seed_no">Cancel</string>
+    <string name="settings_seed_done_title">Done</string>
+    <string name="settings_seed_done_body">45 days of history added. Reopen Today, Syllabus, or Progress to see it.</string>
+    <string name="settings_seed_done_ok">OK</string>
+    <string name="settings_seed_error_title">Couldn\'t generate history</string>
     <string name="settings_clear_confirm">Erase your plan, syllabus ticks, and focus sessions?</string>
     <string name="settings_clear_yes">Clear everything</string>
     <string name="settings_clear_no">Cancel</string>
@@ -57,7 +67,7 @@
     <string name="policy_privacy_title">Privacy</string>
     <string name="policy_privacy_body">Everything stays on your phone. Your plan, syllabus ticks, and focus sessions are stored locally. Nothing is sent to a server.</string>
     <string name="policy_terms_title">Terms</string>
-    <string name="policy_terms_body">Steadyline is a study planning tool. Hours and coverage are estimates, not guarantees. Use your own judgment for exam prep.</string>
-    <string name="policy_about_title">About Steadyline</string>
-    <string name="policy_about_body">Steadyline helps you plan exam prep day by day. Version 0.1.0. Built offline-first for serious students.</string>
+    <string name="policy_terms_body">PrepTracker is a study planning tool. Hours and coverage are estimates, not guarantees. Use your own judgment for exam prep.</string>
+    <string name="policy_about_title">About PrepTracker</string>
+    <string name="policy_about_body">PrepTracker helps you plan exam prep day by day. Version 0.1.0. Built offline-first for serious students.</string>
 </resources>

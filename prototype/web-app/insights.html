@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=390, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0A0A0F">
+  <title>Insights · Steadyline</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: oklch(8.3% 0.014 285);
+      --surface: oklch(14.8% 0.014 285);
+      --surface-raised: oklch(17.5% 0.016 285);
+      --surface-soft: oklch(12.2% 0.014 285);
+      --line: oklch(25.2% 0.018 285);
+      --line-soft: oklch(21.5% 0.014 285);
+      --text: oklch(97.7% 0.006 285);
+      --text-secondary: oklch(79.5% 0.012 285);
+      --text-muted: oklch(59.2% 0.017 285);
+      --text-faint: oklch(44.5% 0.017 285);
+      --violet: oklch(63.5% 0.24 292);
+      --violet-soft: oklch(77.5% 0.15 292);
+      --violet-dim: oklch(27.5% 0.09 292);
+      --violet-faint: oklch(20.8% 0.055 292);
+      --green: oklch(75.5% 0.16 158);
+      --green-dim: oklch(25.5% 0.06 158);
+      --amber: oklch(80.5% 0.16 78);
+      --amber-dim: oklch(28.5% 0.07 78);
+      --radius: 16px;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      width: 390px;
+      min-width: 390px;
+      background: var(--bg);
+      scroll-behavior: smooth;
+    }
+
+    body {
+      width: 390px;
+      min-width: 390px;
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button { font: inherit; }
+    button:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 3px; }
+
+    .app {
+      width: 390px;
+      min-height: 100vh;
+      padding: 18px 18px 112px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 42px;
+      margin-bottom: 12px;
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.1;
+      letter-spacing: -0.035em;
+      font-weight: 700;
+    }
+
+    .icon-button {
+      display: inline-grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      padding: 0;
+      border: 1px solid transparent;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .icon-button:active { background: var(--surface-raised); }
+    .icon-button svg { width: 21px; height: 21px; }
+
+    .settings-note {
+      display: none;
+      margin: -2px 0 14px;
+      padding: 11px 13px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--surface-soft);
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .settings-note.is-open { display: block; }
+
+    .period-bar {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      width: 100%;
+      padding: 3px;
+      border: 1px solid var(--line-soft);
+      border-radius: 12px;
+      background: var(--surface-soft);
+    }
+
+    .period-tab {
+      flex: 1;
+      min-height: 34px;
+      padding: 0;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+    }
+
+    .period-tab.is-active {
+      background: var(--violet-dim);
+      color: var(--violet-soft);
+      box-shadow: inset 0 0 0 1px oklch(48% 0.14 292 / 0.45);
+    }
+
+    .section { margin-top: 28px; }
+    .section-heading { margin: 0 0 12px; }
+    .section-heading h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.25;
+      letter-spacing: -0.018em;
+      font-weight: 650;
+    }
+    .section-heading p {
+      margin: 4px 0 0;
+      color: var(--text-muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      overflow: hidden;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: var(--line-soft);
+    }
+
+    .stat {
+      min-height: 89px;
+      padding: 14px 15px 13px;
+      background: var(--surface);
+    }
+
+    .stat:nth-child(odd) { border-radius: 15px 0 0 0; }
+    .stat:nth-child(even) { border-radius: 0 15px 0 0; }
+    .stat:nth-child(3) { border-radius: 0 0 0 15px; }
+    .stat:nth-child(4) { border-radius: 0 0 15px 0; }
+
+    .stat-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--text-faint);
+    }
+    .stat-icon { width: 16px; height: 16px; }
+    .stat-value {
+      display: block;
+      margin-top: 7px;
+      font-size: 21px;
+      line-height: 1;
+      letter-spacing: -0.035em;
+      font-weight: 680;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-label {
+      display: block;
+      margin-top: 7px;
+      color: var(--text-muted);
+      font-size: 11px;
+      line-height: 1.2;
+    }
+
+    .section-surface {
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .heatmap-card { padding: 15px 14px 14px; }
+    .heatmap-scroll { overflow: visible; }
+    .heatmap-wrap { display: flex; gap: 8px; min-width: 0; }
+    .heatmap-days {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 17px;
+      padding: 1px 0;
+      color: var(--text-faint);
+      font-size: 9px;
+      line-height: 1;
+    }
+    .heatmap-days span { height: 11px; }
+    .heatmap-grid {
+      display: grid;
+      grid-template-rows: repeat(7, 11px);
+      grid-auto-flow: column;
+      grid-auto-columns: 11px;
+      gap: 4px;
+      flex: 1;
+      min-width: 0;
+    }
+    .heat-cell {
+      position: relative;
+      width: 11px;
+      height: 11px;
+      padding: 0;
+      border: 0;
+      border-radius: 3px;
+      background: oklch(16.5% 0.012 285);
+      cursor: pointer;
+    }
+    .heat-cell[data-level="1"] { background: oklch(28% 0.065 292); }
+    .heat-cell[data-level="2"] { background: oklch(41% 0.12 292); }
+    .heat-cell[data-level="3"] { background: oklch(54% 0.18 292); }
+    .heat-cell[data-level="4"] { background: oklch(65% 0.23 292); }
+    .heat-cell.is-selected { outline: 2px solid var(--text); outline-offset: 2px; z-index: 2; }
+    .heat-months {
+      display: grid;
+      grid-template-columns: repeat(11, 1fr);
+      margin: 0 0 7px 25px;
+      color: var(--text-faint);
+      font-size: 9px;
+    }
+    .heat-months span:nth-child(2) { grid-column: 4; }
+    .heat-months span:nth-child(3) { grid-column: 7; }
+    .heat-months span:nth-child(4) { grid-column: 10; }
+    .heat-legend {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 14px;
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+    .legend-swatches { display: flex; align-items: center; gap: 4px; }
+    .legend-swatches i { width: 10px; height: 10px; border-radius: 3px; background: oklch(16.5% 0.012 285); }
+    .legend-swatches i:nth-child(2) { background: oklch(28% 0.065 292); }
+    .legend-swatches i:nth-child(3) { background: oklch(41% 0.12 292); }
+    .legend-swatches i:nth-child(4) { background: oklch(54% 0.18 292); }
+    .legend-swatches i:nth-child(5) { background: oklch(65% 0.23 292); }
+    .heat-tooltip {
+      position: absolute;
+      right: 9px;
+      bottom: calc(100% + 12px);
+      z-index: 4;
+      width: 116px;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface-raised);
+      box-shadow: 0 8px 18px oklch(0% 0 0 / 0.28);
+      color: var(--text);
+      text-align: left;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .heat-cell.is-selected .heat-tooltip { opacity: 1; transform: none; }
+    .heat-tooltip strong { display: block; font-size: 11px; font-weight: 650; }
+    .heat-tooltip span { display: block; margin-top: 3px; color: var(--text-secondary); font-size: 10px; line-height: 1.3; }
+    .heat-summary {
+      display: flex;
+      gap: 0;
+      margin-top: 16px;
+      padding-top: 13px;
+      border-top: 1px solid var(--line-soft);
+    }
+    .heat-summary div { flex: 1; }
+    .heat-summary div + div { padding-left: 14px; border-left: 1px solid var(--line-soft); }
+    .heat-summary strong { display: block; font-size: 14px; font-weight: 650; font-variant-numeric: tabular-nums; }
+    .heat-summary span { display: block; margin-top: 3px; color: var(--text-muted); font-size: 10px; }
+
+    .trend-card { padding: 15px 14px 14px; }
+    .chart { display: flex; align-items: flex-end; gap: 8px; height: 151px; padding: 7px 2px 0; border-bottom: 1px solid var(--line); }
+    .bar-column { display: flex; flex: 1; min-width: 0; height: 100%; flex-direction: column; align-items: center; justify-content: flex-end; gap: 7px; }
+    .bar-value { color: var(--text-muted); font-size: 9px; font-variant-numeric: tabular-nums; }
+    .bar-track { display: flex; align-items: flex-end; width: 24px; height: 110px; }
+    .bar-fill { width: 100%; min-height: 6px; border-radius: 5px 5px 2px 2px; background: var(--violet-dim); }
+    .bar-column.today .bar-fill { background: var(--violet); }
+    .bar-day { color: var(--text-muted); font-size: 10px; }
+    .bar-column.today .bar-day { color: var(--violet-soft); font-weight: 650; }
+    .chart-footer { display: flex; align-items: baseline; justify-content: space-between; padding-top: 13px; }
+    .chart-total { font-size: 15px; font-weight: 650; font-variant-numeric: tabular-nums; }
+    .chart-change { color: var(--green); font-size: 11px; }
+
+    .comparison-card, .forecast-card, .revision-card { padding: 17px 16px; }
+    .comparison-line { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 12px; }
+    .compare-item span, .forecast-stat span { display: block; color: var(--text-muted); font-size: 11px; }
+    .compare-item strong { display: block; margin-top: 4px; font-size: 22px; letter-spacing: -0.035em; font-weight: 680; font-variant-numeric: tabular-nums; }
+    .compare-item:last-child { text-align: right; }
+    .compare-item:last-child strong { color: var(--violet-soft); }
+    .compare-arrow { width: 17px; height: 17px; color: var(--text-faint); margin-bottom: 4px; }
+    .progress-track { height: 8px; overflow: hidden; border-radius: 99px; background: oklch(23% 0.015 285); }
+    .progress-track i { display: block; height: 100%; border-radius: inherit; background: var(--violet); }
+    .progress-label { display: flex; justify-content: space-between; margin-top: 8px; color: var(--text-secondary); font-size: 11px; }
+    .progress-label strong { color: var(--text); font-weight: 650; }
+    .interpretation { margin: 14px 0 0; padding-top: 13px; border-top: 1px solid var(--line-soft); color: var(--amber); font-size: 12px; line-height: 1.35; }
+
+    .syllabus-card { padding: 17px 16px 15px; }
+    .syllabus-top { display: flex; align-items: flex-end; justify-content: space-between; }
+    .syllabus-number { font-size: 27px; line-height: 1; letter-spacing: -0.045em; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .syllabus-percent { color: var(--violet-soft); font-size: 15px; font-weight: 650; }
+    .syllabus-meta { display: flex; align-items: center; justify-content: space-between; margin: 8px 0 12px; color: var(--text-muted); font-size: 11px; }
+    .manage-button, .text-action { padding: 0; border: 0; background: transparent; color: var(--violet-soft); font-size: 12px; font-weight: 600; cursor: pointer; }
+    .target-note { display: none; margin-top: 13px; padding: 10px 11px; border-radius: 9px; background: var(--violet-faint); color: var(--text-secondary); font-size: 11px; line-height: 1.35; }
+    .target-note.is-open { display: block; }
+
+    .forecast-card { background: oklch(16.2% 0.023 73); border-color: oklch(28% 0.045 78); }
+    .forecast-kicker { color: var(--amber); font-size: 11px; font-weight: 650; letter-spacing: .01em; }
+    .forecast-title { margin: 5px 0 17px; font-size: 21px; line-height: 1.14; letter-spacing: -0.028em; font-weight: 680; }
+    .forecast-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .forecast-stat strong { display: block; margin-top: 5px; font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; }
+    .forecast-stat:last-child strong { color: var(--amber); }
+    .forecast-status { display: flex; align-items: center; gap: 7px; margin-top: 15px; color: var(--amber); font-size: 12px; font-weight: 650; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); }
+    .forecast-callout { margin-top: 17px; padding: 13px 12px; border-radius: 11px; background: oklch(22% 0.04 77); }
+    .forecast-callout p { margin: 0; color: var(--text-secondary); font-size: 11px; }
+    .forecast-callout strong { display: block; margin-top: 5px; color: var(--text); font-size: 20px; letter-spacing: -0.025em; font-weight: 680; font-variant-numeric: tabular-nums; }
+    .forecast-stats { display: flex; gap: 26px; margin-top: 16px; }
+    .forecast-stats .forecast-stat strong { font-size: 15px; }
+    .forecast-actions { display: flex; gap: 9px; margin-top: 17px; }
+    .outline-action { min-height: 34px; padding: 0 12px; border: 1px solid oklch(41% 0.075 78); border-radius: 9px; background: transparent; color: var(--amber); font-size: 11px; font-weight: 650; cursor: pointer; }
+    .forecast-message { display: none; margin: 12px 0 0; color: var(--text-muted); font-size: 10px; line-height: 1.35; }
+    .forecast-message.is-open { display: block; }
+
+    .subject-card { overflow: hidden; border: 1px solid var(--line-soft); border-radius: var(--radius); background: var(--surface); }
+    .subject-row { display: block; width: 100%; padding: 14px 15px 13px; border: 0; border-bottom: 1px solid var(--line-soft); background: transparent; color: var(--text); text-align: left; cursor: pointer; }
+    .subject-row:last-of-type { border-bottom: 0; }
+    .subject-main { display: flex; align-items: center; justify-content: space-between; }
+    .subject-name { font-size: 14px; font-weight: 620; }
+    .subject-right { display: flex; align-items: center; gap: 9px; }
+    .subject-percent { color: var(--text-secondary); font-size: 12px; font-variant-numeric: tabular-nums; }
+    .subject-status { font-size: 10px; font-weight: 650; }
+    .subject-status.ahead { color: var(--green); }
+    .subject-status.track { color: var(--violet-soft); }
+    .subject-status.behind { color: var(--amber); }
+    .subject-meter { height: 4px; margin-top: 11px; overflow: hidden; border-radius: 99px; background: oklch(23% 0.015 285); }
+    .subject-meter i { display: block; height: 100%; border-radius: inherit; background: var(--violet); }
+    .subject-row[data-status="ahead"] .subject-meter i { background: var(--green); }
+    .subject-row[data-status="behind"] .subject-meter i { background: var(--amber); }
+    .subject-detail { display: none; align-items: center; justify-content: space-between; padding: 0 15px 13px; color: var(--text-muted); font-size: 10px; }
+    .subject-detail.is-open { display: flex; }
+    .subject-detail span { max-width: 190px; }
+    .view-details { color: var(--violet-soft); font-size: 10px; font-weight: 650; }
+
+    .remaining-card { padding: 17px 16px 14px; }
+    .remaining-total { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 13px; }
+    .remaining-total strong { font-size: 25px; letter-spacing: -0.04em; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .remaining-total span { color: var(--text-muted); font-size: 11px; }
+    .remaining-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-top: 1px solid var(--line-soft); }
+    .remaining-row span { color: var(--text-secondary); font-size: 12px; }
+    .remaining-row strong { font-size: 13px; font-weight: 650; font-variant-numeric: tabular-nums; }
+
+    .revision-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
+    .revision-metric { padding: 11px 10px; border-radius: 10px; background: var(--surface-soft); }
+    .revision-metric strong { display: block; font-size: 21px; font-weight: 680; font-variant-numeric: tabular-nums; }
+    .revision-metric span { display: block; margin-top: 5px; color: var(--text-muted); font-size: 10px; line-height: 1.15; }
+    .revision-label { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; color: var(--text-secondary); font-size: 11px; }
+    .revision-label strong { color: var(--violet-soft); font-size: 12px; font-weight: 650; }
+    .revision-action { display: inline-flex; align-items: center; justify-content: center; min-height: 37px; width: 100%; margin-top: 17px; border: 0; border-radius: 10px; background: var(--violet); color: var(--text); font-size: 12px; font-weight: 650; cursor: pointer; }
+    .revision-confirm { display: none; margin: 10px 0 0; color: var(--green); text-align: center; font-size: 11px; }
+    .revision-confirm.is-open { display: block; }
+
+    .pattern-card { padding: 2px 15px; }
+    .pattern-row { display: flex; align-items: center; justify-content: space-between; min-height: 47px; border-bottom: 1px solid var(--line-soft); }
+    .pattern-row:last-child { border-bottom: 0; }
+    .pattern-row span { color: var(--text-secondary); font-size: 12px; }
+    .pattern-row strong { color: var(--text); font-size: 13px; font-weight: 650; font-variant-numeric: tabular-nums; }
+    .focus-card { display: flex; align-items: center; justify-content: space-between; padding: 16px; }
+    .focus-copy h3 { margin: 0; font-size: 15px; font-weight: 650; }
+    .focus-copy p { margin: 4px 0 0; color: var(--text-muted); font-size: 11px; }
+    .focus-number { color: var(--violet-soft); font-size: 20px; font-weight: 680; font-variant-numeric: tabular-nums; }
+
+    .bottom-nav {
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 10;
+      display: flex;
+      width: 390px;
+      min-height: 74px;
+      padding: 8px 10px max(10px, env(safe-area-inset-bottom));
+      border-top: 1px solid var(--line-soft);
+      background: oklch(8.3% 0.014 285 / 0.97);
+    }
+    .nav-item { display: flex; flex: 1; min-width: 0; flex-direction: column; align-items: center; justify-content: center; gap: 5px; border: 0; background: transparent; color: var(--text-faint); font-size: 10px; font-weight: 550; cursor: pointer; }
+    .nav-item svg { width: 20px; height: 20px; }
+    .nav-item.is-active { color: var(--violet-soft); }
+    .nav-item.is-active span { font-weight: 650; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" aria-label="Insights">
+    <header class="topbar">
+      <h1>Insights</h1>
+      <button class="icon-button" type="button" id="settingsButton" aria-label="Open insights settings" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4Z" stroke="currentColor" stroke-width="1.6"/><path d="m19.1 13.1 1.1.8-1.7 2.9-1.3-.5a7.8 7.8 0 0 1-1.9 1.1l-.2 1.4h-3.4l-.2-1.4a7.8 7.8 0 0 1-2-1.1l-1.3.5-1.7-2.9 1.1-.8a7.7 7.7 0 0 1 0-2.2l-1.1-.8 1.7-2.9 1.3.5a7.8 7.8 0 0 1 2-1.1l.2-1.4h3.4l.2 1.4a7.8 7.8 0 0 1 1.9 1.1l1.3-.5 1.7 2.9-1.1.8a7.7 7.7 0 0 1 0 2.2Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/></svg>
+      </button>
+    </header>
+    <div class="settings-note" id="settingsNote" role="status">Study behaviour uses this period. Your syllabus target and finish forecast stay tied to your overall plan.</div>
+
+    <nav class="period-bar" aria-label="Study period">
+      <button class="period-tab" type="button" data-period="1D">1D</button>
+      <button class="period-tab is-active" type="button" data-period="7D">7D</button>
+      <button class="period-tab" type="button" data-period="1M">1M</button>
+      <button class="period-tab" type="button" data-period="3M">3M</button>
+      <button class="period-tab" type="button" data-period="All">All</button>
+    </nav>
+
+    <section class="section" aria-labelledby="quick-stats-title">
+      <div class="section-heading"><h2 id="quick-stats-title">This week</h2><p id="periodDescription">Your study behaviour for the last 7 days</p></div>
+      <div class="stats-grid">
+        <div class="stat"><div class="stat-top"><span>Total studied</span><svg class="stat-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.5"/></svg></div><strong class="stat-value" id="totalStudied">42h 35m</strong><span class="stat-label">across your plan</span></div>
+        <div class="stat"><div class="stat-top"><span>Sessions</span><svg class="stat-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 5.5h10M7 18.5h10M8 5.5v13M16 5.5v13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M10.5 9.2h3M10.5 12h3M10.5 14.8h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><strong class="stat-value" id="sessionCount">27</strong><span class="stat-label">focused sessions</span></div>
+        <div class="stat"><div class="stat-top"><span>Avg / day</span><svg class="stat-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 17.5V14M9.7 17.5V10M14.3 17.5V6.5M19 17.5V12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div><strong class="stat-value" id="averageStudied">6h 05m</strong><span class="stat-label">on active days</span></div>
+        <div class="stat"><div class="stat-top"><span>Best day</span><svg class="stat-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 4 2.2 4.7 5.2.7-3.8 3.7.9 5.2-4.5-2.4-4.5 2.4.9-5.2-3.8-3.7 5.2-.7L12 4Z" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/></svg></div><strong class="stat-value" id="bestDay">9h 32m</strong><span class="stat-label">Saturday</span></div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="consistency-title">
+      <div class="section-heading"><h2 id="consistency-title">Study consistency</h2><p>A steady rhythm matters more than a perfect day.</p></div>
+      <div class="section-surface heatmap-card">
+        <div class="heatmap-months" aria-hidden="true"><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span></div>
+        <div class="heatmap-wrap">
+          <div class="heatmap-days" aria-hidden="true"><span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span><span></span></div>
+          <div class="heatmap-scroll"><div class="heatmap-grid" id="heatmap" aria-label="Study activity for the last 11 weeks"></div></div>
+        </div>
+        <div class="heat-legend"><span>Less</span><div class="legend-swatches" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><span>More</span></div>
+        <div class="heat-summary"><div><strong>12 days</strong><span>Current streak</span></div><div><strong>6 / 7 days</strong><span>Active this week</span></div></div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="trend-title">
+      <div class="section-heading"><h2 id="trend-title">Study time</h2><p>Hours logged each day</p></div>
+      <div class="section-surface trend-card">
+        <div class="chart" id="studyChart" aria-label="Seven day study time bar chart"></div>
+        <div class="chart-footer"><strong class="chart-total">24h 42m this week</strong><span class="chart-change">↑ 12% from last week</span></div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="plan-title">
+      <div class="section-heading"><h2 id="plan-title">Plan vs actual</h2><p>How this week is tracking against your plan</p></div>
+      <div class="section-surface comparison-card">
+        <div class="comparison-line"><div class="compare-item"><span>Planned</span><strong>21h</strong></div><svg class="compare-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="compare-item"><span>Studied</span><strong>17h 20m</strong></div></div>
+        <div class="progress-track"><i style="width:83%"></i></div>
+        <div class="progress-label"><span><strong>83%</strong> of plan completed</span><span>21h</span></div>
+        <p class="interpretation">3h 40m behind this week's plan</p>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="syllabus-title">
+      <div class="section-heading"><h2 id="syllabus-title">Syllabus</h2><p>Your target, not the full exam syllabus</p></div>
+      <div class="section-surface syllabus-card">
+        <div class="syllabus-top"><strong class="syllabus-number">326 / 740 topics</strong><span class="syllabus-percent">44% covered</span></div>
+        <div class="syllabus-meta"><span>414 remaining</span><button class="manage-button" type="button" id="manageTarget">Manage target</button></div>
+        <div class="progress-track"><i style="width:44%"></i></div>
+        <div class="target-note" id="targetNote">Target syllabus: 740 of 812 topics. Excluded topics are kept out of your progress and forecast.</div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="forecast-title">
+      <div class="section-heading"><h2 id="forecast-title">Will I finish on time?</h2><p>A forecast based on your overall preparation plan</p></div>
+      <div class="section-surface forecast-card">
+        <div class="forecast-kicker">Target completion</div>
+        <h3 class="forecast-title">Your current pace needs a small reset.</h3>
+        <div class="forecast-dates"><div class="forecast-stat"><span>Target date</span><strong>15 Jan</strong></div><div class="forecast-stat"><span>At current pace</span><strong>28 Jan</strong></div></div>
+        <div class="forecast-status"><i class="status-dot"></i><span>13 days behind</span></div>
+        <div class="forecast-callout"><p>To finish by 15 Jan</p><strong>+38 min / day</strong></div>
+        <div class="forecast-stats"><div class="forecast-stat"><span>Recent average</span><strong>3h 20m/day</strong></div><div class="forecast-stat"><span>Required pace</span><strong>3h 58m/day</strong></div></div>
+        <div class="forecast-actions"><button class="outline-action" type="button" data-forecast-action="target">Adjust target</button><button class="outline-action" type="button" data-forecast-action="syllabus">Adjust syllabus</button></div>
+        <p class="forecast-message" id="forecastMessage">This plan may require more daily study time than your recent routine.</p>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="subjects-title">
+      <div class="section-heading"><h2 id="subjects-title">Subjects</h2><p>Tap a subject for the next useful detail</p></div>
+      <div class="subject-card">
+        <button class="subject-row" type="button" data-subject="Physics" data-status="ahead"><span class="subject-main"><span class="subject-name">Physics</span><span class="subject-right"><span class="subject-percent">62%</span><span class="subject-status ahead">Ahead</span></span></span><span class="subject-meter"><i style="width:62%"></i></span></button><div class="subject-detail" data-detail="Physics"><span>Strongest momentum this week</span><span class="view-details">View details</span></div>
+        <button class="subject-row" type="button" data-subject="Chemistry" data-status="track"><span class="subject-main"><span class="subject-name">Chemistry</span><span class="subject-right"><span class="subject-percent">48%</span><span class="subject-status track">On track</span></span></span><span class="subject-meter"><i style="width:48%"></i></span></button><div class="subject-detail" data-detail="Chemistry"><span>Keeping pace with your target</span><span class="view-details">View details</span></div>
+        <button class="subject-row" type="button" data-subject="Biology" data-status="behind"><span class="subject-main"><span class="subject-name">Biology</span><span class="subject-right"><span class="subject-percent">31%</span><span class="subject-status behind">Behind</span></span></span><span class="subject-meter"><i style="width:31%"></i></span></button><div class="subject-detail" data-detail="Biology"><span>Largest remaining workload, 216 topics</span><span class="view-details">View details</span></div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="remaining-title">
+      <div class="section-heading"><h2 id="remaining-title">Remaining syllabus</h2><p>The work still physically left to do</p></div>
+      <div class="section-surface remaining-card">
+        <div class="remaining-total"><strong>414 topics left</strong><span>of your 740-topic target</span></div>
+        <div class="remaining-row"><span>Physics</span><strong>86 left</strong></div><div class="remaining-row"><span>Chemistry</span><strong>112 left</strong></div><div class="remaining-row"><span>Biology</span><strong>216 left</strong></div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="revision-title">
+      <div class="section-heading"><h2 id="revision-title">Revision</h2><p>Keep recently learned topics in rotation</p></div>
+      <div class="section-surface revision-card">
+        <div class="revision-metrics"><div class="revision-metric"><strong>18</strong><span>Due now</span></div><div class="revision-metric"><strong>24</strong><span>Due this week</span></div><div class="revision-metric"><strong>12</strong><span>Completed this week</span></div></div>
+        <div class="revision-label"><span>Revision on time</span><strong>67%</strong></div><div class="progress-track"><i style="width:67%"></i></div>
+        <button class="revision-action" type="button" id="revisionAction">See revision plan</button><p class="revision-confirm" id="revisionConfirm">Revision plan ready to review</p>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="pattern-title">
+      <div class="section-heading"><h2 id="pattern-title">Study pattern</h2><p>Observed behaviour, not a prescription</p></div>
+      <div class="section-surface pattern-card"><div class="pattern-row"><span>Average session</span><strong>52 min</strong></div><div class="pattern-row"><span>Longest session</span><strong>2h 14m</strong></div><div class="pattern-row"><span>Average break</span><strong>14 min</strong></div><div class="pattern-row"><span>Study days</span><strong>6 / 7</strong></div><div class="pattern-row"><span>Longest streak</span><strong>23 days</strong></div></div>
+    </section>
+
+    <section class="section" aria-labelledby="focus-title">
+      <div class="section-heading"><h2 id="focus-title">Focused sessions</h2><p>Sessions completed without leaving Focus</p></div>
+      <div class="section-surface focus-card"><div class="focus-copy"><h3>Focus Lock completion</h3><p>A simple view of your session follow-through</p></div><strong class="focus-number">18 / 22</strong></div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Primary navigation">
+    <button class="nav-item" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4.5 11.2 12 4.8l7.5 6.4v7.3a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1v-7.3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9.5 19.5v-5h5v5" stroke="currentColor" stroke-width="1.6"/></svg><span>Today</span></button>
+    <button class="nav-item" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 5.5h14M5 12h14M5 18.5h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="5.5" r="1.5" fill="currentColor"/><circle cx="16" cy="12" r="1.5" fill="currentColor"/><circle cx="10" cy="18.5" r="1.5" fill="currentColor"/></svg><span>Syllabus</span></button>
+    <button class="nav-item" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4.5a4 4 0 0 0-4 4v2.4c0 1.1-.4 2.1-1.1 3L5.5 15.5h13l-1.4-1.6a5.2 5.2 0 0 1-1.1-3V8.5a4 4 0 0 0-4-4ZM9.7 18.5a2.5 2.5 0 0 0 4.6 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Focus</span></button>
+    <button class="nav-item is-active" type="button" aria-current="page"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 18.5V13M9.7 18.5V9M14.3 18.5V5.5M19 18.5v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Insights</span></button>
+    <button class="nav-item" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="6.5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="17.5" cy="12" r="1.2" fill="currentColor"/></svg><span>More</span></button>
+  </nav>
+
+  <script>
+    const periodData = {
+      '1D': { total: '6h 05m', sessions: '4', average: '6h 05m', best: '6h 05m', description: 'Your study behaviour today' },
+      '7D': { total: '42h 35m', sessions: '27', average: '6h 05m', best: '9h 32m', description: 'Your study behaviour for the last 7 days' },
+      '1M': { total: '148h 20m', sessions: '94', average: '5h 56m', best: '9h 32m', description: 'Your study behaviour for the last 30 days' },
+      '3M': { total: '402h 10m', sessions: '251', average: '4h 28m', best: '10h 05m', description: 'Your study behaviour for the last 3 months' },
+      'All': { total: '612h 45m', sessions: '386', average: '3h 54m', best: '10h 05m', description: 'Your study behaviour across this plan' }
+    };
+
+    const qs = (selector) => document.querySelector(selector);
+    const qsa = (selector) => [...document.querySelectorAll(selector)];
+
+    function renderHeatmap() {
+      const levels = [0,1,0,2,1,0,3, 2,1,0,3,2,1,0, 1,3,2,0,2,1,0, 0,2,3,1,0,2,1, 2,1,3,2,1,0,2, 1,0,2,3,1,2,0, 0,1,2,1,3,2,1, 2,3,2,1,0,2,3, 1,2,0,1,3,2,1, 0,2,1,3,2,1,0, 2,3,1,2,3,4,2, 1,2,3,4,3,4,3 ];
+      qs('#heatmap').innerHTML = levels.map((level, index) => {
+        const selected = index === 75;
+        return `<button class="heat-cell${selected ? ' is-selected' : ''}" type="button" data-level="${level}" aria-label="${selected ? '23 Aug, 3 hours 42 minutes, 4 sessions' : `Study activity day ${index + 1}`}" aria-pressed="${selected}">${selected ? '<span class="heat-tooltip"><strong>23 Aug</strong><span>3h 42m<br>4 sessions</span></span>' : ''}</button>`;
+      }).join('');
+      qsa('.heat-cell').forEach((cell) => cell.addEventListener('click', () => {
+        qsa('.heat-cell').forEach((other) => { other.classList.remove('is-selected'); other.setAttribute('aria-pressed', 'false'); });
+        cell.classList.add('is-selected');
+        cell.setAttribute('aria-pressed', 'true');
+        if (!cell.querySelector('.heat-tooltip')) cell.insertAdjacentHTML('beforeend', '<span class="heat-tooltip"><strong>23 Aug</strong><span>3h 42m<br>4 sessions</span></span>');
+      }));
+    }
+
+    function renderChart() {
+      const data = [['Mon', 3.2], ['Tue', 2.6], ['Wed', 5.1], ['Thu', 4.0], ['Fri', 4.7], ['Sat', 1.8], ['Sun', 3.3]];
+      qs('#studyChart').innerHTML = data.map(([day, value], index) => `<div class="bar-column${index === 6 ? ' today' : ''}"><span class="bar-value">${value.toFixed(1)}h</span><span class="bar-track"><i class="bar-fill" style="height:${Math.round((value / 5.1) * 100)}%"></i></span><span class="bar-day">${day}</span></div>`).join('');
+    }
+
+    qsa('.period-tab').forEach((tab) => tab.addEventListener('click', () => {
+      qsa('.period-tab').forEach((item) => item.classList.toggle('is-active', item === tab));
+      const data = periodData[tab.dataset.period];
+      qs('#totalStudied').textContent = data.total;
+      qs('#sessionCount').textContent = data.sessions;
+      qs('#averageStudied').textContent = data.average;
+      qs('#bestDay').textContent = data.best;
+      qs('#periodDescription').textContent = data.description;
+      qs('.section-heading h2').textContent = tab.dataset.period === '7D' ? 'This week' : `${tab.dataset.period} overview`;
+    }));
+
+    qs('#settingsButton').addEventListener('click', () => {
+      const button = qs('#settingsButton');
+      const note = qs('#settingsNote');
+      const open = note.classList.toggle('is-open');
+      button.setAttribute('aria-expanded', String(open));
+    });
+
+    qs('#manageTarget').addEventListener('click', () => qs('#targetNote').classList.toggle('is-open'));
+    qsa('.subject-row').forEach((row) => row.addEventListener('click', () => {
+      const detail = document.querySelector(`[data-detail="${row.dataset.subject}"]`);
+      detail.classList.toggle('is-open');
+    }));
+    qsa('[data-forecast-action]').forEach((button) => button.addEventListener('click', () => {
+      qs('#forecastMessage').classList.add('is-open');
+      button.textContent = button.dataset.forecastAction === 'target' ? 'Target selected' : 'Syllabus selected';
+    }));
+    qs('#revisionAction').addEventListener('click', () => qs('#revisionConfirm').classList.add('is-open'));
+
+    renderHeatmap();
+    renderChart();
+  </script>
+</body>
+</html>

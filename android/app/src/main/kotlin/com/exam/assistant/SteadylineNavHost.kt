@@ -163,7 +163,8 @@ fun SteadylineNavHost(
                     planStore = container.planStore,
                     syllabusRepository = container.syllabusRepository,
                     syllabusStore = container.syllabusStore,
-                    focusStore = container.focusStore,
+                    studySessionStore = container.studySessionStore,
+                    onOpenSettings = { navController.navigate(Route.Settings.path) },
                     modifier = Modifier.padding(padding),
                 )
             }
@@ -183,6 +184,7 @@ fun SteadylineNavHost(
                     focusStore = container.focusStore,
                     syllabusStore = container.syllabusStore,
                     studySessionStore = container.studySessionStore,
+                    syllabusRepository = container.syllabusRepository,
                     themeChoice = themeChoice,
                     onThemeChoose = onThemeChoice,
                     accentPalette = accentPalette,

@@ -1,12 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Steadyline</string>
+    <string name="app_name">PrepTracker</string>
     <string name="tab_today">Today</string>
     <string name="tab_syllabus">Syllabus</string>
     <string name="tab_focus">Focus</string>
     <string name="tab_progress">Progress</string>
+    <string name="tab_insights">Insights</string>
     <string name="tab_more">More</string>
     <string name="focus_lock_notification_channel">Focus Lock</string>
     <string name="focus_lock_notification_title">Focus Lock is active</string>
     <string name="focus_lock_notification_body">Blocking distracting apps while you study</string>
+
+    <string name="focus_lock_blocking_label">Focus Lock</string>
+    <string name="focus_lock_blocking_headline">You\'re studying</string>
+    <string name="focus_lock_blocking_min_left">%1$d min left</string>
+    <string name="focus_lock_blocking_app_paused">%1$s is paused during this study session.</string>
+    <string name="focus_lock_blocking_back_to_study">Back to study</string>
+    <string name="focus_lock_blocking_need_access">Need access?</string>
+    <string name="focus_lock_blocking_need_access_body">This allows %1$s for 5 minutes, then Focus Lock resumes.</string>
+    <string name="focus_lock_blocking_allow">Allow for 5 min</string>
+    <string name="focus_lock_blocking_cancel">Cancel</string>
 </resources>

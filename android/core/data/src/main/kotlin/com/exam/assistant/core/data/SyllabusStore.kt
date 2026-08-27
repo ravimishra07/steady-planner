@@ -18,6 +18,7 @@ class SyllabusStore(
     private val doneKey = stringSetPreferencesKey("done_leaves")
     private val openKey = stringSetPreferencesKey("open_nodes")
     private val sectionKey = intPreferencesKey("section_index")
+    private val excludedSectionKey = stringSetPreferencesKey("excluded_sections")
 
     suspend fun load(): SyllabusUiState = withContext(dispatchers.io) {
         val prefs = context.syllabusDataStore.data.first()
@@ -25,6 +26,7 @@ class SyllabusStore(
             doneLeaves = prefs[doneKey].orEmpty(),
             openNodes = prefs[openKey].orEmpty(),
             sectionIndex = prefs[sectionKey] ?: 0,
+            excludedSectionKeys = prefs[excludedSectionKey].orEmpty(),
         )
     }
 
@@ -33,6 +35,7 @@ class SyllabusStore(
             it[doneKey] = state.doneLeaves
             it[openKey] = state.openNodes
             it[sectionKey] = state.sectionIndex
+            it[excludedSectionKey] = state.excludedSectionKeys
         }
         Unit
     }

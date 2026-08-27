@@ -127,6 +127,7 @@ fun FocusRoute(
         onSelectAllApps = focusLockViewModel::selectAllApps,
         onClearAppSelection = focusLockViewModel::clearAppSelection,
         onSaveAndEnableFocusLock = focusLockViewModel::saveAndEnable,
+        onAppSearchQueryChange = focusLockViewModel::setAppSearchQuery,
         modifier = modifier,
     )
 }
@@ -156,6 +157,7 @@ fun FocusScreen(
     onSelectAllApps: () -> Unit,
     onClearAppSelection: () -> Unit,
     onSaveAndEnableFocusLock: () -> Unit,
+    onAppSearchQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
@@ -216,6 +218,7 @@ fun FocusScreen(
                 onSelectAll = onSelectAllApps,
                 onClearAll = onClearAppSelection,
                 onSaveAndEnable = onSaveAndEnableFocusLock,
+                onSearchQueryChange = onAppSearchQueryChange,
                 modifier = Modifier.weight(1f).padding(bottom = Spacing.lg),
             )
             return@Column

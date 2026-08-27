@@ -35,6 +35,7 @@ import com.exam.assistant.core.data.FocusStore
 import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.SettingsStore
 import com.exam.assistant.core.data.StudySessionStore
+import com.exam.assistant.core.data.SyllabusRepository
 import com.exam.assistant.core.data.SyllabusStore
 import com.exam.assistant.core.design.AccentPalette
 import com.exam.assistant.core.design.AppTheme
@@ -50,6 +51,7 @@ fun SettingsDetailRoute(
     focusStore: FocusStore,
     syllabusStore: SyllabusStore,
     studySessionStore: StudySessionStore,
+    syllabusRepository: SyllabusRepository,
     themeChoice: ThemeChoice,
     onThemeChoose: (ThemeChoice) -> Unit,
     accentPalette: AccentPalette,
@@ -64,6 +66,7 @@ fun SettingsDetailRoute(
             focusStore,
             syllabusStore,
             studySessionStore,
+            syllabusRepository,
         ),
     ),
 ) {
@@ -84,6 +87,11 @@ fun SettingsDetailRoute(
             viewModel.confirmClear(onCleared)
         },
         onDismissClear = viewModel::dismissClear,
+        onRequestSeed = viewModel::requestSeed,
+        onConfirmSeed = viewModel::confirmSeed,
+        onDismissSeed = viewModel::dismissSeed,
+        onDismissSeedDone = viewModel::dismissSeedDone,
+        onDismissSeedError = viewModel::dismissSeedError,
         modifier = modifier,
     )
 }
@@ -103,6 +111,11 @@ fun SettingsDetailScreen(
     onRequestClear: () -> Unit,
     onConfirmClear: () -> Unit,
     onDismissClear: () -> Unit,
+    onRequestSeed: () -> Unit,
+    onConfirmSeed: () -> Unit,
+    onDismissSeed: () -> Unit,
+    onDismissSeedDone: () -> Unit,
+    onDismissSeedError: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
@@ -119,6 +132,47 @@ fun SettingsDetailScreen(
             dismissButton = {
                 TextButton(onClick = onDismissClear) {
                     Text(stringResource(R.string.settings_clear_no))
+                }
+            },
+        )
+    }
+    if (state.showSeedDialog) {
+        AlertDialog(
+            onDismissRequest = onDismissSeed,
+            title = { Text(stringResource(R.string.settings_seed_title)) },
+            text = { Text(stringResource(R.string.settings_seed_confirm)) },
+            confirmButton = {
+                TextButton(onClick = onConfirmSeed) {
+                    Text(stringResource(R.string.settings_seed_yes))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissSeed) {
+                    Text(stringResource(R.string.settings_seed_no))
+                }
+            },
+        )
+    }
+    if (state.seedDone) {
+        AlertDialog(
+            onDismissRequest = onDismissSeedDone,
+            title = { Text(stringResource(R.string.settings_seed_done_title)) },
+            text = { Text(stringResource(R.string.settings_seed_done_body)) },
+            confirmButton = {
+                TextButton(onClick = onDismissSeedDone) {
+                    Text(stringResource(R.string.settings_seed_done_ok))
+                }
+            },
+        )
+    }
+    if (state.seedError != null) {
+        AlertDialog(
+            onDismissRequest = onDismissSeedError,
+            title = { Text(stringResource(R.string.settings_seed_error_title)) },
+            text = { Text(state.seedError) },
+            confirmButton = {
+                TextButton(onClick = onDismissSeedError) {
+                    Text(stringResource(R.string.settings_seed_done_ok))
                 }
             },
         )
@@ -208,6 +262,23 @@ fun SettingsDetailScreen(
             }
         }
         SectionTitle(stringResource(R.string.settings_data))
+        Button(
+            onClick = onRequestSeed,
+            enabled = !state.seeding,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = Spacing.sm),
+            shape = RoundedCornerShape(Radius.lg),
+            colors = ButtonDefaults.buttonColors(containerColor = colors.brandDeep, contentColor = colors.onBrand),
+        ) {
+            Text(
+                if (state.seeding) {
+                    stringResource(R.string.settings_seed_in_progress)
+                } else {
+                    stringResource(R.string.settings_seed_button)
+                },
+            )
+        }
         Button(
             onClick = onRequestClear,
             modifier = Modifier.fillMaxWidth(),

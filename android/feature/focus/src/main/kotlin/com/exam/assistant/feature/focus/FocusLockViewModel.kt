@@ -103,15 +103,26 @@ class FocusLockViewModel(
     }
 
     fun advanceToAppPicker() {
-        _state.update { it.copy(setupStep = FocusLockSetupStep.AppPicker, appsLoading = true) }
+        _state.update { it.copy(setupStep = FocusLockSetupStep.AppPicker, appsLoading = true, appSearchQuery = "") }
         viewModelScope.launch {
             val apps = installedAppProvider.launchableApps()
             _state.update { it.copy(installedApps = apps, appsLoading = false) }
         }
     }
 
+    fun setAppSearchQuery(query: String) {
+        _state.update { it.copy(appSearchQuery = query) }
+    }
+
     fun openManageApps() {
-        _state.update { it.copy(setupStep = FocusLockSetupStep.AppPicker, appsLoading = true, selectedPackages = settings.blockedPackages) }
+        _state.update {
+            it.copy(
+                setupStep = FocusLockSetupStep.AppPicker,
+                appsLoading = true,
+                selectedPackages = settings.blockedPackages,
+                appSearchQuery = "",
+            )
+        }
         viewModelScope.launch {
             val apps = installedAppProvider.launchableApps()
             _state.update { it.copy(installedApps = apps, appsLoading = false) }
