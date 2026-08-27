@@ -139,3 +139,12 @@ fun weekStatusForDay(
 
 fun parseStoreDate(value: String): LocalDate? =
     runCatching { LocalDate.parse(value, dateStoreFormat) }.getOrNull()
+
+/** A topic tapped from Syllabus's play button, handed off to Home to open its duration picker. */
+data class PendingSyllabusPick(
+    val nodeKey: String,
+    val title: String,
+    val sectionName: String,
+    val subjectId: String,
+    val topicPath: String,
+)

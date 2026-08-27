@@ -5,6 +5,14 @@
     <string name="syllabus_expand">Expand</string>
     <string name="syllabus_collapse">Collapse</string>
     <string name="syllabus_mark_done">Mark done</string>
+    <string name="syllabus_see_details">See Details</string>
+    <string name="syllabus_hide_details">Hide Details</string>
+    <string name="syllabus_start_topic">Start</string>
+    <string name="syllabus_filter">Filter</string>
+    <string name="syllabus_filter_all">All (%1$d)</string>
+    <string name="syllabus_filter_due">Due (%1$d)</string>
+    <string name="syllabus_completed">Completed</string>
+    <string name="syllabus_time_spent">Time Spent</string>
     <string name="syllabus_subject_quant">Quant</string>
     <string name="syllabus_subject_reasoning">Reasoning</string>
     <string name="syllabus_subject_ga">GA</string>

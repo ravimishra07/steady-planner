@@ -18,5 +18,6 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":domain"))
     implementation(libs.coroutines.android)
+    implementation(libs.core.ktx)
     api(libs.datastore.preferences)
 }

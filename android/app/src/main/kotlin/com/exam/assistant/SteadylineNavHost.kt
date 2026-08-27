@@ -8,6 +8,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -23,6 +24,7 @@ import com.exam.assistant.domain.FocusBlockRef
 import com.exam.assistant.domain.FocusSession
 import com.exam.assistant.domain.FocusStatus
 import com.exam.assistant.feature.focus.FocusRoute
+import com.exam.assistant.focuslock.FocusLockService
 import com.exam.assistant.feature.home.HomeRoute
 import com.exam.assistant.feature.onboarding.OnboardingRoute
 import com.exam.assistant.feature.progress.ProgressRoute
@@ -44,6 +46,7 @@ fun SteadylineNavHost(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentPath = backStackEntry?.destination?.route
     val tab = Tab.entries.firstOrNull { it.route.path == currentPath }
+    val context = LocalContext.current
 
     Scaffold(
         containerColor = AppTheme.colors.bg,
@@ -110,8 +113,11 @@ fun SteadylineNavHost(
                                 ),
                             ),
                         )
+                        FocusLockService.start(context)
                         navController.navigate(Route.Focus.path)
                     },
+                    pendingSyllabusPick = container.pendingSyllabusPick,
+                    onConsumedSyllabusPick = { container.pendingSyllabusPick.value = null },
                     modifier = Modifier.padding(padding),
                 )
             }
@@ -119,6 +125,13 @@ fun SteadylineNavHost(
                 SyllabusRoute(
                     syllabusRepository = container.syllabusRepository,
                     syllabusStore = container.syllabusStore,
+                    onStartTopic = { pick ->
+                        container.pendingSyllabusPick.value = pick
+                        navController.navigate(Route.Home.path) {
+                            popUpTo(Route.Home.path) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
                     modifier = Modifier.padding(padding),
                 )
             }
@@ -130,6 +143,9 @@ fun SteadylineNavHost(
                     studySessionStore = container.studySessionStore,
                     syllabusRepository = container.syllabusRepository,
                     syllabusStore = container.syllabusStore,
+                    focusLockStore = container.focusLockStore,
+                    focusLockCapabilityChecker = container.focusLockCapabilityChecker,
+                    installedAppProvider = container.installedAppProvider,
                     appScope = container.appScope,
                     onClose = {
                         navController.navigate(Route.Home.path) {
@@ -137,6 +153,8 @@ fun SteadylineNavHost(
                             launchSingleTop = true
                         }
                     },
+                    onFocusLockStart = { FocusLockService.start(context) },
+                    onFocusLockStop = { FocusLockService.stop(context) },
                     modifier = Modifier.padding(padding),
                 )
             }

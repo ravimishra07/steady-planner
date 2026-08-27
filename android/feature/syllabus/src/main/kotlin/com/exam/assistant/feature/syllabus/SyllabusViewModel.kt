@@ -7,9 +7,9 @@ import com.exam.assistant.core.data.SyllabusRepository
 import com.exam.assistant.core.data.SyllabusStore
 import com.exam.assistant.core.data.SyllabusUiState as StoredSyllabusUi
 import com.exam.assistant.domain.SyllabusSection
-import com.exam.assistant.domain.SyllabusTickState
 import com.exam.assistant.domain.SyllabusTopicNode
 import com.exam.assistant.domain.leafKeys
+import com.exam.assistant.domain.sectionSubjectId
 import com.exam.assistant.domain.splitHours
 import com.exam.assistant.domain.tickState
 import com.exam.assistant.domain.topicHours
@@ -39,18 +39,6 @@ class SyllabusViewModel(
         viewModelScope.launch {
             sections = syllabusRepository.tier1Sections()
             stored = syllabusStore.load()
-            if (stored.sectionIndex >= sections.size) {
-                stored = stored.copy(sectionIndex = 0)
-            }
-            rebuild()
-        }
-    }
-
-    fun selectSection(index: Int) {
-        if (index !in sections.indices) return
-        stored = stored.copy(sectionIndex = index)
-        viewModelScope.launch {
-            syllabusStore.save(stored)
             rebuild()
         }
     }
@@ -81,29 +69,74 @@ class SyllabusViewModel(
     }
 
     private suspend fun rebuild() {
-        val section = sections.getOrNull(stored.sectionIndex) ?: return
-        val doneHours = section.topics.foldIndexed(0.0) { topicIndex, acc, topic ->
-            val leaves = leafKeys(topic, topicKey(stored.sectionIndex, topicIndex))
-            val doneCount = leaves.count { it in stored.doneLeaves }
-            val fraction = if (leaves.isEmpty()) 0.0 else doneCount.toDouble() / leaves.size
-            acc + topicHours(topic) * fraction
-        }
-        val totalHours = section.topics.sumOf { topicHours(it) }.toInt()
-        val rows = section.topics.flatMapIndexed { topicIndex, topic ->
-            buildRows(
-                node = topic,
-                key = "t1_${stored.sectionIndex}_$topicIndex",
-                hours = topicHours(topic),
-                depth = 0,
+        val subjects = sections.mapIndexed { sectionIndex, section ->
+            val cardKey = "subject_$sectionIndex"
+            val subjectId = sectionSubjectId(sectionIndex)
+            val rows = section.topics.flatMapIndexed { topicIndex, topic ->
+                buildRows(
+                    node = topic,
+                    key = "t1_${sectionIndex}_$topicIndex",
+                    hours = topicHours(topic),
+                    depth = 0,
+                    ancestorContinues = emptyList(),
+                    isLast = topicIndex == section.topics.lastIndex,
+                    subjectId = subjectId,
+                    sectionName = section.name,
+                )
+            }
+
+            val allLeaves = section.topics.flatMapIndexed { ti, topic -> leafKeys(topic, "t1_${sectionIndex}_$ti") }
+            val doneCount = allLeaves.count { it in stored.doneLeaves }
+            val totalCount = allLeaves.size
+            val percent = if (totalCount > 0) doneCount * 100 / totalCount else 0
+
+            val totalHours = section.topics.sumOf { topicHours(it) }
+            val doneHours = section.topics.foldIndexed(0.0) { ti, acc, topic ->
+                val leaves = leafKeys(topic, "t1_${sectionIndex}_$ti")
+                val done = leaves.count { it in stored.doneLeaves }
+                val fraction = if (leaves.isEmpty()) 0.0 else done.toDouble() / leaves.size
+                acc + topicHours(topic) * fraction
+            }
+
+            SyllabusSubjectCard(
+                key = cardKey,
+                name = section.name,
+                shortLabel = sectionTabLabel(section.name),
+                subjectId = subjectId,
+                percent = percent,
+                timeSpentLabel = formatHoursMinutes(doneHours),
+                expanded = cardKey in stored.openNodes,
+                rows = rows,
+                firstTopicKey = section.topics.indices.firstOrNull()?.let { "t1_${sectionIndex}_$it" },
+                firstTopicTitle = section.topics.firstOrNull()?.name.orEmpty(),
             )
         }
+
+        val allLeavesGlobal = sections.flatMapIndexed { sectionIndex, section ->
+            section.topics.flatMapIndexed { topicIndex, topic ->
+                leafKeys(topic, "t1_${sectionIndex}_$topicIndex")
+            }
+        }
+        val doneGlobal = allLeavesGlobal.count { it in stored.doneLeaves }
+        val totalGlobal = allLeavesGlobal.size
+        val percentGlobal = if (totalGlobal > 0) doneGlobal * 100.0 / totalGlobal else 0.0
+        val totalDoneHoursGlobal = sections.foldIndexed(0.0) { sectionIndex, sectionAcc, section ->
+            sectionAcc + section.topics.foldIndexed(0.0) { ti, acc, topic ->
+                val leaves = leafKeys(topic, "t1_${sectionIndex}_$ti")
+                val done = leaves.count { it in stored.doneLeaves }
+                val fraction = if (leaves.isEmpty()) 0.0 else done.toDouble() / leaves.size
+                acc + topicHours(topic) * fraction
+            }
+        }
+
         _state.update {
             SyllabusUiState(
                 loading = false,
-                sectionIndex = stored.sectionIndex,
-                sectionTabs = sections.map { sectionTabLabel(it.name) },
-                summary = "${doneHours.toInt()} of $totalHours hrs done · ${section.topics.size} topics",
-                rows = rows,
+                subjects = subjects,
+                allCount = subjects.size,
+                dueCount = subjects.count { it.percent < 100 },
+                completedPercentLabel = String.format(Locale.US, "%.2f%%", percentGlobal),
+                timeSpentLabel = formatHoursMinutes(totalDoneHoursGlobal),
             )
         }
     }
@@ -113,8 +146,14 @@ class SyllabusViewModel(
         key: String,
         hours: Double,
         depth: Int,
+        ancestorContinues: List<Boolean>,
+        isLast: Boolean,
+        subjectId: String,
+        sectionName: String,
     ): List<SyllabusTreeRow> {
         val leaves = leafKeys(node, key)
+        val doneCount = leaves.count { it in stored.doneLeaves }
+        val percent = if (leaves.isEmpty()) 0 else doneCount * 100 / leaves.size
         val row = SyllabusTreeRow(
             key = key,
             name = node.name,
@@ -123,17 +162,30 @@ class SyllabusViewModel(
             hasChildren = node.children.isNotEmpty(),
             expanded = key in stored.openNodes,
             tickState = tickState(leaves, stored.doneLeaves),
+            percent = percent,
+            doneLeafCount = doneCount,
+            totalLeafCount = leaves.size,
+            ancestorContinues = ancestorContinues,
+            isLastChild = isLast,
+            subjectId = subjectId,
+            sectionName = sectionName,
+            topicPath = sectionName,
         )
         if (node.children.isEmpty() || key !in stored.openNodes) {
             return listOf(row)
         }
         val shares = splitHours(hours, node.children.size)
+        val childAncestors = ancestorContinues + !isLast
         val childRows = node.children.flatMapIndexed { index, child ->
             buildRows(
                 node = child,
                 key = "${key}_$index",
                 hours = shares[index],
                 depth = depth + 1,
+                ancestorContinues = childAncestors,
+                isLast = index == node.children.lastIndex,
+                subjectId = subjectId,
+                sectionName = sectionName,
             )
         }
         return listOf(row) + childRows
@@ -153,21 +205,26 @@ class SyllabusViewModel(
         return node
     }
 
-    private fun topicKey(sectionIndex: Int, topicIndex: Int) = "t1_${sectionIndex}_$topicIndex"
-
-    private fun formatHours(hours: Double): String {
-        val value = if (hours == hours.toLong().toDouble()) hours.toLong().toString() else {
-            String.format(Locale.US, "%.1f", hours)
-        }
-        return "${value}h"
-    }
-
     private fun sectionTabLabel(name: String): String = when {
         name.contains("Quant", ignoreCase = true) -> "Quant"
         name.contains("Reasoning", ignoreCase = true) -> "Reasoning"
         name.contains("Awareness", ignoreCase = true) -> "GA"
         name.contains("English", ignoreCase = true) -> "English"
         else -> name
+    }
+
+    private fun formatHoursMinutes(hours: Double): String {
+        val totalMinutes = Math.round(hours * 60)
+        val h = totalMinutes / 60
+        val m = totalMinutes % 60
+        return String.format(Locale.US, "%dh %02dm", h, m)
+    }
+
+    private fun formatHours(hours: Double): String {
+        val value = if (hours == hours.toLong().toDouble()) hours.toLong().toString() else {
+            String.format(Locale.US, "%.1f", hours)
+        }
+        return "${value}h"
     }
 
     class Factory(

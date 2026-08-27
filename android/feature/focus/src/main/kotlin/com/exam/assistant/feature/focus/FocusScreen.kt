@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -36,7 +38,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.exam.assistant.core.data.FocusLockCapabilityChecker
+import com.exam.assistant.core.data.FocusLockStore
 import com.exam.assistant.core.data.FocusStore
+import com.exam.assistant.core.data.InstalledAppProvider
 import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.SettingsStore
 import com.exam.assistant.core.data.StudySessionStore
@@ -47,6 +52,7 @@ import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.domain.BlockTag
+import com.exam.assistant.domain.FocusLockDisplayState
 import com.exam.assistant.domain.FocusStatus
 import com.exam.assistant.domain.formatFocusClock
 import androidx.annotation.StringRes
@@ -60,9 +66,14 @@ fun FocusRoute(
     studySessionStore: StudySessionStore,
     syllabusRepository: SyllabusRepository,
     syllabusStore: SyllabusStore,
+    focusLockStore: FocusLockStore,
+    focusLockCapabilityChecker: FocusLockCapabilityChecker,
+    installedAppProvider: InstalledAppProvider,
     appScope: CoroutineScope,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    onFocusLockStart: () -> Unit = {},
+    onFocusLockStop: () -> Unit = {},
     viewModel: FocusViewModel = viewModel(
         factory = FocusViewModel.Factory(
             focusStore,
@@ -72,17 +83,30 @@ fun FocusRoute(
             syllabusRepository,
             syllabusStore,
             appScope,
+            onFocusLockStart,
+            onFocusLockStop,
+        ),
+    ),
+    focusLockViewModel: FocusLockViewModel = viewModel(
+        factory = FocusLockViewModel.Factory(
+            focusLockStore,
+            focusLockCapabilityChecker,
+            installedAppProvider,
+            focusStore,
         ),
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val remaining by viewModel.remainingSeconds.collectAsStateWithLifecycle()
+    val lockState by focusLockViewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) { viewModel.refresh() }
+    LaunchedEffect(state.status) { focusLockViewModel.refresh() }
 
     FocusScreen(
         state = state,
         remainingSeconds = remaining,
+        lockState = lockState,
         onClose = onClose,
         onStart = viewModel::startSession,
         onPause = viewModel::pause,
@@ -92,6 +116,17 @@ fun FocusRoute(
         onDismissStop = viewModel::dismissStopDialog,
         onStartAnother = viewModel::startAnother,
         onBackToday = onClose,
+        onToggleFocusLockEnabled = focusLockViewModel::setEnabled,
+        onStartFocusLockSetup = focusLockViewModel::startSetup,
+        onOpenManageApps = focusLockViewModel::openManageApps,
+        onDismissFocusLockSetup = focusLockViewModel::dismissSetup,
+        onAdvanceToPermissions = focusLockViewModel::advanceToPermissions,
+        onAdvanceToAppPicker = focusLockViewModel::advanceToAppPicker,
+        onRefreshCapabilities = focusLockViewModel::refreshCapabilities,
+        onToggleApp = focusLockViewModel::toggleAppSelected,
+        onSelectAllApps = focusLockViewModel::selectAllApps,
+        onClearAppSelection = focusLockViewModel::clearAppSelection,
+        onSaveAndEnableFocusLock = focusLockViewModel::saveAndEnable,
         modifier = modifier,
     )
 }
@@ -100,6 +135,7 @@ fun FocusRoute(
 fun FocusScreen(
     state: FocusUiState,
     remainingSeconds: Int,
+    lockState: FocusLockUiState,
     onClose: () -> Unit,
     onStart: () -> Unit,
     onPause: () -> Unit,
@@ -109,9 +145,21 @@ fun FocusScreen(
     onDismissStop: () -> Unit,
     onStartAnother: () -> Unit,
     onBackToday: () -> Unit,
+    onToggleFocusLockEnabled: (Boolean) -> Unit,
+    onStartFocusLockSetup: () -> Unit,
+    onOpenManageApps: () -> Unit,
+    onDismissFocusLockSetup: () -> Unit,
+    onAdvanceToPermissions: () -> Unit,
+    onAdvanceToAppPicker: () -> Unit,
+    onRefreshCapabilities: () -> Unit,
+    onToggleApp: (String) -> Unit,
+    onSelectAllApps: () -> Unit,
+    onClearAppSelection: () -> Unit,
+    onSaveAndEnableFocusLock: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
+    val showingSetup = state.status == FocusStatus.IDLE && lockState.setupStep != FocusLockSetupStep.None
     if (state.showStopDialog) {
         AlertDialog(
             onDismissRequest = onDismissStop,
@@ -155,6 +203,40 @@ fun FocusScreen(
             IconButton(onClick = onClose, modifier = Modifier.size(Size.touchTarget)) {
                 Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.focus_close))
             }
+        }
+
+        if (showingSetup) {
+            FocusLockSetupFlow(
+                state = lockState,
+                onDismiss = onDismissFocusLockSetup,
+                onAdvanceToPermissions = onAdvanceToPermissions,
+                onAdvanceToAppPicker = onAdvanceToAppPicker,
+                onRefreshCapabilities = onRefreshCapabilities,
+                onToggleApp = onToggleApp,
+                onSelectAll = onSelectAllApps,
+                onClearAll = onClearAppSelection,
+                onSaveAndEnable = onSaveAndEnableFocusLock,
+                modifier = Modifier.weight(1f).padding(bottom = Spacing.lg),
+            )
+            return@Column
+        }
+
+        if (state.status == FocusStatus.IDLE) {
+            FocusLockCard(
+                state = lockState,
+                onToggleEnabled = onToggleFocusLockEnabled,
+                onStartSetup = onStartFocusLockSetup,
+                onOpenManageApps = onOpenManageApps,
+                onFixSetup = onStartFocusLockSetup,
+            )
+            Spacer(modifier = Modifier.height(Spacing.lg))
+        } else if (lockState.display is FocusLockDisplayState.Active) {
+            Text(
+                text = "Focus Lock · Active · ${(lockState.display as FocusLockDisplayState.Active).blockedCount} apps blocked",
+                style = MaterialTheme.typography.labelMedium,
+                color = colors.brandSoft,
+                modifier = Modifier.padding(bottom = Spacing.md),
+            )
         }
 
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.lg)) {

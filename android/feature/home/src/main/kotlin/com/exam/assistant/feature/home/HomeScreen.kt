@@ -12,7 +12,9 @@ import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.StudySessionStore
 import com.exam.assistant.core.data.SyllabusRepository
 import com.exam.assistant.core.data.SyllabusStore
+import com.exam.assistant.domain.PendingSyllabusPick
 import com.exam.assistant.domain.StudySessionRecord
+import kotlinx.coroutines.flow.StateFlow
 
 @Composable
 fun HomeRoute(
@@ -22,6 +24,8 @@ fun HomeRoute(
     studySessionStore: StudySessionStore,
     onSetupPlan: () -> Unit,
     onStartFocus: suspend (StudySessionRecord) -> Unit,
+    pendingSyllabusPick: StateFlow<PendingSyllabusPick?>,
+    onConsumedSyllabusPick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel(
         factory = HomeViewModel.Factory(
@@ -40,6 +44,14 @@ fun HomeRoute(
 
     LaunchedEffect(viewModel) {
         viewModel.focusRequests.collect { session -> onStartFocus(session) }
+    }
+
+    val pendingPick by pendingSyllabusPick.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingPick) {
+        pendingPick?.let { pick ->
+            viewModel.pickTopic(pick.nodeKey, pick.title, pick.sectionName, pick.subjectId, pick.topicPath)
+            onConsumedSyllabusPick()
+        }
     }
 
     HomeScreen(

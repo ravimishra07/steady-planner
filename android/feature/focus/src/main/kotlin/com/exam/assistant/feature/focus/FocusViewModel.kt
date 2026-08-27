@@ -34,6 +34,9 @@ class FocusViewModel(
     private val syllabusRepository: SyllabusRepository,
     private val syllabusStore: SyllabusStore,
     private val appScope: CoroutineScope,
+    /** Told, never asked — Focus Lock reacts to the session lifecycle, it doesn't own it. */
+    private val onFocusLockStart: () -> Unit = {},
+    private val onFocusLockStop: () -> Unit = {},
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(FocusUiState())
@@ -65,6 +68,11 @@ class FocusViewModel(
             }
             applySession(session)
             startTickerIfNeeded(session.status)
+            // Recovery path: if our process (and possibly the service) was killed mid-session,
+            // re-derive Focus Lock's active state from the session rather than trusting memory.
+            if (session.status == FocusStatus.RUNNING || session.status == FocusStatus.PAUSED) {
+                onFocusLockStart()
+            }
         }
     }
 
@@ -83,6 +91,7 @@ class FocusViewModel(
             focusStore.save(session)
             applySession(session)
             startTickerIfNeeded(FocusStatus.RUNNING)
+            onFocusLockStart()
         }
     }
 
@@ -110,6 +119,7 @@ class FocusViewModel(
             focusStore.save(session)
             applySession(session)
             startTickerIfNeeded(FocusStatus.RUNNING)
+            onFocusLockStart()
         }
     }
 
@@ -135,6 +145,7 @@ class FocusViewModel(
             applySession(session)
             stopTicker()
             dismissStopDialog()
+            onFocusLockStop()
         }
     }
 
@@ -194,6 +205,7 @@ class FocusViewModel(
         focusStore.save(session)
         applySession(session)
         stopTicker()
+        onFocusLockStop()
     }
 
     private suspend fun nextBlock(): FocusBlockRef? {
@@ -298,6 +310,8 @@ class FocusViewModel(
         private val syllabusRepository: SyllabusRepository,
         private val syllabusStore: SyllabusStore,
         private val appScope: CoroutineScope,
+        private val onFocusLockStart: () -> Unit = {},
+        private val onFocusLockStop: () -> Unit = {},
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
@@ -309,6 +323,8 @@ class FocusViewModel(
                 syllabusRepository,
                 syllabusStore,
                 appScope,
+                onFocusLockStart,
+                onFocusLockStop,
             ) as T
     }
 }

@@ -6,4 +6,7 @@
     <string name="tab_focus">Focus</string>
     <string name="tab_progress">Progress</string>
     <string name="tab_more">More</string>
+    <string name="focus_lock_notification_channel">Focus Lock</string>
+    <string name="focus_lock_notification_title">Focus Lock is active</string>
+    <string name="focus_lock_notification_body">Blocking distracting apps while you study</string>
 </resources>

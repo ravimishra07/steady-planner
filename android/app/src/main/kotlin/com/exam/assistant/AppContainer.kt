@@ -3,7 +3,10 @@ package com.exam.assistant
 import android.content.Context
 import com.exam.assistant.core.common.AppDispatchers
 import com.exam.assistant.core.common.DefaultAppDispatchers
+import com.exam.assistant.core.data.FocusLockCapabilityChecker
+import com.exam.assistant.core.data.FocusLockStore
 import com.exam.assistant.core.data.FocusStore
+import com.exam.assistant.core.data.InstalledAppProvider
 import com.exam.assistant.core.data.LocalRemoteConfig
 import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.RemoteConfig
@@ -11,8 +14,10 @@ import com.exam.assistant.core.data.SettingsStore
 import com.exam.assistant.core.data.StudySessionStore
 import com.exam.assistant.core.data.SyllabusRepository
 import com.exam.assistant.core.data.SyllabusStore
+import com.exam.assistant.domain.PendingSyllabusPick
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
  * The whole dependency graph, on one screen.
@@ -43,6 +48,12 @@ class AppContainer(private val context: Context) {
 
     val remoteConfig: RemoteConfig by lazy { LocalRemoteConfig() }
 
+    val focusLockStore: FocusLockStore by lazy { FocusLockStore(context, dispatchers) }
+
+    val focusLockCapabilityChecker: FocusLockCapabilityChecker by lazy { FocusLockCapabilityChecker(context) }
+
+    val installedAppProvider: InstalledAppProvider by lazy { InstalledAppProvider(context, dispatchers) }
+
     /**
      * For work that must outlive a screen — a running focus session. Screen-scoped
      * work belongs in viewModelScope. Never GlobalScope.
@@ -50,4 +61,6 @@ class AppContainer(private val context: Context) {
     val appScope: CoroutineScope by lazy {
         CoroutineScope(SupervisorJob() + dispatchers.default)
     }
+
+    val pendingSyllabusPick = MutableStateFlow<PendingSyllabusPick?>(null)
 }
