@@ -52,8 +52,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.exam.assistant.core.data.SyllabusRepository
-import com.exam.assistant.core.data.SyllabusStore
+import com.exam.assistant.core.data.ExamPackRepository
+import com.exam.assistant.core.data.repo.AttemptRepository
+import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Spacing
@@ -63,12 +64,13 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun SyllabusRoute(
-    syllabusRepository: SyllabusRepository,
-    syllabusStore: SyllabusStore,
+    examPackRepository: ExamPackRepository,
+    topicProgressRepository: TopicProgressRepository,
+    attemptRepository: AttemptRepository,
     onStartTopic: (PendingSyllabusPick) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SyllabusViewModel = viewModel(
-        factory = SyllabusViewModel.Factory(syllabusRepository, syllabusStore),
+        factory = SyllabusViewModel.Factory(examPackRepository, topicProgressRepository, attemptRepository),
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()

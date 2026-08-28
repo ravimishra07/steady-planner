@@ -3,6 +3,7 @@ package com.exam.assistant.feature.settings
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,8 +20,9 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Star
-import androidx.compose.material.icons.outlined.Autorenew
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,6 +41,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.exam.assistant.core.design.AppTheme
+import com.exam.assistant.core.design.AccentPalette
+import com.exam.assistant.core.design.BackgroundAppearance
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
@@ -47,12 +51,26 @@ import com.exam.assistant.core.design.Spacing
 fun MoreScreen(
     planExamLabel: String?,
     daysLeft: Int?,
+    background: BackgroundAppearance,
+    onBackground: (BackgroundAppearance) -> Unit,
+    accentPalette: AccentPalette,
+    onAccentPalette: (AccentPalette) -> Unit,
     onOpenSettings: () -> Unit,
     onRedoOnboarding: () -> Unit,
     onOpenPolicy: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
+    var showThemeSheet by remember { mutableStateOf(false) }
+    if (showThemeSheet) {
+        ThemeBottomSheet(
+            background = background,
+            onBackground = onBackground,
+            accentPalette = accentPalette,
+            onAccentPalette = onAccentPalette,
+            onDismiss = { showThemeSheet = false },
+        )
+    }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -75,15 +93,23 @@ fun MoreScreen(
             onClick = onOpenSettings,
         )
         SectionLabel(stringResource(R.string.more_section_plan))
-        MoreRow(Icons.Outlined.Autorenew, R.string.more_rebalance, R.string.more_rebalance_sub) { }
-        MoreRow(Icons.Outlined.Star, R.string.more_upgrade, R.string.more_upgrade_sub) { }
-        MoreRow(Icons.Outlined.Refresh, R.string.more_redo_onboarding, R.string.more_redo_onboarding_sub, onRedoOnboarding)
+        ProfileGroup {
+            ProfileRow(Icons.Outlined.Refresh, R.string.more_redo_onboarding, R.string.more_redo_onboarding_sub, onRedoOnboarding)
+        }
         SectionLabel(stringResource(R.string.more_section_app))
-        MoreRow(Icons.Outlined.Settings, R.string.more_settings, R.string.more_settings_sub, onOpenSettings)
+        ProfileGroup {
+            ProfileRow(Icons.Outlined.Palette, R.string.more_theme, R.string.more_theme_sub, onClick = { showThemeSheet = true })
+            HorizontalDivider(color = colors.borderSubtle)
+            ProfileRow(Icons.Outlined.Settings, R.string.more_settings, R.string.more_settings_sub, onOpenSettings)
+        }
         SectionLabel(stringResource(R.string.more_section_about))
-        MoreRow(Icons.Outlined.Lock, R.string.more_privacy, R.string.more_privacy_sub) { onOpenPolicy("privacy") }
-        MoreRow(Icons.Outlined.Info, R.string.more_terms, R.string.more_terms_sub) { onOpenPolicy("terms") }
-        MoreRow(Icons.Outlined.Info, R.string.more_about, R.string.more_about_sub) { onOpenPolicy("about") }
+        ProfileGroup {
+            ProfileRow(Icons.Outlined.Lock, R.string.more_privacy, R.string.more_privacy_sub) { onOpenPolicy("privacy") }
+            HorizontalDivider(color = colors.borderSubtle)
+            ProfileRow(Icons.Outlined.Info, R.string.more_terms, R.string.more_terms_sub) { onOpenPolicy("terms") }
+            HorizontalDivider(color = colors.borderSubtle)
+            ProfileRow(Icons.Outlined.Info, R.string.more_about, R.string.more_about_sub) { onOpenPolicy("about") }
+        }
         Text(
             text = stringResource(R.string.more_footer),
             style = MaterialTheme.typography.bodySmall,
@@ -151,11 +177,11 @@ private fun AccountCard(title: String, subtitle: String, onClick: () -> Unit) {
                 shape = CircleShape,
                 color = colors.brandContainer,
             ) {
-                Text(
-                    text = title.take(1).uppercase(),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = colors.onBrandContainer,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                Icon(
+                    imageVector = Icons.Outlined.Person,
+                    contentDescription = null,
+                    tint = colors.onBrandContainer,
+                    modifier = Modifier.padding(Spacing.md),
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
@@ -172,7 +198,21 @@ private fun AccountCard(title: String, subtitle: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun MoreRow(
+private fun ProfileGroup(content: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        color = AppTheme.colors.surface,
+        shape = RoundedCornerShape(Radius.lg),
+        border = BorderStroke(1.dp, AppTheme.colors.border),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = Spacing.lg),
+    ) {
+        Column(content = content)
+    }
+}
+
+@Composable
+private fun ProfileRow(
     icon: ImageVector,
     titleRes: Int,
     subtitleRes: Int,
@@ -182,18 +222,25 @@ private fun MoreRow(
     Surface(
         onClick = onClick,
         color = colors.surface,
-        shape = RoundedCornerShape(Radius.md),
-        border = BorderStroke(1.dp, colors.border),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = Spacing.sm),
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
             modifier = Modifier.padding(Spacing.lg),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(icon, contentDescription = null, tint = colors.brandSoft, modifier = Modifier.padding(end = Spacing.md))
-            Column(modifier = Modifier.weight(1f)) {
+            Surface(shape = RoundedCornerShape(Radius.sm), color = colors.surfaceControl) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = colors.brandDeep,
+                    modifier = Modifier.padding(Spacing.sm),
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = Spacing.md),
+            ) {
                 Text(stringResource(titleRes), style = MaterialTheme.typography.titleSmall, color = colors.text)
                 Text(stringResource(subtitleRes), style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
             }

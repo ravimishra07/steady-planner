@@ -4,12 +4,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.exam.assistant.core.data.FocusStore
+import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.PlanStore
+import com.exam.assistant.core.data.SavedPlan
 import com.exam.assistant.core.data.SettingsStore
 import com.exam.assistant.core.data.StudySessionStore
 import com.exam.assistant.core.data.SyllabusRepository
 import com.exam.assistant.core.data.SyllabusStore
-import com.exam.assistant.domain.generateBackfillHistory
+import com.exam.assistant.core.data.repo.AttemptRepository
+import com.exam.assistant.core.data.repo.TopicProgressRepository
+import com.exam.assistant.domain.TopicProgress
+import com.exam.assistant.domain.TopicProgressStatus
+import com.exam.assistant.domain.buildLegacyNodeIdMap
+import com.exam.assistant.domain.generateDemoHistory
+import com.exam.assistant.domain.migrateExamAttempt
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,8 +25,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import kotlin.math.roundToInt
-
-private const val SEED_HISTORY_DAYS = 45
 
 data class SettingsDetailUiState(
     val weekdayHours: Float = 4f,
@@ -39,6 +45,9 @@ class SettingsDetailViewModel(
     private val syllabusStore: SyllabusStore,
     private val studySessionStore: StudySessionStore,
     private val syllabusRepository: SyllabusRepository,
+    private val examPackRepository: ExamPackRepository,
+    private val attemptRepository: AttemptRepository,
+    private val topicProgressRepository: TopicProgressRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsDetailUiState())
@@ -97,6 +106,7 @@ class SettingsDetailViewModel(
 
     fun confirmClear(onCleared: () -> Unit) {
         viewModelScope.launch {
+            attemptRepository.activeAttempt()?.let(attemptRepository::deleteAttemptAndAllData)
             planStore.clear()
             syllabusStore.clear()
             focusStore.clear()
@@ -114,20 +124,17 @@ class SettingsDetailViewModel(
         _state.update { it.copy(showSeedDialog = false) }
     }
 
-    /** Backfills 45 days of completed history from the real syllabus — for previewing a full app, not real study data. */
+    /** Adds sample activity to every currently shipped data source so app screens stay in sync. */
     fun confirmSeed() {
         _state.update { it.copy(showSeedDialog = false, seeding = true, seedError = null) }
         viewModelScope.launch {
             try {
                 val plan = planStore.load()
                 val sections = syllabusRepository.tier1Sections()
-                val (sessions, doneLeaves) = generateBackfillHistory(
+                val today = LocalDate.now()
+                val (sessions, doneLeaves) = generateDemoHistory(
                     sections = sections,
-                    today = LocalDate.now(),
-                    days = SEED_HISTORY_DAYS,
-                    // Guard against a near-zero plan silently producing an empty-looking backfill.
-                    weekdayHours = (plan?.weekdayHours ?: 4f).coerceAtLeast(2f),
-                    weekendHours = (plan?.weekendHours ?: 7f).coerceAtLeast(2f),
+                    today = today,
                 )
                 if (sessions.isEmpty()) {
                     _state.update {
@@ -138,6 +145,7 @@ class SettingsDetailViewModel(
                 studySessionStore.upsertAll(sessions)
                 val storedSyllabus = syllabusStore.load()
                 syllabusStore.save(storedSyllabus.copy(doneLeaves = storedSyllabus.doneLeaves + doneLeaves))
+                seedRoomSyllabusProgress(plan, sections, doneLeaves, today)
                 _state.update { it.copy(seeding = false, seedDone = true) }
             } catch (error: Throwable) {
                 _state.update {
@@ -162,6 +170,37 @@ class SettingsDetailViewModel(
         }
     }
 
+    private suspend fun seedRoomSyllabusProgress(
+        plan: SavedPlan?,
+        legacySections: List<com.exam.assistant.domain.SyllabusSection>,
+        doneLeaves: Set<String>,
+        today: LocalDate,
+    ) {
+        val examPack = examPackRepository.examPack()
+        val nowMs = System.currentTimeMillis()
+        val attempt = attemptRepository.activeAttempt() ?: plan?.let {
+            migrateExamAttempt(
+                examId = it.examId,
+                daysUntilExam = it.daysUntilExam,
+                migrationDate = today,
+                nowMs = nowMs,
+            ).copy(syllabusVersion = examPack.syllabusVersion).also(attemptRepository::upsert)
+        } ?: return
+        val legacyToStableId = buildLegacyNodeIdMap(examPack, legacySections)
+        val progress = doneLeaves.mapNotNull { legacyKey ->
+            legacyToStableId[legacyKey]?.let { nodeId ->
+                TopicProgress(
+                    attemptId = attempt.id,
+                    nodeId = nodeId,
+                    status = TopicProgressStatus.COVERED,
+                    coveredAtEpochMs = nowMs,
+                    updatedAtEpochMs = nowMs,
+                )
+            }
+        }
+        topicProgressRepository.upsertAll(progress)
+    }
+
     class Factory(
         private val planStore: PlanStore,
         private val settingsStore: SettingsStore,
@@ -169,6 +208,9 @@ class SettingsDetailViewModel(
         private val syllabusStore: SyllabusStore,
         private val studySessionStore: StudySessionStore,
         private val syllabusRepository: SyllabusRepository,
+        private val examPackRepository: ExamPackRepository,
+        private val attemptRepository: AttemptRepository,
+        private val topicProgressRepository: TopicProgressRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
@@ -179,6 +221,9 @@ class SettingsDetailViewModel(
                 syllabusStore,
                 studySessionStore,
                 syllabusRepository,
+                examPackRepository,
+                attemptRepository,
+                topicProgressRepository,
             ) as T
     }
 }

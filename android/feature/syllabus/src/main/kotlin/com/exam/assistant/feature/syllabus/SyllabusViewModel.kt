@@ -3,16 +3,15 @@ package com.exam.assistant.feature.syllabus
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.exam.assistant.core.data.SyllabusRepository
-import com.exam.assistant.core.data.SyllabusStore
-import com.exam.assistant.core.data.SyllabusUiState as StoredSyllabusUi
-import com.exam.assistant.domain.SyllabusSection
-import com.exam.assistant.domain.SyllabusTopicNode
-import com.exam.assistant.domain.leafKeys
-import com.exam.assistant.domain.sectionSubjectId
-import com.exam.assistant.domain.splitHours
-import com.exam.assistant.domain.tickState
-import com.exam.assistant.domain.topicHours
+import com.exam.assistant.core.data.ExamPackRepository
+import com.exam.assistant.core.data.repo.AttemptRepository
+import com.exam.assistant.core.data.repo.TopicProgressRepository
+import com.exam.assistant.domain.ExamPack
+import com.exam.assistant.domain.SyllabusNode
+import com.exam.assistant.domain.TopicProgressStatus
+import com.exam.assistant.domain.findNode
+import com.exam.assistant.domain.leafIds
+import com.exam.assistant.domain.totalMinutes
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,16 +19,26 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Locale
 
+/**
+ * Coverage reads from [TopicProgressRepository] (the one source of truth for
+ * "what have I covered", spec §20/§38) instead of the legacy `doneLeaves`
+ * set. Open/expanded rows are UI-only state (spec §10's
+ * `SyllabusViewPreferences`) kept in memory here — not persisted, since
+ * expand/collapse was never durable product behavior worth a store.
+ */
 class SyllabusViewModel(
-    private val syllabusRepository: SyllabusRepository,
-    private val syllabusStore: SyllabusStore,
+    private val examPackRepository: ExamPackRepository,
+    private val topicProgressRepository: TopicProgressRepository,
+    private val attemptRepository: AttemptRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SyllabusUiState())
     val state: StateFlow<SyllabusUiState> = _state.asStateFlow()
 
-    private var sections: List<SyllabusSection> = emptyList()
-    private var stored: StoredSyllabusUi = StoredSyllabusUi()
+    private var pack: ExamPack? = null
+    private var attemptId: String? = null
+    private var coveredNodeIds: Set<String> = emptySet()
+    private var openNodeIds: Set<String> = emptySet()
 
     init {
         refresh()
@@ -37,97 +46,83 @@ class SyllabusViewModel(
 
     fun refresh() {
         viewModelScope.launch {
-            sections = syllabusRepository.tier1Sections()
-            stored = syllabusStore.load()
-            rebuild()
+            pack = examPackRepository.examPack()
+            attemptId = attemptRepository.activeAttempt()?.id
+            reloadProgress()
         }
+    }
+
+    private suspend fun reloadProgress() {
+        val id = attemptId ?: run { rebuild(); return }
+        coveredNodeIds = topicProgressRepository.allOnce(id)
+            .filter { it.status == TopicProgressStatus.COVERED }
+            .map { it.nodeId }
+            .toSet()
+        rebuild()
     }
 
     fun toggleExpand(key: String) {
-        val nextOpen = stored.openNodes.toMutableSet()
-        if (key in nextOpen) nextOpen.remove(key) else nextOpen.add(key)
-        stored = stored.copy(openNodes = nextOpen)
-        viewModelScope.launch {
-            syllabusStore.save(stored)
-            rebuild()
-        }
+        openNodeIds = if (key in openNodeIds) openNodeIds - key else openNodeIds + key
+        rebuild()
     }
 
     fun toggleTick(key: String) {
-        val node = nodeAt(key) ?: return
-        val leaves = leafKeys(node, key)
-        val allDone = leaves.all { it in stored.doneLeaves }
-        val nextDone = stored.doneLeaves.toMutableSet()
-        leaves.forEach { leaf ->
-            if (allDone) nextDone.remove(leaf) else nextDone.add(leaf)
-        }
-        stored = stored.copy(doneLeaves = nextDone)
+        val examPack = pack ?: return
+        val id = attemptId ?: return
+        val node = examPack.findNode(key) ?: return
+        val leaves = node.leafIds()
+        val allDone = leaves.isNotEmpty() && leaves.all { it in coveredNodeIds }
         viewModelScope.launch {
-            syllabusStore.save(stored)
-            rebuild()
+            val nowMs = System.currentTimeMillis()
+            leaves.forEach { leafId ->
+                val current = topicProgressRepository.byNode(id, leafId)
+                val isCovered = current?.status == TopicProgressStatus.COVERED
+                if (allDone == isCovered) {
+                    // Only flip leaves that don't already match the target state.
+                    topicProgressRepository.toggle(id, leafId, nowMs)
+                }
+            }
+            reloadProgress()
         }
     }
 
-    private suspend fun rebuild() {
-        val subjects = sections.mapIndexed { sectionIndex, section ->
-            val cardKey = "subject_$sectionIndex"
-            val subjectId = sectionSubjectId(sectionIndex)
-            val rows = section.topics.flatMapIndexed { topicIndex, topic ->
+    private fun rebuild() {
+        val examPack = pack ?: return
+        val subjects = examPack.subjects.map { subject ->
+            val cardKey = "subject_${subject.id}"
+            val rows = subject.nodes.flatMapIndexed { index, node ->
                 buildRows(
-                    node = topic,
-                    key = "t1_${sectionIndex}_$topicIndex",
-                    hours = topicHours(topic),
-                    depth = 0,
+                    node = node,
                     ancestorContinues = emptyList(),
-                    isLast = topicIndex == section.topics.lastIndex,
-                    subjectId = subjectId,
-                    sectionName = section.name,
+                    isLast = index == subject.nodes.lastIndex,
+                    subjectId = subject.id,
+                    sectionName = subject.name,
                 )
             }
 
-            val allLeaves = section.topics.flatMapIndexed { ti, topic -> leafKeys(topic, "t1_${sectionIndex}_$ti") }
-            val doneCount = allLeaves.count { it in stored.doneLeaves }
-            val totalCount = allLeaves.size
-            val percent = if (totalCount > 0) doneCount * 100 / totalCount else 0
-
-            val totalHours = section.topics.sumOf { topicHours(it) }
-            val doneHours = section.topics.foldIndexed(0.0) { ti, acc, topic ->
-                val leaves = leafKeys(topic, "t1_${sectionIndex}_$ti")
-                val done = leaves.count { it in stored.doneLeaves }
-                val fraction = if (leaves.isEmpty()) 0.0 else done.toDouble() / leaves.size
-                acc + topicHours(topic) * fraction
-            }
+            val allLeaves = subject.leafIds()
+            val doneCount = allLeaves.count { it in coveredNodeIds }
+            val percent = if (allLeaves.isNotEmpty()) doneCount * 100 / allLeaves.size else 0
+            val doneMinutes = subject.nodes.sumOf { doneMinutesFor(it) }
 
             SyllabusSubjectCard(
                 key = cardKey,
-                name = section.name,
-                shortLabel = sectionTabLabel(section.name),
-                subjectId = subjectId,
+                name = subject.name,
+                shortLabel = sectionTabLabel(subject.name),
+                subjectId = subject.id,
                 percent = percent,
-                timeSpentLabel = formatHoursMinutes(doneHours),
-                expanded = cardKey in stored.openNodes,
+                timeSpentLabel = formatHoursMinutes(doneMinutes),
+                expanded = cardKey in openNodeIds,
                 rows = rows,
-                firstTopicKey = section.topics.indices.firstOrNull()?.let { "t1_${sectionIndex}_$it" },
-                firstTopicTitle = section.topics.firstOrNull()?.name.orEmpty(),
+                firstTopicKey = subject.nodes.firstOrNull()?.id,
+                firstTopicTitle = subject.nodes.firstOrNull()?.title.orEmpty(),
             )
         }
 
-        val allLeavesGlobal = sections.flatMapIndexed { sectionIndex, section ->
-            section.topics.flatMapIndexed { topicIndex, topic ->
-                leafKeys(topic, "t1_${sectionIndex}_$topicIndex")
-            }
-        }
-        val doneGlobal = allLeavesGlobal.count { it in stored.doneLeaves }
-        val totalGlobal = allLeavesGlobal.size
-        val percentGlobal = if (totalGlobal > 0) doneGlobal * 100.0 / totalGlobal else 0.0
-        val totalDoneHoursGlobal = sections.foldIndexed(0.0) { sectionIndex, sectionAcc, section ->
-            sectionAcc + section.topics.foldIndexed(0.0) { ti, acc, topic ->
-                val leaves = leafKeys(topic, "t1_${sectionIndex}_$ti")
-                val done = leaves.count { it in stored.doneLeaves }
-                val fraction = if (leaves.isEmpty()) 0.0 else done.toDouble() / leaves.size
-                acc + topicHours(topic) * fraction
-            }
-        }
+        val allLeavesGlobal = examPack.leafIds()
+        val doneGlobal = allLeavesGlobal.count { it in coveredNodeIds }
+        val percentGlobal = if (allLeavesGlobal.isNotEmpty()) doneGlobal * 100.0 / allLeavesGlobal.size else 0.0
+        val totalDoneMinutesGlobal = examPack.subjects.sumOf { subject -> subject.nodes.sumOf { doneMinutesFor(it) } }
 
         _state.update {
             SyllabusUiState(
@@ -136,32 +131,43 @@ class SyllabusViewModel(
                 allCount = subjects.size,
                 dueCount = subjects.count { it.percent < 100 },
                 completedPercentLabel = String.format(Locale.US, "%.2f%%", percentGlobal),
-                timeSpentLabel = formatHoursMinutes(totalDoneHoursGlobal),
+                timeSpentLabel = formatHoursMinutes(totalDoneMinutesGlobal),
             )
         }
     }
 
+    /** Minutes credited proportionally to how much of this node's leaf set is covered. */
+    private fun doneMinutesFor(node: SyllabusNode): Int {
+        val leaves = node.leafIds()
+        if (leaves.isEmpty()) return 0
+        val done = leaves.count { it in coveredNodeIds }
+        return (node.totalMinutes() * done) / leaves.size
+    }
+
     private fun buildRows(
-        node: SyllabusTopicNode,
-        key: String,
-        hours: Double,
-        depth: Int,
+        node: SyllabusNode,
         ancestorContinues: List<Boolean>,
         isLast: Boolean,
         subjectId: String,
         sectionName: String,
     ): List<SyllabusTreeRow> {
-        val leaves = leafKeys(node, key)
-        val doneCount = leaves.count { it in stored.doneLeaves }
+        val leaves = node.leafIds()
+        val doneCount = leaves.count { it in coveredNodeIds }
         val percent = if (leaves.isEmpty()) 0 else doneCount * 100 / leaves.size
+        val tickState = when {
+            leaves.isEmpty() -> com.exam.assistant.domain.SyllabusTickState.NONE
+            doneCount == 0 -> com.exam.assistant.domain.SyllabusTickState.NONE
+            doneCount == leaves.size -> com.exam.assistant.domain.SyllabusTickState.ALL
+            else -> com.exam.assistant.domain.SyllabusTickState.PARTIAL
+        }
         val row = SyllabusTreeRow(
-            key = key,
-            name = node.name,
-            hoursLabel = formatHours(hours),
-            depth = depth,
+            key = node.id,
+            name = node.title,
+            hoursLabel = formatHours(node.totalMinutes() / 60.0),
+            depth = ancestorContinues.size,
             hasChildren = node.children.isNotEmpty(),
-            expanded = key in stored.openNodes,
-            tickState = tickState(leaves, stored.doneLeaves),
+            expanded = node.id in openNodeIds,
+            tickState = tickState,
             percent = percent,
             doneLeafCount = doneCount,
             totalLeafCount = leaves.size,
@@ -171,17 +177,13 @@ class SyllabusViewModel(
             sectionName = sectionName,
             topicPath = sectionName,
         )
-        if (node.children.isEmpty() || key !in stored.openNodes) {
+        if (node.children.isEmpty() || node.id !in openNodeIds) {
             return listOf(row)
         }
-        val shares = splitHours(hours, node.children.size)
         val childAncestors = ancestorContinues + !isLast
         val childRows = node.children.flatMapIndexed { index, child ->
             buildRows(
                 node = child,
-                key = "${key}_$index",
-                hours = shares[index],
-                depth = depth + 1,
                 ancestorContinues = childAncestors,
                 isLast = index == node.children.lastIndex,
                 subjectId = subjectId,
@@ -189,20 +191,6 @@ class SyllabusViewModel(
             )
         }
         return listOf(row) + childRows
-    }
-
-    private fun nodeAt(key: String): SyllabusTopicNode? {
-        if (!key.startsWith("t1_")) return null
-        val indices = key.removePrefix("t1_").split("_").mapNotNull { it.toIntOrNull() }
-        if (indices.isEmpty()) return null
-        val section = sections.getOrNull(indices[0]) ?: return null
-        var node: SyllabusTopicNode? = null
-        var children = section.topics
-        indices.drop(1).forEach { childIndex ->
-            node = children.getOrNull(childIndex) ?: return null
-            children = node.children
-        }
-        return node
     }
 
     private fun sectionTabLabel(name: String): String = when {
@@ -213,10 +201,9 @@ class SyllabusViewModel(
         else -> name
     }
 
-    private fun formatHoursMinutes(hours: Double): String {
-        val totalMinutes = Math.round(hours * 60)
-        val h = totalMinutes / 60
-        val m = totalMinutes % 60
+    private fun formatHoursMinutes(minutes: Int): String {
+        val h = minutes / 60
+        val m = minutes % 60
         return String.format(Locale.US, "%dh %02dm", h, m)
     }
 
@@ -228,11 +215,12 @@ class SyllabusViewModel(
     }
 
     class Factory(
-        private val syllabusRepository: SyllabusRepository,
-        private val syllabusStore: SyllabusStore,
+        private val examPackRepository: ExamPackRepository,
+        private val topicProgressRepository: TopicProgressRepository,
+        private val attemptRepository: AttemptRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            SyllabusViewModel(syllabusRepository, syllabusStore) as T
+            SyllabusViewModel(examPackRepository, topicProgressRepository, attemptRepository) as T
     }
 }

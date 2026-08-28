@@ -27,4 +27,7 @@ class LocalRemoteConfig : RemoteConfig {
 object ConfigKeys {
     const val PAYWALL_ENABLED = "paywall_enabled"
     const val TIER2_ENABLED = "tier2_enabled"
+    const val DEFAULT_ACCENT_THEME = "defaultAccentTheme"
+    const val DEFAULT_BACKGROUND_THEME = "defaultBackgroundTheme"
+    const val THEME_CUSTOMIZATION_ENABLED = "themeCustomizationEnabled"
 }

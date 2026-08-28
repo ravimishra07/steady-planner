@@ -32,10 +32,10 @@ import com.exam.assistant.MainActivity
 import com.exam.assistant.SteadylineApp
 import com.exam.assistant.core.design.AccentPalette
 import com.exam.assistant.core.design.AppTheme
+import com.exam.assistant.core.design.BackgroundAppearance
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.core.design.SteadylineTheme
-import com.exam.assistant.core.design.ThemeChoice
 import com.exam.assistant.domain.withTemporaryAllowance
 import kotlinx.coroutines.launch
 
@@ -57,7 +57,7 @@ class BlockingActivity : ComponentActivity() {
         }.getOrDefault(blockedPackage)
 
         setContent {
-            SteadylineTheme(choice = ThemeChoice.Dark, palette = AccentPalette.Default) {
+            SteadylineTheme(background = BackgroundAppearance.Dark, palette = AccentPalette.Default) {
                 BlockingScreen(
                     blockedAppLabel = blockedAppLabel,
                     topicTitle = topicTitle,

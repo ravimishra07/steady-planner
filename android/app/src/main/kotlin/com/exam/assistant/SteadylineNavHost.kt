@@ -17,8 +17,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.exam.assistant.core.design.AccentPalette
+import com.exam.assistant.core.design.BackgroundAppearance
 import com.exam.assistant.core.design.AppTheme
-import com.exam.assistant.core.design.ThemeChoice
 import com.exam.assistant.domain.BlockTag
 import com.exam.assistant.domain.FocusBlockRef
 import com.exam.assistant.domain.FocusSession
@@ -37,8 +37,8 @@ import com.exam.assistant.feature.syllabus.SyllabusRoute
 fun SteadylineNavHost(
     container: AppContainer,
     startInOnboarding: Boolean,
-    themeChoice: ThemeChoice,
-    onThemeChoice: (ThemeChoice) -> Unit,
+    background: BackgroundAppearance,
+    onBackground: (BackgroundAppearance) -> Unit,
     accentPalette: AccentPalette,
     onAccentPalette: (AccentPalette) -> Unit,
     navController: NavHostController = rememberNavController(),
@@ -123,8 +123,9 @@ fun SteadylineNavHost(
             }
             composable(Route.Syllabus.path) {
                 SyllabusRoute(
-                    syllabusRepository = container.syllabusRepository,
-                    syllabusStore = container.syllabusStore,
+                    examPackRepository = container.examPackRepository,
+                    topicProgressRepository = container.topicProgressRepository,
+                    attemptRepository = container.attemptRepository,
                     onStartTopic = { pick ->
                         container.pendingSyllabusPick.value = pick
                         navController.navigate(Route.Home.path) {
@@ -142,6 +143,9 @@ fun SteadylineNavHost(
                     settingsStore = container.settings,
                     studySessionStore = container.studySessionStore,
                     syllabusRepository = container.syllabusRepository,
+                    examPackRepository = container.examPackRepository,
+                    attemptRepository = container.attemptRepository,
+                    topicProgressRepository = container.topicProgressRepository,
                     syllabusStore = container.syllabusStore,
                     focusLockStore = container.focusLockStore,
                     focusLockCapabilityChecker = container.focusLockCapabilityChecker,
@@ -171,6 +175,10 @@ fun SteadylineNavHost(
             composable(Route.Settings.path) {
                 MoreRoute(
                     planStore = container.planStore,
+                    background = background,
+                    onBackground = onBackground,
+                    accentPalette = accentPalette,
+                    onAccentPalette = onAccentPalette,
                     onOpenSettings = { navController.navigate(Route.SettingsDetail.path) },
                     onRedoOnboarding = { navController.navigate(Route.Onboarding.path) },
                     onOpenPolicy = { id -> navController.navigate("policy/$id") },
@@ -185,10 +193,6 @@ fun SteadylineNavHost(
                     syllabusStore = container.syllabusStore,
                     studySessionStore = container.studySessionStore,
                     syllabusRepository = container.syllabusRepository,
-                    themeChoice = themeChoice,
-                    onThemeChoose = onThemeChoice,
-                    accentPalette = accentPalette,
-                    onAccentPalette = onAccentPalette,
                     onBack = { navController.popBackStack() },
                     onCleared = {
                         navController.navigate(Route.Onboarding.path) {

@@ -5,7 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -70,5 +70,5 @@ enum class Tab(
     Syllabus(Route.Syllabus, R.string.tab_syllabus, Icons.AutoMirrored.Outlined.MenuBook),
     Focus(Route.Focus, R.string.tab_focus, Icons.Outlined.Timer),
     Progress(Route.Progress, R.string.tab_insights, Icons.Outlined.BarChart),
-    Settings(Route.Settings, R.string.tab_more, Icons.Outlined.MoreHoriz),
+    Settings(Route.Settings, R.string.tab_more, Icons.Outlined.AccountCircle),
 }

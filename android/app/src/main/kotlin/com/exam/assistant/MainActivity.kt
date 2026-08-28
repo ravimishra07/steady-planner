@@ -6,7 +6,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.luminance
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.exam.assistant.core.design.SteadylineTheme
 
@@ -32,12 +35,19 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val state by viewModel.state.collectAsStateWithLifecycle()
-            SteadylineTheme(choice = state.theme, palette = state.palette) {
+            SteadylineTheme(background = state.background, palette = state.palette) {
+                val colors = com.exam.assistant.core.design.AppTheme.colors
+                SideEffect {
+                    WindowCompat.getInsetsController(window, window.decorView).apply {
+                        isAppearanceLightStatusBars = colors.bg.luminance() > 0.5f
+                        isAppearanceLightNavigationBars = colors.bg.luminance() > 0.5f
+                    }
+                }
                 if (state.ready) {
                     SteadylineNavHost(
                         startInOnboarding = !state.hasPlan,
-                        themeChoice = state.theme,
-                        onThemeChoice = viewModel::setTheme,
+                        background = state.background,
+                        onBackground = viewModel::setBackground,
                         accentPalette = state.palette,
                         onAccentPalette = viewModel::setPalette,
                         container = (application as SteadylineApp).container,

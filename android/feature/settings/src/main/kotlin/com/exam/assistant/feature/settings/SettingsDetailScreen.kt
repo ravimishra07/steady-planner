@@ -32,17 +32,18 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.exam.assistant.core.data.FocusStore
+import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.SettingsStore
 import com.exam.assistant.core.data.StudySessionStore
 import com.exam.assistant.core.data.SyllabusRepository
 import com.exam.assistant.core.data.SyllabusStore
-import com.exam.assistant.core.design.AccentPalette
+import com.exam.assistant.core.data.repo.AttemptRepository
+import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
-import com.exam.assistant.core.design.ThemeChoice
 
 @Composable
 fun SettingsDetailRoute(
@@ -52,10 +53,9 @@ fun SettingsDetailRoute(
     syllabusStore: SyllabusStore,
     studySessionStore: StudySessionStore,
     syllabusRepository: SyllabusRepository,
-    themeChoice: ThemeChoice,
-    onThemeChoose: (ThemeChoice) -> Unit,
-    accentPalette: AccentPalette,
-    onAccentPalette: (AccentPalette) -> Unit,
+    examPackRepository: ExamPackRepository,
+    attemptRepository: AttemptRepository,
+    topicProgressRepository: TopicProgressRepository,
     onBack: () -> Unit,
     onCleared: () -> Unit,
     modifier: Modifier = Modifier,
@@ -67,16 +67,15 @@ fun SettingsDetailRoute(
             syllabusStore,
             studySessionStore,
             syllabusRepository,
+            examPackRepository,
+            attemptRepository,
+            topicProgressRepository,
         ),
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     SettingsDetailScreen(
         state = state,
-        themeChoice = themeChoice,
-        onThemeChoose = onThemeChoose,
-        accentPalette = accentPalette,
-        onAccentPalette = onAccentPalette,
         onBack = onBack,
         onWeekdayChange = viewModel::setWeekdayHours,
         onWeekendChange = viewModel::setWeekendHours,
@@ -99,10 +98,6 @@ fun SettingsDetailRoute(
 @Composable
 fun SettingsDetailScreen(
     state: SettingsDetailUiState,
-    themeChoice: ThemeChoice,
-    onThemeChoose: (ThemeChoice) -> Unit,
-    accentPalette: AccentPalette,
-    onAccentPalette: (AccentPalette) -> Unit,
     onBack: () -> Unit,
     onWeekdayChange: (Float) -> Unit,
     onWeekendChange: (Float) -> Unit,
@@ -193,41 +188,6 @@ fun SettingsDetailScreen(
                 color = colors.text,
             )
         }
-        SectionTitle(stringResource(R.string.settings_appearance))
-        Text(
-            text = stringResource(R.string.settings_theme_mode),
-            style = MaterialTheme.typography.bodyMedium,
-            color = colors.textSecondary,
-            modifier = Modifier.padding(bottom = Spacing.xs),
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            ThemeChoice.entries.forEach { option ->
-                FilterChip(
-                    selected = themeChoice == option,
-                    onClick = { onThemeChoose(option) },
-                    label = {
-                        Text(
-                            when (option) {
-                                ThemeChoice.System -> stringResource(R.string.settings_theme_system)
-                                ThemeChoice.Light -> stringResource(R.string.settings_theme_light)
-                                ThemeChoice.Dark -> stringResource(R.string.settings_theme_dark)
-                            },
-                        )
-                    },
-                )
-            }
-        }
-        Text(
-            text = stringResource(R.string.settings_theme_color),
-            style = MaterialTheme.typography.bodyMedium,
-            color = colors.textSecondary,
-            modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.sm),
-        )
-        AccentPaletteSelector(
-            selected = accentPalette,
-            onSelect = onAccentPalette,
-            modifier = Modifier.padding(bottom = Spacing.sm),
-        )
         SectionTitle(stringResource(R.string.settings_hours))
         Text(stringResource(R.string.settings_weekdays), style = MaterialTheme.typography.bodyMedium)
         Slider(

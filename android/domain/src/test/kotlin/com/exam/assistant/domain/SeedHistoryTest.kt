@@ -89,4 +89,24 @@ class SeedHistoryTest {
             }
         }
     }
+
+    @Test
+    fun `demo history covers today plus fifteen preceding days`() {
+        val today = LocalDate.of(2026, 3, 16)
+        val (sessions, _) = generateDemoHistory(sections, today)
+
+        val completedDates = sessions.filter { it.completed }.map { it.date }.toSet()
+        assertEquals((0 until DEMO_HISTORY_DAYS).map { today.minusDays(it.toLong()) }.toSet(), completedDates)
+        assertTrue(sessions.any { it.date == today && it.completed })
+        assertEquals(2, sessions.count { it.date == today && !it.completed })
+    }
+
+    @Test
+    fun `demo history is idempotent through stable session ids`() {
+        val today = LocalDate.of(2026, 3, 16)
+        val (first, _) = generateDemoHistory(sections, today)
+        val (second, _) = generateDemoHistory(sections, today)
+
+        assertEquals(first.map { it.id }, second.map { it.id })
+    }
 }

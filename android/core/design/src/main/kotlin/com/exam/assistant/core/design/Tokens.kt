@@ -54,4 +54,6 @@ object Size {
     val touchTarget = 48.dp
     val tabBarHeight = 56.dp
     val ctaHeight = 54.dp
+    val themeSwatch = 48.dp
+    val themePreview = 72.dp
 }

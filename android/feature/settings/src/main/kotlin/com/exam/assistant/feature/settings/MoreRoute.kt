@@ -9,10 +9,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.SavedPlan
+import com.exam.assistant.core.design.AccentPalette
+import com.exam.assistant.core.design.BackgroundAppearance
 
 @Composable
 fun MoreRoute(
     planStore: PlanStore,
+    background: BackgroundAppearance,
+    onBackground: (BackgroundAppearance) -> Unit,
+    accentPalette: AccentPalette,
+    onAccentPalette: (AccentPalette) -> Unit,
     onOpenSettings: () -> Unit,
     onRedoOnboarding: () -> Unit,
     onOpenPolicy: (String) -> Unit,
@@ -25,6 +31,10 @@ fun MoreRoute(
     MoreScreen(
         planExamLabel = plan?.let { examLabel(it.examId) },
         daysLeft = plan?.daysUntilExam,
+        background = background,
+        onBackground = onBackground,
+        accentPalette = accentPalette,
+        onAccentPalette = onAccentPalette,
         onOpenSettings = onOpenSettings,
         onRedoOnboarding = onRedoOnboarding,
         onOpenPolicy = onOpenPolicy,

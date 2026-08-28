@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.exam.assistant.core.data.PlanStore
+import com.exam.assistant.core.data.ConfigKeys
+import com.exam.assistant.core.data.RemoteConfig
 import com.exam.assistant.core.data.SettingsStore
 import com.exam.assistant.core.design.AccentPalette
-import com.exam.assistant.core.design.ThemeChoice
+import com.exam.assistant.core.design.BackgroundAppearance
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +19,7 @@ import kotlinx.coroutines.launch
 /** What the first frame needs, and nothing else. */
 data class StartupState(
     val ready: Boolean = false,
-    val theme: ThemeChoice = ThemeChoice.System,
+    val background: BackgroundAppearance = BackgroundAppearance.Default,
     val palette: AccentPalette = AccentPalette.Default,
     val hasPlan: Boolean = false,
 )
@@ -31,6 +33,7 @@ data class StartupState(
 class StartupViewModel(
     private val settings: SettingsStore,
     private val planStore: PlanStore,
+    private val remoteConfig: RemoteConfig,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(StartupState())
@@ -39,13 +42,23 @@ class StartupViewModel(
     init {
         viewModelScope.launch {
             coroutineScope {
-                val theme = async { settings.themeChoiceOnce() }
+                val background = async { settings.backgroundAppearanceOnce() }
                 val palette = async { settings.accentPaletteOnce() }
                 val hasPlan = async { planStore.exists() }
                 _state.value = StartupState(
                     ready = true,
-                    theme = theme.await().toThemeChoice(),
-                    palette = AccentPalette.fromId(palette.await()),
+                    background = BackgroundAppearance.fromId(
+                        background.await() ?: remoteConfig.string(
+                            ConfigKeys.DEFAULT_BACKGROUND_THEME,
+                            BackgroundAppearance.Default.id,
+                        ),
+                    ),
+                    palette = AccentPalette.fromId(
+                        palette.await() ?: remoteConfig.string(
+                            ConfigKeys.DEFAULT_ACCENT_THEME,
+                            AccentPalette.Default.id,
+                        ),
+                    ),
                     hasPlan = hasPlan.await(),
                 )
             }
@@ -53,28 +66,22 @@ class StartupViewModel(
     }
 
     /** Persists the choice; the theme flow pushes the new value back into state. */
-    fun setTheme(choice: ThemeChoice) {
+    fun setBackground(background: BackgroundAppearance) {
         viewModelScope.launch {
-            settings.setThemeChoice(
-                when (choice) {
-                    ThemeChoice.Light -> SettingsStore.LIGHT
-                    ThemeChoice.Dark -> SettingsStore.DARK
-                    ThemeChoice.System -> SettingsStore.SYSTEM
-                }
-            )
+            settings.setBackgroundAppearance(background.id)
         }
     }
 
     /** Live updates once the app is running, e.g. from Settings. */
     fun observeTheme() {
         viewModelScope.launch {
-            settings.themeChoice.collect { value ->
-                _state.value = _state.value.copy(theme = value.toThemeChoice())
+            settings.backgroundAppearance.collect { value ->
+                if (value != null) _state.value = _state.value.copy(background = BackgroundAppearance.fromId(value))
             }
         }
         viewModelScope.launch {
             settings.accentPalette.collect { value ->
-                _state.value = _state.value.copy(palette = AccentPalette.fromId(value))
+                if (value != null) _state.value = _state.value.copy(palette = AccentPalette.fromId(value))
             }
         }
     }
@@ -88,12 +95,6 @@ class StartupViewModel(
     class Factory(private val container: AppContainer) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            StartupViewModel(container.settings, container.planStore) as T
+            StartupViewModel(container.settings, container.planStore, container.remoteConfig) as T
     }
-}
-
-private fun String.toThemeChoice(): ThemeChoice = when (this) {
-    SettingsStore.LIGHT -> ThemeChoice.Light
-    SettingsStore.DARK -> ThemeChoice.Dark
-    else -> ThemeChoice.System
 }
