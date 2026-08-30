@@ -39,6 +39,7 @@ import { AppShell } from './home/app-shell';
 
     /* Handset viewport: 390 x 844 at 1x, the box the Compose screens ship into. */
     .phone {
+      position: relative;
       width: 390px;
       height: 844px;
       overflow: hidden;

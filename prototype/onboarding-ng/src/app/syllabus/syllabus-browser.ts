@@ -5,8 +5,6 @@ import { MatRippleModule } from '@angular/material/core';
 import { OnboardingStore } from '../onboarding/state';
 import { PACK, Subject, Section, Chapter, chapterIsDone } from '../onboarding/exam-pack';
 
-type Filter = 'all' | 'due';
-
 /**
  * Syllabus browser, following SyllabusScreen.kt: a subject chip row, a
  * filter/stats bar, then a card per subject whose details open into a tree of
@@ -27,29 +25,28 @@ type Filter = 'all' | 'due';
       }
     </mat-tab-group>
 
-    <div class="stats">
-      <div class="filter">
-        <span class="stat-label">Filter</span>
-        <div class="pills">
-          <button matRipple class="pill" [class.on]="filter() === 'all'" (click)="filter.set('all')">
-            All ({{ subjects.length }})
+    <div class="filters">
+      <div class="chips">
+        @for (f of filterChips; track f.id) {
+          <button
+            matRipple
+            class="chip"
+            [class.on]="isFilterOn(f.id)"
+            (click)="toggleFilter(f.id)">
+            @if (isFilterOn(f.id)) { <mat-icon>check</mat-icon> }
+            {{ f.label }}@if (f.count !== null) { <span class="count">{{ f.count() }}</span> }
           </button>
-          <button matRipple class="pill" [class.on]="filter() === 'due'" (click)="filter.set('due')">
-            Due ({{ dueCount() }})
-          </button>
-        </div>
+        }
       </div>
 
-      <div class="boxes">
-        <div class="box">
-          <span class="stat-label">Completed</span>
-          <span class="stat-value">{{ completedPercent() }}%</span>
-        </div>
-        <div class="box">
-          <span class="stat-label">Planned</span>
-          <span class="stat-value">{{ formatHours(plannedHours()) }}</span>
-        </div>
-      </div>
+      <button
+        matRipple
+        class="more"
+        [class.badged]="hiddenFilterOn()"
+        aria-label="More filters"
+        (click)="sheetOpen.set(true)">
+        <mat-icon>tune</mat-icon>
+      </button>
     </div>
 
     @for (s of visible(); track s.id) {
@@ -60,7 +57,7 @@ type Filter = 'all' | 'due';
           </span>
           <span class="titles">
             <span class="name">{{ s.name }}</span>
-            <span class="meta">{{ done(s) }}/{{ total(s) }} chapters · {{ s.questions }} Q in paper</span>
+            <span class="meta">{{ subjectMeta(s) }}</span>
           </span>
           <button matRipple class="play filled" [attr.aria-label]="'Start ' + s.name">
             <mat-icon>play_arrow</mat-icon>
@@ -74,7 +71,7 @@ type Filter = 'all' | 'due';
 
         @if (isCardOpen(s.id)) {
           <div class="tree">
-            @for (section of s.sections; track section.name) {
+            @for (section of sections(s); track section.name) {
               <div class="node depth0">
                 <button matRipple class="node-main" (click)="toggleSection(s.id + section.name)">
                   <mat-icon class="chev">
@@ -167,47 +164,47 @@ type Filter = 'all' | 'due';
         }
       </section>
     }
+
+    @if (sheetOpen()) {
+      <div class="scrim" (click)="sheetOpen.set(false)"></div>
+      <div class="sheet" role="dialog" aria-label="Filters">
+        <span class="handle"></span>
+
+        @for (group of filterGroups; track group.name) {
+          <h4 class="sheet-label">{{ group.name }}</h4>
+          @for (f of group.options; track f.id) {
+            <button matRipple class="sheet-row" (click)="toggleFilter(f.id)">
+              <mat-icon>{{ isFilterOn(f.id) ? 'check_box' : 'check_box_outline_blank' }}</mat-icon>
+              <span class="sheet-name">{{ f.label }}</span>
+              @if (f.count !== null) { <span class="count">{{ f.count() }}</span> }
+            </button>
+          }
+        }
+
+        <div class="sheet-actions">
+          <button matRipple class="text-button" (click)="resetFilters()">Reset</button>
+          <button matRipple class="filled-button" (click)="sheetOpen.set(false)">
+            Show {{ shownChapters() }} chapters
+          </button>
+        </div>
+      </div>
+    }
   `,
   styles: `
-    /* Subject switching is a tab bar, not chips. */
-    .subjects { display: block; margin: 0 -16px 12px; }
-    ::ng-deep .subjects .mdc-tab { padding: 0 4px; min-width: 0; }
 
-    :host { display: flex; flex-direction: column; gap: 12px; }
+    /* Spacing is set per element, not by a host gap stacking on padding. */
+    :host { display: flex; flex-direction: column; }
 
     /* Filter pills on the left, stat boxes on the right. */
-    .stats { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
-    .filter { display: flex; flex-direction: column; gap: 4px; }
-    .pills { display: flex; gap: 8px; }
 
-    .pill {
-      height: 32px;
-      padding: 0 16px;
-      border: none;
-      border-radius: var(--mat-sys-corner-full);
-      background: var(--mat-sys-surface-container-high);
-      color: var(--mat-sys-on-surface-variant);
-      font: var(--mat-sys-label-large);
-      cursor: pointer;
-    }
 
-    .pill.on { background: var(--mat-sys-primary); color: var(--mat-sys-on-primary); }
 
-    .boxes { display: flex; gap: 8px; }
-    .box { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 
-    .stat-label { font: var(--mat-sys-label-medium); color: var(--mat-sys-on-surface-variant); }
 
-    .stat-value {
-      padding: 6px 12px;
-      border-radius: var(--mat-sys-corner-medium);
-      background: var(--mat-sys-surface-container-high);
-      font: var(--mat-sys-title-small);
-      color: var(--mat-sys-on-surface);
-    }
 
     /* Subject card */
     .subject {
+      margin-top: 0;
       padding: 16px;
       border-radius: var(--mat-sys-corner-extra-large);
       background: var(--mat-sys-surface-container);
@@ -280,12 +277,12 @@ type Filter = 'all' | 'due';
 
     .tree {
       margin-top: 8px;
-      padding-top: 4px;
+      padding-top: 8px;
       border-top: 1px solid var(--mat-sys-outline-variant);
     }
 
     /* Tree rows */
-    .node { display: flex; align-items: center; gap: 8px; padding: 8px 0; }
+    .node { display: flex; align-items: center; gap: 8px; padding: 0; min-height: 56px; }
 
     .node-main {
       flex: 1;
@@ -325,7 +322,11 @@ type Filter = 'all' | 'due';
 
     .chev { flex: none; font-size: 18px; width: 18px; height: 18px; color: var(--mat-sys-on-surface-variant); }
 
-    .node-body { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .node-body { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
+    /* Rows are separated by the scale, not by their own padding. */
+    .depth0 + .branch { margin-top: 8px; }
+    .branch > * + * { margin-top: 8px; }
 
     .depth0 .node-name { font: var(--mat-sys-title-medium); }
     .depth1 .node-name { font: var(--mat-sys-body-large); }
@@ -404,19 +405,250 @@ type Filter = 'all' | 'due';
       width: 4px;
       background: var(--mat-sys-surface-container);
     }
+
+    /* M3 secondary tabs, 48dp, with a rounded full-width indicator. */
+    .subjects {
+      display: block;
+      margin: 0 -16px;
+      --mat-tab-container-height: 48px;
+    }
+
+    ::ng-deep .subjects .mdc-tab { padding: 0 4px; min-width: 0; }
+
+    ::ng-deep .subjects .mdc-tab .mdc-tab__text-label {
+      font: var(--mat-sys-title-small);
+      letter-spacing: 0.1px;
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    ::ng-deep .subjects .mdc-tab--active .mdc-tab__text-label {
+      color: var(--mat-sys-primary);
+    }
+
+    ::ng-deep .subjects .mdc-tab-indicator__content--underline {
+      width: 100%;
+      border-top-width: 3px;
+      border-radius: 3px 3px 0 0;
+      border-color: var(--mat-sys-primary);
+    }
+
+    ::ng-deep .subjects .mat-mdc-tab-header { border-bottom: none; }
+
+    .filters {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      background: var(--mat-sys-surface);
+    }
+
+    .chips {
+      flex: 1;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent 100%);
+    }
+
+    .chips::-webkit-scrollbar { display: none; }
+
+    /* M3 filter chip: 32dp, outlined until selected, then tonal with a check. */
+    .chip {
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 32px;
+      padding: 0 12px;
+      border: 1px solid var(--mat-sys-outline-variant);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--mat-sys-on-surface-variant);
+      font: var(--mat-sys-label-large);
+      cursor: pointer;
+    }
+
+    .chip.on {
+      border-color: transparent;
+      background: var(--mat-sys-secondary-container);
+      color: var(--mat-sys-on-secondary-container);
+    }
+
+    .chip mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    .count { opacity: .7; }
+
+    .more {
+      position: relative;
+      flex: none;
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border: none;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--mat-sys-on-surface-variant);
+      cursor: pointer;
+    }
+
+    /* A filter that is on but not visible in the row still has to show. */
+    .more.badged::after {
+      content: '';
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--mat-sys-primary);
+    }
+
+    /* Bottom sheet */
+    .scrim {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      background: rgb(0 0 0 / .32);
+    }
+
+    .sheet {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 4;
+      display: flex;
+      flex-direction: column;
+      padding: 8px 16px 16px;
+      border-radius: 28px 28px 0 0;
+      background: var(--mat-sys-surface-container-low);
+      color: var(--mat-sys-on-surface);
+    }
+
+    .handle {
+      width: 32px;
+      height: 4px;
+      margin: 0 auto 8px;
+      border-radius: 2px;
+      background: var(--mat-sys-outline-variant);
+    }
+
+    .sheet-label {
+      margin: 12px 0 4px;
+      font: var(--mat-sys-title-small);
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    .sheet-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-height: 56px;
+      padding: 0 4px;
+      border: none;
+      background: transparent;
+      color: var(--mat-sys-on-surface);
+      font: var(--mat-sys-body-large);
+      cursor: pointer;
+    }
+
+    .sheet-name { flex: 1; text-align: left; }
+    .sheet-row mat-icon { color: var(--mat-sys-primary); }
+
+    .sheet-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .text-button {
+      height: 40px;
+      padding: 0 12px;
+      border: none;
+      border-radius: var(--mat-sys-corner-full);
+      background: transparent;
+      color: var(--mat-sys-primary);
+      font: var(--mat-sys-label-large);
+      cursor: pointer;
+    }
+
+    .filled-button {
+      flex: 1;
+      height: 40px;
+      border: none;
+      border-radius: var(--mat-sys-corner-full);
+      background: var(--mat-sys-primary);
+      color: var(--mat-sys-on-primary);
+      font: var(--mat-sys-label-large);
+      cursor: pointer;
+    }
   `,
 })
 export class SyllabusBrowser {
   protected readonly store = inject(OnboardingStore);
   protected readonly subjects = PACK.subjects;
 
-  protected readonly filter = signal<Filter>('all');
+  /** Active filter ids. Empty means everything. */
+  private readonly active = signal<ReadonlySet<string>>(new Set());
+  protected readonly sheetOpen = signal(false);
+
+  /** The cuts that ride in the chip row; the rest live in the sheet. */
+  protected readonly filterChips = [
+    { id: 'due', label: 'Due', count: () => this.dueChapters() },
+    { id: 'cls11', label: 'Class 11', count: null },
+    { id: 'cls12', label: 'Class 12', count: null },
+  ];
+
+  protected readonly filterGroups = [
+    {
+      name: 'Status',
+      options: [
+        { id: 'due', label: 'Not finished', count: () => this.dueChapters() },
+        { id: 'done', label: 'Finished', count: () => this.doneChapters() },
+      ],
+    },
+    {
+      name: 'Class',
+      options: [
+        { id: 'cls11', label: 'Class 11', count: null },
+        { id: 'cls12', label: 'Class 12', count: null },
+      ],
+    },
+  ];
+
+  protected isFilterOn(id: string): boolean { return this.active().has(id); }
+
+  protected toggleFilter(id: string): void {
+    const next = new Set(this.active());
+    next.has(id) ? next.delete(id) : next.add(id);
+    // Status cuts are mutually exclusive; class cuts stack.
+    if (id === 'due') next.delete('done');
+    if (id === 'done') next.delete('due');
+    this.active.set(next);
+  }
+
+  protected resetFilters(): void { this.active.set(new Set()); }
+
+  /** True when something is filtering that the chip row does not show. */
+  protected readonly hiddenFilterOn = computed(() =>
+    [...this.active()].some((id) => !this.filterChips.some((c) => c.id === id)),
+  );
   private readonly openCards = signal<ReadonlySet<string>>(new Set([PACK.subjects[0].id]));
   private readonly openSections = signal<ReadonlySet<string>>(
     new Set([PACK.subjects[0].id + PACK.subjects[0].sections[0].name]),
   );
 
   protected readonly current = signal(PACK.subjects[0].id);
+
+  /** The subject on screen; the tabs are the selector. */
+  protected readonly subject = computed(
+    () => PACK.subjects.find((s) => s.id === this.current())!,
+  );
 
   protected readonly index = computed(() =>
     PACK.subjects.findIndex((s) => s.id === this.current()),
@@ -431,23 +663,52 @@ export class SyllabusBrowser {
     this.subjects.filter((s) => s.id === this.current()),
   );
 
-  protected readonly dueCount = computed(
-    () => this.subjects.filter((s) => this.percent(s) < 100).length,
-  );
-
-  protected readonly completedPercent = computed(() => {
-    const all = this.subjects.flatMap((s) => s.sections.flatMap((sec) => sec.chapters));
-    const done = all.filter((c) => this.store.doneUnits().has(c.id)).length;
-    return Math.round((done / all.length) * 100);
-  });
-
-  /** Hours still to cover — what the plan has left to fit. */
-  protected readonly plannedHours = computed(() => this.store.requiredHours());
+  /** Groups with nothing left after filtering should not render at all. */
+  protected sections(s: Subject): Section[] {
+    return s.sections.filter((sec) => this.chapters(sec).length > 0);
+  }
 
   protected chapters(section: Section): Chapter[] {
-    return this.filter() === 'due'
-      ? section.chapters.filter((c) => !this.isDone(c))
-      : section.chapters;
+    const active = this.active();
+    return section.chapters.filter((c) => {
+      if (active.has('due') && this.isDone(c)) return false;
+      if (active.has('done') && !this.isDone(c)) return false;
+      if (active.has('cls11') && !active.has('cls12') && c.cls !== 11) return false;
+      if (active.has('cls12') && !active.has('cls11') && c.cls !== 12) return false;
+      return true;
+    });
+  }
+
+  private allChapters(): Chapter[] {
+    return this.subject().sections.flatMap((sec) => sec.chapters);
+  }
+
+  protected dueChapters(): number {
+    return this.allChapters().filter((c) => !this.isDone(c)).length;
+  }
+
+  protected doneChapters(): number {
+    return this.allChapters().filter((c) => this.isDone(c)).length;
+  }
+
+  protected shownChapters(): number {
+    return this.subject().sections.reduce((n, sec) => n + this.chapters(sec).length, 0);
+  }
+
+  /** The card carries the numbers the stats boxes used to. */
+  protected subjectMeta(s: Subject): string {
+    const shown = this.shownChapters();
+    const total = this.total(s);
+    const hours = Math.round(
+      s.sections
+        .flatMap((sec) => sec.chapters)
+        .filter((c) => !this.isDone(c))
+        .reduce((n, c) => n + c.hours, 0),
+    );
+    const head = shown === total
+      ? `${this.done(s)}/${total} chapters`
+      : `${shown} of ${total} chapters`;
+    return `${head} · ${hours}h · ${s.questions} Q`;
   }
 
   private readonly openChapters = signal<ReadonlySet<string>>(new Set());
