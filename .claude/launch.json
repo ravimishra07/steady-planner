@@ -2,24 +2,17 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "study-planner",
+      "name": "onboarding-ng",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "--prefix",
-        "next-port",
-        "run",
-        "dev"
+        "prototype/onboarding-ng",
+        "start",
+        "--",
+        "--port",
+        "4300"
       ],
-      "port": 3000
-    },
-    {
-      "name": "design-prototype",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": [
-        "design/serve.py",
-        "8765"
-      ],
-      "port": 8765
+      "port": 4300
     }
   ]
 }

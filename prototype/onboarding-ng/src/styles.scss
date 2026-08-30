@@ -1,0 +1,58 @@
+// Material 3 theming. Every color in this prototype comes from an M3 system
+// role (--mat-sys-*). No component ever writes a raw hex.
+@use '@angular/material' as mat;
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { height: 100%; }
+
+body {
+  margin: 0;
+  height: 100%;
+  color-scheme: light dark;
+  background: light-dark(#e7e7ec, #0c0c10);
+  font-family: Roboto, system-ui, sans-serif;
+  display: grid;
+  place-items: center;
+}
+
+// The device shell owns the theme, so accent + appearance can be swapped at
+// runtime by changing the classes on it alone.
+.phone {
+  @include mat.theme((
+    color: (primary: mat.$violet-palette, tertiary: mat.$blue-palette),
+    typography: Roboto,
+    density: 0,
+  ));
+}
+
+.accent-blue   { @include mat.theme((color: (primary: mat.$azure-palette,  tertiary: mat.$cyan-palette))); }
+.accent-purple { @include mat.theme((color: (primary: mat.$violet-palette, tertiary: mat.$blue-palette))); }
+.accent-green  { @include mat.theme((color: (primary: mat.$green-palette,  tertiary: mat.$spring-green-palette))); }
+.accent-amber  { @include mat.theme((color: (primary: mat.$orange-palette, tertiary: mat.$yellow-palette))); }
+.accent-rose   { @include mat.theme((color: (primary: mat.$rose-palette,   tertiary: mat.$magenta-palette))); }
+
+// Appearance = which side of the light-dark() pair resolves, plus an optional
+// neutral shift of the surface family (grey / slate), still M3 roles only.
+.bg-light { color-scheme: light; }
+.bg-dark  { color-scheme: dark; }
+
+.bg-grey {
+  color-scheme: light;
+  --mat-sys-surface: #f3f4f6;
+  --mat-sys-surface-container-lowest: #ffffff;
+  --mat-sys-surface-container-low: #eef0f3;
+  --mat-sys-surface-container: #e9eaee;
+  --mat-sys-surface-container-high: #e2e4e9;
+  --mat-sys-surface-container-highest: #dcdee4;
+}
+
+.bg-slate {
+  color-scheme: dark;
+  --mat-sys-surface: #111820;
+  --mat-sys-surface-container-lowest: #0c1218;
+  --mat-sys-surface-container-low: #18212a;
+  --mat-sys-surface-container: #1a232d;
+  --mat-sys-surface-container-high: #202b36;
+  --mat-sys-surface-container-highest: #293542;
+}
