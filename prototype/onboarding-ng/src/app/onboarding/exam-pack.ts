@@ -1,3 +1,5 @@
+import { CLASS11_SUBTOPICS } from './class11-subtopics';
+
 /**
  * Exam pack model. Nothing here is NEET-specific — an SSC or JEE pack drops in
  * the same shape, mirroring syllabus_cgl.json's subject → unit → chapter tree.
@@ -42,8 +44,13 @@ export interface ExamPack {
   subjects: Subject[];
 }
 
-/** Section headings by chapter name, loaded from the fetched NCERT pack. */
-const SUBTOPICS: Record<string, string[]> = {};
+/** Botany and Zoology both draw on the NCERT Biology books. */
+function packSubject(id: string): string {
+  return id === 'botany' || id === 'zoology' ? 'biology' : id;
+}
+
+/** Section headings by subject and chapter, from the NCERT chapter PDFs. */
+const SUBTOPICS: Record<string, string[]> = CLASS11_SUBTOPICS;
 
 /** Total planning hours the pack is budgeted at, split by paper weight. */
 const PACK_HOURS = 900;
@@ -67,7 +74,7 @@ function build(
           name: c.name,
           cls,
           hours: per,
-          subtopics: (SUBTOPICS[c.name] ?? []).map((name, j) => ({
+          subtopics: (SUBTOPICS[`${packSubject(id)}::${c.name}`] ?? []).map((name, j) => ({
             id: `${chapterId}.${j + 1}`,
             name,
           })),

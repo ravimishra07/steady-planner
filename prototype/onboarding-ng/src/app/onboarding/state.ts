@@ -91,12 +91,15 @@ export class OnboardingStore {
 
   readonly step = signal<StepId>('appearance');
 
-  /** Onboarding is done; the app shell takes over. */
-  readonly started = signal(false);
+  /**
+   * Onboarding is done; the app shell takes over. Defaults to true while the
+   * shell is being built — set to false to walk the onboarding flow.
+   */
+  readonly started = signal(true);
   readonly dateMode = signal<DateMode>('exam');
   readonly targetDate = signal<Date>(addDays(startOfToday(), 118));
-  readonly examId = signal('');
-  readonly coachingId = signal('');
+  readonly examId = signal('cgl');
+  readonly coachingId = signal('allen');
   readonly shapeId = signal('col');
   readonly weekdayHours = signal(4);
   readonly weekendHours = signal(7);
