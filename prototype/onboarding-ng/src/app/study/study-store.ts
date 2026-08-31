@@ -1,7 +1,8 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { persisted, persistedMap } from '../core/persist';
 import { OnboardingStore, addDays, startOfToday } from '../onboarding/state';
-import { ALL_CHAPTERS, chapterIsDone } from '../onboarding/exam-pack';
+import { ALL_CHAPTERS, Chapter, chapterIsDone } from '../onboarding/exam-pack';
+import { Recall, dueDate, overdueDays, retentionState, strength } from './retention';
 
 export type Task = 'Learn' | 'Practice' | 'Revise';
 
@@ -17,6 +18,8 @@ export interface LoggedSession {
   minutes: number;
   attempted?: number;
   correct?: number;
+  /** How the sitting went, when the user said. */
+  recall?: Recall;
 }
 
 /** Per-chapter state beyond done / not-done. */
@@ -27,6 +30,10 @@ export interface ChapterStat {
   correct: number;
   /** dateKey of the last time the chapter was touched at all. */
   lastTouched: string | null;
+  /** How well it went last time, as the user reported it. */
+  recall: Recall | null;
+  /** dateKey the next revision falls due. Null until something is learnt. */
+  dueKey: string | null;
 }
 
 /** A block the user added into a free slot themselves. */
@@ -49,7 +56,14 @@ export function parseKey(key: string): Date {
   return new Date(y, m - 1, d);
 }
 
-const EMPTY_STAT: ChapterStat = { revisions: 0, attempted: 0, correct: 0, lastTouched: null };
+const EMPTY_STAT: ChapterStat = {
+  revisions: 0,
+  attempted: 0,
+  correct: 0,
+  lastTouched: null,
+  recall: null,
+  dueKey: null,
+};
 
 @Injectable({ providedIn: 'root' })
 export class StudyStore {
@@ -83,7 +97,10 @@ export class StudyStore {
   }
 
   stat(chapterId: string): ChapterStat {
-    return this.stats().get(chapterId) ?? EMPTY_STAT;
+    // Merged, not returned raw: a stat stored before retention existed has no
+    // recall or due date, and every reader assumes both fields are present.
+    const stored = this.stats().get(chapterId);
+    return stored ? { ...EMPTY_STAT, ...stored } : EMPTY_STAT;
   }
 
   private patch(chapterId: string, change: Partial<ChapterStat>): void {
@@ -97,11 +114,24 @@ export class StudyStore {
     this.sessions.set([...this.sessions(), { ...session, id: crypto.randomUUID() }]);
 
     const stat = this.stat(session.chapterId);
+    const revisions =
+      session.task === 'Revise' ? Math.min(4, stat.revisions + 1) : stat.revisions;
+    const recall = session.recall ?? stat.recall;
+
+    // Every sitting that touches the material re-schedules the next pass. A
+    // Practice run counts as a look at it, so it pushes the due date out too.
+    const due =
+      session.task === 'Learn' || session.task === 'Revise' || session.task === 'Practice'
+        ? dateKey(dueDate(parseKey(session.dateKey), revisions, recall))
+        : stat.dueKey;
+
     this.patch(session.chapterId, {
       lastTouched: session.dateKey,
       attempted: stat.attempted + (session.attempted ?? 0),
       correct: stat.correct + (session.correct ?? 0),
-      revisions: session.task === 'Revise' ? Math.min(3, stat.revisions + 1) : stat.revisions,
+      revisions,
+      recall,
+      dueKey: due,
     });
 
     // A finished Learn block ticks the subtopic it covered, so the syllabus
@@ -221,6 +251,53 @@ export class StudyStore {
     return series.reduce((n, d) => n + d.minutes, 0) / days;
   }
 
+  /* ---- Retention ------------------------------------------------------ */
+
+  /** Every chapter that has been started, with what it is worth right now. */
+  readonly retention = computed(() =>
+    ALL_CHAPTERS.map((chapter) => {
+      const stat = this.stat(chapter.id);
+      return {
+        chapter,
+        stat,
+        state: retentionState(stat.lastTouched, stat.dueKey),
+        strength: strength(stat.lastTouched, stat.dueKey),
+        overdue: overdueDays(stat.dueKey),
+      };
+    }).filter((row) => row.stat.lastTouched !== null),
+  );
+
+  /** Due today or overdue, the most decayed first — the revision queue. */
+  readonly dueNow = computed(() =>
+    this.retention()
+      .filter((row) => row.state === 'due' || row.state === 'slipping' || row.state === 'lost')
+      .sort((a, b) => a.strength - b.strength || b.overdue - a.overdue),
+  );
+
+  readonly slipping = computed(() =>
+    this.retention().filter((row) => row.state === 'slipping' || row.state === 'lost'),
+  );
+
+  /** Average hold across everything started. The honest version of coverage. */
+  readonly heldStrength = computed(() => {
+    const rows = this.retention();
+    if (rows.length === 0) return null;
+    return rows.reduce((n, r) => n + r.strength, 0) / rows.length;
+  });
+
+  /** What falls due over the coming week, for the look-ahead strip. */
+  dueOver(days: number): { date: Date; count: number }[] {
+    const today = startOfToday();
+    return Array.from({ length: days }, (_, i) => {
+      const date = addDays(today, i);
+      const key = dateKey(date);
+      const count = this.retention().filter((r) =>
+        i === 0 ? (r.stat.dueKey ?? '') <= key : r.stat.dueKey === key,
+      ).length;
+      return { date, count };
+    });
+  }
+
   /** Chapters with enough questions behind them to judge, weakest first. */
   readonly weakChapters = computed(() =>
     ALL_CHAPTERS.map((chapter) => ({ chapter, stat: this.stat(chapter.id) }))
@@ -229,14 +306,11 @@ export class StudyStore {
       .sort((a, b) => a.rate - b.rate),
   );
 
-  /** Learnt, never revised, and not touched in a while — the quiet backlog. */
-  readonly staleChapters = computed(() => {
-    const done = this.onboarding.doneUnits();
-    const cutoff = dateKey(addDays(startOfToday(), -10));
-    return ALL_CHAPTERS.filter((c) => chapterIsDone(c, done))
-      .map((chapter) => ({ chapter, stat: this.stat(chapter.id) }))
-      .filter((row) => row.stat.revisions === 0 && (row.stat.lastTouched ?? '') < cutoff)
-      .sort((a, b) => (a.stat.lastTouched ?? '').localeCompare(b.stat.lastTouched ?? ''));
-  });
+  /** Learnt, never revised once, and already past due. */
+  readonly staleChapters = computed(() =>
+    this.retention()
+      .filter((row) => row.stat.revisions === 0 && row.overdue > 0)
+      .sort((a, b) => b.overdue - a.overdue),
+  );
 }
 

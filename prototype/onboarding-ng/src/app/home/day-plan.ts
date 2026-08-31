@@ -1,5 +1,6 @@
 import { ALL_CHAPTERS, Chapter, PACK, Subtopic, chapterIsDone } from '../onboarding/exam-pack';
 import { ChapterStat, Task } from '../study/study-store';
+import { overdueDays } from '../study/retention';
 import { Candidate } from './scheduler';
 
 /** How long each kind of sitting wants to be. */
@@ -13,15 +14,20 @@ const ROTATION = ['botany', 'physics', 'zoology', 'chemistry'];
 
 export interface PlanInput {
   doneUnits: ReadonlySet<string>;
+  /** Chapters the user has set aside; the plan never picks them. */
+  parked: ReadonlySet<string>;
   learnedSubtopics: ReadonlySet<string>;
   stat: (chapterId: string) => ChapterStat;
+  /** The day being planned, which is what "due" is measured against. */
+  date: Date;
   /** Slots to fill; more than needed is fine, the packer stops when full. */
   slots: number;
 }
 
 /**
- * What today should contain: learn forward, practise what was just learnt,
- * revise what is going stale — in that order, rotated across subjects.
+ * What today should contain. Revision that has fallen due comes first — the
+ * whole point of tracking retention is that the plan acts on it — then new
+ * material, then practice on what was just covered.
  */
 export function dayCandidates(input: PlanInput): Candidate[] {
   const out: Candidate[] = [];
@@ -30,7 +36,12 @@ export function dayCandidates(input: PlanInput): Candidate[] {
   const practice = practiceQueue(input, learn);
   const revise = reviseQueue(input);
 
-  const order: Task[] = ['Learn', 'Practice', 'Learn', 'Revise'];
+  // Anything badly overdue is not negotiable: it goes at the top of the day.
+  while (revise.length > 0 && (revise[0].overdue ?? 0) >= 3 && out.length < Math.ceil(input.slots / 2)) {
+    out.push(revise.shift()!);
+  }
+
+  const order: Task[] = ['Learn', 'Revise', 'Practice', 'Learn'];
   const queues: Record<Task, Candidate[]> = { Learn: learn, Practice: practice, Revise: revise };
 
   let i = 0;
@@ -65,6 +76,7 @@ function nextSubtopic(
 ): { chapter: Chapter; subtopic?: Subtopic } | null {
   let seen = 0;
   for (const chapter of chapters) {
+    if (input.parked.has(chapter.id)) continue;
     if (chapter.subtopics.length === 0) {
       if (input.doneUnits.has(chapter.id)) continue;
       if (seen++ < skip) continue;
@@ -86,7 +98,9 @@ function nextSubtopic(
  */
 function practiceQueue(input: PlanInput, learn: Candidate[]): Candidate[] {
   const started = ALL_CHAPTERS.filter(
-    (c) => input.stat(c.id).lastTouched !== null || chapterIsDone(c, input.doneUnits),
+    (c) =>
+      !input.parked.has(c.id) &&
+      (input.stat(c.id).lastTouched !== null || chapterIsDone(c, input.doneUnits)),
   ).sort((a, b) => input.stat(a.id).attempted - input.stat(b.id).attempted);
 
   const pool = started.length > 0 ? started : dedupe(learn.map((c) => c.chapter));
@@ -101,16 +115,23 @@ function dedupe(chapters: Chapter[]): Chapter[] {
   return chapters.filter((c) => (seen.has(c.id) ? false : (seen.add(c.id), true)));
 }
 
-/** Revision goes to finished chapters with the fewest passes, oldest first. */
+/**
+ * Revision is whatever has come due, most decayed first. Nothing else decides
+ * it — not the order chapters were learnt in, not how many passes they have had.
+ */
 function reviseQueue(input: PlanInput): Candidate[] {
-  return ALL_CHAPTERS.filter((c) => chapterIsDone(c, input.doneUnits))
-    .filter((c) => input.stat(c.id).revisions < 3)
-    .sort((a, b) => {
-      const sa = input.stat(a.id);
-      const sb = input.stat(b.id);
-      if (sa.revisions !== sb.revisions) return sa.revisions - sb.revisions;
-      return (sa.lastTouched ?? '').localeCompare(sb.lastTouched ?? '');
-    })
-    .slice(0, 6)
-    .map((chapter) => ({ task: 'Revise' as const, chapter, minutes: LENGTH.Revise }));
+  return ALL_CHAPTERS.filter((c) => !input.parked.has(c.id))
+    .map((chapter) => ({ chapter, stat: input.stat(chapter.id) }))
+    .filter((row) => row.stat.lastTouched !== null && row.stat.dueKey !== null)
+    .map((row) => ({ ...row, overdue: overdueDays(row.stat.dueKey, input.date) }))
+    .filter((row) => row.overdue >= 0)
+    .sort((a, b) => b.overdue - a.overdue)
+    .slice(0, 8)
+    .map((row) => ({
+      task: 'Revise' as const,
+      chapter: row.chapter,
+      // A chapter that has slipped badly needs more than a ten-minute look.
+      minutes: row.overdue >= 7 ? LENGTH.Revise + 15 : LENGTH.Revise,
+      overdue: row.overdue,
+    }));
 }

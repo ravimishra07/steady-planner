@@ -1,0 +1,81 @@
+import { addDays, startOfToday } from '../onboarding/state';
+
+/**
+ * Retention: the part of studying that the tick box hides. A chapter that was
+ * learnt and never seen again is not "done", and the app should be able to say
+ * so. Intervals are the standard expanding schedule, bent by how the user said
+ * the sitting actually went.
+ */
+
+/** What the user reports after a sitting. One tap, no numbers. */
+export type Recall = 'shaky' | 'okay' | 'solid';
+
+export const RECALLS: { id: Recall; label: string; icon: string }[] = [
+  { id: 'shaky', label: 'Shaky', icon: 'sentiment_dissatisfied' },
+  { id: 'okay', label: 'Okay', icon: 'sentiment_neutral' },
+  { id: 'solid', label: 'Solid', icon: 'sentiment_satisfied' },
+];
+
+/**
+ * Days until the next pass, by how many passes are already done. Expanding
+ * rehearsal: see it again soon, then less and less often.
+ */
+const BASE_INTERVAL = [3, 10, 30, 60];
+
+/** Shaky pulls the next pass in; solid pushes it out. */
+const RECALL_FACTOR: Record<Recall, number> = { shaky: 0.5, okay: 1, solid: 1.6 };
+
+/** Interval in days for the pass that comes after `revisions` completed ones. */
+export function nextInterval(revisions: number, recall: Recall | null): number {
+  const base = BASE_INTERVAL[Math.min(revisions, BASE_INTERVAL.length - 1)];
+  return Math.max(1, Math.round(base * RECALL_FACTOR[recall ?? 'okay']));
+}
+
+export function dueDate(from: Date, revisions: number, recall: Recall | null): Date {
+  return addDays(from, nextInterval(revisions, recall));
+}
+
+/**
+ * How well a chapter is probably still held, 0 to 1. Full strength on the day
+ * it was revised, decaying to zero one whole interval past its due date — so a
+ * chapter three weeks overdue reads as nearly gone, which it is.
+ */
+export function strength(
+  lastTouched: string | null,
+  dueKey: string | null,
+  today: Date = startOfToday(),
+): number {
+  if (!lastTouched || !dueKey) return 0;
+  const due = keyToDate(dueKey);
+  const overdue = Math.round((today.getTime() - due.getTime()) / 86_400_000);
+  if (overdue <= 0) return 1;
+  const last = keyToDate(lastTouched);
+  const interval = Math.max(1, Math.round((due.getTime() - last.getTime()) / 86_400_000));
+  return Math.max(0, 1 - overdue / interval);
+}
+
+/** Days a chapter is past due; negative means it is not due yet. */
+export function overdueDays(dueKey: string | null, today: Date = startOfToday()): number {
+  if (!dueKey) return 0;
+  return Math.round((today.getTime() - keyToDate(dueKey).getTime()) / 86_400_000);
+}
+
+export type RetentionState = 'fresh' | 'due' | 'slipping' | 'lost' | 'new';
+
+/** The four words the whole system reduces to. */
+export function retentionState(
+  lastTouched: string | null,
+  dueKey: string | null,
+  today: Date = startOfToday(),
+): RetentionState {
+  if (!lastTouched || !dueKey) return 'new';
+  const over = overdueDays(dueKey, today);
+  if (over < 0) return 'fresh';
+  if (over === 0) return 'due';
+  return strength(lastTouched, dueKey, today) > 0 ? 'slipping' : 'lost';
+}
+
+function keyToDate(key: string): Date {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}

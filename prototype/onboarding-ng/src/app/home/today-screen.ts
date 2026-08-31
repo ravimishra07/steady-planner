@@ -6,6 +6,7 @@ import { MatRippleModule } from '@angular/material/core';
 import { COACHINGS, OnboardingStore, addDays, startOfToday } from '../onboarding/state';
 import { ALL_CHAPTERS, Chapter, chapterIsDone } from '../onboarding/exam-pack';
 import { StudyStore, Task, dateKey } from '../study/study-store';
+import { RECALLS, Recall, nextInterval } from '../study/retention';
 import { Block, StudyBlock, freeWindows, layOutDay, subjectLabel } from './scheduler';
 import { dayCandidates } from './day-plan';
 
@@ -103,6 +104,11 @@ const MIN_BLOCK_HEIGHT = 72;
               <button matRipple class="block" [class.done]="block.done" (click)="openSession(block)">
                 <span class="block-head">
                   <span class="tag" [class]="'tag-' + block.task.toLowerCase()">{{ block.task }}</span>
+                  @if (block.overdue !== undefined && block.overdue > 0) {
+                    <span class="overdue">{{ block.overdue }}d overdue</span>
+                  } @else if (block.overdue === 0) {
+                    <span class="due">due today</span>
+                  }
                   <span class="len">{{ format(block.minutes) }}</span>
                 </span>
                 <span class="title">{{ block.title }}</span>
@@ -163,6 +169,17 @@ const MIN_BLOCK_HEIGHT = 72;
             </label>
           </div>
         }
+
+        <h4 class="sheet-label">How did it go?</h4>
+        <div class="recalls">
+          @for (r of recalls; track r.id) {
+            <button matRipple class="recall" [class.on]="recall() === r.id" (click)="recall.set(r.id)">
+              <mat-icon>{{ r.icon }}</mat-icon>
+              {{ r.label }}
+            </button>
+          }
+        </div>
+        <p class="next-due">{{ nextDueLabel(s) }}</p>
 
         <button matRipple class="filled-button" (click)="complete(s)">
           {{ s.task === 'Learn' ? 'Mark covered' : s.task === 'Revise' ? 'Mark revised' : 'Save attempt' }}
@@ -450,6 +467,9 @@ const MIN_BLOCK_HEIGHT = 72;
     }
     .tag-class { background: var(--mat-sys-surface-container-highest); color: var(--mat-sys-on-surface-variant); }
 
+    .overdue { font: var(--mat-sys-label-small); color: var(--mat-sys-error); }
+    .due { font: var(--mat-sys-label-small); color: var(--mat-sys-primary); }
+
     .len { margin-left: auto; font: var(--mat-sys-label-large); color: var(--mat-sys-on-surface-variant); }
 
     .block.fixed { cursor: default; opacity: .7; }
@@ -572,6 +592,36 @@ const MIN_BLOCK_HEIGHT = 72;
       color: var(--mat-sys-on-secondary-container);
     }
 
+    /* Three taps, no numbers — the only self-report the app asks for. */
+    .recalls { display: flex; gap: 8px; margin-top: 12px; }
+
+    .recall {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 10px 4px;
+      border: 1px solid var(--mat-sys-outline-variant);
+      border-radius: var(--mat-sys-corner-large);
+      background: transparent;
+      color: var(--mat-sys-on-surface-variant);
+      font: var(--mat-sys-label-medium);
+      cursor: pointer;
+    }
+
+    .recall.on {
+      border-color: transparent;
+      background: var(--mat-sys-secondary-container);
+      color: var(--mat-sys-on-secondary-container);
+    }
+
+    .next-due {
+      margin: 8px 0 0;
+      font: var(--mat-sys-label-medium);
+      color: var(--mat-sys-on-surface-variant);
+    }
+
     .score-row { display: flex; align-items: flex-end; gap: 8px; margin-top: 16px; }
     .score-row label { flex: 1; display: flex; flex-direction: column; gap: 4px; }
     .field-label { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
@@ -616,6 +666,8 @@ export class TodayScreen {
   protected readonly pickTask = signal<Task>('Learn');
   protected readonly breakOpen = signal(false);
   protected readonly breakChoices = [5, 10, 15, 20, 30];
+  protected readonly recalls = RECALLS;
+  protected readonly recall = signal<Recall>('okay');
   protected readonly attempted = signal(0);
   protected readonly correct = signal(0);
 
@@ -661,8 +713,10 @@ export class TodayScreen {
 
     const candidates = dayCandidates({
       doneUnits: this.planningDone(),
+      parked: this.store.parkedChapters(),
       learnedSubtopics: this.study.learnedSubtopics(),
       stat: (id) => this.study.stat(id),
+      date,
       slots: 8,
     });
 
@@ -780,7 +834,16 @@ export class TodayScreen {
   protected openSession(block: StudyBlock): void {
     this.attempted.set(block.questions ?? 0);
     this.correct.set(0);
+    this.recall.set(this.study.stat(block.chapterId).recall ?? 'okay');
     this.session.set(block);
+  }
+
+  /** Says out loud what marking this will do to the schedule. */
+  protected nextDueLabel(block: StudyBlock): string {
+    const stat = this.study.stat(block.chapterId);
+    const revisions = block.task === 'Revise' ? Math.min(4, stat.revisions + 1) : stat.revisions;
+    const days = nextInterval(revisions, this.recall());
+    return `Next look in ${days} day${days === 1 ? '' : 's'}.`;
   }
 
   protected closeSession(): void { this.session.set(null); }
@@ -795,6 +858,7 @@ export class TodayScreen {
       minutes: block.minutes,
       attempted: block.task === 'Practice' ? this.attempted() : undefined,
       correct: block.task === 'Practice' ? this.correct() : undefined,
+      recall: this.recall(),
     });
     this.session.set(null);
   }

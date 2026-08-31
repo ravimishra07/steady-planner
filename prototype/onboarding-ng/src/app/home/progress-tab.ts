@@ -1,9 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
+import { MatRippleModule } from '@angular/material/core';
 import { OnboardingStore, addDays, startOfToday } from '../onboarding/state';
 import { ALL_CHAPTERS, Chapter, PACK, Subject, chapterIsDone } from '../onboarding/exam-pack';
 import { StudyStore } from '../study/study-store';
+import { RetentionState } from '../study/retention';
 
 /**
  * Weeks the consistency grid shows. Long enough to read as a habit, short
@@ -22,7 +24,7 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
  */
 @Component({
   selector: 'app-progress-tab',
-  imports: [MatIconModule, DatePipe],
+  imports: [MatIconModule, MatRippleModule, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Readiness: the one composite number, stated as the estimate it is. -->
@@ -42,19 +44,89 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
 
       <div class="hero-side">
         <span class="hero-line"><b>{{ store.days() }}</b> days to the exam</span>
-        <span class="hero-line"><b>{{ rounds().learned }}</b> of {{ rounds().total }} chapters learnt</span>
-        <span class="hero-line"><b>{{ accuracyLabel() }}</b> accuracy so far</span>
-        <span class="hero-note">Estimate: coverage, revision depth and accuracy, weighted 4:3:3.</span>
+        <span class="hero-line">
+          <b>{{ rounds().learned }}</b> of {{ inPlay() }} chapters learnt
+          @if (store.parkedChapters().size > 0) { <span class="parked">· {{ store.parkedChapters().size }} parked</span> }
+        </span>
+        <span class="hero-line"><b>{{ held() }}</b> of that still held</span>
+        <span class="hero-note">Estimate: coverage held, retention and accuracy, weighted 4:3:3.</span>
       </div>
     </section>
 
     <!-- Pace. The single most useful sentence on the screen. -->
     <section class="verdict" [class.behind]="behind()" [class.unknown]="daysNeeded() === null">
-      <mat-icon>{{ verdictIcon() }}</mat-icon>
-      <span class="verdict-text">
-        <span class="verdict-head">{{ verdictHead() }}</span>
-        <span class="verdict-sub">{{ verdictSub() }}</span>
-      </span>
+      <div class="verdict-row">
+        <mat-icon>{{ verdictIcon() }}</mat-icon>
+        <span class="verdict-text">
+          <span class="verdict-head">{{ verdictHead() }}</span>
+          <span class="verdict-sub">{{ verdictSub() }}</span>
+        </span>
+      </div>
+
+      <!-- Always reachable: parking is reversible only if you can get back in. -->
+      @if (daysNeeded() !== null) {
+        <button matRipple class="verdict-cta" (click)="rebalanceOpen.set(true)">
+          <mat-icon>tune</mat-icon>
+          {{ behind() ? 'Rebalance the plan' : 'Adjust the plan' }}
+        </button>
+      }
+    </section>
+
+    <!-- Retention: the half of progress a tick box cannot show. -->
+    <section class="group">
+      <h2 class="label">What you still hold</h2>
+
+      <div class="card">
+        <div class="stat-row">
+          <span class="stat">
+            <span class="stat-value">{{ held() }}</span>
+            <span class="stat-caption">holding</span>
+          </span>
+          <span class="stat">
+            <span class="stat-value">{{ counts().fresh }}</span>
+            <span class="stat-caption">fresh</span>
+          </span>
+          <span class="stat">
+            <span class="stat-value" [class.down]="outstanding() > 0">{{ outstanding() }}</span>
+            <span class="stat-caption">to revise</span>
+          </span>
+          <span class="stat">
+            <span class="stat-value" [class.down]="counts().lost > 0">{{ counts().lost }}</span>
+            <span class="stat-caption">gone cold</span>
+          </span>
+        </div>
+
+        <div class="ahead">
+          @for (d of dueAhead(); track $index) {
+            <span class="ahead-day">
+              <span class="ahead-bar" [style.height.%]="aheadHeight(d.count)" [class.none]="d.count === 0"></span>
+              <span class="ahead-count">{{ d.count }}</span>
+              <span class="ahead-label">{{ $index === 0 ? 'due' : shortDay(d.date) }}</span>
+            </span>
+          }
+        </div>
+        <p class="foot">Outstanding now, then what falls due each day this week.</p>
+
+        @if (worst().length > 0) {
+          <h3 class="sub-label">Slipping fastest</h3>
+          @for (row of worst(); track row.chapter.id) {
+            <div class="attn">
+              <span class="attn-name">
+                {{ row.chapter.name }}
+                <span class="attn-sub">
+                  {{ subjectName(row.chapter) }} · {{ stateLabel(row.state) }}{{ row.overdue > 0 ? ', ' + row.overdue + 'd late' : '' }}
+                </span>
+              </span>
+              <span class="hold">
+                <span class="hold-track">
+                  <span class="hold-fill" [style.width.%]="Math.max(4, row.strength * 100)"></span>
+                </span>
+                <span class="hold-value">{{ Math.round(row.strength * 100) }}%</span>
+              </span>
+            </div>
+          }
+        }
+      </div>
     </section>
 
     <!-- Consistency -->
@@ -184,6 +256,76 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
       </div>
     </section>
 
+    <!-- Rebalance: a gap is a decision to make, not a scolding. -->
+    @if (rebalanceOpen()) {
+      <div class="scrim" (click)="rebalanceOpen.set(false)"></div>
+      <div class="sheet" role="dialog" aria-label="Rebalance the plan">
+        <span class="handle"></span>
+        <h3 class="sheet-title">{{ behind() ? "The plan doesn't fit" : 'Adjust the plan' }}</h3>
+        <p class="sheet-sub">
+          {{ store.requiredHours() }}h of syllabus, {{ store.days() }} days, and you are
+          averaging {{ perDay().toFixed(1) }}h a day.
+          {{ behind() ? 'Something has to give — you pick which.' : 'It fits, for now.' }}
+        </p>
+
+        @if (behind()) {
+        <button matRipple class="option" (click)="applyHours()">
+          <mat-icon>schedule</mat-icon>
+          <span class="option-text">
+            <span class="option-head">Study more</span>
+            <span class="option-sub">
+              {{ neededPerDay().toFixed(1) }}h a day covers it — up from {{ store.weekdayHours() }}h
+              on weekdays. Only real if the hours exist.
+            </span>
+          </span>
+        </button>
+
+        @if (store.dateMode() === 'syllabus') {
+          <button matRipple class="option" (click)="applyDate()">
+            <mat-icon>event</mat-icon>
+            <span class="option-text">
+              <span class="option-head">Move the target</span>
+              <span class="option-sub">
+                At this pace the syllabus lands {{ finishLabel() }}. Set that as the date and
+                the plan is honest again.
+              </span>
+            </span>
+          </button>
+        } @else {
+          <div class="option muted">
+            <mat-icon>event_busy</mat-icon>
+            <span class="option-text">
+              <span class="option-head">The date can't move</span>
+              <span class="option-sub">
+                The exam is {{ store.targetDate() | date: 'd MMM y' }}. At this pace the syllabus
+                would land {{ finishLabel() }}.
+              </span>
+            </span>
+          </div>
+        }
+
+        <button matRipple class="option" (click)="applyPark()">
+          <mat-icon>content_cut</mat-icon>
+          <span class="option-text">
+            <span class="option-head">Cut scope</span>
+            <span class="option-sub">
+              Park the {{ parkCount() }} chapters that fit least — {{ parkedMarks() }} marks of
+              the paper — and finish the rest properly.
+            </span>
+          </span>
+        </button>
+        }
+
+        @if (store.parkedChapters().size > 0) {
+          <button matRipple class="text-line" (click)="unpark()">
+            Bring back {{ store.parkedChapters().size }} parked chapters
+          </button>
+        }
+
+        <p class="sheet-foot">Nothing here is permanent. Change it again whenever.</p>
+      </div>
+    }
+
     <!-- What to do about it -->
     <section class="group">
       <h2 class="label">Needs attention</h2>
@@ -208,7 +350,7 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
             <div class="attn">
               <span class="attn-name">
                 {{ row.chapter.name }}
-                <span class="attn-sub">{{ subjectName(row.chapter) }} · last touched {{ since(row.stat.lastTouched) }}</span>
+                <span class="attn-sub">{{ subjectName(row.chapter) }} · {{ row.overdue }} days past due</span>
               </span>
               <mat-icon class="attn-icon">schedule</mat-icon>
             </div>
@@ -282,6 +424,7 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
     .hero-side { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
     .hero-line { font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
     .hero-line b { color: var(--mat-sys-on-surface); font-weight: 600; }
+    .parked { color: var(--mat-sys-tertiary); }
 
     .hero-note {
       margin-top: 4px;
@@ -313,9 +456,133 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
       color: var(--mat-sys-on-surface-variant);
     }
 
+    .verdict { flex-direction: column; gap: 12px; }
+    .verdict-row { display: flex; align-items: flex-start; gap: 12px; }
     .verdict-text { display: flex; flex-direction: column; gap: 2px; }
+
+    /* On the red card the button inverts; on the calm one it stays outlined. */
+    .verdict:not(.behind) .verdict-cta {
+      background: transparent;
+      box-shadow: inset 0 0 0 1px currentColor;
+      color: inherit;
+    }
+
+    .verdict-cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 40px;
+      border: none;
+      border-radius: var(--mat-sys-corner-full);
+      background: var(--mat-sys-on-error-container);
+      color: var(--mat-sys-error-container);
+      font: var(--mat-sys-label-large);
+      cursor: pointer;
+    }
+
+    .verdict-cta mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+    /* Sheet */
+    .scrim { position: absolute; inset: 0; z-index: 3; background: rgb(0 0 0 / .32); }
+
+    .sheet {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 4;
+      display: flex;
+      flex-direction: column;
+      padding: 8px 16px 24px;
+      border-radius: 28px 28px 0 0;
+      background: var(--mat-sys-surface-container-low);
+      color: var(--mat-sys-on-surface);
+    }
+
+    .handle {
+      width: 32px;
+      height: 4px;
+      margin: 0 auto 8px;
+      border-radius: 2px;
+      background: var(--mat-sys-outline-variant);
+    }
+
+    .sheet-title { margin: 4px 0 0; font: var(--mat-sys-title-large); }
+    .sheet-sub { margin: 4px 0 8px; font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
+
+    .option {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 12px 8px;
+      border: none;
+      background: transparent;
+      color: var(--mat-sys-on-surface);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .option mat-icon { color: var(--mat-sys-primary); }
+    .option.muted { cursor: default; }
+    .option.muted mat-icon { color: var(--mat-sys-on-surface-variant); }
+    .option-text { display: flex; flex-direction: column; gap: 2px; }
+    .option-head { font: var(--mat-sys-title-small); }
+    .option-sub { font: var(--mat-sys-body-small); color: var(--mat-sys-on-surface-variant); }
+
+    .text-line {
+      margin-top: 4px;
+      padding: 8px;
+      border: none;
+      background: transparent;
+      color: var(--mat-sys-primary);
+      font: var(--mat-sys-label-large);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .sheet-foot { margin: 8px 0 0; font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
     .verdict-head { font: var(--mat-sys-title-small); }
     .verdict-sub { font: var(--mat-sys-body-small); opacity: .85; }
+
+    /* Due look-ahead ---------------------------------------------------- */
+    .ahead { display: flex; align-items: flex-end; gap: 6px; height: 84px; }
+
+    .ahead-day {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 4px;
+    }
+
+    .ahead-bar {
+      width: 100%;
+      min-height: 3px;
+      border-radius: 3px 3px 1px 1px;
+      background: var(--mat-sys-primary);
+    }
+
+    .ahead-bar.none { background: var(--mat-sys-surface-container-highest); }
+    .ahead-count { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface); }
+    .ahead-label { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
+
+    /* How much of a chapter is probably still there. */
+    .hold { width: 56px; flex: none; display: flex; flex-direction: column; gap: 3px; align-items: flex-end; }
+    .hold-value { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
+
+    .hold-track {
+      display: block;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--mat-sys-surface-container-highest);
+      overflow: hidden;
+    }
+
+    .hold-fill { display: block; height: 100%; background: var(--mat-sys-error); }
 
     /* Stats row --------------------------------------------------------- */
     .stat-row { display: flex; gap: 8px; }
@@ -502,6 +769,7 @@ export class ProgressTab {
   protected readonly hoursDays = HOURS_DAYS;
   protected readonly heatmapWeeks = HEATMAP_WEEKS;
   protected readonly circumference = 2 * Math.PI * 52;
+  protected readonly Math = Math;
 
   /** Listed in the order the bar stacks them: deepest pass on the left. */
   protected readonly depthKey = [
@@ -513,15 +781,62 @@ export class ProgressTab {
 
   protected readonly rounds = computed(() => this.study.rounds());
 
+  /** Chapters actually in the plan — parked ones are out of the denominator. */
+  protected readonly inPlay = computed(
+    () => this.rounds().total - this.store.parkedChapters().size,
+  );
+
+  /* ---- Retention ------------------------------------------------------ */
+
+  protected readonly counts = computed(() => {
+    const rows = this.study.retention();
+    const of = (state: RetentionState) => rows.filter((r) => r.state === state).length;
+    return { fresh: of('fresh'), due: of('due'), slipping: of('slipping'), lost: of('lost') };
+  });
+
+  protected held(): string {
+    const value = this.study.heldStrength();
+    return value === null ? '—' : Math.round(value * 100) + '%';
+  }
+
+  /** Everything already due, whatever its state — what the planner will pick. */
+  protected readonly outstanding = computed(() => this.study.dueNow().length);
+
+  protected readonly dueAhead = computed(() => this.study.dueOver(7));
+
+  private readonly aheadMax = computed(() =>
+    Math.max(1, ...this.dueAhead().map((d) => d.count)),
+  );
+
+  protected aheadHeight(count: number): number {
+    return count === 0 ? 3 : Math.round((count / this.aheadMax()) * 100);
+  }
+
+  protected shortDay(date: Date): string {
+    return date.toLocaleDateString(undefined, { weekday: 'narrow' });
+  }
+
+  protected readonly worst = computed(() =>
+    this.study.slipping().slice(0, 3),
+  );
+
+  protected stateLabel(state: RetentionState): string {
+    return { fresh: 'holding', due: 'due today', slipping: 'slipping', lost: 'gone cold', new: 'not started' }[state];
+  }
+
   /* ---- Readiness ------------------------------------------------------ */
 
-  /** Coverage 40, depth 30, accuracy 30. Labelled an estimate on screen. */
+  /**
+   * Coverage 40, retention 30, accuracy 30. Coverage counts only what is still
+   * in the plan, and is discounted by how much of it is actually still held —
+   * a syllabus learnt once and abandoned should not read as progress.
+   */
   protected readonly readiness = computed(() => {
     const r = this.rounds();
-    const coverage = r.learned / r.total;
-    const depth = (r.r1 + r.r2 + r.r3) / (r.total * 3);
+    const hold = this.study.heldStrength() ?? 0;
+    const coverage = (r.learned / Math.max(1, this.inPlay())) * (0.4 + 0.6 * hold);
     const accuracy = (this.study.accuracy() ?? 0) / 100;
-    return Math.round((coverage * 0.4 + depth * 0.3 + accuracy * 0.3) * 100);
+    return Math.round((coverage * 0.4 + hold * 0.3 + accuracy * 0.3) * 100);
   });
 
   protected accuracyLabel(): string {
@@ -531,8 +846,11 @@ export class ProgressTab {
 
   /* ---- Pace ----------------------------------------------------------- */
 
+  /** Hours still owed. Parked chapters are not owed. */
   private readonly remainingHours = computed(() =>
-    ALL_CHAPTERS.filter((c) => !chapterIsDone(c, this.store.doneUnits())).reduce((n, c) => n + c.hours, 0),
+    ALL_CHAPTERS.filter(
+      (c) => !chapterIsDone(c, this.store.doneUnits()) && !this.store.isParked(c.id),
+    ).reduce((n, c) => n + c.hours, 0),
   );
 
   /** Days the remaining syllabus needs at the pace actually being kept. */
@@ -547,6 +865,84 @@ export class ProgressTab {
     return needed === null ? true : needed > this.store.days();
   });
 
+  /* ---- Rebalance ------------------------------------------------------ */
+
+  protected readonly rebalanceOpen = signal(false);
+
+  protected perDay(): number {
+    return this.study.averageMinutes(HOURS_DAYS) / 60;
+  }
+
+  /** Hours a day the remaining syllabus needs to land on the target date. */
+  protected neededPerDay(): number {
+    return this.remainingHours() / Math.max(1, this.store.days());
+  }
+
+  protected finishLabel(): string {
+    const needed = this.daysNeeded();
+    if (needed === null) return '—';
+    return addDays(startOfToday(), needed).toLocaleDateString(undefined, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  }
+
+  /**
+   * The tail that has to go if neither the hours nor the date move: whole
+   * chapters, lowest paper weight first, until the rest fits the runway.
+   */
+  private readonly parkList = computed(() => {
+    const capacity = this.perDay() * this.store.days();
+    const done = this.store.doneUnits();
+    const remaining = ALL_CHAPTERS.filter(
+      (c) => !chapterIsDone(c, done) && !this.store.isParked(c.id),
+    );
+
+    // Cheapest to drop first: the subject with fewest marks per hour, and
+    // within it the chapters furthest down the book.
+    const ordered = [...remaining].sort(
+      (a, b) => marksPerHour(a) - marksPerHour(b) || b.id.localeCompare(a.id),
+    );
+
+    const out: Chapter[] = [];
+    let total = remaining.reduce((n, c) => n + c.hours, 0);
+    for (const chapter of ordered) {
+      if (total <= capacity) break;
+      out.push(chapter);
+      total -= chapter.hours;
+    }
+    return out;
+  });
+
+  protected parkCount(): number { return this.parkList().length; }
+
+  protected parkedMarks(): number {
+    return this.parkList().reduce((n, c) => n + marksOf(c), 0);
+  }
+
+  protected applyHours(): void {
+    const factor = this.neededPerDay() / Math.max(0.5, this.perDay());
+    this.store.scaleHours(factor);
+    this.rebalanceOpen.set(false);
+  }
+
+  protected applyDate(): void {
+    const needed = this.daysNeeded();
+    if (needed !== null) this.store.targetDate.set(addDays(startOfToday(), needed));
+    this.rebalanceOpen.set(false);
+  }
+
+  protected applyPark(): void {
+    this.store.park(this.parkList().map((c) => c.id));
+    this.rebalanceOpen.set(false);
+  }
+
+  protected unpark(): void {
+    this.store.unparkAll();
+    this.rebalanceOpen.set(false);
+  }
+
   protected verdictIcon(): string {
     if (this.daysNeeded() === null) return 'hourglass_empty';
     return this.behind() ? 'trending_down' : 'trending_up';
@@ -557,16 +953,18 @@ export class ProgressTab {
     if (needed === null) return 'Not enough history to judge pace';
     const slack = this.store.days() - needed;
     if (slack >= 0) return `On track — ${slack} days of slack`;
-    return `Behind by ${-slack} days at this pace`;
+    // Stated as a shortfall to close, not a debt already run up.
+    return `The plan needs ${(this.neededPerDay()).toFixed(1)}h a day`;
   }
 
   protected verdictSub(): string {
     const needed = this.daysNeeded();
-    const perDay = this.study.averageMinutes(HOURS_DAYS) / 60;
     if (needed === null) return 'Log a few days of study and this fills in.';
-    const finish = addDays(startOfToday(), needed);
-    const label = finish.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-    return `${this.remainingHours()}h left · ${perDay.toFixed(1)}h a day average · syllabus done ${label}`;
+    const slack = this.store.days() - needed;
+    if (slack >= 0) {
+      return `${this.remainingHours()}h left · ${this.perDay().toFixed(1)}h a day average`;
+    }
+    return `You are averaging ${this.perDay().toFixed(1)}h. ${this.remainingHours()}h of syllabus, ${this.store.days()} days.`;
   }
 
   /* ---- Consistency ---------------------------------------------------- */
@@ -717,4 +1115,17 @@ export class ProgressTab {
     if (h === 0) return `${m}m`;
     return m === 0 ? `${h}h` : `${h}h ${m}m`;
   }
+}
+
+/** Marks the paper gives a chapter, spread evenly inside its subject. */
+function marksOf(chapter: Chapter): number {
+  const subject = PACK.subjects.find((s) => chapter.id.startsWith(s.id + '.'));
+  if (!subject) return 0;
+  const count = subject.sections.reduce((n, sec) => n + sec.chapters.length, 0);
+  return Math.round(subject.marks / count);
+}
+
+/** What an hour spent on a chapter is worth. The triage order. */
+function marksPerHour(chapter: Chapter): number {
+  return marksOf(chapter) / Math.max(0.5, chapter.hours);
 }

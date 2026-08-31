@@ -119,6 +119,31 @@ export class OnboardingStore {
   /** Units the user says they have already covered. */
   readonly doneUnits = persistedSet('done-units');
 
+  /**
+   * Chapters deliberately set aside. Triage, not failure: when the runway does
+   * not fit the syllabus, the honest move is to choose what gets dropped
+   * rather than to fall behind on everything at once.
+   */
+  readonly parkedChapters = persistedSet('parked');
+
+  isParked(chapterId: string): boolean {
+    return this.parkedChapters().has(chapterId);
+  }
+
+  togglePark(chapterId: string): void {
+    const next = new Set(this.parkedChapters());
+    next.has(chapterId) ? next.delete(chapterId) : next.add(chapterId);
+    this.parkedChapters.set(next);
+  }
+
+  park(chapterIds: readonly string[]): void {
+    this.parkedChapters.set(new Set([...this.parkedChapters(), ...chapterIds]));
+  }
+
+  unparkAll(): void {
+    this.parkedChapters.set(new Set());
+  }
+
   toggleUnit(id: string): void {
     const next = new Set(this.doneUnits());
     next.has(id) ? next.delete(id) : next.add(id);
@@ -218,9 +243,17 @@ export class OnboardingStore {
   /** Hours the remaining syllabus needs, shrinking as chapters are ticked. */
   readonly requiredHours = computed(() =>
     Math.round(
-      ALL_CHAPTERS.filter((c) => !chapterIsDone(c, this.doneUnits())).reduce((n, c) => n + c.hours, 0),
+      ALL_CHAPTERS.filter((c) => !chapterIsDone(c, this.doneUnits()) && !this.isParked(c.id))
+        .reduce((n, c) => n + c.hours, 0),
     ),
   );
+
+  /** Raise or lower both sliders while keeping their weekday/weekend shape. */
+  scaleHours(factor: number): void {
+    const round = (h: number) => Math.max(1, Math.round(h * factor * 2) / 2);
+    this.weekdayHours.set(Math.min(14, round(this.weekdayHours())));
+    this.weekendHours.set(Math.min(16, round(this.weekendHours())));
+  }
 
   readonly gapHours = computed(() => this.requiredHours() - this.availableHours());
 

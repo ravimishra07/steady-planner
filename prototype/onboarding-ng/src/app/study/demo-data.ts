@@ -1,6 +1,7 @@
 import { OnboardingStore, addDays, startOfToday } from '../onboarding/state';
 import { PACK, Chapter } from '../onboarding/exam-pack';
 import { ChapterStat, LoggedSession, StudyStore, Task, dateKey } from './study-store';
+import { Recall, dueDate } from './retention';
 
 /**
  * A fabricated three weeks of use. Nothing here is real study data — it exists
@@ -43,9 +44,28 @@ export function buildDemo(): Built {
   // One chapter per subject left half-finished — a real syllabus is ragged.
   const partial = bySubject.map((chapters) => chapters[FINISHED]).filter(Boolean);
 
-  const touch = (id: string, change: Partial<ChapterStat>) => {
-    const prev = stats.get(id) ?? { revisions: 0, attempted: 0, correct: 0, lastTouched: null };
-    stats.set(id, { ...prev, ...change });
+  const blank: ChapterStat = {
+    revisions: 0,
+    attempted: 0,
+    correct: 0,
+    lastTouched: null,
+    recall: null,
+    dueKey: null,
+  };
+
+  /** Mirrors StudyStore.log: every sitting re-schedules the next pass. */
+  const touch = (id: string, date: Date, change: Partial<ChapterStat>, recall?: Recall) => {
+    const prev = stats.get(id) ?? blank;
+    const next: ChapterStat = { ...prev, ...change };
+    next.recall = recall ?? next.recall;
+    next.dueKey = dateKey(dueDate(date, next.revisions, next.recall));
+    stats.set(id, next);
+  };
+
+  /** Weighted so most sittings feel okay, a few either way. */
+  const recallFor = (): Recall => {
+    const r = random();
+    return r < 0.22 ? 'shaky' : r < 0.78 ? 'okay' : 'solid';
   };
 
   const today = startOfToday();
@@ -77,7 +97,7 @@ export function buildDemo(): Built {
           task,
           minutes,
         });
-        touch(chapter.id, { lastTouched: key });
+        touch(chapter.id, date, { lastTouched: key }, recallFor());
       } else if (task === 'Practice') {
         const attempted = 30 + Math.floor(random() * 20);
         // Accuracy drifts up over the three weeks, 58% to about 78%.
@@ -94,7 +114,7 @@ export function buildDemo(): Built {
           attempted,
           correct,
         });
-        touch(chapter.id, {
+        touch(chapter.id, date, {
           lastTouched: key,
           attempted: (prev?.attempted ?? 0) + attempted,
           correct: (prev?.correct ?? 0) + correct,
@@ -109,10 +129,10 @@ export function buildDemo(): Built {
           task,
           minutes,
         });
-        touch(chapter.id, {
+        touch(chapter.id, date, {
           lastTouched: key,
-          revisions: Math.min(3, (prev?.revisions ?? 0) + 1),
-        });
+          revisions: Math.min(4, (prev?.revisions ?? 0) + 1),
+        }, recallFor());
       }
 
       cursor++;
@@ -128,7 +148,7 @@ export function buildDemo(): Built {
     const half = Math.ceil(chapter.subtopics.length / 2);
     chapter.subtopics.slice(0, half).forEach((t) => done.add(t.id));
     if (chapter.subtopics.length === 0) continue;
-    touch(chapter.id, { lastTouched: dateKey(addDays(today, -1)) });
+    touch(chapter.id, addDays(today, -1), { lastTouched: dateKey(addDays(today, -1)) });
   }
 
   return { sessions, stats, done };

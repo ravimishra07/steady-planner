@@ -23,6 +23,8 @@ export interface StudyBlock {
   subtopicId?: string;
   questions?: number;
   done: boolean;
+  /** Days past due, when this block exists because retention has slipped. */
+  overdue?: number;
 }
 
 export interface GapBlock {
@@ -50,6 +52,8 @@ export interface Candidate {
   subtopic?: Subtopic;
   /** Preferred length; the packer may shorten it to fit a window. */
   minutes: number;
+  /** Days past due, for a revision that is late. */
+  overdue?: number;
 }
 
 /** A sitting shorter than this teaches nothing; longer than this loses focus. */
@@ -148,6 +152,7 @@ export function layOutDay(
         subtopicId: candidate.subtopic?.id,
         questions: candidate.task === 'Practice' ? Math.round(minutes / 1.2) : undefined,
         done: false,
+        overdue: candidate.overdue,
       });
 
       cursor += minutes;
