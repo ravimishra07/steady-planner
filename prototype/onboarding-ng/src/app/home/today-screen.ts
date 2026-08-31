@@ -59,21 +59,34 @@ const MIN_BLOCK_HEIGHT = 72;
     <section class="summary">
       <div class="summary-head">
         <span class="headline">{{ headline() }}</span>
-        <button matRipple class="edit-plan" (click)="editPlan.emit()" aria-label="Edit plan">
+        <button matRipple class="edit-plan" (click)="editPlan.emit()">
           <mat-icon>edit_calendar</mat-icon>
+          Edit plan
         </button>
       </div>
 
-      <!-- The bar is the shape of the day, not a percentage: one segment per
-           block, width proportional to its length, dim for fixed hours. -->
-      <div class="shape" role="img" [attr.aria-label]="shapeLabel()">
-        @for (seg of shape(); track seg.key) {
-          <span class="seg"
-                [class]="'seg-' + seg.kind"
-                [class.done]="seg.done"
-                [style.flex-grow]="seg.minutes"
-                [attr.title]="seg.title"></span>
-        }
+      <!-- The day on a clock, not a progress bar: blocks sit where they fall
+           between waking and sleeping, and the marker says where you are. -->
+      <div class="clockbar" role="img" [attr.aria-label]="shapeLabel()">
+        <div class="track">
+          @for (seg of shape(); track seg.key) {
+            <span class="seg"
+                  [class]="'seg-' + seg.kind"
+                  [class.done]="seg.done"
+                  [class.missed]="seg.missed"
+                  [style.left.%]="seg.left"
+                  [style.width.%]="seg.width"
+                  [attr.title]="seg.title"></span>
+          }
+          @if (nowFraction() !== null) {
+            <span class="now" [style.left.%]="nowFraction()!"></span>
+          }
+        </div>
+        <div class="ticks">
+          <span>{{ clock(store.wakeMinute()) }}</span>
+          @if (nowFraction() !== null) { <span class="now-label">now</span> }
+          <span>{{ clock(store.sleepMinute()) }}</span>
+        </div>
       </div>
 
       <div class="facts">
@@ -351,35 +364,44 @@ const MIN_BLOCK_HEIGHT = 72;
 
     .headline { font: var(--mat-sys-headline-small); }
     .summary-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    /* Icon only: the headline is the loud thing here, not the way out. */
+    /* Labelled: an unlabelled calendar-pencil could mean anything. */
     .edit-plan {
-      display: grid;
-      place-items: center;
-      width: 40px;
-      height: 40px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 36px;
       flex: none;
-      border: 0;
+      padding: 0 14px 0 10px;
+      border: 1px solid var(--mat-sys-outline-variant);
       border-radius: var(--mat-sys-corner-full);
       background: transparent;
       color: var(--mat-sys-on-surface-variant);
+      font: var(--mat-sys-label-large);
       cursor: pointer;
     }
 
-    .edit-plan mat-icon { width: 20px; height: 20px; font-size: 20px; }
+    .edit-plan mat-icon { width: 18px; height: 18px; font-size: 18px; }
 
-    .shape { display: flex; gap: 3px; height: 8px; margin: 10px 0 2px; }
+    .clockbar { margin: 12px 0 2px; }
 
-    .seg {
-      flex-basis: 0;
-      min-width: 4px;
-      border-radius: 4px;
-      background: var(--mat-sys-surface-container-highest);
+    /* The empty track is the day itself; the gaps in it are real gaps. */
+    .track {
+      position: relative;
+      height: 10px;
+      border-radius: 5px;
+      background: var(--mat-sys-surface-container-high);
     }
+
+    .seg { position: absolute; top: 0; bottom: 0; border-radius: 5px; }
 
     /* A sitting still to do, a sitting logged, and an hour that was never
        yours to spend — three states, one bar. */
     .seg-study { background: transparent; box-shadow: inset 0 0 0 1.5px var(--mat-sys-primary); }
     .seg-study.done { background: var(--mat-sys-primary); box-shadow: none; }
+
+    /* Its hour came and went. Stated, not scolded — the colour is the whole
+       message and there is no counter nagging about it. */
+    .seg-study.missed { box-shadow: inset 0 0 0 1.5px var(--mat-sys-outline); opacity: .6; }
 
     .seg-fixed {
       background: repeating-linear-gradient(
@@ -388,6 +410,26 @@ const MIN_BLOCK_HEIGHT = 72;
         transparent 3px 6px
       );
     }
+
+    .now {
+      position: absolute;
+      top: -3px;
+      bottom: -3px;
+      width: 2px;
+      border-radius: 1px;
+      background: var(--mat-sys-on-surface);
+      box-shadow: 0 0 0 2px var(--mat-sys-surface);
+    }
+
+    .ticks {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 6px;
+      font: var(--mat-sys-label-small);
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    .now-label { color: var(--mat-sys-on-surface); }
 
     .facts { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; }
 
@@ -781,25 +823,46 @@ export class TodayScreen {
     this.blocks().filter((b) => b.kind === 'fixed').reduce((n, b) => n + b.minutes, 0),
   );
 
+  /** Minute of the day, kept fresh so the marker does not go stale. */
+  private readonly nowMinute = signal(minuteOfDay());
+
   /**
-   * The day as segments. A percentage bar says how much of an unknown whole is
-   * gone; this says how many sittings there are, how long each runs, and which
-   * are behind you — which is what someone glancing at Today wants to know.
+   * The day laid on a clock. Placing blocks by when they happen — rather than
+   * one after another — is the only way the strip says something the timeline
+   * below does not: how much of the day is already behind you.
    */
-  protected readonly shape = computed(() =>
-    this.blocks()
+  protected readonly shape = computed(() => {
+    const wake = this.store.wakeMinute();
+    const span = Math.max(60, this.store.sleepMinute() - wake);
+
+    const now = this.isToday(this.selected()) ? this.nowMinute() : null;
+
+    return this.blocks()
       .filter((b) => b.kind === 'study' || b.kind === 'fixed')
       .map((b) => ({
         key: b.kind + b.startMinute,
         kind: b.kind,
-        minutes: b.minutes,
         done: b.kind === 'study' && b.done,
+        // Its slot has gone by and nothing was logged against it.
+        missed:
+          b.kind === 'study' && !b.done && now !== null && now > b.startMinute + b.minutes,
+        left: clamp(((b.startMinute - wake) / span) * 100),
+        width: Math.max(1.5, clamp((b.minutes / span) * 100)),
         title:
           b.kind === 'study'
-            ? `${b.task} · ${b.title} · ${this.format(b.minutes)}`
-            : `${b.title} · ${this.format(b.minutes)}`,
-      })),
-  );
+            ? `${b.task} · ${b.title} · ${this.clock(b.startMinute)}`
+            : `${b.title} · ${this.clock(b.startMinute)}`,
+      }));
+  });
+
+  /** Only today gets a marker — a past or future day has no "now". */
+  protected readonly nowFraction = computed(() => {
+    if (!this.isToday(this.selected())) return null;
+    const wake = this.store.wakeMinute();
+    const span = Math.max(60, this.store.sleepMinute() - wake);
+    const at = ((this.nowMinute() - wake) / span) * 100;
+    return at < 0 || at > 100 ? null : clamp(at);
+  });
 
   protected shapeLabel(): string {
     const total = this.shape().filter((s) => s.kind === 'study').length;
@@ -958,4 +1021,13 @@ export class TodayScreen {
       logged: this.study.minutesOn(key) > 0,
     };
   }
+}
+
+function minuteOfDay(): number {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+}
+
+function clamp(value: number): number {
+  return Math.min(100, Math.max(0, value));
 }
