@@ -188,6 +188,10 @@ const LENGTHS = [25, 50, 90];
             </button>
           </div>
 
+          @if (upNext(); as n) {
+            <p class="next-note">next: {{ n }}</p>
+          }
+
           <p class="blocking-note">
             <mat-icon>{{ blocking() ? 'lock' : 'lock_open' }}</mat-icon>
             {{ blocking() ? 'Distracting apps blocked until this ends' : 'App blocking is off' }}
@@ -415,6 +419,17 @@ const LENGTHS = [25, 50, 90];
     }
 
     .control.primary { background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container); }
+
+    /* Answers the curiosity that makes someone leave, without leaving. */
+    .next-note {
+      max-width: 280px;
+      margin: 20px 0 0;
+      font: var(--mat-sys-label-medium);
+      color: var(--mat-sys-on-surface-variant);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
 
     .blocking-note {
       display: flex;
@@ -788,6 +803,16 @@ export class FocusScreen {
   protected spent(): string {
     const m = this.focus.spentMinutes();
     return m === 1 ? '1 minute' : `${m} minutes`;
+  }
+
+  /** What follows the running session, so the queue need not be opened. */
+  protected upNext(): string | null {
+    const running = this.focus.target();
+    if (!running) return null;
+    const rest = this.planner
+      .remainingToday()
+      .filter((b) => b.chapterId !== running.chapterId || (b.subtopicId ?? '') !== (running.subtopicId ?? ''));
+    return rest[0]?.title ?? null;
   }
 
   protected time(): string {
