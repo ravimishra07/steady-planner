@@ -28,7 +28,7 @@ const LENGTHS = [25, 50, 90];
       @case ('idle') {
         @if (browsing()) {
           <!-- Browsing replaces the screen. A mode, not a layer over one. -->
-          <header class="browse-bar">
+          <header class="bar">
             <button matRipple class="icon-btn" (click)="browsing.set(false)" aria-label="Back">
               <mat-icon>arrow_back</mat-icon>
             </button>
@@ -36,79 +36,78 @@ const LENGTHS = [25, 50, 90];
                    [ngModel]="query()" (ngModelChange)="query.set($event)" />
           </header>
 
-          <div class="browse-list">
+          <div class="scroll">
             @for (o of allOptions(); track o.id) {
-              <button matRipple class="opt" (click)="choose(o)">
-                <span class="opt-text">
-                  <span class="opt-name">{{ o.title }}</span>
-                  <span class="opt-meta">{{ o.context }}</span>
+              <button matRipple class="row" (click)="choose(o)">
+                <span class="row-text">
+                  <span class="row-name">{{ o.title }}</span>
+                  <span class="row-meta">{{ o.context }}</span>
                 </span>
-                <span class="opt-tag" [class]="'tag-' + o.task.toLowerCase()">{{ o.task }}</span>
+                <span class="tag" [class]="'tag-' + o.task.toLowerCase()">{{ o.task }}</span>
               </button>
             } @empty {
-              <p class="context">Nothing matches "{{ query() }}".</p>
+              <p class="none">Nothing matches "{{ query() }}".</p>
             }
           </div>
         } @else {
-          <section class="stage">
-            @if (suggestion(); as s) {
-              <span class="eyebrow">{{ eyebrow() }}</span>
-              <h1 class="topic">{{ s.title }}</h1>
-              <p class="context">{{ s.context }}</p>
-
-              <div class="lengths">
-                @for (m of lengths(); track m) {
-                  <button matRipple class="length" [class.on]="minutes() === m" (click)="minutes.set(m)">
-                    {{ m }}m
-                  </button>
-                }
-              </div>
-
-              <button matRipple class="go" (click)="start(s)">
-                <mat-icon>play_arrow</mat-icon>
-                Start {{ minutes() }} min
-              </button>
-
-              @if (warning(); as w) {
-                <p class="warn"><mat-icon>info</mat-icon>{{ w }}</p>
-              }
-            } @else {
-              <mat-icon class="big-icon">check_circle</mat-icon>
-              <h1 class="topic">Nothing left on today's plan</h1>
-              <p class="context">{{ focus.sittingsToday() }} sittings logged today.</p>
-            }
-          </section>
-
-          <!-- The rest of the day, in the same view. Tapping one promotes it. -->
-          <section class="also">
-            <h2 class="also-title">{{ suggestion() ? 'Or cover' : 'Pick something' }}</h2>
-
-            @for (o of alternatives(); track o.id) {
-              <button matRipple class="opt" (click)="choose(o)">
-                <span class="opt-text">
-                  <span class="opt-name">{{ o.title }}</span>
-                  <span class="opt-meta">{{ o.context }}</span>
-                </span>
-                <span class="opt-tag" [class]="'tag-' + o.task.toLowerCase()">{{ o.task }}</span>
-              </button>
-            }
-
-            <button matRipple class="link browse" (click)="browse()">
+          <header class="bar">
+            <h1 class="bar-title">Focus</h1>
+            <button matRipple class="icon-btn" (click)="browse()" aria-label="Browse all topics">
               <mat-icon>search</mat-icon>
-              Browse all topics
             </button>
+          </header>
+
+          <!-- One card, and the card is the button. -->
+          @if (suggestion(); as s) {
+            <button matRipple class="card" (click)="start(s)">
+              <span class="card-eyebrow">{{ eyebrow() }}</span>
+              <span class="card-topic">{{ s.title }}</span>
+              <span class="card-meta">{{ s.context }}</span>
+              <span class="card-go">
+                <mat-icon>play_arrow</mat-icon>
+                Start {{ s.minutes }} min
+              </span>
+            </button>
+
+            @if (warning(); as w) {
+              <p class="warn"><mat-icon>info</mat-icon>{{ w }}</p>
+            }
+          } @else {
+            <button matRipple class="card empty" (click)="browse()">
+              <span class="card-topic">Nothing left on today's plan</span>
+              <span class="card-go"><mat-icon>search</mat-icon>Pick a topic</span>
+            </button>
+          }
+
+          <!-- The queue. Quiet rows, because the card is the loud thing. -->
+          <section class="queue">
+            @if (leftToday() > 0) {
+              <h2 class="queue-title">{{ leftToday() }} left today</h2>
+            }
+
+            <div class="scroll">
+              @for (o of alternatives(); track o.id) {
+                <button matRipple class="row" (click)="choose(o)">
+                  <span class="row-text">
+                    <span class="row-name">{{ o.title }}</span>
+                    <span class="row-meta">{{ o.context }}</span>
+                  </span>
+                  <span class="tag" [class]="'tag-' + o.task.toLowerCase()">{{ o.task }}</span>
+                </button>
+              }
+
+              @for (d of doneToday(); track d.id) {
+                <div class="row done">
+                  <span class="row-text">
+                    <span class="row-name">{{ d.title }}</span>
+                    <span class="row-meta">{{ d.minutes }} min</span>
+                  </span>
+                  <mat-icon class="tick">check</mat-icon>
+                </div>
+              }
+            </div>
           </section>
         }
-
-        <footer class="foot">
-          <span class="foot-stat"><b>{{ focus.sittingsToday() }}</b> today</span>
-          <span class="foot-stat"><b>{{ hours(study.minutesOn(todayKey())) }}</b> logged</span>
-          <button matRipple class="foot-stat toggle" [class.on]="store.blockApps()"
-                  (click)="store.blockApps.set(!store.blockApps())">
-            <mat-icon>{{ store.blockApps() ? 'lock' : 'lock_open' }}</mat-icon>
-            {{ store.blockApps() ? 'Blocking on' : 'Blocking off' }}
-          </button>
-        </footer>
       }
 
       @case ('done') {
@@ -203,11 +202,131 @@ const LENGTHS = [25, 50, 90];
       display: flex;
       flex-direction: column;
       height: 100%;
-      padding: 16px;
+      padding: 8px 16px 16px;
       background: var(--mat-sys-surface);
       color: var(--mat-sys-on-surface);
     }
 
+    .bar { flex: none; display: flex; align-items: center; gap: 8px; height: 56px; }
+    .bar-title { flex: 1; margin: 0; font: var(--mat-sys-title-large); }
+
+    .icon-btn {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      flex: none;
+      border: none;
+      border-radius: var(--mat-sys-corner-full);
+      background: transparent;
+      color: var(--mat-sys-on-surface-variant);
+      cursor: pointer;
+    }
+
+    .search {
+      flex: 1;
+      min-width: 0;
+      height: 48px;
+      padding: 0 16px;
+      border: 1px solid var(--mat-sys-outline);
+      border-radius: var(--mat-sys-corner-full);
+      background: transparent;
+      color: var(--mat-sys-on-surface);
+      font: var(--mat-sys-body-medium);
+    }
+
+    /* The card is the button. No separate start control to aim at. */
+    .card {
+      flex: none;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      width: 100%;
+      margin-top: 8px;
+      padding: 24px;
+      border: none;
+      border-radius: 28px;
+      background: var(--mat-sys-secondary-container);
+      color: var(--mat-sys-on-secondary-container);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .card.empty { background: var(--mat-sys-surface-container-high); color: var(--mat-sys-on-surface); }
+    .card-eyebrow { font: var(--mat-sys-label-large); opacity: .75; }
+    .card-topic { font: var(--mat-sys-headline-small); }
+    .card-meta { font: var(--mat-sys-body-medium); opacity: .8; }
+
+    .card-go {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 16px;
+      font: var(--mat-sys-title-medium);
+    }
+
+    .card-go mat-icon { font-size: 22px; width: 22px; height: 22px; }
+
+    .warn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 12px 0 0;
+      font: var(--mat-sys-label-medium);
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    .warn mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+    /* Queue: quiet, so the card stays the loud thing on the screen. */
+    .queue { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: 24px; }
+
+    .queue-title {
+      flex: none;
+      margin: 0 0 4px;
+      font: var(--mat-sys-title-small);
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    .scroll { flex: 1; min-height: 0; overflow-y: auto; }
+
+    .row {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 56px;
+      padding: 6px 0;
+      border: none;
+      background: transparent;
+      color: var(--mat-sys-on-surface);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .row + .row { border-top: 1px solid var(--mat-sys-outline-variant); }
+    .row.done { cursor: default; color: var(--mat-sys-on-surface-variant); }
+    .row.done .row-name { text-decoration: line-through; }
+    .row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .row-name { font: var(--mat-sys-body-large); }
+    .row-meta { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
+    .tick { color: var(--mat-sys-primary); }
+
+    .tag {
+      flex: none;
+      padding: 2px 10px;
+      border-radius: var(--mat-sys-corner-full);
+      font: var(--mat-sys-label-small);
+    }
+
+    .tag-learn { background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container); }
+    .tag-practice { background: var(--mat-sys-primary); color: var(--mat-sys-on-primary); }
+    .tag-revise { background: transparent; color: var(--mat-sys-primary); box-shadow: inset 0 0 0 1px var(--mat-sys-outline); }
+
+    .none { font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
+
+    /* Running */
     .stage {
       flex: 1;
       min-height: 0;
@@ -219,37 +338,11 @@ const LENGTHS = [25, 50, 90];
       text-align: center;
     }
 
-    .eyebrow {
-      font: var(--mat-sys-label-large);
-      color: var(--mat-sys-primary);
-      text-transform: lowercase;
-    }
-
+    .eyebrow { font: var(--mat-sys-label-large); color: var(--mat-sys-primary); }
     .topic { margin: 4px 0 0; font: var(--mat-sys-headline-medium); }
     .topic.small { font: var(--mat-sys-title-medium); color: var(--mat-sys-on-surface-variant); }
     .context { margin: 0 0 8px; font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
-    .big-icon { font-size: 48px; width: 48px; height: 48px; color: var(--mat-sys-primary); }
 
-    .lengths { display: flex; gap: 8px; margin: 16px 0 8px; }
-
-    .length {
-      min-width: 64px;
-      height: 40px;
-      border: 1px solid var(--mat-sys-outline-variant);
-      border-radius: var(--mat-sys-corner-full);
-      background: transparent;
-      color: var(--mat-sys-on-surface);
-      font: var(--mat-sys-label-large);
-      cursor: pointer;
-    }
-
-    .length.on {
-      border-color: transparent;
-      background: var(--mat-sys-secondary-container);
-      color: var(--mat-sys-on-secondary-container);
-    }
-
-    /* One primary action per state. */
     .go {
       display: flex;
       align-items: center;
@@ -267,11 +360,7 @@ const LENGTHS = [25, 50, 90];
       cursor: pointer;
     }
 
-    .go.ghost {
-      background: transparent;
-      box-shadow: inset 0 0 0 1px var(--mat-sys-outline);
-      color: var(--mat-sys-primary);
-    }
+    .go.ghost { background: transparent; box-shadow: inset 0 0 0 1px var(--mat-sys-outline); color: var(--mat-sys-primary); }
 
     .link {
       margin-top: 4px;
@@ -283,18 +372,6 @@ const LENGTHS = [25, 50, 90];
       cursor: pointer;
     }
 
-    .warn {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin: 12px 0 0;
-      font: var(--mat-sys-label-medium);
-      color: var(--mat-sys-on-surface-variant);
-    }
-
-    .warn mat-icon { font-size: 16px; width: 16px; height: 16px; }
-
-    /* Dial */
     .dial { position: relative; width: 240px; height: 240px; margin: 16px 0; }
     .dial svg { width: 100%; height: 100%; transform: rotate(-90deg); }
     .dial-track { fill: none; stroke: var(--mat-sys-surface-container-highest); stroke-width: 10; }
@@ -528,11 +605,18 @@ export class FocusScreen {
   protected readonly recall = signal<Recall>('okay');
   protected readonly attempted = signal(0);
   protected readonly correct = signal(0);
-  protected readonly minutes = signal(0);
 
   /* ---- Picking something else ----------------------------------------- */
 
   protected readonly browsing = signal(false);
+
+  /** How much of today is still owed — the only count worth a line here. */
+  protected readonly leftToday = computed(() => this.planner.remainingToday().length);
+
+  /** Sittings already done today, so the queue shows the whole day. */
+  protected readonly doneToday = computed(() =>
+    this.study.sessionsOn(dateKey(startOfToday())).slice(-4).reverse(),
+  );
   protected readonly query = signal('');
 
   /** A topic chosen by hand, which wins over whatever the plan suggested. */
@@ -641,11 +725,8 @@ export class FocusScreen {
 
   protected choose(option: Option): void {
     this.override.set(option.target);
-    this.minutes.set(option.target.minutes);
     this.browsing.set(false);
   }
-
-  protected todayKey(): string { return dateKey(startOfToday()); }
 
   /**
    * What the Start button will run: the hand-picked topic if there is one,
@@ -697,22 +778,11 @@ export class FocusScreen {
     const fixed = this.planner.nextFixed(now);
     if (!fixed) return null;
     const gap = fixed.startMinute - now;
-    if (gap <= 0 || gap >= this.minutes()) return null;
+    if (gap <= 0 || gap >= (this.suggestion()?.minutes ?? 0)) return null;
     return `${fixed.kind === 'fixed' ? fixed.title : 'Something'} starts in ${gap} min.`;
   }
 
-  /** The planned length first, then the standard overrides. */
-  protected readonly lengths = computed(() => {
-    const planned = this.suggestion()?.minutes;
-    const set = new Set<number>(planned ? [planned] : []);
-    LENGTHS.forEach((m) => set.add(m));
-    return [...set].sort((a, b) => a - b);
-  });
 
-  constructor() {
-    // Default the length to whatever the plan asked for.
-    queueMicrotask(() => this.minutes.set(this.suggestion()?.minutes ?? 50));
-  }
 
   /** "1 minutes" is the kind of thing that makes an app feel unfinished. */
   protected spent(): string {
@@ -725,7 +795,7 @@ export class FocusScreen {
   }
 
   protected start(target: FocusTarget): void {
-    this.focus.start(target, this.minutes() || target.minutes);
+    this.focus.start(target, target.minutes);
     this.override.set(null);
   }
 
@@ -738,7 +808,6 @@ export class FocusScreen {
     this.recall.set('okay');
     this.attempted.set(0);
     this.correct.set(0);
-    queueMicrotask(() => this.minutes.set(this.suggestion()?.minutes ?? 50));
   }
 
   /** Blocking follows the session: on while it runs, off the moment it stops. */
