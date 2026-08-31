@@ -166,11 +166,14 @@ const MIN_BLOCK_HEIGHT = 72;
             @if (block.kind === 'study') {
               <div matRipple class="block" [class.done]="block.done" (click)="openSession(block)">
                 <span class="block-head">
-                  <span class="tag" [class]="'tag-' + block.task.toLowerCase()">{{ block.task }}</span>
+                  <button matRipple class="tag" [class]="'tag-' + block.task.toLowerCase()"
+                          (click)="explain(block, $event)">{{ block.task }}</button>
                   @if (block.overdue !== undefined && block.overdue > 0) {
-                    <span class="overdue">{{ block.overdue }}d overdue</span>
+                    <button class="overdue" (click)="explain(block, $event)">
+                      {{ block.overdue }}d overdue
+                    </button>
                   } @else if (block.overdue === 0) {
-                    <span class="due">due today</span>
+                    <button class="due" (click)="explain(block, $event)">due today</button>
                   }
                   <span class="len">{{ format(block.minutes) }}</span>
                 </span>
@@ -270,6 +273,39 @@ const MIN_BLOCK_HEIGHT = 72;
         </button>
         <button matRipple class="sheet-row" (click)="skip(s)">
           <mat-icon>block</mat-icon><span class="sheet-name">Skip it</span>
+        </button>
+      </div>
+    }
+
+    <!-- What a tag means, at the moment someone wonders. -->
+    @if (explaining(); as e) {
+      <div class="scrim" (click)="explaining.set(null)"></div>
+      <div class="sheet" role="dialog" [attr.aria-label]="e.task">
+        <span class="handle"></span>
+        <h3 class="sheet-title">{{ e.task }}</h3>
+        <p class="sheet-sub">{{ taskMeaning(e.task) }}</p>
+
+        @if (e.overdue !== undefined && e.overdue >= 0) {
+          <h4 class="sheet-label">Why it says {{ e.overdue > 0 ? e.overdue + 'd overdue' : 'due today' }}</h4>
+          <p class="sheet-sub">
+            Every chapter gets a date for its next look, set when you last studied it. This one's
+            date was {{ e.overdue === 0 ? 'today' : e.overdue + ' days ago' }}. The longer it waits,
+            the higher it climbs the day's list.
+          </p>
+        }
+
+        <h4 class="sheet-label">What you can do</h4>
+        <button matRipple class="sheet-row" (click)="startTimer(e)">
+          <mat-icon class="filled">play_arrow</mat-icon>
+          <span class="sheet-name">Do it now — the timer logs it and sets the next date</span>
+        </button>
+        <button matRipple class="sheet-row" (click)="explaining.set(null); openSession(e)">
+          <mat-icon>edit_note</mat-icon>
+          <span class="sheet-name">Log it by hand, or push it to another day</span>
+        </button>
+        <button matRipple class="sheet-row" (click)="explaining.set(null); editPlan.emit()">
+          <mat-icon>tune</mat-icon>
+          <span class="sheet-name">Drop the chapter, or change what your class has covered</span>
         </button>
       </div>
     }
@@ -673,8 +709,23 @@ const MIN_BLOCK_HEIGHT = 72;
     }
     .tag-class { background: var(--mat-sys-surface-container-highest); color: var(--mat-sys-on-surface-variant); }
 
-    .overdue { font: var(--mat-sys-label-small); color: var(--mat-sys-error); }
-    .due { font: var(--mat-sys-label-small); color: var(--mat-sys-primary); }
+    /* Tappable, because "6d overdue" is the moment someone wonders what the
+       app is actually doing. */
+    .overdue, .due {
+      padding: 2px 6px;
+      border: none;
+      border-radius: var(--mat-sys-corner-small);
+      background: transparent;
+      font: var(--mat-sys-label-small);
+      cursor: pointer;
+      text-decoration: underline;
+      text-decoration-style: dotted;
+      text-underline-offset: 3px;
+    }
+
+    .overdue { color: var(--mat-sys-error); }
+    .due { color: var(--mat-sys-primary); }
+    button.tag { border: none; cursor: pointer; }
 
     .len { margin-left: auto; font: var(--mat-sys-label-large); color: var(--mat-sys-on-surface-variant); }
 
@@ -1090,6 +1141,22 @@ export class TodayScreen {
     const days = Math.round((startOfToday().getTime() - new Date(y, m - 1, d).getTime()) / 86_400_000);
     if (days <= 0) return 'today';
     return days === 1 ? 'yesterday' : `${days} days ago`;
+  }
+
+  protected readonly explaining = signal<StudyBlock | null>(null);
+
+  protected explain(block: StudyBlock, event: Event): void {
+    event.stopPropagation();
+    this.explaining.set(block);
+  }
+
+  /** Plain sentences for the three words the tags use. */
+  protected taskMeaning(task: Task): string {
+    return {
+      Learn: 'First time through a section. Read it, then mark how well it landed.',
+      Practice: 'Work questions on a chapter you have already read, to find what did not stick.',
+      Revise: 'A second, third or fourth look at something you covered before, so it stays covered.',
+    }[task];
   }
 
   protected openSession(block: StudyBlock): void {

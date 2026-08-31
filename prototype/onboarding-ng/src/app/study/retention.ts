@@ -20,14 +20,33 @@ export const RECALLS: { id: Recall; label: string; icon: string }[] = [
  * Days until the next pass, by how many passes are already done. Expanding
  * rehearsal: see it again soon, then less and less often.
  */
-const BASE_INTERVAL = [3, 10, 30, 60];
+/**
+ * How fast revision comes back round. The student picks one — a schedule they
+ * cannot see or change is a schedule they cannot trust.
+ */
+export type Pace = 'relaxed' | 'standard' | 'intense';
+
+export interface PaceOption { id: Pace; label: string; hint: string; days: number[]; }
+
+export const PACES: PaceOption[] = [
+  { id: 'relaxed', label: 'Relaxed', hint: 'Comes back after 5, 15, 45 then 90 days', days: [5, 15, 45, 90] },
+  { id: 'standard', label: 'Standard', hint: 'Comes back after 3, 10, 30 then 60 days', days: [3, 10, 30, 60] },
+  { id: 'intense', label: 'Intense', hint: 'Comes back after 2, 6, 16 then 35 days', days: [2, 6, 16, 35] },
+];
+
+let baseInterval = [3, 10, 30, 60];
+
+/** Set once from the store, so every caller reads the same schedule. */
+export function setPace(pace: Pace): void {
+  baseInterval = PACES.find((p) => p.id === pace)?.days ?? PACES[1].days;
+}
 
 /** Shaky pulls the next pass in; solid pushes it out. */
 const RECALL_FACTOR: Record<Recall, number> = { shaky: 0.5, okay: 1, solid: 1.6 };
 
 /** Interval in days for the pass that comes after `revisions` completed ones. */
 export function nextInterval(revisions: number, recall: Recall | null): number {
-  const base = BASE_INTERVAL[Math.min(revisions, BASE_INTERVAL.length - 1)];
+  const base = baseInterval[Math.min(revisions, baseInterval.length - 1)];
   return Math.max(1, Math.round(base * RECALL_FACTOR[recall ?? 'okay']));
 }
 

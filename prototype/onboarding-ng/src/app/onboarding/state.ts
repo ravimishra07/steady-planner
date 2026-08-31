@@ -1,7 +1,8 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, effect, signal } from '@angular/core';
 import { CustomChapter, Subtopic, chapterIsDone, mergedChapters, mergedSubjects } from './exam-pack';
 import { persisted, persistedMap, persistedSet } from '../core/persist';
 import { COMMITMENT_PRESETS, Commitment, committedMinutes } from './commitments';
+import { Pace, setPace } from '../study/retention';
 
 export type AccentId = 'blue' | 'purple' | 'green' | 'amber' | 'rose';
 export type AppearanceId = 'light' | 'dark' | 'grey' | 'slate';
@@ -289,6 +290,9 @@ export class OnboardingStore {
   readonly wakeMinute = persisted<number>('wake', DEFAULT_WAKE);
   /** Gap between two sittings in the same stretch of free time. */
   readonly breakMinutes = persisted<number>('break', 15);
+
+  /** How fast revision comes back round; read by the retention schedule. */
+  readonly revisionPace = persisted<Pace>('revision-pace', 'standard');
   /** Whether a running focus session blocks distracting apps. On by default. */
   readonly blockApps = persisted<boolean>('block-apps', true);
 
@@ -336,6 +340,9 @@ export class OnboardingStore {
   /** True when the asked-for hours do not fit the day that is left. */
   readonly weekdayOverbooked = computed(() => this.weekdayHours() > this.weekdayFreeHours());
   readonly weekendOverbooked = computed(() => this.weekendHours() > this.weekendFreeHours());
+
+  /** The schedule module holds one pace; keep it in step with the setting. */
+  private readonly paceSync = effect(() => setPace(this.revisionPace()));
 
   /** Days from today to the chosen target, floored at 1. */
   readonly days = computed(() => {

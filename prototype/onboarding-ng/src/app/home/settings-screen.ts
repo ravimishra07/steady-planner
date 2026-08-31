@@ -22,10 +22,12 @@ import {
 } from '../onboarding/commitments';
 import { PACK } from '../onboarding/exam-pack';
 import { StudyStore } from '../study/study-store';
+import { PACES } from '../study/retention';
 import { clearDemo, loadDemo } from '../study/demo-data';
 
 /** Where a row leads, when it leads somewhere. */
-type Page = 'root' | 'plan' | 'hours' | 'appearance' | 'focus' | 'fixed' | 'legal' | 'about';
+type Page =
+  | 'root' | 'plan' | 'hours' | 'appearance' | 'revision' | 'focus' | 'fixed' | 'legal' | 'about';
 
 /** Short passages, each in its own sheet — not one wall of policy text. */
 const LEGAL = [
@@ -116,6 +118,13 @@ const SOCIALS = [
               <mat-icon class="lead">palette</mat-icon>
               <span class="row-title">Appearance</span>
               <span class="row-value">{{ appearanceName() }}</span>
+              <mat-icon class="chev">chevron_right</mat-icon>
+            </button>
+
+            <button matRipple class="row" (click)="page.set('revision')">
+              <mat-icon class="lead">history</mat-icon>
+              <span class="row-title">Revision schedule</span>
+              <span class="row-value">{{ paceName() }}</span>
               <mat-icon class="chev">chevron_right</mat-icon>
             </button>
 
@@ -331,6 +340,36 @@ const SOCIALS = [
               }
             </div>
           </div>
+        </div>
+      }
+
+      @case ('revision') {
+        <header class="bar">
+          <button matRipple class="icon-btn" (click)="page.set('root')" aria-label="Back">
+            <mat-icon>arrow_back</mat-icon>
+          </button>
+          <h1 class="bar-title small">Revision schedule</h1>
+        </header>
+
+        <div class="scroll">
+          <div class="sheet">
+            @for (p of paces; track p.id) {
+              <button matRipple class="row" (click)="store.revisionPace.set(p.id)">
+                <span class="row-title">
+                  {{ p.label }}
+                  <span class="row-sub">{{ p.hint }}</span>
+                </span>
+                @if (store.revisionPace() === p.id) {
+                  <mat-icon class="filled tick">check_circle</mat-icon>
+                }
+              </button>
+            }
+          </div>
+
+          <p class="note">
+            A chapter comes back on these gaps, counted from the day you last studied it. Saying a
+            sitting went badly pulls the next one closer; saying it went well pushes it out.
+          </p>
         </div>
       }
 
@@ -590,6 +629,8 @@ const SOCIALS = [
     .row + .row { box-shadow: inset 0 1px 0 var(--mat-sys-outline-variant); }
     .row-title { flex: 1; min-width: 0; font: var(--mat-sys-body-large); }
     .row-value { flex: none; font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
+    .row-title { display: flex; flex-direction: column; gap: 2px; }
+    .row-sub { font: var(--mat-sys-body-small); color: var(--mat-sys-on-surface-variant); }
     .chev { flex: none; color: var(--mat-sys-on-surface-variant); margin-right: -4px; }
     .row.danger .row-title { color: var(--mat-sys-error); }
     .tick { color: var(--mat-sys-primary); }
@@ -821,6 +862,11 @@ export class SettingsScreen {
   protected readonly presets = COMMITMENT_PRESETS;
   protected readonly dayInitials = DAY_INITIALS;
   protected readonly breaks = BREAKS;
+  protected readonly paces = PACES;
+
+  protected paceName(): string {
+    return PACES.find((p) => p.id === this.store.revisionPace())?.label ?? '';
+  }
   protected readonly socials = SOCIALS;
   protected readonly version = '0.4.0';
   protected readonly legal = LEGAL;
