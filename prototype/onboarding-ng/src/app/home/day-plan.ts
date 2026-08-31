@@ -1,5 +1,5 @@
 import { ALL_CHAPTERS, Chapter, PACK, Subtopic, chapterIsDone } from '../onboarding/exam-pack';
-import { ChapterStat, TestRecord, Task } from '../study/study-store';
+import { ChapterStat, Task } from '../study/study-store';
 import { Candidate } from './scheduler';
 
 /** How long each kind of sitting wants to be. */
@@ -15,36 +15,17 @@ export interface PlanInput {
   doneUnits: ReadonlySet<string>;
   learnedSubtopics: ReadonlySet<string>;
   stat: (chapterId: string) => ChapterStat;
-  nextTest: TestRecord | null;
-  /** Days from the day being planned to that test. */
-  daysToTest: number | null;
   /** Slots to fill; more than needed is fine, the packer stops when full. */
   slots: number;
 }
 
 /**
- * What today should contain. Test week bends the whole plan towards the test —
- * which is the point of having a test anchor at all.
+ * What today should contain: learn forward, practise what was just learnt,
+ * revise what is going stale — in that order, rotated across subjects.
  */
 export function dayCandidates(input: PlanInput): Candidate[] {
   const out: Candidate[] = [];
-  const testChapters = testSyllabus(input);
 
-  // Two days out, the day belongs to the test.
-  if (testChapters.length > 0 && input.daysToTest !== null && input.daysToTest <= 2) {
-    for (const chapter of testChapters) {
-      out.push({ task: 'Revise', chapter, minutes: LENGTH.Revise, forTest: true });
-      if (out.length >= input.slots) return out;
-    }
-    for (const chapter of testChapters) {
-      out.push({ task: 'Practice', chapter, minutes: LENGTH.Practice, forTest: true });
-      if (out.length >= input.slots) return out;
-    }
-    return out;
-  }
-
-  // An ordinary day: learn forward, practise what was just learnt, revise what
-  // is going stale — in that order of priority, rotated across subjects.
   const learn = learnQueue(input);
   const practice = practiceQueue(input, learn);
   const revise = reviseQueue(input);
@@ -60,24 +41,7 @@ export function dayCandidates(input: PlanInput): Candidate[] {
     if (i > input.slots * 4) break;
   }
 
-  // Test syllabus gets one slot even on an ordinary day within the test week.
-  if (testChapters.length > 0 && input.daysToTest !== null && input.daysToTest <= 5) {
-    out.splice(Math.min(2, out.length), 0, {
-      task: 'Revise',
-      chapter: testChapters[0],
-      minutes: LENGTH.Revise,
-      forTest: true,
-    });
-  }
-
   return out.slice(0, input.slots);
-}
-
-function testSyllabus(input: PlanInput): Chapter[] {
-  if (!input.nextTest) return [];
-  return input.nextTest.chapterIds
-    .map((id) => ALL_CHAPTERS.find((c) => c.id === id))
-    .filter((c): c is Chapter => !!c);
 }
 
 /** The next unread section heading in each subject, rotated by paper weight. */

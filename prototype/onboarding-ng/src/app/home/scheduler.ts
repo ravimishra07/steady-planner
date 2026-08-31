@@ -8,8 +8,6 @@ export interface FixedBlock {
   minutes: number;
   title: string;
   subject: string;
-  /** The weekly test itself, which owns its slot like any other fixed hour. */
-  isTest?: boolean;
 }
 
 export interface StudyBlock {
@@ -25,8 +23,6 @@ export interface StudyBlock {
   subtopicId?: string;
   questions?: number;
   done: boolean;
-  /** Set when the block exists because a test is close. */
-  forTest?: boolean;
 }
 
 export interface GapBlock {
@@ -54,7 +50,6 @@ export interface Candidate {
   subtopic?: Subtopic;
   /** Preferred length; the packer may shorten it to fit a window. */
   minutes: number;
-  forTest?: boolean;
 }
 
 /** A sitting shorter than this teaches nothing; longer than this loses focus. */
@@ -104,7 +99,6 @@ export function layOutDay(
   candidates: Candidate[],
   targetMinutes: number,
   coachingName: string,
-  test: FixedBlock | null = null,
   breakMinutes: number = BREAK,
 ): Block[] {
   const blocks: Block[] = commitmentsOn(commitments, weekday).map((c) => ({
@@ -114,8 +108,6 @@ export function layOutDay(
     title: c.label,
     subject: c.kind === 'coaching' ? coachingName : kindLabel(c.kind),
   }));
-
-  if (test) blocks.push(test);
 
   // Study is spread across the day's windows in proportion to their size,
   // rather than dumped into the first one — an evening window after coaching
@@ -156,7 +148,6 @@ export function layOutDay(
         subtopicId: candidate.subtopic?.id,
         questions: candidate.task === 'Practice' ? Math.round(minutes / 1.2) : undefined,
         done: false,
-        forTest: candidate.forTest,
       });
 
       cursor += minutes;

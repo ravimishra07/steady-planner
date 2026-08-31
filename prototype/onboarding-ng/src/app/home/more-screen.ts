@@ -47,8 +47,8 @@ import { PACK } from '../onboarding/exam-pack';
     <section class="group">
       <h2 class="label">Demo data</h2>
       <p class="lede">
-        Three weeks of fabricated history — sessions, revision rounds, accuracy and
-        two written tests. Nothing here is real study data.
+        Three weeks of fabricated history — sittings, revision rounds and
+        accuracy. Nothing here is real study data.
       </p>
       <div class="rows">
         <button matRipple class="row action" (click)="load()">

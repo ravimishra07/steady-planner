@@ -5,16 +5,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatRippleModule } from '@angular/material/core';
 import { COACHINGS, OnboardingStore, addDays, startOfToday } from '../onboarding/state';
 import { ALL_CHAPTERS, Chapter, chapterIsDone } from '../onboarding/exam-pack';
-import { StudyStore, Task, TestRecord, dateKey, neetScore, parseKey } from '../study/study-store';
-import { Block, FixedBlock, StudyBlock, freeWindows, layOutDay, subjectLabel } from './scheduler';
+import { StudyStore, Task, dateKey } from '../study/study-store';
+import { Block, StudyBlock, freeWindows, layOutDay, subjectLabel } from './scheduler';
 import { dayCandidates } from './day-plan';
 
-interface DayCell { date: Date; day: number; planned: boolean; logged: boolean; test: boolean; }
+interface DayCell { date: Date; day: number; planned: boolean; logged: boolean; }
 
 const PX_PER_MINUTE = 0.75;
-/** The weekly test runs to the NTA clock: 3h 20m, late morning. */
-const TEST_START = 10 * 60;
-const TEST_MINUTES = 200;
 const MIN_BLOCK_HEIGHT = 72;
 
 /**
@@ -49,7 +46,6 @@ const MIN_BLOCK_HEIGHT = 72;
               <span class="marks">
                 @if (cell.logged) { <span class="dot done"></span> }
                 @else if (cell.planned) { <span class="dot"></span> }
-                @if (cell.test) { <span class="dot test"></span> }
               </span>
             </button>
           } @else {
@@ -67,23 +63,6 @@ const MIN_BLOCK_HEIGHT = 72;
         <span class="fill" [style.width.%]="donePercent()"></span>
       </div>
     </section>
-
-    @if (test(); as t) {
-      <button matRipple class="test-card" [class.imminent]="daysToTest()! <= 2" (click)="testOpen.set(true)">
-        <mat-icon>fact_check</mat-icon>
-        <span class="test-text">
-          <span class="test-title">{{ t.label }} · {{ testWhen() }}</span>
-          <span class="test-sub">
-            @if (t.correct !== null) {
-              Scored {{ score(t) }}/{{ t.questions * 4 }} · {{ testAccuracy(t) }}% accurate
-            } @else {
-              {{ t.chapterIds.length }} chapters · {{ testReady() }} revised
-            }
-          </span>
-        </span>
-        <mat-icon class="chev">chevron_right</mat-icon>
-      </button>
-    }
 
     @if (backlog() > 0) {
       <div class="anchors">
@@ -124,7 +103,6 @@ const MIN_BLOCK_HEIGHT = 72;
               <button matRipple class="block" [class.done]="block.done" (click)="openSession(block)">
                 <span class="block-head">
                   <span class="tag" [class]="'tag-' + block.task.toLowerCase()">{{ block.task }}</span>
-                  @if (block.forTest) { <span class="for-test">for the test</span> }
                   <span class="len">{{ format(block.minutes) }}</span>
                 </span>
                 <span class="title">{{ block.title }}</span>
@@ -140,9 +118,9 @@ const MIN_BLOCK_HEIGHT = 72;
                 </span>
               </button>
             } @else if (block.kind === 'fixed') {
-              <div class="block fixed" [class.is-test]="block.isTest">
+              <div class="block fixed">
                 <span class="block-head">
-                  <span class="tag" [class]="block.isTest ? 'tag-test' : 'tag-class'">{{ block.isTest ? 'Test' : 'Fixed' }}</span>
+                  <span class="tag tag-class">Fixed</span>
                   <span class="len">{{ format(block.minutes) }}</span>
                 </span>
                 <span class="title">{{ block.title }}</span>
@@ -247,42 +225,6 @@ const MIN_BLOCK_HEIGHT = 72;
       </div>
     }
 
-    <!-- Test sheet: syllabus, readiness, and somewhere to put the score. -->
-    @if (testOpen() && test(); as t) {
-      <div class="scrim" (click)="testOpen.set(false)"></div>
-      <div class="sheet tall" role="dialog" aria-label="Test">
-        <span class="handle"></span>
-        <h3 class="sheet-title">{{ t.label }}</h3>
-        <p class="sheet-sub">{{ testWhen() }} · {{ t.questions }} questions · {{ t.questions * 4 }} marks</p>
-
-        <h4 class="sheet-label">Score</h4>
-        <div class="score-row">
-          <label>
-            <span class="field-label">Correct</span>
-            <input type="number" min="0" [ngModel]="tCorrect()" (ngModelChange)="tCorrect.set(+$event)" />
-          </label>
-          <label>
-            <span class="field-label">Wrong</span>
-            <input type="number" min="0" [ngModel]="tWrong()" (ngModelChange)="tWrong.set(+$event)" />
-          </label>
-        </div>
-        <p class="computed-line">Net score {{ neet(tCorrect(), tWrong()) }} of {{ t.questions * 4 }} — +4 right, −1 wrong.</p>
-        <button matRipple class="filled-button" (click)="saveScore(t)">Save score</button>
-
-        <h4 class="sheet-label">Syllabus</h4>
-        <div class="pick-list">
-          @for (c of study.syllabusFor(t); track c.id) {
-            <div class="sheet-row static">
-              <mat-icon [class.ok]="isDone(c)">{{ isDone(c) ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-              <span class="sheet-name">
-                {{ c.name }}
-                <span class="row-sub">{{ subject(c) }} · {{ rounds(c) }}</span>
-              </span>
-            </div>
-          }
-        </div>
-      </div>
-    }
   `,
   styles: `
     :host {
@@ -355,7 +297,6 @@ const MIN_BLOCK_HEIGHT = 72;
     }
 
     .dot.done { background: var(--mat-sys-primary); }
-    .dot.test { background: var(--mat-sys-error); }
 
     /* One headline number, then the qualifiers under it. */
     .summary {
@@ -379,30 +320,6 @@ const MIN_BLOCK_HEIGHT = 72;
 
     .fill { display: block; height: 100%; background: var(--mat-sys-primary); }
 
-    .test-card {
-      flex: none;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin: 0 16px 12px;
-      padding: 12px 8px 12px 16px;
-      border: none;
-      border-radius: var(--mat-sys-corner-large);
-      background: var(--mat-sys-surface-container-high);
-      color: var(--mat-sys-on-surface);
-      text-align: left;
-      cursor: pointer;
-    }
-
-    .test-card.imminent {
-      background: var(--mat-sys-secondary-container);
-      color: var(--mat-sys-on-secondary-container);
-    }
-
-    .test-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-    .test-title { font: var(--mat-sys-title-small); }
-    .test-sub { font: var(--mat-sys-label-medium); opacity: .75; }
-    .chev { opacity: .6; }
 
     .anchors { flex: none; display: flex; gap: 8px; padding: 0 16px 12px; }
 
@@ -533,12 +450,9 @@ const MIN_BLOCK_HEIGHT = 72;
     }
     .tag-class { background: var(--mat-sys-surface-container-highest); color: var(--mat-sys-on-surface-variant); }
 
-    .for-test { font: var(--mat-sys-label-small); color: var(--mat-sys-primary); }
-    .tag-test { background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container); }
     .len { margin-left: auto; font: var(--mat-sys-label-large); color: var(--mat-sys-on-surface-variant); }
 
     .block.fixed { cursor: default; opacity: .7; }
-    .block.fixed.is-test { opacity: 1; }
 
     .title { font: var(--mat-sys-title-medium); }
     .context { font: var(--mat-sys-body-small); color: var(--mat-sys-on-surface-variant); }
@@ -672,12 +586,6 @@ const MIN_BLOCK_HEIGHT = 72;
       font: var(--mat-sys-body-medium);
     }
 
-    .computed-line {
-      margin: 8px 0 0;
-      font: var(--mat-sys-label-large);
-      color: var(--mat-sys-primary);
-    }
-
     .filled-button {
       height: 48px;
       margin-top: 16px;
@@ -706,13 +614,10 @@ export class TodayScreen {
   protected readonly session = signal<StudyBlock | null>(null);
   protected readonly picker = signal<{ startMinute: number; minutes: number } | null>(null);
   protected readonly pickTask = signal<Task>('Learn');
-  protected readonly testOpen = signal(false);
   protected readonly breakOpen = signal(false);
   protected readonly breakChoices = [5, 10, 15, 20, 30];
   protected readonly attempted = signal(0);
   protected readonly correct = signal(0);
-  protected readonly tCorrect = signal(0);
-  protected readonly tWrong = signal(0);
 
   protected readonly key = computed(() => dateKey(this.selected()));
 
@@ -733,56 +638,6 @@ export class TodayScreen {
     return [...lead, ...cells];
   });
 
-  /* ---- The test anchor ----------------------------------------------- */
-
-  protected readonly test = computed<TestRecord | null>(() => {
-    const onDay = this.study.testOn(this.key());
-    if (onDay) return onDay;
-    return this.study.tests().filter((t) => t.dateKey >= this.key()).sort(cmp)[0] ?? null;
-  });
-
-  protected readonly daysToTest = computed(() => {
-    const t = this.test();
-    if (!t) return null;
-    return Math.round((parseKey(t.dateKey).getTime() - this.selected().getTime()) / 86_400_000);
-  });
-
-  protected testWhen(): string {
-    const n = this.daysToTest();
-    if (n === null) return '';
-    if (n === 0) return 'today';
-    if (n === 1) return 'tomorrow';
-    if (n < 0) return `${-n} days ago`;
-    return `in ${n} days`;
-  }
-
-  /** Chapters on the test that have had at least one revision pass. */
-  protected testReady(): number {
-    const t = this.test();
-    if (!t) return 0;
-    return t.chapterIds.filter((id) => this.study.stat(id).revisions > 0).length;
-  }
-
-  protected score(t: TestRecord): number {
-    return neetScore(t.correct ?? 0, t.wrong ?? 0);
-  }
-
-  protected neet(correct: number, wrong: number): number {
-    return neetScore(correct, wrong);
-  }
-
-  protected testAccuracy(t: TestRecord): number {
-    const attempted = (t.correct ?? 0) + (t.wrong ?? 0);
-    return attempted === 0 ? 0 : Math.round(((t.correct ?? 0) / attempted) * 100);
-  }
-
-  protected saveScore(t: TestRecord): void {
-    const correct = this.tCorrect();
-    const wrong = this.tWrong();
-    this.study.updateTest(t.id, { correct, wrong, attempted: correct + wrong });
-    this.testOpen.set(false);
-  }
-
   /* ---- The day ------------------------------------------------------- */
 
   protected readonly blocks = computed<Block[]>(() => {
@@ -790,33 +645,8 @@ export class TodayScreen {
     const weekday = date.getDay();
     const commitments = this.store.commitments();
 
-    // On test day the test owns its slot, so nothing gets scheduled over it.
-    const onTest = this.study.testOn(this.key());
-    const testBlock: FixedBlock | null = onTest
-      ? {
-          kind: 'fixed',
-          startMinute: TEST_START,
-          minutes: TEST_MINUTES,
-          title: onTest.label,
-          subject: `${onTest.questions} questions · ${onTest.questions * 4} marks`,
-          isTest: true,
-        }
-      : null;
-
     const windows = freeWindows(
-      testBlock
-        ? [
-            ...commitments,
-            {
-              id: 'test-slot',
-              label: onTest!.label,
-              kind: 'other' as const,
-              startMinute: TEST_START,
-              minutes: TEST_MINUTES,
-              days: [weekday],
-            },
-          ]
-        : commitments,
+      commitments,
       weekday,
       this.store.wakeMinute(),
       this.store.sleepMinute(),
@@ -833,8 +663,6 @@ export class TodayScreen {
       doneUnits: this.planningDone(),
       learnedSubtopics: this.study.learnedSubtopics(),
       stat: (id) => this.study.stat(id),
-      nextTest: this.test(),
-      daysToTest: this.daysToTest(),
       slots: 8,
     });
 
@@ -845,7 +673,6 @@ export class TodayScreen {
       candidates,
       target,
       this.coachingName(),
-      testBlock,
       this.store.breakMinutes(),
     );
 
@@ -1080,15 +907,10 @@ export class TodayScreen {
       day: date.getDate(),
       planned: date >= startOfToday() && date <= this.store.targetDate(),
       logged: this.study.minutesOn(key) > 0,
-      test: !!this.study.testOn(key),
     };
   }
 }
 
 function blockKey(block: StudyBlock): string {
   return `${block.chapterId}|${block.task}|${block.subtopicId ?? ''}`;
-}
-
-function cmp(a: TestRecord, b: TestRecord): number {
-  return a.dateKey < b.dateKey ? -1 : a.dateKey > b.dateKey ? 1 : 0;
 }

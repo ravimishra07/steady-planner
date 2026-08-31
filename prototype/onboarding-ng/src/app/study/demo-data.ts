@@ -1,19 +1,11 @@
 import { OnboardingStore, addDays, startOfToday } from '../onboarding/state';
 import { PACK, Chapter } from '../onboarding/exam-pack';
-import {
-  ChapterStat,
-  LoggedSession,
-  StudyStore,
-  Task,
-  TestRecord,
-  dateKey,
-  seedTests,
-} from './study-store';
+import { ChapterStat, LoggedSession, StudyStore, Task, dateKey } from './study-store';
 
 /**
  * A fabricated three weeks of use. Nothing here is real study data — it exists
- * so the screens can be judged with history in them: revision rounds, accuracy,
- * a test with a score on it. Loaded and cleared from the More tab.
+ * so the screens can be judged with history in them: logged sittings, revision
+ * rounds and accuracy. Loaded and cleared from the More tab.
  */
 
 /** Deterministic, so the demo looks the same every time it is loaded. */
@@ -26,17 +18,13 @@ function rng(seed: number): () => number {
 }
 
 const DAYS = 21;
-/**
- * Chapters per subject the demo has worked through. The weekly tests examine
- * two chapters per subject per week, so three tests' worth is six.
- */
+/** Chapters per subject the demo has worked through. */
 const FINISHED = 6;
 
 interface Built {
   sessions: LoggedSession[];
   stats: Map<string, ChapterStat>;
   done: Set<string>;
-  tests: TestRecord[];
 }
 
 export function buildDemo(): Built {
@@ -143,22 +131,13 @@ export function buildDemo(): Built {
     touch(chapter.id, { lastTouched: dateKey(addDays(today, -1)) });
   }
 
-  // Past tests get a score; the coming ones stay empty, as they should.
-  const tests = seedTests().map((test, i) => {
-    if (test.dateKey >= dateKey(today)) return test;
-    const attempted = 150 + Math.floor(random() * 25);
-    const correct = Math.round(attempted * (0.52 + i * 0.06 + random() * 0.04));
-    return { ...test, attempted, correct, wrong: attempted - correct };
-  });
-
-  return { sessions, stats, done, tests };
+  return { sessions, stats, done };
 }
 
 export function loadDemo(onboarding: OnboardingStore, study: StudyStore): void {
   const demo = buildDemo();
   study.sessions.set(demo.sessions);
   study.stats.set(demo.stats);
-  study.tests.set(demo.tests);
   study.extras.set([]);
   onboarding.doneUnits.set(demo.done);
 }
@@ -166,7 +145,6 @@ export function loadDemo(onboarding: OnboardingStore, study: StudyStore): void {
 export function clearDemo(onboarding: OnboardingStore, study: StudyStore): void {
   study.sessions.set([]);
   study.stats.set(new Map());
-  study.tests.set(seedTests());
   study.extras.set([]);
   onboarding.doneUnits.set(new Set());
 }

@@ -1,10 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
-import { MatRippleModule } from '@angular/material/core';
 import { OnboardingStore, addDays, startOfToday } from '../onboarding/state';
 import { ALL_CHAPTERS, Chapter, PACK, Subject, chapterIsDone } from '../onboarding/exam-pack';
-import { StudyStore, TestRecord, neetScore } from '../study/study-store';
+import { StudyStore } from '../study/study-store';
 
 /**
  * Weeks the consistency grid shows. Long enough to read as a habit, short
@@ -23,7 +22,7 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
  */
 @Component({
   selector: 'app-progress-tab',
-  imports: [MatIconModule, MatRippleModule, DatePipe],
+  imports: [MatIconModule, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Readiness: the one composite number, stated as the estimate it is. -->
@@ -181,51 +180,7 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
             <span class="acc-value">{{ subjectRate(s) === null ? '—' : subjectRate(s) + '%' }}</span>
           </div>
         }
-        <p class="foot">{{ attemptedTotal() }} questions logged across practice and tests.</p>
-      </div>
-    </section>
-
-    <!-- Tests -->
-    <section class="group">
-      <h2 class="label">Test scores</h2>
-
-      <div class="card">
-        @if (scored().length >= 2) {
-          <div class="chart-head">
-            <span class="chart-value">{{ latestScore() }}<span class="chart-unit"> / 720 last test</span></span>
-            <span class="chart-caption" [class.up]="scoreDelta() >= 0">
-              {{ scoreDelta() >= 0 ? '+' : '' }}{{ scoreDelta() }} marks on the one before
-            </span>
-          </div>
-
-          <svg class="line-chart" viewBox="0 0 320 140" role="img"
-               [attr.aria-label]="'Test scores over ' + scored().length + ' tests'">
-            @for (g of gridLines; track g) {
-              <line class="grid" x1="34" [attr.y1]="y(g)" x2="316" [attr.y2]="y(g)" />
-              <text class="axis-text" x="0" [attr.y]="y(g) + 4">{{ g }}</text>
-            }
-            <polyline class="series" [attr.points]="points()" />
-            @for (p of pointList(); track p.id) {
-              <circle class="dot" [attr.cx]="p.x" [attr.cy]="p.y" r="4" />
-              <text class="point-text" [attr.x]="p.x" [attr.y]="p.y - 10">{{ p.value }}</text>
-            }
-          </svg>
-        }
-
-        @for (t of recentTests(); track t.id) {
-          <div class="test-row">
-            <span class="test-name">
-              {{ t.label }}
-              <span class="test-sub">{{ testDate(t) | date: 'd MMM' }} · {{ testRate(t) }}% accurate</span>
-            </span>
-            <span class="test-score">{{ score(t) }}<span class="test-max">/{{ t.questions * 4 }}</span></span>
-          </div>
-        } @empty {
-          <div class="empty">
-            <mat-icon>history</mat-icon>
-            <span>No test written yet.</span>
-          </div>
-        }
+        <p class="foot">{{ attemptedTotal() }} questions logged in practice.</p>
       </div>
     </section>
 
@@ -522,38 +477,6 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
     .acc-value { width: 44px; text-align: right; font: var(--mat-sys-label-large); color: var(--mat-sys-on-surface-variant); }
     .foot { margin: 0; font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
 
-    /* Test chart -------------------------------------------------------- */
-    .line-chart { width: 100%; height: auto; overflow: visible; }
-    .grid { stroke: var(--mat-sys-outline-variant); stroke-width: 1; }
-
-    .series {
-      fill: none;
-      stroke: var(--mat-sys-primary);
-      stroke-width: 2.5;
-      stroke-linejoin: round;
-      stroke-linecap: round;
-    }
-
-    .dot { fill: var(--mat-sys-primary); }
-
-    .axis-text {
-      font-size: 10px;
-      fill: var(--mat-sys-on-surface-variant);
-    }
-
-    .point-text {
-      font-size: 11px;
-      font-weight: 600;
-      text-anchor: middle;
-      fill: var(--mat-sys-on-surface);
-    }
-
-    .test-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .test-name { display: flex; flex-direction: column; gap: 2px; font: var(--mat-sys-body-medium); }
-    .test-sub { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
-    .test-score { font: var(--mat-sys-title-medium); color: var(--mat-sys-primary); }
-    .test-max { font: var(--mat-sys-label-medium); color: var(--mat-sys-on-surface-variant); }
-
     /* Attention --------------------------------------------------------- */
     .sub-label { margin: 0; font: var(--mat-sys-label-large); color: var(--mat-sys-on-surface-variant); }
     .attn { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -579,7 +502,6 @@ export class ProgressTab {
   protected readonly hoursDays = HOURS_DAYS;
   protected readonly heatmapWeeks = HEATMAP_WEEKS;
   protected readonly circumference = 2 * Math.PI * 52;
-  protected readonly gridLines = [0, 360, 720];
 
   /** Listed in the order the bar stacks them: deepest pass on the left. */
   protected readonly depthKey = [
@@ -755,61 +677,8 @@ export class ProgressTab {
   protected readonly attemptedTotal = computed(() => {
     let total = 0;
     for (const s of this.study.stats().values()) total += s.attempted;
-    for (const t of this.study.tests()) total += t.attempted ?? 0;
     return total;
   });
-
-  /* ---- Tests ---------------------------------------------------------- */
-
-  protected readonly scored = computed(() => this.study.scoredTests());
-  protected readonly recentTests = computed(() => [...this.scored()].reverse().slice(0, 4));
-
-  /** Plot area: x 42-308, y 22-118, leaving room for labels either side. */
-  protected y(marks: number): number {
-    return 118 - (marks / 720) * 96;
-  }
-
-  private readonly xy = computed(() => {
-    const list = this.scored();
-    const step = list.length > 1 ? 266 / (list.length - 1) : 0;
-    return list.map((t, i) => ({
-      id: t.id,
-      x: 42 + i * step,
-      y: this.y(this.score(t)),
-      value: this.score(t),
-    }));
-  });
-
-  protected readonly latestScore = computed(() => {
-    const list = this.scored();
-    return list.length === 0 ? 0 : this.score(list[list.length - 1]);
-  });
-
-  protected readonly scoreDelta = computed(() => {
-    const list = this.scored();
-    if (list.length < 2) return 0;
-    return this.score(list[list.length - 1]) - this.score(list[list.length - 2]);
-  });
-
-  protected points(): string {
-    return this.xy().map((p) => `${p.x},${p.y}`).join(' ');
-  }
-
-  protected pointList() { return this.xy(); }
-
-  protected score(t: TestRecord): number {
-    return neetScore(t.correct ?? 0, t.wrong ?? 0);
-  }
-
-  protected testRate(t: TestRecord): number {
-    const attempted = t.attempted ?? 0;
-    return attempted === 0 ? 0 : Math.round(((t.correct ?? 0) / attempted) * 100);
-  }
-
-  protected testDate(t: TestRecord): Date {
-    const [y, m, d] = t.dateKey.split('-').map(Number);
-    return new Date(y, m - 1, d);
-  }
 
   /* ---- Attention ------------------------------------------------------ */
 
