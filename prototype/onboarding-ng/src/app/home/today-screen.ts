@@ -94,10 +94,18 @@ const MIN_BLOCK_HEIGHT = 72;
           <mat-icon class="filled">check_circle</mat-icon>
           {{ format(loggedMinutes()) }} of {{ format(plannedMinutes()) }}
         </span>
+
         @if (fixedMinutes() > 0) {
-          <span class="fact muted">
+          <span class="fact">
             <mat-icon>lock</mat-icon>
             {{ format(fixedMinutes()) }} fixed
+          </span>
+        }
+
+        @if (nextUp(); as next) {
+          <span class="fact">
+            <mat-icon>schedule</mat-icon>
+            {{ next }}
           </span>
         }
       </div>
@@ -431,18 +439,25 @@ const MIN_BLOCK_HEIGHT = 72;
 
     .now-label { color: var(--mat-sys-on-surface); }
 
-    .facts { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; }
+    .facts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 
+    /* Static chips, not buttons: they are readings, and giving them a
+       container stops them floating loose under the bar. */
     .fact {
       display: flex;
       align-items: center;
       gap: 6px;
-      font: var(--mat-sys-label-large);
-      color: var(--mat-sys-on-surface);
+      height: 32px;
+      padding: 0 12px 0 10px;
+      border-radius: var(--mat-sys-corner-full);
+      background: var(--mat-sys-surface-container-high);
+      color: var(--mat-sys-on-surface-variant);
+      font: var(--mat-sys-label-medium);
+      white-space: nowrap;
     }
 
-    .fact.muted { color: var(--mat-sys-on-surface-variant); }
-    .fact mat-icon { font-size: 16px; width: 16px; height: 16px; color: var(--mat-sys-on-surface-variant); }
+    .fact mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    .fact:first-child { color: var(--mat-sys-on-surface); }
     .fact:first-child mat-icon { color: var(--mat-sys-primary); }
 
 
@@ -863,6 +878,23 @@ export class TodayScreen {
     const at = ((this.nowMinute() - wake) / span) * 100;
     return at < 0 || at > 100 ? null : clamp(at);
   });
+
+  /**
+   * When the next unlogged sitting starts. The third fact worth a chip: the
+   * other two say what the day holds, this one says when to look up.
+   */
+  protected nextUp(): string | null {
+    const now = this.isToday(this.selected()) ? this.nowMinute() : null;
+    const owed = this.blocks().filter(
+      (b): b is StudyBlock => b.kind === 'study' && !b.done,
+    );
+    if (owed.length === 0) return null;
+    if (now === null) return `Starts ${this.clock(owed[0].startMinute)}`;
+
+    const ahead = owed.find((b) => b.startMinute + b.minutes > now);
+    if (!ahead) return `${owed.length} to reschedule`;
+    return ahead.startMinute <= now ? 'On now' : `Next ${this.clock(ahead.startMinute)}`;
+  }
 
   protected shapeLabel(): string {
     const total = this.shape().filter((s) => s.kind === 'study').length;
