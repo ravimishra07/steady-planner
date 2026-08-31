@@ -30,7 +30,8 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
     <!-- Readiness is the focal point: brightest surface, most space, one
          numeral. Everything below is support for it. -->
     <header class="hero">
-      <div class="ring-wrap">
+      <button matRipple class="ring-wrap" (click)="explainOpen.set(true)"
+              aria-label="How these numbers work">
         <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
           <circle class="ring-track" cx="60" cy="60" r="52" />
           <circle class="ring-fill" cx="60" cy="60" r="52"
@@ -39,9 +40,9 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
         </svg>
         <span class="ring-text">
           <span class="ring-value">{{ readiness() }}<span class="pct">%</span></span>
-          <span class="ring-unit">exam ready</span>
+          <span class="ring-unit">exam ready <mat-icon>info</mat-icon></span>
         </span>
-      </div>
+      </button>
 
       <dl class="facts">
         <div class="fact">
@@ -59,29 +60,21 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
       </dl>
     </header>
 
-    <!-- Say what the number means. A score nobody can decode is noise. -->
-    <p class="hero-note">
-      Exam ready blends how much of the syllabus you have covered, how much of it you
-      still remember, and how accurate your practice is.
-    </p>
-
     <!-- The only real card on the page: one subject, and an action. -->
     <section class="pace" [class.behind]="behind()" [class.unknown]="daysNeeded() === null">
-      <div class="pace-row">
+      <span class="pace-head">
         <mat-icon>{{ verdictIcon() }}</mat-icon>
-        <span class="pace-text">
-          <span class="pace-head">{{ verdictHead() }}</span>
-          <span class="pace-sub">{{ verdictSub() }}</span>
-        </span>
-      </div>
+        {{ verdictHead() }}
+      </span>
+      <span class="pace-sub">{{ verdictSub() }}</span>
 
       @if (daysNeeded() !== null) {
         <div class="pace-actions">
-          <button matRipple class="pace-cta" (click)="rebalanceOpen.set(true)">
+          <button matRipple class="pace-cta" [class.urgent]="behind()" (click)="rebalanceOpen.set(true)">
             {{ behind() ? 'Rebalance' : 'Adjust plan' }}
           </button>
           @if (store.parkedChapters().size > 0) {
-            <span class="pace-note">{{ store.parkedChapters().size }} parked</span>
+            <span class="pace-chip">{{ store.parkedChapters().size }} parked</span>
           }
         </div>
       }
@@ -89,8 +82,7 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
 
     <!-- Retention -->
     <section class="block">
-      <h2 class="block-title">What you still remember</h2>
-      <p class="block-note">Chapters fade after you learn them. These are the ones asking to be seen again.</p>
+      <h2 class="block-title">Recall</h2>
 
       <div class="metrics">
         <div class="metric"><span class="metric-value">{{ counts().fresh }}</span><span class="metric-label">still fresh</span></div>
@@ -107,7 +99,6 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
           </span>
         }
       </div>
-      <p class="caption">Outstanding, then the week ahead</p>
 
       @if (worst().length > 0) {
         <ul class="rows">
@@ -129,7 +120,7 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
 
     <!-- Consistency -->
     <section class="block">
-      <h2 class="block-title">Showing up</h2>
+      <h2 class="block-title">Consistency</h2>
 
       <div class="metrics">
         <div class="metric"><span class="metric-value">{{ streak().current }}</span><span class="metric-label">streak</span></div>
@@ -169,27 +160,27 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
 
     <!-- Hours -->
     <section class="block">
-      <h2 class="block-title">Hours studied</h2>
+      <div class="block-head">
+        <h2 class="block-title">Hours</h2>
+        <span class="block-aside">{{ hoursDays }} days</span>
+      </div>
 
       <p class="lead">{{ hours(averageMinutes()) }} <span class="lead-unit">a day</span></p>
 
       <div class="plot tall" [style.--target]="targetRatio()">
-        <span class="target"></span>
+        <span class="target"><span class="target-tag">{{ store.weekdayHours() }}h target</span></span>
         @for (d of daily(); track d.key) {
           <span class="plot-col" [attr.title]="barTitle(d)">
             <span class="plot-bar" [class.none]="d.minutes === 0" [style.height.%]="barHeight(d.minutes)"></span>
           </span>
         }
       </div>
-      <p class="caption">
-        Last {{ hoursDays }} days · dashed line is the {{ store.weekdayHours() }}h target
-      </p>
+
     </section>
 
     <!-- Depth -->
     <section class="block">
-      <h2 class="block-title">How deep each subject has gone</h2>
-      <p class="block-note">Learning a chapter is one pass. Each revision after that is another.</p>
+      <h2 class="block-title">Revision</h2>
 
       <ul class="rows">
         @for (d of depth(); track d.id) {
@@ -217,7 +208,10 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
 
     <!-- Accuracy -->
     <section class="block">
-      <h2 class="block-title">Practice accuracy</h2>
+      <div class="block-head">
+        <h2 class="block-title">Accuracy</h2>
+        <span class="block-aside">{{ attemptedTotal() }} questions</span>
+      </div>
 
       <ul class="rows">
         @for (s of subjects; track s.id) {
@@ -230,10 +224,9 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
           </li>
         }
       </ul>
-      <p class="caption">{{ attemptedTotal() }} questions logged</p>
 
       @if (weak().length > 0) {
-        <h3 class="sub-title">Weakest chapters</h3>
+        <h3 class="sub-title">Weakest</h3>
         <ul class="rows">
           @for (row of weak(); track row.chapter.id) {
             <li class="row">
@@ -250,6 +243,20 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
         </ul>
       }
     </section>
+
+    @if (explainOpen()) {
+      <div class="scrim" (click)="explainOpen.set(false)"></div>
+      <div class="sheet" role="dialog" aria-label="How these numbers work">
+        <span class="handle"></span>
+        <h3 class="sheet-title">How these numbers work</h3>
+        <ul class="notes">
+          <li><b>Exam ready</b> — how much you have covered, discounted by how much of it you still remember, plus practice accuracy.</li>
+          <li><b>Still remembered</b> — a chapter is at full strength the day you revise it and fades to nothing one interval past its due date.</li>
+          <li><b>Passes</b> — revisions fall due after 3, 10, 30 and 60 days, pulled in or pushed out by how the last sitting went.</li>
+          <li>Chapter hours are planning estimates, not measurements.</li>
+        </ul>
+      </div>
+    }
 
     <!-- Rebalance: a gap is a decision to make, not a scolding. -->
     @if (rebalanceOpen()) {
@@ -333,19 +340,27 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
 
     /* Hero ------------------------------------------------------------- */
     .hero {
+      position: relative;
       display: flex;
       align-items: center;
       gap: 24px;
-      padding: 16px 0 12px;
+      padding: 16px 0 24px;
     }
 
-    .hero-note {
-      margin: 0 0 24px;
-      font: var(--mat-sys-body-small);
-      color: var(--mat-sys-on-surface-variant);
-    }
 
-    .ring-wrap { position: relative; width: 112px; height: 112px; flex: none; }
+    /* The ring is the affordance for "what is this number?" — no separate
+       glyph competing with the figures beside it. */
+    .ring-wrap {
+      position: relative;
+      width: 112px;
+      height: 112px;
+      flex: none;
+      padding: 0;
+      border: none;
+      border-radius: 50%;
+      background: transparent;
+      cursor: pointer;
+    }
     .ring { width: 100%; height: 100%; transform: rotate(-90deg); }
     .ring-track { fill: none; stroke: var(--mat-sys-surface-container-highest); stroke-width: 8; }
 
@@ -369,7 +384,16 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
     /* Display size is for exactly this: a short, important numeral. */
     .ring-value { font: var(--mat-sys-display-small); line-height: 1; color: var(--mat-sys-on-surface); }
     .pct { font: var(--mat-sys-title-medium); color: var(--mat-sys-on-surface-variant); }
-    .ring-unit { margin-top: 4px; font: var(--mat-sys-label-medium); color: var(--mat-sys-on-surface-variant); }
+    .ring-unit {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      margin-top: 4px;
+      font: var(--mat-sys-label-medium);
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    .ring-unit mat-icon { font-size: 13px; width: 13px; height: 13px; opacity: .7; }
 
     .facts { flex: 1; min-width: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
     .fact { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
@@ -378,12 +402,15 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
     .of { font: var(--mat-sys-body-small); color: var(--mat-sys-on-surface-variant); }
 
     /* Pace: the one card ------------------------------------------------ */
+    /* Everything in the card shares one left edge: the icon sits inline with
+       the title rather than pushing a column the actions don't respect. */
     .pace {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 4px;
+      margin-bottom: 8px;
       padding: 16px;
-      border-radius: var(--mat-sys-corner-medium);
+      border-radius: var(--mat-sys-corner-large);
       background: var(--mat-sys-surface-container);
       color: var(--mat-sys-on-surface);
     }
@@ -391,28 +418,39 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
     .pace.behind { background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container); }
     .pace.unknown { background: transparent; box-shadow: inset 0 0 0 1px var(--mat-sys-outline-variant); }
 
-    .pace-row { display: flex; align-items: flex-start; gap: 12px; }
-    .pace-text { display: flex; flex-direction: column; gap: 2px; }
-    .pace-head { font: var(--mat-sys-title-small); }
+    .pace-head { display: flex; align-items: center; gap: 8px; font: var(--mat-sys-title-small); }
+    .pace-head mat-icon { font-size: 20px; width: 20px; height: 20px; }
     .pace-sub { font: var(--mat-sys-body-small); opacity: .8; }
 
-    .pace-actions { display: flex; align-items: center; gap: 12px; }
+    .pace-actions { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
 
-    /* Filled button, tinted to whichever container it is sitting on. */
+    /* Tonal while the plan is fine; filled only when it is the thing to do. */
     .pace-cta {
       height: 36px;
-      padding: 0 20px;
+      padding: 0 16px;
       border: none;
       border-radius: var(--mat-sys-corner-full);
-      background: var(--mat-sys-primary);
-      color: var(--mat-sys-on-primary);
+      background: var(--mat-sys-secondary-container);
+      color: var(--mat-sys-on-secondary-container);
       font: var(--mat-sys-label-large);
       cursor: pointer;
     }
 
-    .pace.behind .pace-cta {
+    .pace-cta.urgent {
       background: var(--mat-sys-on-error-container);
       color: var(--mat-sys-error-container);
+    }
+
+    /* An assist chip, not a stray caption sitting beside a button. */
+    .pace-chip {
+      display: inline-flex;
+      align-items: center;
+      height: 32px;
+      padding: 0 12px;
+      border: 1px solid var(--mat-sys-outline-variant);
+      border-radius: var(--mat-sys-corner-full);
+      font: var(--mat-sys-label-medium);
+      opacity: .9;
     }
 
     .pace-note { font: var(--mat-sys-label-medium); opacity: .8; }
@@ -420,6 +458,8 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
     /* Blocks: heading + content, separated by space and a hairline -------- */
     .block { padding: 24px 0; border-top: 1px solid var(--mat-sys-outline-variant); }
     .block:first-of-type { border-top: none; }
+    /* The pace card is its own boundary — no divider stacked against it. */
+    .pace + .block { border-top: none; }
 
     .block-title {
       margin: 0 0 16px;
@@ -427,15 +467,13 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
       color: var(--mat-sys-on-surface);
     }
 
+    .block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+    .block-head .block-title { margin-bottom: 16px; }
+    .block-aside { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
+
     .sub-title {
       margin: 24px 0 8px;
       font: var(--mat-sys-title-small);
-      color: var(--mat-sys-on-surface-variant);
-    }
-
-    .block-note {
-      margin: -8px 0 16px;
-      font: var(--mat-sys-body-small);
       color: var(--mat-sys-on-surface-variant);
     }
 
@@ -494,6 +532,15 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
       bottom: calc(var(--target) * 100%);
       border-top: 1px dashed var(--mat-sys-outline);
       pointer-events: none;
+    }
+
+    /* The line labels itself instead of a sentence under the chart. */
+    .target-tag {
+      position: absolute;
+      right: 0;
+      top: -14px;
+      font: var(--mat-sys-label-small);
+      color: var(--mat-sys-on-surface-variant);
     }
 
     /* Rows: one list component ------------------------------------------- */
@@ -613,6 +660,18 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
     }
 
     .sheet-title { margin: 4px 0 0; font: var(--mat-sys-title-large); }
+    .notes {
+      margin: 12px 0 0;
+      padding-left: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      font: var(--mat-sys-body-medium);
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    .notes b { color: var(--mat-sys-on-surface); font-weight: 600; }
+
     .sheet-sub { margin: 4px 0 8px; font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
 
     .option {
@@ -745,6 +804,7 @@ export class ProgressTab {
   /* ---- Rebalance ------------------------------------------------------ */
 
   protected readonly rebalanceOpen = signal(false);
+  protected readonly explainOpen = signal(false);
 
   protected perDay(): number {
     return this.study.averageMinutes(HOURS_DAYS) / 60;
