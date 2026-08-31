@@ -69,14 +69,18 @@ const MIN_BLOCK_HEIGHT = 72;
     </header>
 
     <section class="summary">
-      <div class="summary-head">
+      <button matRipple class="summary-head" (click)="summaryOpen.set(!summaryOpen())"
+              [attr.aria-expanded]="summaryOpen()">
         <span class="headline">{{ headline() }}</span>
-        <button matRipple class="edit-plan" (click)="editPlan.emit()">
+        <mat-icon class="summary-chevron" [class.up]="summaryOpen()">keyboard_arrow_down</mat-icon>
+        <span class="grow"></span>
+        <span matRipple class="edit-plan" (click)="editPlan.emit(); $event.stopPropagation()">
           <mat-icon>edit_calendar</mat-icon>
           Edit plan
-        </button>
-      </div>
+        </span>
+      </button>
 
+      @if (summaryOpen()) {
       <!-- The day on a clock, not a progress bar: blocks sit where they fall
            between waking and sleeping, and the marker says where you are. -->
       <div class="clockbar" role="img" [attr.aria-label]="shapeLabel()">
@@ -121,6 +125,7 @@ const MIN_BLOCK_HEIGHT = 72;
           </span>
         }
       </div>
+      }
     </section>
 
     @if (backlog() > 0) {
@@ -421,17 +426,35 @@ const MIN_BLOCK_HEIGHT = 72;
     /* The month grid keeps the compact form: no weekday letter per cell. */
     .month-grid .cell { border-radius: 18px; padding: 6px 0 8px; gap: 4px; }
 
-    /* One headline number, then the qualifiers under it. */
+    /* A card, so the day's summary is an object rather than something that
+       bleeds into the timeline underneath it. */
     .summary {
       flex: none;
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      padding: 16px 16px 12px;
+      margin: 12px 16px 4px;
+      padding: 4px 16px 16px;
+      border-radius: 24px;
+      background: var(--mat-sys-surface-container-low);
     }
 
     .headline { font: var(--mat-sys-headline-small); }
-    .summary-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .summary-head {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      width: 100%;
+      padding: 12px 0 0;
+      border: none;
+      background: transparent;
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .grow { flex: 1; }
+    .summary-chevron { color: var(--mat-sys-on-surface-variant); transition: transform 180ms ease; }
+    .summary-chevron.up { transform: rotate(180deg); }
     /* Labelled, because an unlabelled calendar-pencil could mean anything —
        but quiet, because the headline is what the eye should land on. */
     .edit-plan {
@@ -880,6 +903,7 @@ export class TodayScreen {
   protected readonly tasks: Task[] = ['Learn', 'Practice', 'Revise'];
 
   protected readonly expanded = signal(false);
+  protected readonly summaryOpen = signal(true);
   protected readonly today = startOfToday();
   protected readonly selected = signal(startOfToday());
 
