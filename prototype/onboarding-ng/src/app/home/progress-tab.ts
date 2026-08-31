@@ -3,7 +3,7 @@ import { DatePipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatRippleModule } from '@angular/material/core';
 import { OnboardingStore, addDays, startOfToday } from '../onboarding/state';
-import { Chapter, PACK, chapterIsDone } from '../onboarding/exam-pack';
+import { Chapter, PACK, chapterIsDone, subjectNameOf } from '../onboarding/exam-pack';
 import { StudyStore, dateKey } from '../study/study-store';
 
 /**
@@ -948,8 +948,7 @@ export class ProgressTab {
   /* ---- Depth ---------------------------------------------------------- */
 
   protected subjectName(chapter: Chapter): string {
-    const id = chapter.id.split('.')[0];
-    return PACK.subjects.find((s) => s.id === id)?.name ?? '';
+    return subjectNameOf(chapter.id);
   }
   /** Short enough for a stat tile: 15h, 45m, 2.5h. */
   protected compact(minutes: number): string {

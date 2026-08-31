@@ -214,6 +214,94 @@ export const ALL_CHAPTERS: Chapter[] = PACK.subjects.flatMap((s) =>
   s.sections.flatMap((sec) => sec.chapters),
 );
 
+/**
+ * An exam is its subjects and their weight in the paper. Chapters are a bonus
+ * some packs carry and others do not — a student sitting SSC CGL gets the four
+ * papers and enters their own topics, which is the normal case, not a fallback.
+ */
+export interface ExamTemplate {
+  id: string;
+  displayName: string;
+  /** Null when the pack ships no chapter list of its own. */
+  pack: ExamPack | null;
+  subjects: { id: string; name: string; icon: string; questions: number }[];
+  source: string;
+}
+
+/** Subject shells for a pack with no chapters, so custom ones have a home. */
+function shells(template: ExamTemplate): Subject[] {
+  return template.subjects.map((s) => ({
+    id: s.id,
+    name: s.name,
+    icon: s.icon,
+    questions: s.questions,
+    marks: s.questions * 4,
+    sections: [{ name: 'My chapters', chapters: [] }],
+  }));
+}
+
+export const EXAM_TEMPLATES: ExamTemplate[] = [
+  {
+    id: 'neet',
+    displayName: 'NEET UG',
+    pack: PACK,
+    subjects: PACK.subjects.map((s) => ({
+      id: s.id, name: s.name, icon: s.icon, questions: s.questions,
+    })),
+    source: PACK.meta.source,
+  },
+  {
+    id: 'jee',
+    displayName: 'JEE Main',
+    pack: null,
+    subjects: [
+      { id: 'physics', name: 'Physics', icon: 'bolt', questions: 25 },
+      { id: 'chemistry', name: 'Chemistry', icon: 'science', questions: 25 },
+      { id: 'maths', name: 'Mathematics', icon: 'functions', questions: 25 },
+    ],
+    source: 'NTA JEE Main paper pattern. Chapters are yours to add.',
+  },
+  {
+    id: 'cgl',
+    displayName: 'SSC CGL',
+    pack: null,
+    subjects: [
+      { id: 'quant', name: 'Quantitative Aptitude', icon: 'calculate', questions: 25 },
+      { id: 'reasoning', name: 'Reasoning', icon: 'extension', questions: 25 },
+      { id: 'english', name: 'English', icon: 'translate', questions: 25 },
+      { id: 'gk', name: 'General Awareness', icon: 'public', questions: 25 },
+    ],
+    source: 'SSC CGL Tier 1 paper pattern. Chapters are yours to add.',
+  },
+];
+
+/**
+ * A subject by id, across every template. Chapter ids carry their subject as a
+ * prefix, and a lookup that only knows the NEET pack cannot name a JEE or SSC
+ * subject.
+ */
+export function subjectById(id: string): { id: string; name: string; questions: number } | undefined {
+  for (const template of EXAM_TEMPLATES) {
+    const found = template.subjects.find((s) => s.id === id);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+export function subjectNameOf(chapterId: string): string {
+  return subjectById(chapterId.split('.')[0])?.name ?? '';
+}
+
+export function templateFor(examId: string): ExamTemplate {
+  return EXAM_TEMPLATES.find((t) => t.id === examId) ?? EXAM_TEMPLATES[0];
+}
+
+/** The subjects an exam starts from, with or without a chapter list. */
+export function templateSubjects(examId: string): Subject[] {
+  const template = templateFor(examId);
+  return template.pack ? template.pack.subjects : shells(template);
+}
+
 /** Merge user-owned chapters and names without mutating the frozen pack. */
 export function mergedSubjects(
   custom: readonly CustomChapter[],
@@ -223,11 +311,15 @@ export function mergedSubjects(
   hiddenSubtopics: ReadonlySet<string> = new Set(),
   /** False when the student chose to build their own list from nothing. */
   includePack = true,
+  /** Which exam's subjects to start from. */
+  examId = 'neet',
 ): Subject[] {
-  if (!includePack) {
-    // The subjects survive as empty shells: they carry the paper's weighting
-    // and give custom chapters somewhere to live.
-    return PACK.subjects.map((subject) => ({
+  const base = templateSubjects(examId);
+
+  if (!includePack || !templateFor(examId).pack) {
+    // The subjects survive as shells: they carry the paper's weighting and
+    // give custom chapters somewhere to live.
+    return base.map((subject) => ({
       ...subject,
       sections: [
         {
@@ -240,7 +332,7 @@ export function mergedSubjects(
     }));
   }
 
-  return PACK.subjects.map((subject) => ({
+  return base.map((subject) => ({
     ...subject,
     sections: subject.sections.map((section) => ({
       ...section,

@@ -37,6 +37,7 @@ export class DayPlanner {
     const target = Math.min(askedHours * 60, free);
 
     const candidates = dayCandidates({
+      subjectIds: this.store.subjects().map((s) => s.id),
       doneUnits: this.planningDone(date),
       parked: this.store.parkedChapters(),
       available: (id) => this.availableIn(id),

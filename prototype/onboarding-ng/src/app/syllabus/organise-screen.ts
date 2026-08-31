@@ -631,7 +631,7 @@ export class OrganiseScreen {
 
   protected readonly subjects = computed(() => this.draftSubjects());
   protected readonly orderModes = ORDER_MODES;
-  protected readonly current = signal(PACK.subjects[0].id);
+  protected readonly current = signal(this.store.subjects()[0]?.id ?? '');
   protected readonly preview = signal(false);
   protected readonly view = signal<'plan' | 'syllabus'>('plan');
   protected readonly selectedDay = signal(0);
@@ -670,7 +670,15 @@ export class OrganiseScreen {
     return this.draftSubjects().find((s) => s.id === this.current())!;
   }
 
-  private draftSubjects() { const d = this.draft(); return mergedSubjects(d.customChapters, d.chapterNames, d.customSubtopics, d.subtopicNames, d.hiddenSubtopics); }
+  private draftSubjects() {
+    const d = this.draft();
+    // Without the last two the draft silently rebuilt the NEET pack, whatever
+    // exam the student had chosen.
+    return mergedSubjects(
+      d.customChapters, d.chapterNames, d.customSubtopics, d.subtopicNames, d.hiddenSubtopics,
+      this.store.useProvidedSyllabus(), this.store.examId(),
+    );
+  }
 
   protected readonly todayBlocks = computed(() => this.planner.blocksFor(startOfToday()).filter((block) => block.kind === 'study'));
   protected readonly todayMinutes = computed(() => this.todayBlocks().reduce((sum, block) => sum + block.minutes, 0));

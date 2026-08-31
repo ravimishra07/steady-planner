@@ -4,7 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatRippleModule } from '@angular/material/core';
 import { OnboardingStore, startOfToday } from '../onboarding/state';
 import { StudyStore, dateKey } from '../study/study-store';
-import { PACK, Chapter, chapterIsDone } from '../onboarding/exam-pack';
+import { Chapter, chapterIsDone, subjectNameOf } from '../onboarding/exam-pack';
 import { RECALLS, Recall } from '../study/retention';
 import { DayPlanner } from '../home/day-planner';
 import { StudyBlock } from '../home/scheduler';
@@ -734,7 +734,7 @@ export class FocusScreen {
     const done = this.store.doneUnits();
     const out: Option[] = [];
 
-    for (const subject of PACK.subjects) {
+    for (const subject of this.store.subjects()) {
       for (const section of subject.sections) {
         for (const chapter of section.chapters) {
           const chapterHit = chapter.name.toLowerCase().includes(q);
@@ -911,8 +911,7 @@ interface Option {
 }
 
 function subjectName(chapter: Chapter): string {
-  const id = chapter.id.split('.')[0];
-  return PACK.subjects.find((s) => s.id === id)?.name ?? '';
+  return subjectNameOf(chapter.id);
 }
 
 function key(block: StudyBlock): string {

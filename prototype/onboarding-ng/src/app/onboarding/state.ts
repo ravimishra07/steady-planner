@@ -1,5 +1,11 @@
 import { Injectable, computed, effect, signal } from '@angular/core';
-import { CustomChapter, Subtopic, chapterIsDone, mergedChapters, mergedSubjects } from './exam-pack';
+import {
+  CustomChapter,
+  Subtopic,
+  chapterIsDone,
+  mergedSubjects,
+  templateFor,
+} from './exam-pack';
 import { persisted, persistedMap, persistedSet } from '../core/persist';
 import { COMMITMENT_PRESETS, Commitment, committedMinutes } from './commitments';
 import { Pace, setPace } from '../study/retention';
@@ -29,14 +35,11 @@ export const APPEARANCES: Appearance[] = [
 
 export interface ExamOption { id: string; label: string; available: boolean; }
 
-/** Mirrors ExamCatalog.kt — only entries with a syllabus tree are selectable. */
+/** Every exam here is real: it has subjects. Only some ship chapters too. */
 export const EXAMS: ExamOption[] = [
+  { id: 'neet', label: 'NEET UG', available: true },
+  { id: 'jee', label: 'JEE Main', available: true },
   { id: 'cgl', label: 'SSC CGL', available: true },
-  { id: 'chsl', label: 'SSC CHSL', available: false },
-  { id: 'ntpc', label: 'RRB NTPC', available: false },
-  { id: 'neet', label: 'NEET UG', available: false },
-  { id: 'jee', label: 'JEE Main', available: false },
-  { id: 'ibps', label: 'IBPS PO', available: false },
 ];
 
 export interface DayShape { id: string; label: string; weekday: number; weekend: number; }
@@ -161,7 +164,7 @@ export class OnboardingStore {
     },
   );
 
-  readonly examId = persisted('exam', 'cgl');
+  readonly examId = persisted('exam', 'neet');
   readonly coachingId = persisted('coaching', 'allen');
   readonly shapeId = persisted('shape', 'col');
   readonly weekdayHours = persisted('weekday-hours', 4);
@@ -207,8 +210,11 @@ export class OnboardingStore {
   readonly hiddenSubtopics = persistedSet('hidden-subtopics');
   readonly subjects = computed(() => mergedSubjects(
     this.customChapters(), this.chapterNames(), this.customSubtopics(), this.subtopicNames(), this.hiddenSubtopics(),
-    this.useProvidedSyllabus(),
+    this.useProvidedSyllabus(), this.examId(),
   ));
+
+  /** The chosen exam's template — subjects, weighting, and a pack or not. */
+  readonly examTemplate = computed(() => templateFor(this.examId()));
   readonly allChapters = computed(() =>
     this.subjects().flatMap((s) => s.sections.flatMap((sec) => sec.chapters)),
   );

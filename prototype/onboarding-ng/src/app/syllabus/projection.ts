@@ -17,7 +17,7 @@ export interface Landing {
 }
 
 /** The planner works the subjects round-robin, weighted to the paper. */
-const ROTATION = ['botany', 'physics', 'zoology', 'chemistry'];
+/** Taken from the exam's own subjects, so it is not a list of NEET's. */
 
 export interface ProjectionInput {
   orderModes: ReadonlyMap<string, OrderMode>;
@@ -54,8 +54,9 @@ export function project(input: ProjectionInput): Landing[] {
 
   const today = startOfToday();
   const out: Landing[] = [];
-  const work = ROTATION.flatMap(() => [] as Chapter[]);
-  let remaining = [...ROTATION];
+  const rotation = input.subjects.map((s) => s.id);
+  const work: Chapter[] = [];
+  let remaining = [...rotation];
   while (remaining.length) {
     const next: string[] = [];
     for (const id of remaining) {

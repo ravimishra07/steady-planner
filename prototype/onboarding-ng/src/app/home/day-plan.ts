@@ -8,12 +8,14 @@ import { Candidate } from './scheduler';
 const LENGTH: Record<Task, number> = { Learn: 45, Practice: 60, Revise: 30 };
 
 /**
- * Subject rotation follows the paper: Biology is 90 of the 180 questions, so
- * Botany and Zoology take half the slots.
+ * Subject rotation comes from the exam, not from a list of NEET's subjects.
+ * Working them round-robin already follows the paper: NEET splits Biology into
+ * Botany and Zoology, so between them they take half the slots.
  */
-const ROTATION = ['botany', 'physics', 'zoology', 'chemistry'];
 
 export interface PlanInput {
+  /** The chosen exam's subjects, in the order to work them. */
+  subjectIds: readonly string[];
   doneUnits: ReadonlySet<string>;
   /** Chapters the user has set aside; the plan never picks them. */
   parked: ReadonlySet<string>;
@@ -66,7 +68,7 @@ export function dayCandidates(input: PlanInput): Candidate[] {
 function learnQueue(input: PlanInput): Candidate[] {
   const out: Candidate[] = [];
   for (let round = 0; round < 4; round++) {
-    for (const subjectId of ROTATION) {
+    for (const subjectId of input.subjectIds) {
       const chapters = input.available(subjectId);
       const found = nextSubtopic(chapters, input, round);
       if (found) out.push({ task: 'Learn', ...found, minutes: LENGTH.Learn });

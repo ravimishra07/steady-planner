@@ -1,4 +1,4 @@
-import { Chapter, PACK, Subtopic } from '../onboarding/exam-pack';
+import { Chapter, PACK, Subtopic, subjectNameOf } from '../onboarding/exam-pack';
 import { Commitment, commitmentsOn } from '../onboarding/commitments';
 import { Task } from '../study/study-store';
 
@@ -175,8 +175,7 @@ function round5(minutes: number): number {
 }
 
 export function subjectLabel(chapter: Chapter): string {
-  const id = chapter.id.split('.')[0];
-  return PACK.subjects.find((s) => s.id === id)?.name ?? '';
+  return subjectNameOf(chapter.id);
 }
 
 function kindLabel(kind: Commitment['kind']): string {

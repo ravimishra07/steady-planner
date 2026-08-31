@@ -1,4 +1,4 @@
-import { Chapter, PACK, Subject } from './exam-pack';
+import { Chapter, PACK, Subject, subjectById } from './exam-pack';
 import { OrderMode } from './state';
 
 /**
@@ -9,10 +9,11 @@ import { OrderMode } from './state';
 
 /** Marks the paper gives a chapter, spread evenly inside its subject. */
 export function marksOf(chapter: Chapter): number {
-  const subject = PACK.subjects.find((s) => chapter.id.startsWith(s.id + '.'));
+  const subject = subjectById(chapter.id.split('.')[0]);
   if (!subject) return 0;
-  const count = subject.sections.reduce((n, sec) => n + sec.chapters.length, 0);
-  return Math.round(subject.marks / count);
+  // Marks spread evenly across whatever that subject currently holds.
+  const count = Math.max(1, chaptersIn(chapter.id.split('.')[0]));
+  return Math.round((subject.questions * 4) / count);
 }
 
 /** What an hour spent on a chapter is worth. */
@@ -70,4 +71,10 @@ export function availableChapters(
 export function subjectOfChapter(chapterId: string): Subject | undefined {
   const id = chapterId.split('.')[0];
   return PACK.subjects.find((s) => s.id === id);
+}
+
+/** How many chapters a subject holds in the bundled pack, for the marks split. */
+function chaptersIn(subjectId: string): number {
+  const subject = PACK.subjects.find((s) => s.id === subjectId);
+  return subject ? subject.sections.reduce((n, sec) => n + sec.chapters.length, 0) : 1;
 }
