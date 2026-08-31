@@ -34,9 +34,14 @@ const MIN_BLOCK_HEIGHT = 72;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="chrome">
-      <button matRipple class="month" (click)="expanded.set(!expanded())">
-        <span class="month-title">{{ selected() | date: 'MMMM y' }}</span>
-        <mat-icon [class.up]="expanded()">keyboard_arrow_down</mat-icon>
+      <button matRipple class="month" (click)="expanded.set(!expanded())"
+              [attr.aria-expanded]="expanded()">
+        <span class="month-title">
+          {{ monthLabel() }}<span class="month-year">{{ yearLabel() }}</span>
+        </span>
+        <span class="month-toggle">
+          <mat-icon [class.up]="expanded()">keyboard_arrow_down</mat-icon>
+        </span>
       </button>
 
       @if (expanded()) {
@@ -319,27 +324,44 @@ const MIN_BLOCK_HEIGHT = 72;
       border-bottom: 1px solid var(--mat-sys-outline-variant);
     }
 
-    /* A control, not a caption: it has a shape, a state layer and a hit area
-       that matches what it looks like. */
+    /* Month on the left, the toggle on the right, using the width instead of
+       clustering a label and a glyph in the corner. */
     .month {
       display: flex;
       align-items: center;
-      gap: 2px;
-      align-self: flex-start;
-      height: 40px;
-      margin: 4px 8px 4px 8px;
-      padding: 0 8px 0 12px;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+      height: 56px;
+      padding: 0 8px 0 16px;
       border: none;
-      border-radius: var(--mat-sys-corner-full);
       background: transparent;
       color: var(--mat-sys-on-surface);
       cursor: pointer;
+    }
+
+    .month-title { font: var(--mat-sys-headline-small); }
+
+    /* The year is context, not part of the name. */
+    .month-year {
+      margin-left: 8px;
+      font: var(--mat-sys-title-medium);
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    .month-toggle {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      flex: none;
+      border-radius: var(--mat-sys-corner-full);
+      color: var(--mat-sys-on-surface-variant);
       transition: background 140ms ease;
     }
 
-    .month:hover { background: var(--mat-sys-surface-container-high); }
-    .month-title { font: var(--mat-sys-title-medium); letter-spacing: .1px; }
-    .month mat-icon { color: var(--mat-sys-on-surface-variant); transition: transform 150ms; }
+    .month:hover .month-toggle { background: var(--mat-sys-surface-container-high); }
+    .month mat-icon { transition: transform 180ms ease; }
     .month mat-icon.up { transform: rotate(180deg); }
 
     .weekdays, .grid {
@@ -842,6 +864,29 @@ export class TodayScreen {
   protected readonly key = computed(() => dateKey(this.selected()));
 
   /* ---- Calendar ------------------------------------------------------ */
+
+  /**
+   * The heading has to describe what is on screen. A collapsed week can span
+   * two months — 30 Aug to 5 Sep — and calling that "August" is simply wrong.
+   */
+  protected monthLabel(): string {
+    if (this.expanded()) return this.selected().toLocaleDateString(undefined, { month: 'long' });
+
+    const week = this.weekCells();
+    const first = week[0].date;
+    const last = week[week.length - 1].date;
+    const short = (d: Date) => d.toLocaleDateString(undefined, { month: 'short' });
+    return first.getMonth() === last.getMonth()
+      ? first.toLocaleDateString(undefined, { month: 'long' })
+      : `${short(first)} – ${short(last)}`;
+  }
+
+  protected yearLabel(): string {
+    const week = this.weekCells();
+    const first = week[0].date.getFullYear();
+    const last = week[week.length - 1].date.getFullYear();
+    return first === last ? `${first}` : `${first} – ${last}`;
+  }
 
   protected readonly weekCells = computed<DayCell[]>(() => {
     const start = addDays(this.selected(), -this.selected().getDay());
