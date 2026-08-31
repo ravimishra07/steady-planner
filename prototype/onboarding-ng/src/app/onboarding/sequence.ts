@@ -61,7 +61,20 @@ export function availableChapters(
   mode: OrderMode,
   custom: readonly string[] | undefined,
   taughtUpTo: string | null,
+  /** What class has actually reached, oldest first. Wins over everything. */
+  classCovered: readonly string[] = [],
 ): Chapter[] {
+  const chapters = chaptersOf(subject);
+
+  // Class owns the sequence. Once anything has been logged for this subject,
+  // the order it was taught in is the order, and nothing beyond it is offered
+  // — the app follows the class rather than guessing ahead of it.
+  const taught = classCovered.filter((id) => chapters.some((c) => c.id === id));
+  if (taught.length > 0) {
+    const byId = new Map(chapters.map((c) => [c.id, c]));
+    return taught.map((id) => byId.get(id)!).filter(Boolean);
+  }
+
   const ordered = orderedChapters(subject, mode, custom);
   if (!taughtUpTo) return ordered;
   const cut = ordered.findIndex((c) => c.id === taughtUpTo);

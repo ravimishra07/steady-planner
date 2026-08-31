@@ -7,19 +7,20 @@ import { ProgressTab } from './progress-tab';
 import { FocusScreen } from '../focus/focus-screen';
 import { FocusStore, clock } from '../focus/focus-store';
 import { SettingsScreen } from './settings-screen';
+import { ClassLogScreen } from './class-log-screen';
+import { ReviewScreen } from './review-screen';
 import { OrganiseScreen } from '../syllabus/organise-screen';
 
 interface Destination { id: string; label: string; icon: string; }
 
 /**
- * Focus sits in the middle: it is the thing the app is opened to do. The
- * glyphs are all plain Material Symbols of the same weight — no decorated
- * ones, since a sparkle next to a book and a stopwatch reads as three sets.
+ * Four destinations. Focus is not among them: it is a mode you enter by
+ * starting something on Today, and as a tab it had to invent its own copy of
+ * the day — two screens each claiming to be the truth about today.
  */
 const DESTINATIONS: Destination[] = [
   { id: 'home', label: 'Today', icon: 'calendar_today' },
   { id: 'syllabus', label: 'Syllabus', icon: 'book_2' },
-  { id: 'focus', label: 'Focus', icon: 'timer' },
   { id: 'progress', label: 'Progress', icon: 'monitoring' },
   { id: 'settings', label: 'Settings', icon: 'settings' },
 ];
@@ -27,18 +28,22 @@ const DESTINATIONS: Destination[] = [
 /** The post-onboarding shell: one screen plus the M3 navigation bar. */
 @Component({
   selector: 'app-shell',
-  imports: [MatIconModule, MatRippleModule, TodayScreen, SyllabusTab, ProgressTab, SettingsScreen, FocusScreen, OrganiseScreen],
+  imports: [MatIconModule, MatRippleModule, TodayScreen, SyllabusTab, ProgressTab, SettingsScreen, FocusScreen, OrganiseScreen, ClassLogScreen, ReviewScreen],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="screen">
-      @if (organising()) {
+      @if (reviewing()) {
+        <app-review-screen (close)="reviewing.set(false)" />
+      } @else if (focusing()) {
+        <app-focus-screen (close)="focusing.set(false)" />
+      } @else if (loggingClass()) {
+        <app-class-log-screen (close)="loggingClass.set(false)" />
+      } @else if (organising()) {
         <app-organise-screen (close)="organising.set(false)" />
       } @else if (current() === 'home') {
-        <app-today (editPlan)="organising.set(true)" (openFocus)="current.set('focus')" />
+        <app-today (editPlan)="organising.set(true)" (openFocus)="focusing.set(true)" (logClass)="loggingClass.set(true)" (weekReview)="reviewing.set(true)" (openPlanCheck)="current.set('progress')" />
       } @else if (current() === 'syllabus') {
         <app-syllabus-tab />
-      } @else if (current() === 'focus') {
-        <app-focus-screen />
       } @else if (current() === 'progress') {
         <app-progress-tab />
       } @else if (current() === 'settings') {
@@ -51,8 +56,8 @@ const DESTINATIONS: Destination[] = [
       }
     </div>
 
-    @if (focus.status() === 'running' && current() !== 'focus') {
-      <button matRipple class="running-bar" (click)="current.set('focus')">
+    @if (focus.status() === 'running' && !focusing()) {
+      <button matRipple class="running-bar" (click)="focusing.set(true)">
         <mat-icon>timer</mat-icon>
         <span class="running-text">{{ focus.target()?.title }}</span>
         <span class="running-time">{{ remaining() }}</span>
@@ -130,8 +135,6 @@ const DESTINATIONS: Destination[] = [
 
     .dest-label { font: var(--mat-sys-label-medium); }
 
-    /* Five destinations on a 390dp phone: the pill has to give up width. */
-    .pill { width: 56px; }
 
     /* A running timer is never hidden behind a tab. */
     .running-bar {
@@ -162,6 +165,9 @@ const DESTINATIONS: Destination[] = [
 export class AppShell {
   protected readonly destinations = DESTINATIONS;
   protected readonly current = signal('home');
+  protected readonly loggingClass = signal(false);
+  protected readonly focusing = signal(false);
+  protected readonly reviewing = signal(false);
   protected readonly organising = signal(false);
   protected readonly focus = inject(FocusStore);
 

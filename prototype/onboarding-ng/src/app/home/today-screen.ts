@@ -6,6 +6,7 @@ import { MatRippleModule } from '@angular/material/core';
 import { COACHINGS, OnboardingStore, addDays, startOfToday } from '../onboarding/state';
 import { Chapter, chapterIsDone } from '../onboarding/exam-pack';
 import { StudyStore, Task, dateKey } from '../study/study-store';
+import { persisted } from '../core/persist';
 import { RECALLS, Recall, nextInterval } from '../study/retention';
 import { Block, StudyBlock, subjectLabel } from './scheduler';
 import { DayPlanner, blockKey } from './day-planner';
@@ -81,29 +82,6 @@ const MIN_BLOCK_HEIGHT = 72;
       </button>
 
       @if (summaryOpen()) {
-      <!-- The day on a clock, not a progress bar: blocks sit where they fall
-           between waking and sleeping, and the marker says where you are. -->
-      <div class="clockbar" role="img" [attr.aria-label]="shapeLabel()">
-        <div class="track">
-          @for (seg of shape(); track seg.key) {
-            <span class="seg"
-                  [class]="'seg-' + seg.kind"
-                  [class.done]="seg.done"
-                  [class.missed]="seg.missed"
-                  [style.left.%]="seg.left"
-                  [style.width.%]="seg.width"
-                  [attr.title]="seg.title"></span>
-          }
-          @if (nowFraction() !== null) {
-            <span class="now" [style.left.%]="nowFraction()!"></span>
-          }
-        </div>
-        <div class="ticks">
-          <span>{{ clock(store.wakeMinute()) }}</span>
-          @if (nowFraction() !== null) { <span class="now-label">now</span> }
-          <span>{{ clock(store.sleepMinute()) }}</span>
-        </div>
-      </div>
 
       <div class="facts">
         <span class="fact">
@@ -128,6 +106,39 @@ const MIN_BLOCK_HEIGHT = 72;
       }
     </section>
 
+    @if (planCheckDue()) {
+      <button matRipple class="ask-class urgent" (click)="planCheck()">
+        <mat-icon>fact_check</mat-icon>
+        <span class="ask-text">
+          <span class="ask-head">Monthly plan check</span>
+          <span class="ask-sub">Does this pace still reach the exam?</span>
+        </span>
+        <mat-icon class="chev">chevron_right</mat-icon>
+      </button>
+    }
+
+    @if (isSunday()) {
+      <button matRipple class="ask-class" (click)="weekReview.emit()">
+        <mat-icon>event_available</mat-icon>
+        <span class="ask-text">
+          <span class="ask-head">Sunday — look at your week</span>
+          <span class="ask-sub">What slipped, and what the test said</span>
+        </span>
+        <mat-icon class="chev">chevron_right</mat-icon>
+      </button>
+    }
+
+    @if (askClass()) {
+      <button matRipple class="ask-class" (click)="logClass.emit()">
+        <mat-icon>school</mat-icon>
+        <span class="ask-text">
+          <span class="ask-head">What did class cover today?</span>
+          <span class="ask-sub">Sets what tonight leads with</span>
+        </span>
+        <mat-icon class="chev">chevron_right</mat-icon>
+      </button>
+    }
+
     @if (backlog() > 0) {
       <div class="anchors">
         <span class="anchor warn">
@@ -137,77 +148,45 @@ const MIN_BLOCK_HEIGHT = 72;
       </div>
     }
 
-    <section class="timeline">
-      @for (block of blocks(); track block.startMinute + block.kind) {
-        @if (block.kind === 'break') {
-          <div class="break-row">
-            <span class="rail"><span class="line dashed"></span></span>
-            <span class="break-body">
-              <button matRipple class="break-chip" (click)="breakOpen.set(true)">
-                <span>{{ block.minutes }} min break</span>
-                <mat-icon>edit</mat-icon>
-              </button>
-            </span>
+    <section class="queue">
+      @for (block of queue(); track block.key) {
+        @if (block.kind === 'fixed') {
+          <div class="fixed-row">
+            <mat-icon>lock</mat-icon>
+            <span class="fixed-name">{{ block.title }}</span>
+            <span class="fixed-len">{{ format(block.minutes) }}</span>
           </div>
         } @else {
-          <div class="row" [style.min-height.px]="height(block)">
-            <span class="rail">
-              <span class="line" [class.dashed]="block.kind === 'gap'"></span>
-              @if (block.kind !== 'gap') {
-                <span class="node"
-                      [class.done]="block.kind === 'study' && block.done"
-                      [class.fixed]="block.kind === 'fixed'"></span>
+          <div matRipple class="block" [class.done]="block.done" (click)="openSession(block)">
+            <span class="block-head">
+              <button matRipple class="tag" [class]="'tag-' + block.task.toLowerCase()"
+                      (click)="explain(block, $event)">{{ block.task }}</button>
+              @if (block.fromClass) { <span class="from-class">from today's class</span> }
+              @else if (block.overdue !== undefined && block.overdue > 0) {
+                <button class="overdue" (click)="explain(block, $event)">{{ block.overdue }}d overdue</button>
+              } @else if (block.overdue === 0) {
+                <button class="due" (click)="explain(block, $event)">due today</button>
               }
+              <span class="len">{{ format(block.minutes) }}</span>
             </span>
 
-            <span class="row-body">
-              <span class="clock">{{ clock(block.startMinute) }}</span>
+            <span class="title">{{ block.title }}</span>
+            <span class="context">{{ block.context }}</span>
 
-            @if (block.kind === 'study') {
-              <div matRipple class="block" [class.done]="block.done" (click)="openSession(block)">
-                <span class="block-head">
-                  <button matRipple class="tag" [class]="'tag-' + block.task.toLowerCase()"
-                          (click)="explain(block, $event)">{{ block.task }}</button>
-                  @if (block.overdue !== undefined && block.overdue > 0) {
-                    <button class="overdue" (click)="explain(block, $event)">
-                      {{ block.overdue }}d overdue
-                    </button>
-                  } @else if (block.overdue === 0) {
-                    <button class="due" (click)="explain(block, $event)">due today</button>
-                  }
-                  <span class="len">{{ format(block.minutes) }}</span>
-                </span>
-                <span class="title">{{ block.title }}</span>
-                <span class="context">
-                  {{ block.context }}@if (block.questions) { · {{ block.questions }} Q }
-                </span>
-                @if (block.done) {
-                  <span class="action">
-                    <mat-icon class="filled">check_circle</mat-icon>Logged
-                  </span>
-                } @else {
-                  <button matRipple class="action start" (click)="startTimer(block, $event)">
-                    <mat-icon class="filled">play_arrow</mat-icon>
-                    Start {{ format(block.minutes) }}
-                  </button>
-                }
-              </div>
-            } @else if (block.kind === 'fixed') {
-              <div class="block fixed">
-                <span class="block-head">
-                  <span class="tag tag-class">Fixed</span>
-                  <span class="len">{{ format(block.minutes) }}</span>
-                </span>
-                <span class="title">{{ block.title }}</span>
-                <span class="context">{{ block.subject }}</span>
-              </div>
+            @if (block.done) {
+              <span class="action"><mat-icon class="filled">check_circle</mat-icon>Logged</span>
             } @else {
-              <button matRipple class="gap" (click)="openPicker(block.startMinute, block.minutes)">
-                <mat-icon>add</mat-icon>
-                {{ format(block.minutes) }} free — add something
-              </button>
+              <span class="row-actions">
+                <button matRipple class="action start" (click)="startTimer(block, $event)">
+                  <mat-icon class="filled">play_arrow</mat-icon>
+                  Start
+                </button>
+                <button matRipple class="action quick" (click)="quickDone(block, $event)">
+                  <mat-icon>check</mat-icon>
+                  Done
+                </button>
+              </span>
             }
-            </span>
           </div>
         }
       } @empty {
@@ -218,9 +197,9 @@ const MIN_BLOCK_HEIGHT = 72;
             <button matRipple class="empty-cta" (click)="editPlan.emit()">Add chapters</button>
           </div>
         } @else {
-          <div class="empty">
-            <mat-icon>event_busy</mat-icon>
-            <span>No room left on this day. Fixed hours take all of it.</span>
+          <div class="empty column">
+            <mat-icon>done_all</mat-icon>
+            <span>Nothing queued. Everything due is done.</span>
           </div>
         }
       }
@@ -588,6 +567,30 @@ const MIN_BLOCK_HEIGHT = 72;
     .fact:first-child mat-icon { color: var(--mat-sys-primary); }
 
 
+    .ask-class {
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0 16px 16px;
+      padding: 14px 8px 14px 16px;
+      border: none;
+      border-radius: var(--mat-sys-corner-large);
+      background: var(--mat-sys-secondary-container);
+      color: var(--mat-sys-on-secondary-container);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .ask-class.urgent {
+      background: var(--mat-sys-error-container);
+      color: var(--mat-sys-on-error-container);
+    }
+
+    .ask-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+    .ask-head { font: var(--mat-sys-title-small); }
+    .ask-sub { font: var(--mat-sys-label-medium); opacity: .8; }
+
     .anchors { flex: none; display: flex; gap: 8px; padding: 0 16px 12px; }
 
     .anchor {
@@ -601,6 +604,34 @@ const MIN_BLOCK_HEIGHT = 72;
 
     .anchor.warn { background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container); }
     .anchor mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+    /* An ordered queue: no rail, no clock, no gaps to apologise for. */
+    .queue { display: flex; flex-direction: column; gap: 12px; padding: 0 16px 24px; }
+
+    .fixed-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 4px;
+      color: var(--mat-sys-on-surface-variant);
+      font: var(--mat-sys-label-large);
+    }
+
+    .fixed-row mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    .fixed-name { flex: 1; }
+    .from-class { font: var(--mat-sys-label-small); color: var(--mat-sys-primary); }
+    .row-actions { display: flex; gap: 8px; margin-top: 4px; }
+
+    .action.quick {
+      height: 32px;
+      padding: 0 14px 0 10px;
+      border: 1px solid var(--mat-sys-outline-variant);
+      border-radius: var(--mat-sys-corner-full);
+      background: transparent;
+      color: var(--mat-sys-on-surface-variant);
+      font: var(--mat-sys-label-large);
+      cursor: pointer;
+    }
 
     /* Timeline */
     .timeline { padding: 0 16px 24px; }
@@ -687,8 +718,8 @@ const MIN_BLOCK_HEIGHT = 72;
       display: flex;
       flex-direction: column;
       gap: 4px;
-      margin: 0 0 12px;
-      padding: 12px 16px;
+      margin: 0;
+      padding: 14px 16px;
       border: none;
       border-radius: var(--mat-sys-corner-large);
       background: var(--mat-sys-surface-container-high);
@@ -968,6 +999,9 @@ const MIN_BLOCK_HEIGHT = 72;
 export class TodayScreen {
   readonly editPlan = output<void>();
   readonly openFocus = output<void>();
+  readonly logClass = output<void>();
+  readonly weekReview = output<void>();
+  readonly openPlanCheck = output<void>();
   protected readonly store = inject(OnboardingStore);
   protected readonly study = inject(StudyStore);
   private readonly planner = inject(DayPlanner);
@@ -1014,6 +1048,31 @@ export class TodayScreen {
   protected readonly blocks = computed<Block[]>(() => this.planner.blocksFor(this.selected()));
 
 
+  /**
+   * The day as an ordered queue rather than a timetable. A clock only works
+   * until the first block is missed; after that a timetable is a list of
+   * accusations. An order survives a day going sideways.
+   */
+  protected readonly queue = computed(() =>
+    this.blocks()
+      .filter((b) => b.kind === 'study' || b.kind === 'fixed')
+      .map((b) => ({ ...b, key: b.kind + b.startMinute })),
+  );
+
+  /** Log a sitting at its planned length, without running the timer. */
+  protected quickDone(block: StudyBlock, event: Event): void {
+    event.stopPropagation();
+    this.study.log({
+      dateKey: this.key(),
+      chapterId: block.chapterId,
+      subtopicId: block.subtopicId,
+      title: block.title,
+      task: block.task,
+      minutes: block.minutes,
+      recall: 'okay',
+    });
+  }
+
   protected readonly plannedMinutes = computed(() =>
     this.blocks().filter((b) => b.kind === 'study').reduce((n, b) => n + b.minutes, 0),
   );
@@ -1030,6 +1089,41 @@ export class TodayScreen {
     const left = Math.max(0, this.plannedMinutes() - this.loggedMinutes());
     if (this.plannedMinutes() === 0) return 'Nothing scheduled';
     return left === 0 ? 'Day complete' : `${this.format(left)} left`;
+  }
+
+  /**
+   * Asked once the day's fixed teaching is behind them and nothing is logged.
+   * Never on a day with no class, and never twice.
+   */
+  protected readonly askClass = computed(() => {
+    if (!this.isToday(this.selected())) return false;
+    if (this.study.classLog().some((e) => e.dateKey === this.key())) return false;
+    const teaching = this.blocks().filter(
+      (b) => b.kind === 'fixed' && !/lunch|dinner|break/i.test(b.title),
+    );
+    if (teaching.length === 0) return false;
+    const ends = Math.max(...teaching.map((b) => b.startMinute + b.minutes));
+    return this.nowMinute() >= ends;
+  });
+
+  /** Dismissed for the month once looked at, so it asks rather than nags. */
+  private readonly planCheckSeen = persisted<string>('plan-check-seen', '');
+
+  protected planCheckDue(): boolean {
+    if (!this.isToday(this.selected())) return false;
+    const month = `${this.selected().getFullYear()}-${this.selected().getMonth()}`;
+    return this.planCheckSeen() !== month;
+  }
+
+  protected planCheck(): void {
+    const d = this.selected();
+    this.planCheckSeen.set(`${d.getFullYear()}-${d.getMonth()}`);
+    this.openPlanCheck.emit();
+  }
+
+  /** The long day gets its own moment; it is not just a weekday with more hours. */
+  protected isSunday(): boolean {
+    return this.isToday(this.selected()) && this.selected().getDay() === 0;
   }
 
   protected readonly fixedMinutes = computed(() =>

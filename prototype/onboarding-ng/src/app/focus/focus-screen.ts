@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatRippleModule } from '@angular/material/core';
@@ -51,6 +51,9 @@ const LENGTHS = [25, 50, 90];
           </div>
         } @else {
           <header class="bar">
+            <button matRipple class="icon-btn" (click)="close.emit()" aria-label="Back to today">
+              <mat-icon>arrow_back</mat-icon>
+            </button>
             <h1 class="bar-title">Focus</h1>
 
             <!-- Persistent, because whether apps get blocked is the one thing
@@ -646,6 +649,8 @@ const LENGTHS = [25, 50, 90];
   `,
 })
 export class FocusScreen {
+  readonly close = output<void>();
+
   protected readonly focus = inject(FocusStore);
   protected readonly study = inject(StudyStore);
   private readonly planner = inject(DayPlanner);
@@ -875,6 +880,7 @@ export class FocusScreen {
     this.recall.set('okay');
     this.attempted.set(0);
     this.correct.set(0);
+    this.close.emit();
   }
 
   /** Blocking follows the session: on while it runs, off the moment it stops. */
