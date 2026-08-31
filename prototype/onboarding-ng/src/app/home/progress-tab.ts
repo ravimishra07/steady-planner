@@ -27,8 +27,9 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
   imports: [MatIconModule, MatRippleModule, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- Readiness: the one composite number, stated as the estimate it is. -->
-    <section class="hero">
+    <!-- Readiness is the focal point: brightest surface, most space, one
+         numeral. Everything below is support for it. -->
+    <header class="hero">
       <div class="ring-wrap">
         <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
           <circle class="ring-track" cx="60" cy="60" r="52" />
@@ -37,386 +38,321 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
                   [attr.stroke-dashoffset]="circumference * (1 - readiness() / 100)" />
         </svg>
         <span class="ring-text">
-          <span class="ring-value">{{ readiness() }}</span>
-          <span class="ring-unit">ready</span>
+          <span class="ring-value">{{ readiness() }}<span class="pct">%</span></span>
+          <span class="ring-unit">exam ready</span>
         </span>
       </div>
 
-      <dl class="hero-side">
-        <div class="hero-stat">
-          <dt>Days left</dt>
+      <dl class="facts">
+        <div class="fact">
+          <dt>Days to exam</dt>
           <dd>{{ store.days() }}</dd>
         </div>
-        <div class="hero-stat">
-          <dt>Learnt</dt>
-          <dd>{{ rounds().learned }}<span class="of">/{{ inPlay() }}</span></dd>
+        <div class="fact">
+          <dt>Chapters learnt</dt>
+          <dd>{{ rounds().learned }}<span class="of"> of {{ inPlay() }}</span></dd>
         </div>
-        <div class="hero-stat">
-          <dt>Still held</dt>
+        <div class="fact">
+          <dt>Still remembered</dt>
           <dd>{{ held() }}</dd>
         </div>
       </dl>
-    </section>
+    </header>
 
-    <!-- Pace. The single most useful sentence on the screen. -->
-    <section class="verdict" [class.behind]="behind()" [class.unknown]="daysNeeded() === null">
-      <div class="verdict-row">
+    <!-- Say what the number means. A score nobody can decode is noise. -->
+    <p class="hero-note">
+      Exam ready blends how much of the syllabus you have covered, how much of it you
+      still remember, and how accurate your practice is.
+    </p>
+
+    <!-- The only real card on the page: one subject, and an action. -->
+    <section class="pace" [class.behind]="behind()" [class.unknown]="daysNeeded() === null">
+      <div class="pace-row">
         <mat-icon>{{ verdictIcon() }}</mat-icon>
-        <span class="verdict-text">
-          <span class="verdict-head">{{ verdictHead() }}</span>
-          <span class="verdict-sub">{{ verdictSub() }}</span>
+        <span class="pace-text">
+          <span class="pace-head">{{ verdictHead() }}</span>
+          <span class="pace-sub">{{ verdictSub() }}</span>
         </span>
       </div>
 
-      <!-- Always reachable: parking is reversible only if you can get back in. -->
       @if (daysNeeded() !== null) {
-        <button matRipple class="verdict-cta" (click)="rebalanceOpen.set(true)">
-          <mat-icon>tune</mat-icon>
-          {{ behind() ? 'Rebalance the plan' : 'Adjust the plan' }}
-        </button>
+        <div class="pace-actions">
+          <button matRipple class="pace-cta" (click)="rebalanceOpen.set(true)">
+            {{ behind() ? 'Rebalance' : 'Adjust plan' }}
+          </button>
+          @if (store.parkedChapters().size > 0) {
+            <span class="pace-note">{{ store.parkedChapters().size }} parked</span>
+          }
+        </div>
       }
     </section>
 
-    @if (store.parkedChapters().size > 0) {
-      <button matRipple class="parked-chip" (click)="rebalanceOpen.set(true)">
-        <mat-icon>inventory_2</mat-icon>
-        {{ store.parkedChapters().size }} chapters parked
-      </button>
-    }
+    <!-- Retention -->
+    <section class="block">
+      <h2 class="block-title">What you still remember</h2>
+      <p class="block-note">Chapters fade after you learn them. These are the ones asking to be seen again.</p>
 
-    <!-- Retention: the half of progress a tick box cannot show. -->
-    <section class="group">
-      <h2 class="label">What you still hold</h2>
+      <div class="metrics">
+        <div class="metric"><span class="metric-value">{{ counts().fresh }}</span><span class="metric-label">still fresh</span></div>
+        <div class="metric"><span class="metric-value">{{ outstanding() }}</span><span class="metric-label">due to revise</span></div>
+        <div class="metric"><span class="metric-value" [class.alert]="counts().lost > 0">{{ counts().lost }}</span><span class="metric-label">likely forgotten</span></div>
+      </div>
 
-      <div class="card">
-        <div class="stat-row">
-          <span class="stat">
-            <span class="stat-value">{{ held() }}</span>
-            <span class="stat-caption">holding</span>
+      <div class="plot">
+        @for (d of dueAhead(); track $index) {
+          <span class="plot-col" [attr.title]="d.count + ' due'">
+            <span class="plot-num" [class.zero]="d.count === 0">{{ d.count }}</span>
+            <span class="plot-bar" [style.height.%]="aheadHeight(d.count)" [class.none]="d.count === 0"></span>
+            <span class="plot-tick">{{ $index === 0 ? 'due' : shortDay(d.date) }}</span>
           </span>
-          <span class="stat">
-            <span class="stat-value">{{ counts().fresh }}</span>
-            <span class="stat-caption">fresh</span>
-          </span>
-          <span class="stat">
-            <span class="stat-value" [class.down]="outstanding() > 0">{{ outstanding() }}</span>
-            <span class="stat-caption">to revise</span>
-          </span>
-          <span class="stat">
-            <span class="stat-value" [class.down]="counts().lost > 0">{{ counts().lost }}</span>
-            <span class="stat-caption">gone cold</span>
-          </span>
-        </div>
-
-        <div class="ahead">
-          @for (d of dueAhead(); track $index) {
-            <span class="ahead-day">
-              <span class="ahead-bar" [style.height.%]="aheadHeight(d.count)" [class.none]="d.count === 0"></span>
-              <span class="ahead-count">{{ d.count }}</span>
-              <span class="ahead-label">{{ $index === 0 ? 'due' : shortDay(d.date) }}</span>
-            </span>
-          }
-        </div>
-        <p class="foot">Outstanding now, then what falls due each day this week.</p>
-
-        @if (worst().length > 0) {
-          <h3 class="sub-label">Slipping fastest</h3>
-          @for (row of worst(); track row.chapter.id) {
-            <div class="attn">
-              <span class="attn-name">
-                {{ row.chapter.name }}
-                <span class="attn-sub">
-                  {{ subjectName(row.chapter) }} · {{ stateLabel(row.state) }}{{ row.overdue > 0 ? ', ' + row.overdue + 'd late' : '' }}
-                </span>
-              </span>
-              <span class="hold">
-                <span class="hold-track">
-                  <span class="hold-fill" [style.width.%]="Math.max(4, row.strength * 100)"></span>
-                </span>
-                <span class="hold-value">{{ Math.round(row.strength * 100) }}%</span>
-              </span>
-            </div>
-          }
         }
       </div>
+      <p class="caption">Outstanding, then the week ahead</p>
+
+      @if (worst().length > 0) {
+        <ul class="rows">
+          @for (row of worst(); track row.chapter.id) {
+            <li class="row">
+              <span class="row-text">
+                <span class="row-name">{{ row.chapter.name }}</span>
+                <span class="row-meta">{{ subjectName(row.chapter) }} · {{ row.overdue }}d late</span>
+              </span>
+              <span class="row-stack">
+                <span class="row-value alert">{{ Math.round(row.strength * 100) }}%</span>
+                <span class="row-unit">recall</span>
+              </span>
+            </li>
+          }
+        </ul>
+      }
     </section>
 
     <!-- Consistency -->
-    <section class="group">
-      <h2 class="label">Consistency</h2>
+    <section class="block">
+      <h2 class="block-title">Showing up</h2>
 
-      <div class="card">
-        <div class="stat-row">
-          <span class="stat">
-            <span class="stat-value">{{ streak().current }}</span>
-            <span class="stat-caption">day streak</span>
+      <div class="metrics">
+        <div class="metric"><span class="metric-value">{{ streak().current }}</span><span class="metric-label">streak</span></div>
+        <div class="metric"><span class="metric-value">{{ streak().longest }}</span><span class="metric-label">longest</span></div>
+        <div class="metric"><span class="metric-value">{{ compact(thisWeek()) }}</span><span class="metric-label">7 days</span></div>
+        <div class="metric">
+          <span class="metric-value" [class.good]="weekDelta() >= 10" [class.alert]="weekDelta() <= -10">
+            {{ weekDelta() > 0 ? '+' : '' }}{{ weekDelta() }}%
           </span>
-          <span class="stat">
-            <span class="stat-value">{{ streak().longest }}</span>
-            <span class="stat-caption">longest</span>
-          </span>
-          <span class="stat">
-            <span class="stat-value">{{ compact(thisWeek()) }}</span>
-            <span class="stat-caption">last 7 days</span>
-          </span>
-          <span class="stat">
-            <span class="stat-value" [class.up]="weekDelta() >= 10" [class.down]="weekDelta() <= -10">
-              {{ weekDelta() > 0 ? '+' : '' }}{{ weekDelta() }}%
-            </span>
-            <span class="stat-caption">vs 7 before</span>
-          </span>
+          <span class="metric-label">vs before</span>
         </div>
+      </div>
 
-        <div class="months" [style.grid-template-columns]="'16px repeat(' + heatmapWeeks + ', 1fr)'">
-          @for (m of monthLabels(); track m.index) {
-            <span class="month-tick" [style.grid-column]="m.index + 2">{{ m.label }}</span>
+      <div class="months" [style.grid-template-columns]="'14px repeat(' + heatmapWeeks + ', 1fr)'">
+        @for (m of monthLabels(); track m.index) {
+          <span class="month-tick" [style.grid-column]="m.index + 2">{{ m.label }}</span>
+        }
+      </div>
+
+      <div class="heat">
+        <div class="heat-days"><span></span><span>M</span><span></span><span>W</span><span></span><span>F</span><span></span></div>
+        <div class="heat-grid">
+          @for (cell of heatmap(); track cell.key) {
+            <span class="cell" [class]="'l' + level(cell.minutes)"
+                  [class.future]="cell.future" [class.now]="isToday(cell.date)"
+                  [attr.title]="cellTitle(cell)"></span>
           }
         </div>
+      </div>
 
-        <div class="heat">
-          <div class="heat-days">
-            <span></span><span>M</span><span></span><span>W</span><span></span><span>F</span><span></span>
-          </div>
-          <div class="heat-grid">
-            @for (cell of heatmap(); track cell.key) {
-              <span class="heat-cell"
-                    [class]="'l' + level(cell.minutes)"
-                    [class.future]="cell.future"
-                    [class.today]="isToday(cell.date)"
-                    [attr.title]="cellTitle(cell)"></span>
-            }
-          </div>
-        </div>
-
-        <div class="legend">
-          <span class="legend-text">Less</span>
-          @for (l of [0, 1, 2, 3, 4]; track l) { <span class="heat-cell" [class]="'l' + l"></span> }
-          <span class="legend-text">More</span>
-        </div>
+      <div class="legend">
+        <span class="caption">Less</span>
+        @for (l of [0, 1, 2, 3, 4]; track l) { <span class="cell" [class]="'l' + l"></span> }
+        <span class="caption">More</span>
       </div>
     </section>
 
     <!-- Hours -->
-    <section class="group">
-      <h2 class="label">Hours, last {{ hoursDays }} days</h2>
+    <section class="block">
+      <h2 class="block-title">Hours studied</h2>
 
-      <div class="card">
-        <div class="chart-head">
-          <span class="chart-value">{{ hours(averageMinutes()) }}<span class="chart-unit"> / day</span></span>
-          <span class="chart-caption">target {{ store.weekdayHours() }}h weekday · {{ store.weekendHours() }}h weekend</span>
-        </div>
+      <p class="lead">{{ hours(averageMinutes()) }} <span class="lead-unit">a day</span></p>
 
-        <div class="bars" [style.--target]="targetRatio()">
-          <span class="target-line"></span>
-          @for (d of daily(); track d.key) {
-            <span class="bar-slot" [attr.title]="barTitle(d)">
-              <span class="bar" [class.empty]="d.minutes === 0" [style.height.%]="barHeight(d.minutes)"></span>
-            </span>
-          }
-        </div>
-
-        <div class="bar-axis">
-          <span>{{ daily()[0].date | date: 'd MMM' }}</span>
-          <span>today</span>
-        </div>
+      <div class="plot tall" [style.--target]="targetRatio()">
+        <span class="target"></span>
+        @for (d of daily(); track d.key) {
+          <span class="plot-col" [attr.title]="barTitle(d)">
+            <span class="plot-bar" [class.none]="d.minutes === 0" [style.height.%]="barHeight(d.minutes)"></span>
+          </span>
+        }
       </div>
+      <p class="caption">
+        Last {{ hoursDays }} days · dashed line is the {{ store.weekdayHours() }}h target
+      </p>
     </section>
 
     <!-- Depth -->
-    <section class="group">
-      <h2 class="label">Revision depth</h2>
+    <section class="block">
+      <h2 class="block-title">How deep each subject has gone</h2>
+      <p class="block-note">Learning a chapter is one pass. Each revision after that is another.</p>
 
-      <div class="card">
+      <ul class="rows">
         @for (d of depth(); track d.id) {
-          <div class="depth">
-            <span class="depth-head">
-              <span class="depth-name">{{ d.name }}</span>
-              <span class="depth-count">{{ d.learnt }}/{{ d.total }} learnt</span>
+          <li class="row bar-row">
+            <span class="row-text">
+              <span class="row-name">{{ d.name }}</span>
+              <span class="track">
+                <span class="seg s3" [style.width.%]="pct(d.r3, d.total)"></span>
+                <span class="seg s2" [style.width.%]="pct(d.r2 - d.r3, d.total)"></span>
+                <span class="seg s1" [style.width.%]="pct(d.r1 - d.r2, d.total)"></span>
+                <span class="seg s0" [style.width.%]="pct(d.learnt - d.r1, d.total)"></span>
+              </span>
             </span>
-            <span class="depth-track">
-              <span class="seg s3" [style.width.%]="pct(d.r3, d.total)"></span>
-              <span class="seg s2" [style.width.%]="pct(d.r2 - d.r3, d.total)"></span>
-              <span class="seg s1" [style.width.%]="pct(d.r1 - d.r2, d.total)"></span>
-              <span class="seg s0" [style.width.%]="pct(d.learnt - d.r1, d.total)"></span>
-            </span>
-          </div>
+            <span class="row-value">{{ d.learnt }}<span class="of">/{{ d.total }}</span></span>
+          </li>
         }
+      </ul>
 
-        <div class="key">
-          @for (k of depthKey; track k.cls) {
-            <span class="key-item"><span class="swatch" [class]="k.cls"></span>{{ k.label }}</span>
-          }
-        </div>
+      <div class="key">
+        @for (k of depthKey; track k.cls) {
+          <span class="key-item"><span class="swatch" [class]="k.cls"></span>{{ k.label }}</span>
+        }
       </div>
     </section>
 
     <!-- Accuracy -->
-    <section class="group">
-      <h2 class="label">Accuracy</h2>
+    <section class="block">
+      <h2 class="block-title">Practice accuracy</h2>
 
-      <div class="card">
+      <ul class="rows">
         @for (s of subjects; track s.id) {
-          <div class="acc">
-            <span class="acc-name">{{ s.name }}</span>
-            <span class="acc-track">
-              <span class="acc-fill" [style.width.%]="subjectRate(s) ?? 0"></span>
+          <li class="row bar-row">
+            <span class="row-text">
+              <span class="row-name">{{ s.name }}</span>
+              <span class="track"><span class="seg s3" [style.width.%]="subjectRate(s) ?? 0"></span></span>
             </span>
-            <span class="acc-value">{{ subjectRate(s) === null ? '—' : subjectRate(s) + '%' }}</span>
-          </div>
+            <span class="row-value">{{ subjectRate(s) === null ? '—' : subjectRate(s) + '%' }}</span>
+          </li>
         }
-        <p class="foot">{{ attemptedTotal() }} questions logged in practice.</p>
-      </div>
+      </ul>
+      <p class="caption">{{ attemptedTotal() }} questions logged</p>
+
+      @if (weak().length > 0) {
+        <h3 class="sub-title">Weakest chapters</h3>
+        <ul class="rows">
+          @for (row of weak(); track row.chapter.id) {
+            <li class="row">
+              <span class="row-text">
+                <span class="row-name">{{ row.chapter.name }}</span>
+                <span class="row-meta">{{ subjectName(row.chapter) }} · {{ row.stat.attempted }} questions</span>
+              </span>
+              <span class="row-stack">
+                <span class="row-value alert">{{ rate(row.rate) }}%</span>
+                <span class="row-unit">correct</span>
+              </span>
+            </li>
+          }
+        </ul>
+      }
     </section>
 
     <!-- Rebalance: a gap is a decision to make, not a scolding. -->
     @if (rebalanceOpen()) {
       <div class="scrim" (click)="rebalanceOpen.set(false)"></div>
-      <div class="sheet" role="dialog" aria-label="Rebalance the plan">
+      <div class="sheet" role="dialog" aria-label="Adjust the plan">
         <span class="handle"></span>
         <h3 class="sheet-title">{{ behind() ? "The plan doesn't fit" : 'Adjust the plan' }}</h3>
         <p class="sheet-sub">
-          {{ store.requiredHours() }}h of syllabus, {{ store.days() }} days, and you are
-          averaging {{ perDay().toFixed(1) }}h a day.
+          {{ store.requiredHours() }}h of syllabus, {{ store.days() }} days, averaging
+          {{ perDay().toFixed(1) }}h a day.
           {{ behind() ? 'Something has to give — you pick which.' : 'It fits, for now.' }}
         </p>
 
         @if (behind()) {
-        <button matRipple class="option" (click)="applyHours()">
-          <mat-icon>schedule</mat-icon>
-          <span class="option-text">
-            <span class="option-head">Study more</span>
-            <span class="option-sub">
-              {{ neededPerDay().toFixed(1) }}h a day covers it — up from {{ store.weekdayHours() }}h
-              on weekdays. Only real if the hours exist.
-            </span>
-          </span>
-        </button>
-
-        @if (store.dateMode() === 'syllabus') {
-          <button matRipple class="option" (click)="applyDate()">
-            <mat-icon>event</mat-icon>
+          <button matRipple class="option" (click)="applyHours()">
+            <mat-icon>schedule</mat-icon>
             <span class="option-text">
-              <span class="option-head">Move the target</span>
+              <span class="option-head">Study more</span>
               <span class="option-sub">
-                At this pace the syllabus lands {{ finishLabel() }}. Set that as the date and
-                the plan is honest again.
+                {{ neededPerDay().toFixed(1) }}h a day covers it, up from {{ store.weekdayHours() }}h.
+                Only real if the hours exist.
               </span>
             </span>
           </button>
-        } @else {
-          <div class="option muted">
-            <mat-icon>event_busy</mat-icon>
+
+          @if (store.dateMode() === 'syllabus') {
+            <button matRipple class="option" (click)="applyDate()">
+              <mat-icon>event</mat-icon>
+              <span class="option-text">
+                <span class="option-head">Move the target</span>
+                <span class="option-sub">At this pace the syllabus lands {{ finishLabel() }}.</span>
+              </span>
+            </button>
+          } @else {
+            <div class="option muted">
+              <mat-icon>event_busy</mat-icon>
+              <span class="option-text">
+                <span class="option-head">The date can't move</span>
+                <span class="option-sub">
+                  The exam is {{ store.targetDate() | date: 'd MMM y' }}; this pace lands {{ finishLabel() }}.
+                </span>
+              </span>
+            </div>
+          }
+
+          <button matRipple class="option" (click)="applyPark()">
+            <mat-icon>content_cut</mat-icon>
             <span class="option-text">
-              <span class="option-head">The date can't move</span>
+              <span class="option-head">Cut scope</span>
               <span class="option-sub">
-                The exam is {{ store.targetDate() | date: 'd MMM y' }}. At this pace the syllabus
-                would land {{ finishLabel() }}.
+                Park the {{ parkCount() }} chapters worth least per hour — {{ parkedMarks() }} marks.
               </span>
             </span>
-          </div>
-        }
-
-        <button matRipple class="option" (click)="applyPark()">
-          <mat-icon>content_cut</mat-icon>
-          <span class="option-text">
-            <span class="option-head">Cut scope</span>
-            <span class="option-sub">
-              Park the {{ parkCount() }} chapters that fit least — {{ parkedMarks() }} marks of
-              the paper — and finish the rest properly.
-            </span>
-          </span>
-        </button>
+          </button>
         }
 
         @if (store.parkedChapters().size > 0) {
-          <button matRipple class="text-line" (click)="unpark()">
-            Bring back {{ store.parkedChapters().size }} parked chapters
+          <button matRipple class="option" (click)="unpark()">
+            <mat-icon>unarchive</mat-icon>
+            <span class="option-text">
+              <span class="option-head">Bring back {{ store.parkedChapters().size }} parked chapters</span>
+              <span class="option-sub">Nothing here is permanent.</span>
+            </span>
           </button>
         }
-
-        <p class="sheet-foot">Nothing here is permanent. Change it again whenever.</p>
       </div>
     }
-
-    <!-- What to do about it -->
-    <section class="group">
-      <h2 class="label">Needs attention</h2>
-
-      <div class="card">
-        @if (weak().length > 0) {
-          <h3 class="sub-label">Lowest accuracy</h3>
-          @for (row of weak(); track row.chapter.id) {
-            <div class="attn">
-              <span class="attn-name">
-                {{ row.chapter.name }}
-                <span class="attn-sub">{{ subjectName(row.chapter) }} · {{ row.stat.attempted }} questions</span>
-              </span>
-              <span class="attn-value warn">{{ rate(row.rate) }}%</span>
-            </div>
-          }
-        }
-
-        @if (stale().length > 0) {
-          <h3 class="sub-label">Learnt but never revised</h3>
-          @for (row of stale(); track row.chapter.id) {
-            <div class="attn">
-              <span class="attn-name">
-                {{ row.chapter.name }}
-                <span class="attn-sub">{{ subjectName(row.chapter) }} · {{ row.overdue }} days past due</span>
-              </span>
-              <mat-icon class="attn-icon">schedule</mat-icon>
-            </div>
-          }
-        }
-
-        @if (weak().length === 0 && stale().length === 0) {
-          <div class="empty">
-            <mat-icon>done_all</mat-icon>
-            <span>Nothing flagged. Not enough history yet, or nothing is slipping.</span>
-          </div>
-        }
-      </div>
-    </section>
   `,
   styles: `
+    /* M3: don't force content into cards when spacing, headlines and dividers
+       give a simpler hierarchy. Only the pace block is a card — it is a single
+       subject and it carries an action. */
     :host {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
+      display: block;
       height: 100%;
       overflow-y: auto;
       overflow-x: hidden;
-      padding: 16px 16px 24px;
-    }
-
-    .group { display: flex; flex-direction: column; gap: 12px; }
-    .label { margin: 0; font: var(--mat-sys-title-small); color: var(--mat-sys-on-surface-variant); }
-
-    .card {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      padding: 16px;
-      border-radius: var(--mat-sys-corner-large);
-      background: var(--mat-sys-surface-container-low);
+      padding: 8px 16px 32px;
+      background: var(--mat-sys-surface);
     }
 
     /* Hero ------------------------------------------------------------- */
-    .hero { display: flex; align-items: center; gap: 16px; }
-
-    .ring-wrap { position: relative; width: 116px; height: 116px; flex: none; }
-    .ring { width: 100%; height: 100%; transform: rotate(-90deg); }
-
-    .ring-track {
-      fill: none;
-      stroke: var(--mat-sys-surface-container-highest);
-      stroke-width: 10;
+    .hero {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 16px 0 12px;
     }
+
+    .hero-note {
+      margin: 0 0 24px;
+      font: var(--mat-sys-body-small);
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    .ring-wrap { position: relative; width: 112px; height: 112px; flex: none; }
+    .ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .ring-track { fill: none; stroke: var(--mat-sys-surface-container-highest); stroke-width: 8; }
 
     .ring-fill {
       fill: none;
       stroke: var(--mat-sys-primary);
-      stroke-width: 10;
+      stroke-width: 8;
       stroke-linecap: round;
       transition: stroke-dashoffset 400ms ease;
     }
@@ -430,106 +366,232 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
       justify-content: center;
     }
 
-    .ring-value { font: var(--mat-sys-headline-medium); color: var(--mat-sys-on-surface); }
-    .ring-unit { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
+    /* Display size is for exactly this: a short, important numeral. */
+    .ring-value { font: var(--mat-sys-display-small); line-height: 1; color: var(--mat-sys-on-surface); }
+    .pct { font: var(--mat-sys-title-medium); color: var(--mat-sys-on-surface-variant); }
+    .ring-unit { margin-top: 4px; font: var(--mat-sys-label-medium); color: var(--mat-sys-on-surface-variant); }
 
-    /* Three facts as a table, not three sentences. The eye lands on the
-       numbers; the labels are there only when it needs them. */
-    .hero-side {
-      flex: 1;
-      min-width: 0;
-      margin: 0;
+    .facts { flex: 1; min-width: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+    .fact { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+    .fact dt { font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
+    .fact dd { margin: 0; font: var(--mat-sys-title-medium); color: var(--mat-sys-on-surface); }
+    .of { font: var(--mat-sys-body-small); color: var(--mat-sys-on-surface-variant); }
+
+    /* Pace: the one card ------------------------------------------------ */
+    .pace {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-    }
-
-    .hero-stat { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-    .hero-stat dt { font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
-
-    .hero-stat dd {
-      margin: 0;
-      font: var(--mat-sys-title-large);
+      gap: 12px;
+      padding: 16px;
+      border-radius: var(--mat-sys-corner-medium);
+      background: var(--mat-sys-surface-container);
       color: var(--mat-sys-on-surface);
     }
 
-    .of { font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
+    .pace.behind { background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container); }
+    .pace.unknown { background: transparent; box-shadow: inset 0 0 0 1px var(--mat-sys-outline-variant); }
 
-    /* flex: none — a bare child of the scrolling column gets squashed
-       otherwise, the same way the chip did at 2px tall. */
-    .parked-chip {
-      flex: none;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      align-self: flex-start;
-      height: 32px;
-      padding: 0 14px 0 10px;
-      border: 1px solid var(--mat-sys-outline-variant);
-      border-radius: var(--mat-sys-corner-full);
-      background: transparent;
-      color: var(--mat-sys-on-surface-variant);
-      font: var(--mat-sys-label-large);
-      cursor: pointer;
-    }
+    .pace-row { display: flex; align-items: flex-start; gap: 12px; }
+    .pace-text { display: flex; flex-direction: column; gap: 2px; }
+    .pace-head { font: var(--mat-sys-title-small); }
+    .pace-sub { font: var(--mat-sys-body-small); opacity: .8; }
 
-    .parked-chip mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    .pace-actions { display: flex; align-items: center; gap: 12px; }
 
-    /* Verdict ----------------------------------------------------------- */
-    .verdict {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      padding: 16px;
-      border-radius: var(--mat-sys-corner-large);
-      background: var(--mat-sys-secondary-container);
-      color: var(--mat-sys-on-secondary-container);
-    }
-
-    .verdict.behind {
-      background: var(--mat-sys-error-container);
-      color: var(--mat-sys-on-error-container);
-    }
-
-    /* No history is not a failure — it gets the quiet treatment. */
-    .verdict.unknown {
-      background: transparent;
-      box-shadow: inset 0 0 0 1px var(--mat-sys-outline-variant);
-      color: var(--mat-sys-on-surface-variant);
-    }
-
-    .verdict { flex-direction: column; gap: 12px; }
-    .verdict-row { display: flex; align-items: flex-start; gap: 12px; }
-    .verdict-text { display: flex; flex-direction: column; gap: 2px; }
-
-    /* On the red card the button inverts; on the calm one it stays outlined. */
-    .verdict:not(.behind) .verdict-cta {
-      background: transparent;
-      box-shadow: inset 0 0 0 1px currentColor;
-      color: inherit;
-    }
-
-    .verdict-cta {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      height: 40px;
+    /* Filled button, tinted to whichever container it is sitting on. */
+    .pace-cta {
+      height: 36px;
+      padding: 0 20px;
       border: none;
       border-radius: var(--mat-sys-corner-full);
-      background: var(--mat-sys-on-error-container);
-      color: var(--mat-sys-error-container);
+      background: var(--mat-sys-primary);
+      color: var(--mat-sys-on-primary);
       font: var(--mat-sys-label-large);
       cursor: pointer;
     }
 
-    .verdict-cta mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    .pace.behind .pace-cta {
+      background: var(--mat-sys-on-error-container);
+      color: var(--mat-sys-error-container);
+    }
 
-    /* Sheet */
-    .scrim { position: absolute; inset: 0; z-index: 3; background: rgb(0 0 0 / .32); }
+    .pace-note { font: var(--mat-sys-label-medium); opacity: .8; }
+
+    /* Blocks: heading + content, separated by space and a hairline -------- */
+    .block { padding: 24px 0; border-top: 1px solid var(--mat-sys-outline-variant); }
+    .block:first-of-type { border-top: none; }
+
+    .block-title {
+      margin: 0 0 16px;
+      font: var(--mat-sys-title-medium);
+      color: var(--mat-sys-on-surface);
+    }
+
+    .sub-title {
+      margin: 24px 0 8px;
+      font: var(--mat-sys-title-small);
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    .block-note {
+      margin: -8px 0 16px;
+      font: var(--mat-sys-body-small);
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    .caption { margin: 8px 0 0; font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
+    .lead { margin: 0 0 12px; font: var(--mat-sys-headline-small); color: var(--mat-sys-on-surface); }
+    .lead-unit { font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
+
+    /* Metrics: one row component, used identically everywhere ------------- */
+    .metrics { display: flex; gap: 8px; margin-bottom: 20px; }
+    .metric { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
+    .metric-value {
+      font: var(--mat-sys-title-large);
+      color: var(--mat-sys-on-surface);
+      white-space: nowrap;
+    }
+
+    .metric-value.alert { color: var(--mat-sys-error); }
+    .metric-value.good { color: var(--mat-sys-primary); }
+
+    .metric-label {
+      font: var(--mat-sys-label-small);
+      color: var(--mat-sys-on-surface-variant);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Plots: one component, two heights ---------------------------------- */
+    .plot { position: relative; display: flex; align-items: flex-end; gap: 5px; height: 76px; }
+    .plot.tall { height: 104px; }
+    .plot-col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; }
+
+    .plot-bar {
+      width: 100%;
+      min-height: 3px;
+      border-radius: 4px 4px 2px 2px;
+      background: var(--mat-sys-primary);
+    }
+
+    .plot-bar.none { background: var(--mat-sys-surface-container-highest); }
+
+    .plot-num {
+      font: var(--mat-sys-label-small);
+      color: var(--mat-sys-on-surface);
+      text-align: center;
+    }
+
+    .plot-num.zero { color: var(--mat-sys-on-surface-variant); opacity: .5; }
+    .plot-tick { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); text-align: center; }
+
+    .target {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: calc(var(--target) * 100%);
+      border-top: 1px dashed var(--mat-sys-outline);
+      pointer-events: none;
+    }
+
+    /* Rows: one list component ------------------------------------------- */
+    .rows { margin: 0; padding: 0; list-style: none; }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-height: 56px;
+      padding: 8px 0;
+    }
+
+    .row + .row { border-top: 1px solid var(--mat-sys-outline-variant); }
+    .row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .row-name { font: var(--mat-sys-body-large); color: var(--mat-sys-on-surface); }
+    .row-meta { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
+    .row-value { font: var(--mat-sys-title-small); color: var(--mat-sys-on-surface-variant); }
+    .row-value.alert { color: var(--mat-sys-error); }
+    .row-stack { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+    .row-unit { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
+    .bar-row .row-text { gap: 8px; }
+
+    .track {
+      display: flex;
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      background: var(--mat-sys-surface-container-highest);
+    }
+
+    .seg { height: 100%; }
+    .s3 { background: var(--mat-sys-primary); }
+    .s2 { background: color-mix(in srgb, var(--mat-sys-primary) 70%, var(--mat-sys-surface-container-highest)); }
+    .s1 { background: color-mix(in srgb, var(--mat-sys-primary) 45%, var(--mat-sys-surface-container-highest)); }
+    .s0 { background: color-mix(in srgb, var(--mat-sys-primary) 22%, var(--mat-sys-surface-container-highest)); }
+
+    .key { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 16px; }
+
+    .key-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font: var(--mat-sys-label-small);
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    .swatch { width: 10px; height: 10px; border-radius: 2px; }
+
+    /* Heatmap ------------------------------------------------------------ */
+    .months { display: grid; gap: 3px; margin-bottom: 4px; }
+    .month-tick { grid-row: 1; font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
+
+    .heat { display: flex; gap: 3px; }
+
+    .heat-days {
+      display: grid;
+      grid-template-rows: repeat(7, 1fr);
+      gap: 3px;
+      width: 11px;
+      flex: none;
+    }
+
+    .heat-days span {
+      display: grid;
+      place-items: center;
+      font-size: 9px;
+      line-height: 1;
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    .heat-grid {
+      flex: 1;
+      display: grid;
+      grid-template-rows: repeat(7, 1fr);
+      grid-auto-flow: column;
+      grid-auto-columns: 1fr;
+      gap: 3px;
+    }
+
+    .cell { aspect-ratio: 1; border-radius: 2px; background: var(--mat-sys-surface-container-highest); }
+    .cell.l1 { background: color-mix(in srgb, var(--mat-sys-primary) 28%, var(--mat-sys-surface-container-highest)); }
+    .cell.l2 { background: color-mix(in srgb, var(--mat-sys-primary) 50%, var(--mat-sys-surface-container-highest)); }
+    .cell.l3 { background: color-mix(in srgb, var(--mat-sys-primary) 74%, var(--mat-sys-surface-container-highest)); }
+    .cell.l4 { background: var(--mat-sys-primary); }
+    .cell.future { opacity: .3; }
+    .cell.now { box-shadow: inset 0 0 0 1.5px var(--mat-sys-on-surface); }
+
+    .legend { display: flex; align-items: center; gap: 3px; margin-top: 12px; }
+    .legend .cell { width: 11px; aspect-ratio: 1; }
+    .legend .caption { margin: 0 4px; }
+
+    /* Sheet -------------------------------------------------------------- */
+    .scrim { position: fixed; inset: 0; z-index: 3; background: rgb(0 0 0 / .32); }
 
     .sheet {
-      position: absolute;
+      position: fixed;
       left: 0;
       right: 0;
       bottom: 0;
@@ -565,244 +627,14 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
       cursor: pointer;
     }
 
-    .option mat-icon { color: var(--mat-sys-primary); }
+    .option mat-icon { color: var(--mat-sys-primary); flex: none; }
     .option.muted { cursor: default; }
     .option.muted mat-icon { color: var(--mat-sys-on-surface-variant); }
     .option-text { display: flex; flex-direction: column; gap: 2px; }
     .option-head { font: var(--mat-sys-title-small); }
     .option-sub { font: var(--mat-sys-body-small); color: var(--mat-sys-on-surface-variant); }
-
-    .text-line {
-      margin-top: 4px;
-      padding: 8px;
-      border: none;
-      background: transparent;
-      color: var(--mat-sys-primary);
-      font: var(--mat-sys-label-large);
-      text-align: left;
-      cursor: pointer;
-    }
-
-    .sheet-foot { margin: 8px 0 0; font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
-    .verdict-head { font: var(--mat-sys-title-small); }
-    .verdict-sub { font: var(--mat-sys-body-small); opacity: .85; }
-
-    /* Due look-ahead ---------------------------------------------------- */
-    .ahead { display: flex; align-items: flex-end; gap: 6px; height: 84px; }
-
-    .ahead-day {
-      flex: 1;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 4px;
-    }
-
-    .ahead-bar {
-      width: 100%;
-      min-height: 3px;
-      border-radius: 3px 3px 1px 1px;
-      background: var(--mat-sys-primary);
-    }
-
-    .ahead-bar.none { background: var(--mat-sys-surface-container-highest); }
-    .ahead-count { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface); }
-    .ahead-label { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
-
-    /* How much of a chapter is probably still there. */
-    .hold { width: 56px; flex: none; display: flex; flex-direction: column; gap: 3px; align-items: flex-end; }
-    .hold-value { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
-
-    .hold-track {
-      display: block;
-      width: 100%;
-      height: 6px;
-      border-radius: 3px;
-      background: var(--mat-sys-surface-container-highest);
-      overflow: hidden;
-    }
-
-    .hold-fill { display: block; height: 100%; background: var(--mat-sys-error); }
-
-    /* Stats row --------------------------------------------------------- */
-    .stat-row { display: flex; gap: 8px; }
-    .stat { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .stat-value {
-      font: var(--mat-sys-title-large);
-      color: var(--mat-sys-on-surface);
-      white-space: nowrap;
-    }
-    .stat-value.up { color: var(--mat-sys-primary); }
-    .stat-value.down { color: var(--mat-sys-error); }
-
-    .stat-caption {
-      font: var(--mat-sys-label-small);
-      color: var(--mat-sys-on-surface-variant);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* Heatmap ----------------------------------------------------------- */
-    .months {
-      display: grid;
-      gap: 3px;
-      margin-bottom: -8px;
-    }
-
-    .month-tick {
-      grid-row: 1;
-      font: var(--mat-sys-label-small);
-      color: var(--mat-sys-on-surface-variant);
-    }
-
-    .heat { display: flex; gap: 3px; }
-
-    .heat-days {
-      display: grid;
-      grid-template-rows: repeat(7, 1fr);
-      gap: 3px;
-      width: 13px;
-      flex: none;
-      font: var(--mat-sys-label-small);
-      color: var(--mat-sys-on-surface-variant);
-    }
-
-    .heat-days span { display: grid; place-items: center; font-size: 9px; line-height: 1; }
-
-    .heat-grid {
-      flex: 1;
-      display: grid;
-      grid-template-rows: repeat(7, 1fr);
-      grid-auto-flow: column;
-      grid-auto-columns: 1fr;
-      gap: 3px;
-    }
-
-    /* Intensity is one hue stepped against the card, so it reads as a ramp
-       rather than five unrelated colours. */
-    .heat-cell {
-      aspect-ratio: 1;
-      border-radius: 2px;
-      background: var(--mat-sys-surface-container-highest);
-    }
-
-    .heat-cell.l1 { background: color-mix(in srgb, var(--mat-sys-primary) 28%, var(--mat-sys-surface-container-highest)); }
-    .heat-cell.l2 { background: color-mix(in srgb, var(--mat-sys-primary) 50%, var(--mat-sys-surface-container-highest)); }
-    .heat-cell.l3 { background: color-mix(in srgb, var(--mat-sys-primary) 74%, var(--mat-sys-surface-container-highest)); }
-    .heat-cell.l4 { background: var(--mat-sys-primary); }
-    .heat-cell.future { opacity: .35; }
-    .heat-cell.today { box-shadow: 0 0 0 1.5px var(--mat-sys-on-surface); }
-
-    .legend { display: flex; align-items: center; gap: 3px; }
-    .legend .heat-cell { width: 11px; aspect-ratio: 1; }
-    .legend-text { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
-    .legend-text:first-child { margin-right: 4px; }
-    .legend-text:last-child { margin-left: 4px; }
-
-    /* Hours bars -------------------------------------------------------- */
-    .chart-head { display: flex; flex-direction: column; gap: 2px; }
-    .chart-value { font: var(--mat-sys-headline-small); color: var(--mat-sys-on-surface); }
-    .chart-unit { font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
-    .chart-caption { font: var(--mat-sys-label-medium); color: var(--mat-sys-on-surface-variant); }
-    .chart-caption.up { color: var(--mat-sys-primary); }
-
-    .bars {
-      position: relative;
-      display: flex;
-      align-items: flex-end;
-      gap: 4px;
-      height: 104px;
-    }
-
-    /* The plan's own target, so a bar can be read as short or tall. */
-    .target-line {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: calc(var(--target) * 100%);
-      height: 0;
-      border-top: 1px dashed var(--mat-sys-outline);
-      pointer-events: none;
-    }
-
-    .bar-slot { flex: 1; height: 100%; display: flex; align-items: flex-end; }
-
-    .bar {
-      width: 100%;
-      min-height: 3px;
-      border-radius: 3px 3px 1px 1px;
-      background: var(--mat-sys-primary);
-    }
-
-    .bar.empty { background: var(--mat-sys-surface-container-highest); }
-
-    .bar-axis {
-      display: flex;
-      justify-content: space-between;
-      font: var(--mat-sys-label-small);
-      color: var(--mat-sys-on-surface-variant);
-    }
-
-    /* Depth ------------------------------------------------------------- */
-    .depth { display: flex; flex-direction: column; gap: 6px; }
-    .depth-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-    .depth-name { font: var(--mat-sys-body-large); }
-    .depth-count { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
-
-    .depth-track {
-      display: flex;
-      height: 10px;
-      border-radius: 5px;
-      overflow: hidden;
-      background: var(--mat-sys-surface-container-highest);
-    }
-
-    .seg { height: 100%; }
-    .s3 { background: var(--mat-sys-primary); }
-    .s2 { background: color-mix(in srgb, var(--mat-sys-primary) 72%, var(--mat-sys-surface-container-highest)); }
-    .s1 { background: color-mix(in srgb, var(--mat-sys-primary) 46%, var(--mat-sys-surface-container-highest)); }
-    .s0 { background: color-mix(in srgb, var(--mat-sys-primary) 22%, var(--mat-sys-surface-container-highest)); }
-
-    .key { display: flex; flex-wrap: wrap; gap: 12px; }
-    .key-item { display: flex; align-items: center; gap: 6px; font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
-    .swatch { width: 10px; height: 10px; border-radius: 2px; }
-
-    /* Accuracy ---------------------------------------------------------- */
-    .acc { display: flex; align-items: center; gap: 12px; }
-    .acc-name { width: 76px; flex: none; font: var(--mat-sys-body-medium); }
-
-    .acc-track {
-      flex: 1;
-      height: 8px;
-      border-radius: 4px;
-      background: var(--mat-sys-surface-container-highest);
-      overflow: hidden;
-    }
-
-    .acc-fill { display: block; height: 100%; background: var(--mat-sys-primary); }
-    .acc-value { width: 44px; text-align: right; font: var(--mat-sys-label-large); color: var(--mat-sys-on-surface-variant); }
-    .foot { margin: 0; font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
-
-    /* Attention --------------------------------------------------------- */
-    .sub-label { margin: 0; font: var(--mat-sys-label-large); color: var(--mat-sys-on-surface-variant); }
-    .attn { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .attn-name { display: flex; flex-direction: column; gap: 2px; font: var(--mat-sys-body-medium); min-width: 0; }
-    .attn-sub { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
-    .attn-value { font: var(--mat-sys-title-medium); }
-    .attn-value.warn { color: var(--mat-sys-error); }
-    .attn-icon { color: var(--mat-sys-on-surface-variant); }
-
-    .empty {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--mat-sys-on-surface-variant);
-      font: var(--mat-sys-body-medium);
-    }
   `,
+
 })
 export class ProgressTab {
   protected readonly store = inject(OnboardingStore);
@@ -813,12 +645,15 @@ export class ProgressTab {
   protected readonly circumference = 2 * Math.PI * 52;
   protected readonly Math = Math;
 
-  /** Listed in the order the bar stacks them: deepest pass on the left. */
+  /**
+   * Listed in the order the bar stacks them, deepest pass on the left, and
+   * spelled out — "R2" means nothing to someone opening this the first time.
+   */
   protected readonly depthKey = [
-    { cls: 's3', label: 'R3' },
-    { cls: 's2', label: 'R2' },
-    { cls: 's1', label: 'R1' },
-    { cls: 's0', label: 'Learnt only' },
+    { cls: 's3', label: '3rd pass' },
+    { cls: 's2', label: '2nd pass' },
+    { cls: 's1', label: '1st pass' },
+    { cls: 's0', label: 'not revised' },
   ];
 
   protected readonly rounds = computed(() => this.study.rounds());
