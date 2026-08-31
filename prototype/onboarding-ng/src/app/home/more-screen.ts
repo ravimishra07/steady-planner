@@ -72,6 +72,14 @@ import { PACK } from '../onboarding/exam-pack';
       <h2 class="label">Where the numbers come from</h2>
       <ul class="meta">
         @for (line of pack.meta.methodology; track line) { <li>{{ line }}</li> }
+        <li>
+          Readiness is an estimate: chapters covered, weighted by how much of that is
+          still held, plus retention and accuracy — 4:3:3.
+        </li>
+        <li>
+          Revision falls due on an expanding schedule (3, 10, 30, 60 days), pulled in or
+          pushed out by how the last sitting went.
+        </li>
       </ul>
     </section>
   `,

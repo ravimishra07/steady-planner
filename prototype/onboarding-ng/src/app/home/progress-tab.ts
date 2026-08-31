@@ -42,15 +42,20 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
         </span>
       </div>
 
-      <div class="hero-side">
-        <span class="hero-line"><b>{{ store.days() }}</b> days to the exam</span>
-        <span class="hero-line">
-          <b>{{ rounds().learned }}</b> of {{ inPlay() }} chapters learnt
-          @if (store.parkedChapters().size > 0) { <span class="parked">· {{ store.parkedChapters().size }} parked</span> }
-        </span>
-        <span class="hero-line"><b>{{ held() }}</b> of that still held</span>
-        <span class="hero-note">Estimate: coverage held, retention and accuracy, weighted 4:3:3.</span>
-      </div>
+      <dl class="hero-side">
+        <div class="hero-stat">
+          <dt>Days left</dt>
+          <dd>{{ store.days() }}</dd>
+        </div>
+        <div class="hero-stat">
+          <dt>Learnt</dt>
+          <dd>{{ rounds().learned }}<span class="of">/{{ inPlay() }}</span></dd>
+        </div>
+        <div class="hero-stat">
+          <dt>Still held</dt>
+          <dd>{{ held() }}</dd>
+        </div>
+      </dl>
     </section>
 
     <!-- Pace. The single most useful sentence on the screen. -->
@@ -71,6 +76,13 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
         </button>
       }
     </section>
+
+    @if (store.parkedChapters().size > 0) {
+      <button matRipple class="parked-chip" (click)="rebalanceOpen.set(true)">
+        <mat-icon>inventory_2</mat-icon>
+        {{ store.parkedChapters().size }} chapters parked
+      </button>
+    }
 
     <!-- Retention: the half of progress a tick box cannot show. -->
     <section class="group">
@@ -421,17 +433,47 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
     .ring-value { font: var(--mat-sys-headline-medium); color: var(--mat-sys-on-surface); }
     .ring-unit { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
 
-    .hero-side { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-    .hero-line { font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
-    .hero-line b { color: var(--mat-sys-on-surface); font-weight: 600; }
-    .parked { color: var(--mat-sys-tertiary); }
-
-    .hero-note {
-      margin-top: 4px;
-      font: var(--mat-sys-label-small);
-      color: var(--mat-sys-on-surface-variant);
-      opacity: .75;
+    /* Three facts as a table, not three sentences. The eye lands on the
+       numbers; the labels are there only when it needs them. */
+    .hero-side {
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
+
+    .hero-stat { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+    .hero-stat dt { font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
+
+    .hero-stat dd {
+      margin: 0;
+      font: var(--mat-sys-title-large);
+      color: var(--mat-sys-on-surface);
+    }
+
+    .of { font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
+
+    /* flex: none — a bare child of the scrolling column gets squashed
+       otherwise, the same way the chip did at 2px tall. */
+    .parked-chip {
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      align-self: flex-start;
+      height: 32px;
+      padding: 0 14px 0 10px;
+      border: 1px solid var(--mat-sys-outline-variant);
+      border-radius: var(--mat-sys-corner-full);
+      background: transparent;
+      color: var(--mat-sys-on-surface-variant);
+      font: var(--mat-sys-label-large);
+      cursor: pointer;
+    }
+
+    .parked-chip mat-icon { font-size: 18px; width: 18px; height: 18px; }
 
     /* Verdict ----------------------------------------------------------- */
     .verdict {
