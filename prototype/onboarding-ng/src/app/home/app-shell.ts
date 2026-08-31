@@ -34,7 +34,7 @@ const DESTINATIONS: Destination[] = [
       @if (organising()) {
         <app-organise-screen (close)="organising.set(false)" />
       } @else if (current() === 'home') {
-        <app-today (editPlan)="organising.set(true)" />
+        <app-today (editPlan)="organising.set(true)" (openFocus)="current.set('focus')" />
       } @else if (current() === 'syllabus') {
         <app-syllabus-tab />
       } @else if (current() === 'focus') {

@@ -9,6 +9,7 @@ import { StudyStore, Task, dateKey } from '../study/study-store';
 import { RECALLS, Recall, nextInterval } from '../study/retention';
 import { Block, StudyBlock, subjectLabel } from './scheduler';
 import { DayPlanner, blockKey } from './day-planner';
+import { FocusStore } from '../focus/focus-store';
 
 interface DayCell {
   date: Date;
@@ -158,7 +159,7 @@ const MIN_BLOCK_HEIGHT = 72;
               <span class="clock">{{ clock(block.startMinute) }}</span>
 
             @if (block.kind === 'study') {
-              <button matRipple class="block" [class.done]="block.done" (click)="openSession(block)">
+              <div matRipple class="block" [class.done]="block.done" (click)="openSession(block)">
                 <span class="block-head">
                   <span class="tag" [class]="'tag-' + block.task.toLowerCase()">{{ block.task }}</span>
                   @if (block.overdue !== undefined && block.overdue > 0) {
@@ -172,14 +173,17 @@ const MIN_BLOCK_HEIGHT = 72;
                 <span class="context">
                   {{ block.context }}@if (block.questions) { · {{ block.questions }} Q }
                 </span>
-                <span class="action">
-                  @if (block.done) {
+                @if (block.done) {
+                  <span class="action">
                     <mat-icon class="filled">check_circle</mat-icon>Logged
-                  } @else {
-                    <mat-icon class="filled">play_arrow</mat-icon>Start
-                  }
-                </span>
-              </button>
+                  </span>
+                } @else {
+                  <button matRipple class="action start" (click)="startTimer(block, $event)">
+                    <mat-icon class="filled">play_arrow</mat-icon>
+                    Start {{ format(block.minutes) }}
+                  </button>
+                }
+              </div>
             } @else if (block.kind === 'fixed') {
               <div class="block fixed">
                 <span class="block-head">
@@ -214,6 +218,16 @@ const MIN_BLOCK_HEIGHT = 72;
         <h3 class="sheet-title">{{ s.title }}</h3>
         <p class="sheet-sub">{{ s.context }} · {{ s.task }} · {{ format(s.minutes) }}</p>
 
+        <!-- Why the plan put this here, from the chapter's own record. -->
+        <div class="why">
+          @for (line of why(s); track line) { <span class="why-line">{{ line }}</span> }
+        </div>
+
+        <button matRipple class="filled-button" (click)="startTimer(s)">
+          <mat-icon class="filled">play_arrow</mat-icon>
+          Start {{ format(s.minutes) }} in Focus
+        </button>
+
         @if (s.task === 'Practice') {
           <div class="score-row">
             <label>
@@ -227,7 +241,7 @@ const MIN_BLOCK_HEIGHT = 72;
           </div>
         }
 
-        <h4 class="sheet-label">How did it go?</h4>
+        <h4 class="sheet-label">Or log it without the timer</h4>
         <div class="recalls">
           @for (r of recalls; track r.id) {
             <button matRipple class="recall" [class.on]="recall() === r.id" (click)="recall.set(r.id)">
@@ -238,7 +252,7 @@ const MIN_BLOCK_HEIGHT = 72;
         </div>
         <p class="next-due">{{ nextDueLabel(s) }}</p>
 
-        <button matRipple class="filled-button" (click)="complete(s)">
+        <button matRipple class="tonal-button" (click)="complete(s)">
           {{ s.task === 'Learn' ? 'Mark covered' : s.task === 'Revise' ? 'Mark revised' : 'Save attempt' }}
         </button>
 
@@ -656,6 +670,20 @@ const MIN_BLOCK_HEIGHT = 72;
     }
 
     .block.done .action { color: var(--mat-sys-on-surface-variant); }
+
+    /* Start is its own target inside the card: the card opens the detail,
+       the button starts the timer. */
+    .action.start {
+      align-self: flex-start;
+      height: 32px;
+      padding: 0 14px 0 10px;
+      border: none;
+      border-radius: var(--mat-sys-corner-full);
+      background: var(--mat-sys-secondary-container);
+      color: var(--mat-sys-on-secondary-container);
+      font: var(--mat-sys-label-large);
+      cursor: pointer;
+    }
     .action mat-icon { font-size: 18px; width: 18px; height: 18px; }
 
     .gap {
@@ -805,7 +833,31 @@ const MIN_BLOCK_HEIGHT = 72;
       font: var(--mat-sys-body-medium);
     }
 
+    .why { display: flex; flex-direction: column; gap: 2px; margin: 12px 0 4px; }
+
+    .why-line {
+      font: var(--mat-sys-body-small);
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    .why-line:first-child { color: var(--mat-sys-on-surface); }
+
+    .tonal-button {
+      height: 44px;
+      margin-top: 12px;
+      border: none;
+      border-radius: var(--mat-sys-corner-full);
+      background: var(--mat-sys-surface-container-highest);
+      color: var(--mat-sys-on-surface);
+      font: var(--mat-sys-label-large);
+      cursor: pointer;
+    }
+
     .filled-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       height: 48px;
       margin-top: 16px;
       border: none;
@@ -819,9 +871,11 @@ const MIN_BLOCK_HEIGHT = 72;
 })
 export class TodayScreen {
   readonly editPlan = output<void>();
+  readonly openFocus = output<void>();
   protected readonly store = inject(OnboardingStore);
   protected readonly study = inject(StudyStore);
   private readonly planner = inject(DayPlanner);
+  private readonly focus = inject(FocusStore);
   protected readonly weekdayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   protected readonly tasks: Task[] = ['Learn', 'Practice', 'Revise'];
 
@@ -959,6 +1013,60 @@ export class TodayScreen {
   private readonly planStart = startOfToday().getTime();
 
   /* ---- Sheets -------------------------------------------------------- */
+
+  /**
+   * Start actually starts. It used to open the logging sheet, which asked the
+   * student to record work they had not done yet — the timer is one tab away
+   * and it writes the sitting itself.
+   */
+  protected startTimer(block: StudyBlock, event?: Event): void {
+    event?.stopPropagation();
+    this.focus.start(
+      {
+        chapterId: block.chapterId,
+        subtopicId: block.subtopicId,
+        title: block.title,
+        context: block.context,
+        task: block.task,
+        minutes: block.minutes,
+      },
+      block.minutes,
+    );
+    this.session.set(null);
+    this.openFocus.emit();
+  }
+
+  /** The chapter's own record, in the order it answers "why this, now". */
+  protected why(block: StudyBlock): string[] {
+    const stat = this.study.stat(block.chapterId);
+    const out: string[] = [];
+
+    if (block.overdue !== undefined && block.overdue > 0) {
+      out.push(`Revision was due ${block.overdue} days ago`);
+    } else if (block.overdue === 0) {
+      out.push('Revision falls due today');
+    } else if (block.task === 'Learn') {
+      out.push('Next unread section in this subject');
+    } else if (block.task === 'Practice') {
+      out.push('Recently covered, not yet practised much');
+    }
+
+    if (stat.lastTouched) out.push(`Last opened ${this.since(stat.lastTouched)}`);
+    else out.push('Never opened');
+
+    if (stat.revisions > 0) out.push(`${stat.revisions} revision passes done`);
+    if (stat.attempted > 0) {
+      out.push(`${Math.round((stat.correct / stat.attempted) * 100)}% of ${stat.attempted} questions`);
+    }
+    return out;
+  }
+
+  private since(key: string): string {
+    const [y, m, d] = key.split('-').map(Number);
+    const days = Math.round((startOfToday().getTime() - new Date(y, m - 1, d).getTime()) / 86_400_000);
+    if (days <= 0) return 'today';
+    return days === 1 ? 'yesterday' : `${days} days ago`;
+  }
 
   protected openSession(block: StudyBlock): void {
     this.attempted.set(block.questions ?? 0);
