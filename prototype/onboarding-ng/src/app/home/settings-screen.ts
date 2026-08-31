@@ -25,7 +25,28 @@ import { StudyStore } from '../study/study-store';
 import { clearDemo, loadDemo } from '../study/demo-data';
 
 /** Where a row leads, when it leads somewhere. */
-type Page = 'root' | 'fixed' | 'legal' | 'about';
+type Page = 'root' | 'plan' | 'hours' | 'appearance' | 'focus' | 'fixed' | 'legal' | 'about';
+
+/** Short passages, each in its own sheet — not one wall of policy text. */
+const LEGAL = [
+  {
+    heading: 'What this app stores',
+    body: "Your plan, your sittings and your ticks, in this device's own storage. There is no account and no server.",
+  },
+  {
+    heading: 'What it collects',
+    body: 'No analytics, no advertising identifiers, no crash reporting, no contacts, no location. It makes no network requests of its own.',
+  },
+  { heading: 'Who it is shared with', body: 'Nobody. There is no third party to share it with.' },
+  {
+    heading: 'Deleting it',
+    body: 'Delete everything removes all of it at once. Uninstalling does the same.',
+  },
+  {
+    heading: 'Terms of use',
+    body: "The syllabus, hour estimates and revision schedule are planning aids, not guarantees. Check your exam's official syllabus and dates with the conducting body.",
+  },
+];
 
 const BREAKS = [5, 10, 15, 20, 30];
 
@@ -52,50 +73,197 @@ const SOCIALS = [
         <header class="bar"><h1 class="bar-title">Settings</h1></header>
 
         <div class="scroll">
-          <!-- Plan -->
-          <h2 class="group">Plan</h2>
-
-          <div class="item">
-            <mat-icon class="lead">school</mat-icon>
-            <span class="text">
-              <span class="title">Exam</span>
-              <span class="sub">{{ pack.displayName }}</span>
+          <!-- Who this plan is for, before any of the knobs. -->
+          <button matRipple class="profile" (click)="page.set('plan')">
+            <span class="crest"><mat-icon class="filled">school</mat-icon></span>
+            <span class="profile-text">
+              <span class="profile-name">{{ pack.displayName }}</span>
+              <span class="profile-meta">{{ store.days() }} days left · {{ store.weekdayHours() }}h a day</span>
             </span>
-            <span class="trail">{{ store.days() }} days</span>
+            <span class="profile-stat">
+              <span class="profile-value">{{ coverage() }}%</span>
+              <span class="profile-label">covered</span>
+            </span>
+          </button>
+
+          <h2 class="group">Plan</h2>
+          <div class="sheet">
+            <button matRipple class="row" (click)="page.set('plan')">
+              <span class="tile t-primary"><mat-icon>event</mat-icon></span>
+              <span class="row-title">Exam &amp; date</span>
+              <span class="row-value">{{ store.targetDate() | date: 'd MMM y' }}</span>
+              <mat-icon class="chev">chevron_right</mat-icon>
+            </button>
+
+            <button matRipple class="row" (click)="page.set('hours')">
+              <span class="tile t-tertiary"><mat-icon>schedule</mat-icon></span>
+              <span class="row-title">Hours &amp; breaks</span>
+              <span class="row-value">{{ store.weekdayHours() }}h · {{ store.weekendHours() }}h</span>
+              <mat-icon class="chev">chevron_right</mat-icon>
+            </button>
+
+            <button matRipple class="row" (click)="page.set('fixed')">
+              <span class="tile t-tertiary"><mat-icon>event_busy</mat-icon></span>
+              <span class="row-title">Fixed hours</span>
+              <span class="row-value">{{ store.commitments().length }} blocks</span>
+              <mat-icon class="chev">chevron_right</mat-icon>
+            </button>
           </div>
 
-          <label class="item">
-            <mat-icon class="lead">event</mat-icon>
-            <span class="text">
-              <span class="title">Exam date</span>
-              <span class="sub">{{ store.targetDate() | date: 'EEEE, d MMMM y' }}</span>
-            </span>
-            <span class="edit">
-              Change
-              <input class="date-input" type="date" [value]="dateValue()"
-                     (change)="setDate($any($event.target).value)" />
-            </span>
-          </label>
+          <h2 class="group">App</h2>
+          <div class="sheet">
+            <button matRipple class="row" (click)="page.set('appearance')">
+              <span class="tile t-primary"><mat-icon>palette</mat-icon></span>
+              <span class="row-title">Appearance</span>
+              <span class="row-value">{{ appearanceName() }}</span>
+              <mat-icon class="chev">chevron_right</mat-icon>
+            </button>
 
-          <div class="item stacked">
-            <span class="row-head">
-              <mat-icon class="lead">schedule</mat-icon>
-              <span class="text">
-                <span class="title">Study hours</span>
-                <span class="sub">{{ store.weekdayHours() }}h weekdays · {{ store.weekendHours() }}h weekends</span>
+            <button matRipple class="row" (click)="page.set('focus')">
+              <span class="tile t-tertiary">
+                <mat-icon [class.filled]="store.blockApps()">
+                  {{ store.blockApps() ? 'lock' : 'lock_open' }}
+                </mat-icon>
               </span>
-            </span>
+              <span class="row-title">Focus &amp; blocking</span>
+              <span class="row-value">{{ store.blockApps() ? store.blockedApps().size + ' apps' : 'Off' }}</span>
+              <mat-icon class="chev">chevron_right</mat-icon>
+            </button>
+          </div>
 
-            <div class="slider">
-              <span class="slider-label">Weekdays</span>
+          <h2 class="group">Reminders</h2>
+          <div class="sheet">
+            @for (n of notifications; track n.id) {
+              <button matRipple class="row" (click)="toggleNotification(n.id)">
+                <span class="tile t-tertiary"><mat-icon>{{ n.icon }}</mat-icon></span>
+                <span class="row-title">{{ n.label }}</span>
+                <span class="switch" [class.on]="notificationOn(n.id)"><span class="knob"></span></span>
+              </button>
+            }
+          </div>
+
+          <h2 class="group">Your data</h2>
+          <div class="sheet">
+            <button matRipple class="row" (click)="exportData()">
+              <span class="tile t-primary"><mat-icon>download</mat-icon></span>
+              <span class="row-title">Export my data</span>
+              <span class="row-value">{{ storageLabel() }}</span>
+              <mat-icon class="chev">chevron_right</mat-icon>
+            </button>
+
+            <button matRipple class="row danger" (click)="confirmWipe.set(true)">
+              <span class="tile t-error"><mat-icon>delete_forever</mat-icon></span>
+              <span class="row-title">Delete everything</span>
+              <mat-icon class="chev">chevron_right</mat-icon>
+            </button>
+          </div>
+
+          <h2 class="group">About</h2>
+          <div class="sheet">
+            <button matRipple class="row" (click)="page.set('legal')">
+              <span class="tile t-tertiary"><mat-icon>shield</mat-icon></span>
+              <span class="row-title">Privacy &amp; terms</span>
+              <mat-icon class="chev">chevron_right</mat-icon>
+            </button>
+
+            <button matRipple class="row" (click)="page.set('about')">
+              <span class="tile t-tertiary"><mat-icon>info</mat-icon></span>
+              <span class="row-title">Where the numbers come from</span>
+              <mat-icon class="chev">chevron_right</mat-icon>
+            </button>
+
+            <div class="row">
+              <span class="tile t-primary"><mat-icon>verified</mat-icon></span>
+              <span class="row-title">Version</span>
+              <span class="row-value">{{ version }}</span>
+            </div>
+          </div>
+
+          <div class="socials">
+            @for (s of socials; track s.id) {
+              <button matRipple class="social">{{ s.label }}</button>
+            }
+          </div>
+
+          <h2 class="group">Developer</h2>
+          <div class="sheet">
+            <button matRipple class="row" (click)="load()">
+              <span class="tile t-tertiary"><mat-icon>science</mat-icon></span>
+              <span class="row-title">Load demo history</span>
+              <span class="row-value">{{ loaded() ? 'Loaded' : '' }}</span>
+            </button>
+
+            <button matRipple class="row" (click)="clear()">
+              <span class="tile t-tertiary"><mat-icon>restart_alt</mat-icon></span>
+              <span class="row-title">Reset to a fresh account</span>
+            </button>
+          </div>
+
+          <p class="foot">Steadyline · built for one exam at a time</p>
+        </div>
+      }
+
+      @case ('plan') {
+        <header class="bar">
+          <button matRipple class="icon-btn" (click)="page.set('root')" aria-label="Back">
+            <mat-icon>arrow_back</mat-icon>
+          </button>
+          <h1 class="bar-title small">Exam &amp; date</h1>
+        </header>
+
+        <div class="scroll">
+          <div class="sheet">
+            <div class="row">
+              <span class="tile t-primary"><mat-icon>school</mat-icon></span>
+              <span class="row-title">Exam</span>
+              <span class="row-value">{{ pack.displayName }}</span>
+            </div>
+            <div class="row">
+              <span class="tile t-tertiary"><mat-icon>groups</mat-icon></span>
+              <span class="row-title">Coaching</span>
+              <span class="row-value">{{ coachingName() }}</span>
+            </div>
+            <label class="row">
+              <span class="tile t-tertiary"><mat-icon>event</mat-icon></span>
+              <span class="row-title">Exam date</span>
+              <span class="edit">
+                {{ store.targetDate() | date: 'd MMM y' }}
+                <input class="date-input" type="date" [value]="dateValue()"
+                       (change)="setDate($any($event.target).value)" />
+              </span>
+            </label>
+          </div>
+
+          <p class="note">{{ store.days() }} days from today.</p>
+        </div>
+      }
+
+      @case ('hours') {
+        <header class="bar">
+          <button matRipple class="icon-btn" (click)="page.set('root')" aria-label="Back">
+            <mat-icon>arrow_back</mat-icon>
+          </button>
+          <h1 class="bar-title small">Hours &amp; breaks</h1>
+        </header>
+
+        <div class="scroll">
+          <div class="sheet pad">
+            <div class="field">
+              <span class="field-head">
+                <span class="row-title">Weekdays</span>
+                <span class="row-value">{{ store.weekdayHours() }}h</span>
+              </span>
               <mat-slider min="1" max="14" step="0.5" discrete>
                 <input matSliderThumb [ngModel]="store.weekdayHours()"
                        (ngModelChange)="store.weekdayHours.set($event)" />
               </mat-slider>
             </div>
 
-            <div class="slider">
-              <span class="slider-label">Weekends</span>
+            <div class="field">
+              <span class="field-head">
+                <span class="row-title">Weekends</span>
+                <span class="row-value">{{ store.weekendHours() }}h</span>
+              </span>
               <mat-slider min="1" max="16" step="0.5" discrete>
                 <input matSliderThumb [ngModel]="store.weekendHours()"
                        (ngModelChange)="store.weekendHours.set($event)" />
@@ -103,23 +271,8 @@ const SOCIALS = [
             </div>
           </div>
 
-          <button matRipple class="item" (click)="page.set('fixed')">
-            <mat-icon class="lead">event_busy</mat-icon>
-            <span class="text">
-              <span class="title">Fixed hours</span>
-              <span class="sub">{{ store.commitments().length }} blocks · {{ freeLabel() }} free on a weekday</span>
-            </span>
-            <mat-icon class="chevron">chevron_right</mat-icon>
-          </button>
-
-          <div class="item stacked">
-            <span class="row-head">
-              <mat-icon class="lead">bedtime</mat-icon>
-              <span class="text">
-                <span class="title">Awake between</span>
-                <span class="sub">{{ awake() }}</span>
-              </span>
-            </span>
+          <h2 class="group">Awake between</h2>
+          <div class="sheet pad">
             <div class="times">
               <label>
                 <span class="field-label">Up at</span>
@@ -134,14 +287,8 @@ const SOCIALS = [
             </div>
           </div>
 
-          <div class="item stacked">
-            <span class="row-head">
-              <mat-icon class="lead">coffee</mat-icon>
-              <span class="text">
-                <span class="title">Break between sittings</span>
-                <span class="sub">{{ store.breakMinutes() }} minutes</span>
-              </span>
-            </span>
+          <h2 class="group">Break between sittings</h2>
+          <div class="sheet pad">
             <div class="chips">
               @for (m of breaks; track m) {
                 <button matRipple class="chip" [class.on]="store.breakMinutes() === m"
@@ -150,187 +297,80 @@ const SOCIALS = [
             </div>
           </div>
 
-          <div class="item">
-            <mat-icon class="lead">groups</mat-icon>
-            <span class="text">
-              <span class="title">Coaching</span>
-              <span class="sub">{{ coachingName() }}</span>
-            </span>
+          <p class="note">{{ freeLabel() }} free on a weekday after fixed hours.</p>
+        </div>
+      }
+
+      @case ('appearance') {
+        <header class="bar">
+          <button matRipple class="icon-btn" (click)="page.set('root')" aria-label="Back">
+            <mat-icon>arrow_back</mat-icon>
+          </button>
+          <h1 class="bar-title small">Appearance</h1>
+        </header>
+
+        <div class="scroll">
+          <h2 class="group">Theme</h2>
+          <div class="sheet">
+            @for (a of appearances; track a.id) {
+              <button matRipple class="row" (click)="store.appearance.set(a.id)">
+                <span class="swatch" [style.background]="a.swatch"></span>
+                <span class="row-title">{{ a.label }}</span>
+                @if (store.appearance() === a.id) { <mat-icon class="filled tick">check_circle</mat-icon> }
+              </button>
+            }
           </div>
 
-          <!-- Appearance -->
-          <h2 class="group">Appearance</h2>
-
-          <div class="item stacked">
-            <span class="row-head">
-              <mat-icon class="lead">contrast</mat-icon>
-              <span class="text"><span class="title">Theme</span></span>
-            </span>
-            <div class="chips">
-              @for (a of appearances; track a.id) {
-                <button matRipple class="chip" [class.on]="store.appearance() === a.id"
-                        (click)="store.appearance.set(a.id)">
-                  <span class="swatch" [style.background]="a.swatch"></span>
-                  {{ a.label }}
-                </button>
-              }
-            </div>
-          </div>
-
-          <div class="item stacked">
-            <span class="row-head">
-              <mat-icon class="lead">palette</mat-icon>
-              <span class="text"><span class="title">Accent</span></span>
-            </span>
+          <h2 class="group">Accent</h2>
+          <div class="sheet pad">
             <div class="dots">
               @for (a of accents; track a.id) {
                 <button class="dot" [class.on]="store.accent() === a.id"
-                        [style.background]="a.swatch"
-                        [attr.aria-label]="a.label"
+                        [style.background]="a.swatch" [attr.aria-label]="a.label"
                         (click)="store.accent.set(a.id)">
                   @if (store.accent() === a.id) { <mat-icon class="filled">check</mat-icon> }
                 </button>
               }
             </div>
           </div>
+        </div>
+      }
 
-          <!-- Focus -->
-          <h2 class="group">Focus</h2>
-
-          <button matRipple class="item" (click)="store.blockApps.set(!store.blockApps())">
-            <mat-icon class="lead" [class.filled]="store.blockApps()">
-              {{ store.blockApps() ? 'lock' : 'lock_open' }}
-            </mat-icon>
-            <span class="text">
-              <span class="title">Block apps during a session</span>
-              <span class="sub">{{ store.blockApps() ? 'Released when the timer stops' : 'Off' }}</span>
-            </span>
-            <span class="switch" [class.on]="store.blockApps()"><span class="knob"></span></span>
+      @case ('focus') {
+        <header class="bar">
+          <button matRipple class="icon-btn" (click)="page.set('root')" aria-label="Back">
+            <mat-icon>arrow_back</mat-icon>
           </button>
+          <h1 class="bar-title small">Focus &amp; blocking</h1>
+        </header>
 
-          @if (store.blockApps()) {
-            <div class="item stacked">
-              <div class="chips">
-                @for (a of apps; track a.id) {
-                  <button matRipple class="chip" [class.on]="store.blockedApps().has(a.id)"
-                          (click)="store.toggleBlockedApp(a.id)">
-                    <mat-icon>{{ a.icon }}</mat-icon>
-                    {{ a.label }}
-                  </button>
-                }
-              </div>
-            </div>
-          }
-
-          <!-- Notifications -->
-          <h2 class="group">Reminders</h2>
-
-          @for (n of notifications; track n.id) {
-            <button matRipple class="item" (click)="toggleNotification(n.id)">
-              <mat-icon class="lead">{{ n.icon }}</mat-icon>
-              <span class="text">
-                <span class="title">{{ n.label }}</span>
-                <span class="sub">{{ n.sub }}</span>
+        <div class="scroll">
+          <div class="sheet">
+            <button matRipple class="row" (click)="store.blockApps.set(!store.blockApps())">
+              <span class="tile t-primary">
+                <mat-icon [class.filled]="store.blockApps()">
+                  {{ store.blockApps() ? 'lock' : 'lock_open' }}
+                </mat-icon>
               </span>
-              <span class="switch" [class.on]="notificationOn(n.id)"><span class="knob"></span></span>
+              <span class="row-title">Block apps during a session</span>
+              <span class="switch" [class.on]="store.blockApps()"><span class="knob"></span></span>
             </button>
-          }
-
-          <!-- Data -->
-          <h2 class="group">Your data</h2>
-
-          <div class="item">
-            <mat-icon class="lead">smartphone</mat-icon>
-            <span class="text">
-              <span class="title">Stored on this device</span>
-              <span class="sub">{{ study.sessions().length }} sittings · {{ storageLabel() }}</span>
-            </span>
           </div>
 
-          <button matRipple class="item" (click)="exportData()">
-            <mat-icon class="lead">download</mat-icon>
-            <span class="text">
-              <span class="title">Export my data</span>
-              <span class="sub">One JSON file, everything the app holds</span>
-            </span>
-            <mat-icon class="chevron">chevron_right</mat-icon>
-          </button>
-
-          <button matRipple class="item danger" (click)="confirmWipe.set(true)">
-            <mat-icon class="lead">delete_forever</mat-icon>
-            <span class="text">
-              <span class="title">Delete everything</span>
-              <span class="sub">Cannot be undone</span>
-            </span>
-          </button>
-
-          <!-- Legal -->
-          <h2 class="group">Privacy &amp; terms</h2>
-
-          <button matRipple class="item" (click)="page.set('legal')">
-            <mat-icon class="lead">shield</mat-icon>
-            <span class="text">
-              <span class="title">Privacy policy</span>
-              <span class="sub">What is collected, and what isn't</span>
-            </span>
-            <mat-icon class="chevron">chevron_right</mat-icon>
-          </button>
-
-          <button matRipple class="item" (click)="page.set('legal')">
-            <mat-icon class="lead">gavel</mat-icon>
-            <span class="text"><span class="title">Terms of use</span></span>
-            <mat-icon class="chevron">chevron_right</mat-icon>
-          </button>
-
-          <!-- About -->
-          <h2 class="group">About</h2>
-
-          <button matRipple class="item" (click)="page.set('about')">
-            <mat-icon class="lead">info</mat-icon>
-            <span class="text">
-              <span class="title">Where the numbers come from</span>
-              <span class="sub">Sources and estimates</span>
-            </span>
-            <mat-icon class="chevron">chevron_right</mat-icon>
-          </button>
-
-          <div class="item">
-            <mat-icon class="lead">verified</mat-icon>
-            <span class="text">
-              <span class="title">Version</span>
-              <span class="sub">{{ version }} · prototype</span>
-            </span>
+          <h2 class="group">Blocked while the timer runs</h2>
+          <div class="sheet pad">
+            <div class="chips">
+              @for (a of apps; track a.id) {
+                <button matRipple class="chip" [class.on]="store.blockedApps().has(a.id)"
+                        [disabled]="!store.blockApps()" (click)="store.toggleBlockedApp(a.id)">
+                  <mat-icon>{{ a.icon }}</mat-icon>
+                  {{ a.label }}
+                </button>
+              }
+            </div>
           </div>
 
-          <div class="socials">
-            @for (s of socials; track s.id) {
-              <button matRipple class="social">
-                {{ s.label }}
-                <mat-icon>open_in_new</mat-icon>
-              </button>
-            }
-          </div>
-
-          <!-- Developer -->
-          <h2 class="group">Developer</h2>
-
-          <button matRipple class="item" (click)="load()">
-            <mat-icon class="lead">science</mat-icon>
-            <span class="text">
-              <span class="title">Load demo history</span>
-              <span class="sub">{{ loaded() ? 'Loaded — tap to regenerate' : 'Three weeks of fabricated data' }}</span>
-            </span>
-          </button>
-
-          <button matRipple class="item" (click)="clear()">
-            <mat-icon class="lead">restart_alt</mat-icon>
-            <span class="text">
-              <span class="title">Reset to a fresh account</span>
-              <span class="sub">Clears study history, keeps the plan</span>
-            </span>
-          </button>
-
-          <p class="foot">Steadyline · built for one exam at a time</p>
+          <p class="note">Released the moment a session stops.</p>
         </div>
       }
 
@@ -344,11 +384,11 @@ const SOCIALS = [
 
         <div class="scroll">
           @for (c of store.commitments(); track c.id) {
-            <div class="card">
+            <div class="sheet pad card">
               <div class="card-head">
                 <mat-icon>{{ icon(c) }}</mat-icon>
                 <span class="card-name">{{ c.label }}</span>
-                <span class="card-span">{{ range(c) }}</span>
+                <span class="row-value">{{ range(c) }}</span>
                 <button matRipple class="icon-btn small" (click)="store.removeCommitment(c.id)"
                         [attr.aria-label]="'Remove ' + c.label">
                   <mat-icon>close</mat-icon>
@@ -376,17 +416,19 @@ const SOCIALS = [
               </div>
             </div>
           } @empty {
-            <p class="empty">Nothing fixed — the whole day is yours.</p>
+            <p class="note">Nothing fixed — the whole day is yours.</p>
           }
 
           <h2 class="group">Add</h2>
-          <div class="chips">
-            @for (p of presets; track p.kind) {
-              <button matRipple class="chip" (click)="store.addCommitment(p)">
-                <mat-icon>{{ p.icon }}</mat-icon>
-                {{ p.label }}
-              </button>
-            }
+          <div class="sheet pad">
+            <div class="chips">
+              @for (p of presets; track p.kind) {
+                <button matRipple class="chip" (click)="store.addCommitment(p)">
+                  <mat-icon>{{ p.icon }}</mat-icon>
+                  {{ p.label }}
+                </button>
+              }
+            </div>
           </div>
         </div>
       }
@@ -399,36 +441,12 @@ const SOCIALS = [
           <h1 class="bar-title small">Privacy &amp; terms</h1>
         </header>
 
-        <div class="scroll prose">
-          <h3>What this app stores</h3>
-          <p>
-            Everything — your plan, your sittings, your ticks — is kept in this device's own
-            storage. There is no account, no server, and nothing is uploaded.
-          </p>
-
-          <h3>What it collects</h3>
-          <p>
-            No analytics, no advertising identifiers, no crash reporting, no contacts, no
-            location. The app makes no network requests of its own.
-          </p>
-
-          <h3>Who it is shared with</h3>
-          <p>Nobody. There is no third party to share it with.</p>
-
-          <h3>Deleting it</h3>
-          <p>
-            "Delete everything" in Settings removes all of it immediately. Uninstalling the app
-            does the same.
-          </p>
-
-          <h3>Terms of use</h3>
-          <p>
-            The syllabus, hour estimates and revision schedule are planning aids, not guarantees
-            of a result. Chapter hours are estimates, not measurements. Always check your exam's
-            official syllabus and dates with the conducting body.
-          </p>
-
-          <p class="stamp">Last updated 31 August 2026</p>
+        <div class="scroll">
+          @for (s of legal; track s.heading) {
+            <h2 class="group">{{ s.heading }}</h2>
+            <div class="sheet pad"><p class="prose">{{ s.body }}</p></div>
+          }
+          <p class="foot">Last updated 31 August 2026</p>
         </div>
       }
 
@@ -440,19 +458,13 @@ const SOCIALS = [
           <h1 class="bar-title small">Where the numbers come from</h1>
         </header>
 
-        <div class="scroll prose">
-          <ul>
-            @for (line of pack.meta.methodology; track line) { <li>{{ line }}</li> }
-            <li>
-              Revision falls due after 3, 10, 30 and 60 days, pulled in or pushed out by how you
-              said the last sitting went.
-            </li>
-            <li>
-              "Still remembered" is a decay model over those due dates, not a measurement of your
-              memory.
-            </li>
-          </ul>
-          <p class="stamp">{{ pack.meta.source }}</p>
+        <div class="scroll">
+          <div class="sheet">
+            @for (line of methodology; track line) {
+              <div class="row note-row"><span class="prose">{{ line }}</span></div>
+            }
+          </div>
+          <p class="foot">{{ pack.meta.source }}</p>
         </div>
       }
     }
@@ -482,9 +494,6 @@ const SOCIALS = [
       color: var(--mat-sys-on-surface);
     }
 
-    /* M3 top app bar: 64dp, title-large, back in the 48dp leading slot. */
-    /* A hairline under the bar: without it, a row scrolling past the title
-       reads as text clipped by the header. */
     .bar {
       flex: none;
       display: flex;
@@ -492,10 +501,10 @@ const SOCIALS = [
       gap: 4px;
       height: 64px;
       padding: 0 4px 0 16px;
-      border-bottom: 1px solid var(--mat-sys-outline-variant);
       background: var(--mat-sys-surface);
     }
-    .bar-title { margin: 0; font: var(--mat-sys-headline-small); }
+
+    .bar-title { margin: 0; font: var(--mat-sys-headline-medium); }
     .bar-title.small { font: var(--mat-sys-title-large); }
 
     .icon-btn {
@@ -512,27 +521,68 @@ const SOCIALS = [
     }
 
     .icon-btn.small { width: 36px; height: 36px; color: var(--mat-sys-on-surface-variant); }
+    .scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 16px 32px; }
 
-    .scroll { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 32px; }
-
-    /* Subheader, not a card title: this is a list, M3 style. */
-    .group {
-      margin: 20px 0 4px;
-      padding: 0 16px;
-      font: var(--mat-sys-title-small);
-      color: var(--mat-sys-primary);
+    /* Who the plan is for, before any of the knobs. */
+    .profile {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+      padding: 20px;
+      border: none;
+      border-radius: 28px;
+      background: var(--mat-sys-secondary-container);
+      color: var(--mat-sys-on-secondary-container);
+      text-align: left;
+      cursor: pointer;
     }
 
-    .group:first-child { margin-top: 8px; }
+    .crest {
+      display: grid;
+      place-items: center;
+      width: 52px;
+      height: 52px;
+      flex: none;
+      border-radius: var(--mat-sys-corner-full);
+      background: var(--mat-sys-primary);
+      color: var(--mat-sys-on-primary);
+    }
 
-    /* One list item shape for every row on the screen. */
-    .item {
+    .crest mat-icon { font-size: 28px; width: 28px; height: 28px; }
+    .profile-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .profile-name { font: var(--mat-sys-title-medium); }
+    .profile-meta { font: var(--mat-sys-body-small); opacity: .8; }
+    .profile-stat { flex: none; display: flex; flex-direction: column; align-items: flex-end; }
+    .profile-value { font: var(--mat-sys-title-large); }
+    .profile-label { font: var(--mat-sys-label-small); opacity: .8; }
+
+    /* Section label sits outside its sheet, quiet and small. */
+    .group {
+      margin: 24px 4px 8px;
+      font: var(--mat-sys-label-large);
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    /* One sheet per section: rows inside it, hairlines between them. */
+    .sheet {
+      display: flex;
+      flex-direction: column;
+      border-radius: var(--mat-sys-corner-large);
+      background: var(--mat-sys-surface-container);
+      overflow: hidden;
+    }
+
+    .sheet.pad { padding: 16px; gap: 16px; }
+
+    /* A row is a title and its value. No explanatory second line. */
+    .row {
       width: 100%;
       display: flex;
       align-items: center;
       gap: 16px;
       min-height: 56px;
-      padding: 12px 16px;
+      padding: 8px 16px;
       border: none;
       background: transparent;
       color: var(--mat-sys-on-surface);
@@ -540,32 +590,40 @@ const SOCIALS = [
       font: inherit;
     }
 
-    button.item, label.item { cursor: pointer; }
-    /* Stacked controls line up with the row's text, not with its icon —
-       otherwise every group has two competing left edges. */
-    .item.stacked { flex-direction: column; align-items: stretch; gap: 12px; }
-    .item.stacked > :not(.row-head) { padding-left: 40px; }
-    .item.danger .title, .item.danger .lead { color: var(--mat-sys-error); }
+    button.row, label.row { cursor: pointer; }
+    .row + .row { box-shadow: inset 0 1px 0 var(--mat-sys-outline-variant); }
+    .row-title { flex: 1; min-width: 0; font: var(--mat-sys-body-large); }
+    .row-value { flex: none; font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
+    .chev { flex: none; color: var(--mat-sys-on-surface-variant); margin-right: -4px; }
+    .row.danger .row-title { color: var(--mat-sys-error); }
+    .tick { color: var(--mat-sys-primary); }
 
-    .row-head { display: flex; align-items: center; gap: 16px; }
-    .lead { flex: none; color: var(--mat-sys-on-surface-variant); }
-    .text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-    .title { font: var(--mat-sys-body-large); }
-    .sub { font: var(--mat-sys-body-small); color: var(--mat-sys-on-surface-variant); }
-    .trail { flex: none; font: var(--mat-sys-label-large); color: var(--mat-sys-on-surface-variant); }
-    .chevron { flex: none; color: var(--mat-sys-on-surface-variant); }
+    /* Leading tile: a container, so an icon reads as an object not a glyph. */
+    .tile {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      flex: none;
+      border-radius: 10px;
+    }
+
+    .tile mat-icon { font-size: 20px; width: 20px; height: 20px; }
+    .t-primary { background: var(--mat-sys-primary); color: var(--mat-sys-on-primary); }
+    .t-tertiary { background: var(--mat-sys-tertiary); color: var(--mat-sys-on-tertiary); }
+    .t-error { background: var(--mat-sys-error); color: var(--mat-sys-on-error); }
 
     /* Controls */
-    .slider { display: flex; flex-direction: column; gap: 2px; }
-    .slider-label { font: var(--mat-sys-label-medium); color: var(--mat-sys-on-surface-variant); }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field-head { display: flex; align-items: baseline; justify-content: space-between; }
     mat-slider { width: 100%; margin-inline: 0; }
 
-    .times { display: flex; gap: 8px; }
+    .times { display: flex; gap: 12px; }
     .times label { flex: 1; display: flex; flex-direction: column; gap: 4px; }
     .field-label { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
 
-    input[type='time'], .date-input {
-      height: 40px;
+    input[type='time'] {
+      height: 44px;
       padding: 0 12px;
       border: 1px solid var(--mat-sys-outline);
       border-radius: var(--mat-sys-corner-small);
@@ -575,7 +633,6 @@ const SOCIALS = [
       color-scheme: dark;
     }
 
-    /* A labelled target, with the native picker sitting invisibly over it. */
     .edit {
       position: relative;
       flex: none;
@@ -584,8 +641,8 @@ const SOCIALS = [
       height: 32px;
       padding: 0 12px;
       border-radius: var(--mat-sys-corner-full);
-      background: var(--mat-sys-secondary-container);
-      color: var(--mat-sys-on-secondary-container);
+      background: var(--mat-sys-surface-container-highest);
+      color: var(--mat-sys-on-surface);
       font: var(--mat-sys-label-large);
     }
 
@@ -594,7 +651,6 @@ const SOCIALS = [
       inset: 0;
       width: 100%;
       height: 100%;
-      padding: 0;
       border: none;
       background: transparent;
       color: transparent;
@@ -608,8 +664,8 @@ const SOCIALS = [
       display: flex;
       align-items: center;
       gap: 6px;
-      height: 32px;
-      padding: 0 12px;
+      height: 36px;
+      padding: 0 14px;
       border: 1px solid var(--mat-sys-outline-variant);
       border-radius: var(--mat-sys-corner-full);
       background: transparent;
@@ -624,23 +680,31 @@ const SOCIALS = [
       color: var(--mat-sys-on-secondary-container);
     }
 
+    .chip:disabled { opacity: .4; cursor: default; }
     .chip mat-icon { font-size: 18px; width: 18px; height: 18px; }
-    .swatch { width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgb(255 255 255 / .2); }
 
-    .dots { display: flex; gap: 12px; }
+    .swatch {
+      width: 36px;
+      height: 36px;
+      flex: none;
+      border-radius: 10px;
+      box-shadow: inset 0 0 0 1px rgb(255 255 255 / .15);
+    }
+
+    .dots { display: flex; gap: 16px; }
 
     .dot {
       display: grid;
       place-items: center;
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       border: none;
       border-radius: 50%;
       cursor: pointer;
     }
 
-    .dot.on { box-shadow: 0 0 0 2px var(--mat-sys-surface), 0 0 0 4px var(--mat-sys-on-surface); }
-    .dot mat-icon { color: #fff; font-size: 20px; width: 20px; height: 20px; }
+    .dot.on { box-shadow: 0 0 0 3px var(--mat-sys-surface-container), 0 0 0 5px var(--mat-sys-on-surface); }
+    .dot mat-icon { color: #fff; font-size: 22px; width: 22px; height: 22px; }
 
     /* M3 switch */
     .switch {
@@ -670,16 +734,11 @@ const SOCIALS = [
 
     .switch.on .knob { left: 24px; width: 24px; height: 24px; background: var(--mat-sys-on-primary); }
 
-    .socials { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 16px 0; }
+    .socials { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 
-    /* Named, not glyphed: Material Symbols has no brand marks, and a hash
-       sign is not a recognisable X. */
     .social {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      height: 32px;
-      padding: 0 12px;
+      height: 36px;
+      padding: 0 16px;
       border: 1px solid var(--mat-sys-outline-variant);
       border-radius: var(--mat-sys-corner-full);
       background: transparent;
@@ -688,35 +747,17 @@ const SOCIALS = [
       cursor: pointer;
     }
 
-    .social mat-icon { font-size: 16px; width: 16px; height: 16px; }
-
-    .foot {
-      margin: 32px 16px 0;
-      font: var(--mat-sys-label-small);
-      color: var(--mat-sys-on-surface-variant);
-      text-align: center;
-    }
-
-    /* Fixed-hours editor */
-    .card {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin: 8px 16px;
-      padding: 12px 16px 16px;
-      border-radius: var(--mat-sys-corner-large);
-      background: var(--mat-sys-surface-container);
-    }
-
-    .card-head { display: flex; align-items: center; gap: 8px; }
+    /* Fixed-hours cards */
+    .card { margin-top: 12px; }
+    .card:first-of-type { margin-top: 0; }
+    .card-head { display: flex; align-items: center; gap: 12px; }
     .card-head > mat-icon { color: var(--mat-sys-primary); }
     .card-name { flex: 1; font: var(--mat-sys-title-medium); }
-    .card-span { font: var(--mat-sys-label-medium); color: var(--mat-sys-on-surface-variant); }
     .days { display: flex; gap: 4px; }
 
     .day {
       flex: 1;
-      height: 36px;
+      height: 40px;
       border: 1px solid var(--mat-sys-outline-variant);
       border-radius: var(--mat-sys-corner-full);
       background: transparent;
@@ -726,26 +767,18 @@ const SOCIALS = [
     }
 
     .day.on { border-color: transparent; background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container); }
-    .empty { margin: 16px; font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
-    .card + .group, .empty + .group { margin-top: 24px; }
-    .scroll > .chips { padding: 0 16px; }
 
-    /* Prose pages */
-    .prose { padding: 0 16px 32px; }
-    .prose h3 { margin: 24px 0 4px; font: var(--mat-sys-title-small); color: var(--mat-sys-on-surface); }
-    .prose p { margin: 0; font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
+    /* Prose only ever lives inside a sheet, in short passages. */
+    .prose { margin: 0; font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
+    .note-row { align-items: flex-start; padding: 14px 16px; }
+    .note { margin: 12px 4px 0; font: var(--mat-sys-body-small); color: var(--mat-sys-on-surface-variant); }
 
-    .prose ul {
-      margin: 8px 0 0;
-      padding-left: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      font: var(--mat-sys-body-medium);
+    .foot {
+      margin: 24px 4px 0;
+      font: var(--mat-sys-label-small);
       color: var(--mat-sys-on-surface-variant);
+      text-align: center;
     }
-
-    .stamp { margin-top: 24px !important; font: var(--mat-sys-label-small) !important; }
 
     /* Confirmation dialog */
     .scrim { position: absolute; inset: 0; z-index: 5; background: rgb(0 0 0 / .4); }
@@ -785,6 +818,7 @@ const SOCIALS = [
 
     .text-btn.danger { color: var(--mat-sys-error); }
   `,
+
 })
 export class SettingsScreen {
   protected readonly store = inject(OnboardingStore);
@@ -802,11 +836,28 @@ export class SettingsScreen {
   protected readonly breaks = BREAKS;
   protected readonly socials = SOCIALS;
   protected readonly version = '0.4.0';
+  protected readonly legal = LEGAL;
+
+  protected readonly methodology = [
+    ...PACK.meta.methodology,
+    'Revision falls due after 3, 10, 30 and 60 days, pulled in or pushed out by how you said the last sitting went.',
+    'Still remembered is a decay model over those due dates, not a measurement of your memory.',
+  ];
+
+  /** Chapters ticked, over the chapters still in the plan. */
+  protected readonly coverage = computed(() => {
+    const total = Math.max(1, this.study.rounds().total - this.store.parkedChapters().size);
+    return Math.round((this.study.rounds().learned / total) * 100);
+  });
+
+  protected appearanceName(): string {
+    return APPEARANCES.find((a) => a.id === this.store.appearance())?.label ?? '';
+  }
 
   protected readonly notifications = [
-    { id: 'plan', icon: 'sunny', label: "Morning plan", sub: 'What today holds, at 7am' },
-    { id: 'due', icon: 'history', label: 'Revision due', sub: 'When chapters fall due' },
-    { id: 'idle', icon: 'notifications', label: 'Nudge if nothing logged', sub: 'Once, in the evening' },
+    { id: 'plan', icon: 'sunny', label: 'Morning plan' },
+    { id: 'due', icon: 'history', label: 'Revision due' },
+    { id: 'idle', icon: 'notifications', label: 'Evening nudge' },
   ];
 
   private readonly notificationsOn = signal<ReadonlySet<string>>(new Set(['plan', 'due']));
