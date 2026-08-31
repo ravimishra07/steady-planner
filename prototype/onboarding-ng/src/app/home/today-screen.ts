@@ -432,7 +432,7 @@ const MIN_BLOCK_HEIGHT = 72;
       flex: none;
       display: flex;
       flex-direction: column;
-      margin: 12px 16px 4px;
+      margin: 12px 16px 20px;
       padding: 4px 16px 16px;
       border-radius: 24px;
       background: var(--mat-sys-surface-container-low);
