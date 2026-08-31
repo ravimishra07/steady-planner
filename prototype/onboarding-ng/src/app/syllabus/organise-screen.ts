@@ -6,6 +6,7 @@ import { ORDER_MODES, OrderMode, OnboardingStore, addDays, startOfToday } from '
 import { ALL_CHAPTERS, Chapter, PACK, chapterIsDone } from '../onboarding/exam-pack';
 import { availableChapters, marksOf, orderedChapters } from '../onboarding/sequence';
 import { StudyStore } from '../study/study-store';
+import { Landing, overflow, project } from './projection';
 
 /** Everything the student is changing, held apart until they approve it. */
 interface Draft {
@@ -55,6 +56,21 @@ interface Draft {
       </div>
       <p class="hint">{{ modeHint() }}</p>
 
+      @if (missed().length > 0) {
+        <div class="warn">
+          <mat-icon>schedule</mat-icon>
+          <span class="warn-text">
+            <span class="warn-head">
+              {{ missed().length }} chapters land after {{ store.targetDate() | date: 'd MMM' }}
+            </span>
+            <span class="warn-sub">
+              {{ missedHours() }}h and {{ missedMarks() }} marks, at {{ pace() }} a day
+            </span>
+          </span>
+          <button matRipple class="warn-btn" (click)="excludeMissed()">Drop them</button>
+        </div>
+      }
+
       <h2 class="group">
         Chapters
         <span class="group-aside">{{ inPlayCount() }} in play</span>
@@ -73,8 +89,18 @@ interface Draft {
             <span class="row-text">
               <span class="row-name">{{ row.chapter.name }}</span>
               <span class="row-meta">
-                Class {{ row.chapter.cls }} · {{ row.chapter.hours }}h · {{ marks(row.chapter) }} marks
-                @if (row.beyond) { · not taught yet }
+                @if (row.parked) {
+                  Excluded · {{ row.chapter.hours }}h · {{ marks(row.chapter) }} marks
+                } @else if (row.beyond) {
+                  Not taught yet
+                } @else if (landingFor(row.chapter); as l) {
+                  <span [class.late]="!l.fits">
+                    {{ l.fits ? 'Reached' : 'Misses the exam,' }} {{ l.date | date: 'd MMM' }}
+                  </span>
+                  · {{ row.chapter.hours }}h
+                } @else {
+                  Already done · {{ row.chapter.hours }}h
+                }
               </span>
             </span>
 
@@ -136,12 +162,15 @@ interface Draft {
           <p class="hint">Nothing measurable moves — the order changes, the workload does not.</p>
         }
 
-        <h4 class="modal-label">Tomorrow would start with</h4>
+        <h4 class="modal-label">When it lands, at {{ pace() }} a day</h4>
         <div class="peek">
-          @for (c of peek(); track c.id) {
-            <div class="peek-row">
-              <span class="peek-name">{{ c.name }}</span>
-              <span class="peek-meta">{{ subjectName(c) }}</span>
+          @for (m of months(); track m.label) {
+            <div class="month" [class.after]="m.after">
+              <span class="month-head">
+                <span class="month-label">{{ m.label }}</span>
+                <span class="month-count">{{ m.count }}</span>
+              </span>
+              <span class="month-names">{{ m.names }}</span>
             </div>
           } @empty {
             <p class="hint">Nothing left to schedule — everything in play is done.</p>
@@ -351,16 +380,60 @@ interface Draft {
     .delta-values mat-icon { font-size: 16px; width: 16px; height: 16px; color: var(--mat-sys-on-surface-variant); }
 
     .peek { display: flex; flex-direction: column; overflow-y: auto; }
-    .peek-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-height: 44px; }
-    .peek-name { font: var(--mat-sys-body-medium); }
-    .peek-meta { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
+
+    .month { display: flex; flex-direction: column; gap: 2px; padding: 10px 0; }
+    .month + .month { box-shadow: inset 0 1px 0 var(--mat-sys-outline-variant); }
+    .month-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+    .month-label { font: var(--mat-sys-body-large); }
+    .month-count { font: var(--mat-sys-label-large); color: var(--mat-sys-on-surface-variant); }
+
+    .month-names {
+      font: var(--mat-sys-label-small);
+      color: var(--mat-sys-on-surface-variant);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    /* Past the exam date — the months that will not happen. */
+    .month.after .month-label { color: var(--mat-sys-error); }
+    .month.after .month-label::after { content: ' · after the exam'; font: var(--mat-sys-label-small); }
+
+    .late { color: var(--mat-sys-error); }
+
+    .warn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 16px 0 0;
+      padding: 12px 16px;
+      border-radius: var(--mat-sys-corner-large);
+      background: var(--mat-sys-error-container);
+      color: var(--mat-sys-on-error-container);
+    }
+
+    .warn-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .warn-head { font: var(--mat-sys-title-small); }
+    .warn-sub { font: var(--mat-sys-body-small); opacity: .85; }
+
+    .warn-btn {
+      flex: none;
+      height: 32px;
+      padding: 0 14px;
+      border: none;
+      border-radius: var(--mat-sys-corner-full);
+      background: var(--mat-sys-on-error-container);
+      color: var(--mat-sys-error-container);
+      font: var(--mat-sys-label-large);
+      cursor: pointer;
+    }
     .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
   `,
 })
 export class OrganiseScreen {
   readonly close = output<void>();
 
-  private readonly store = inject(OnboardingStore);
+  protected readonly store = inject(OnboardingStore);
   private readonly study = inject(StudyStore);
 
   protected readonly subjects = PACK.subjects;
@@ -416,6 +489,77 @@ export class OrganiseScreen {
   }
 
   protected marks(chapter: Chapter): number { return marksOf(chapter); }
+
+  /* ---- Where things land ---------------------------------------------- */
+
+  /** The pace actually kept, falling back to what the plan asks for. */
+  private hoursPerDay(): number {
+    const logged = this.study.averageMinutes(14) / 60;
+    if (logged >= 0.25) return logged;
+    return (this.store.weekdayHours() * 5 + this.store.weekendHours() * 2) / 7;
+  }
+
+  protected pace(): string { return `${this.hoursPerDay().toFixed(1)}h`; }
+
+  protected readonly landings = computed<Landing[]>(() => {
+    const d = this.draft();
+    return project({
+      orderModes: d.orderModes,
+      customOrder: d.customOrder,
+      taughtUpTo: d.taughtUpTo,
+      parked: d.parked,
+      doneUnits: this.store.doneUnits(),
+      hoursPerDay: this.hoursPerDay(),
+      examDate: this.store.targetDate(),
+    });
+  });
+
+  private readonly landingBy = computed(
+    () => new Map(this.landings().map((l) => [l.chapter.id, l])),
+  );
+
+  protected landingFor(chapter: Chapter): Landing | undefined {
+    return this.landingBy().get(chapter.id);
+  }
+
+  /** Chapters the plan only reaches after the exam has been sat. */
+  protected readonly missed = computed(() => overflow(this.landings()));
+
+  protected readonly missedHours = computed(() =>
+    Math.round(this.missed().reduce((n, l) => n + l.chapter.hours, 0)),
+  );
+
+  protected readonly missedMarks = computed(() =>
+    this.missed().reduce((n, l) => n + marksOf(l.chapter), 0),
+  );
+
+  /** Drop everything that cannot be reached in time, in one move. */
+  protected excludeMissed(): void {
+    const ids = this.missed().map((l) => l.chapter.id);
+    this.edit((d) => ids.forEach((id) => d.parked.add(id)));
+  }
+
+  /** The projection grouped by month, so the shape of the year is visible. */
+  protected readonly months = computed(() => {
+    const groups = new Map<string, { label: string; count: number; names: string[]; after: boolean }>();
+
+    for (const landing of this.landings()) {
+      const key = `${landing.date.getFullYear()}-${landing.date.getMonth()}`;
+      const label = landing.date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      const group = groups.get(key) ?? { label, count: 0, names: [], after: false };
+      group.count++;
+      if (group.names.length < 3) group.names.push(landing.chapter.name);
+      group.after = group.after || !landing.fits;
+      groups.set(key, group);
+    }
+
+    return [...groups.values()].map((g) => ({
+      label: g.label,
+      count: g.count,
+      after: g.after,
+      names: g.names.join(', ') + (g.count > g.names.length ? ` +${g.count - g.names.length} more` : ''),
+    }));
+  });
 
   protected subjectName(chapter: Chapter): string {
     const id = chapter.id.split('.')[0];
