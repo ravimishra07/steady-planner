@@ -194,6 +194,12 @@ export class OnboardingStore {
   readonly taughtUpTo = persistedMap<string>('taught-up-to');
 
   /** User-owned coaching modules and display-name overrides for any chapter. */
+  /**
+   * Whether the bundled exam pack is in play. A student can start from the
+   * NCERT contents or from nothing and enter their coaching's own list.
+   */
+  readonly useProvidedSyllabus = persisted<boolean>('use-pack', true);
+
   readonly customChapters = persisted<CustomChapter[]>('custom-chapters', []);
   readonly chapterNames = persistedMap<string>('chapter-names');
   readonly customSubtopics = persistedMap<Subtopic[]>('custom-subtopics');
@@ -201,10 +207,11 @@ export class OnboardingStore {
   readonly hiddenSubtopics = persistedSet('hidden-subtopics');
   readonly subjects = computed(() => mergedSubjects(
     this.customChapters(), this.chapterNames(), this.customSubtopics(), this.subtopicNames(), this.hiddenSubtopics(),
+    this.useProvidedSyllabus(),
   ));
-  readonly allChapters = computed(() => mergedChapters(
-    this.customChapters(), this.chapterNames(), this.customSubtopics(), this.subtopicNames(), this.hiddenSubtopics(),
-  ));
+  readonly allChapters = computed(() =>
+    this.subjects().flatMap((s) => s.sections.flatMap((sec) => sec.chapters)),
+  );
 
   addCustomChapter(subjectId: string, name: string, cls: 11 | 12, hours: number): string {
     const id = `${subjectId}.custom.${crypto.randomUUID()}`;

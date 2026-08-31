@@ -3,7 +3,7 @@ import { DatePipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatRippleModule } from '@angular/material/core';
 import { OnboardingStore, addDays, startOfToday } from '../onboarding/state';
-import { ALL_CHAPTERS, Chapter, PACK, chapterIsDone } from '../onboarding/exam-pack';
+import { Chapter, PACK, chapterIsDone } from '../onboarding/exam-pack';
 import { StudyStore, dateKey } from '../study/study-store';
 
 /**
@@ -757,7 +757,7 @@ export class ProgressTab {
 
   /** Hours still owed. Parked chapters are not owed. */
   private readonly remainingHours = computed(() =>
-    ALL_CHAPTERS.filter(
+    this.store.allChapters().filter(
       (c) => !chapterIsDone(c, this.store.doneUnits()) && !this.store.isParked(c.id),
     ).reduce((n, c) => n + c.hours, 0),
   );
@@ -805,7 +805,7 @@ export class ProgressTab {
   private readonly parkList = computed(() => {
     const capacity = this.perDay() * this.store.days();
     const done = this.store.doneUnits();
-    const remaining = ALL_CHAPTERS.filter(
+    const remaining = this.store.allChapters().filter(
       (c) => !chapterIsDone(c, done) && !this.store.isParked(c.id),
     );
 

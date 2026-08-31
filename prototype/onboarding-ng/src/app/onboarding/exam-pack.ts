@@ -221,7 +221,25 @@ export function mergedSubjects(
   customSubtopics: ReadonlyMap<string, Subtopic[]> = new Map(),
   subtopicNames: ReadonlyMap<string, string> = new Map(),
   hiddenSubtopics: ReadonlySet<string> = new Set(),
+  /** False when the student chose to build their own list from nothing. */
+  includePack = true,
 ): Subject[] {
+  if (!includePack) {
+    // The subjects survive as empty shells: they carry the paper's weighting
+    // and give custom chapters somewhere to live.
+    return PACK.subjects.map((subject) => ({
+      ...subject,
+      sections: [
+        {
+          name: 'My chapters',
+          chapters: custom
+            .filter((c) => c.subjectId === subject.id)
+            .map((c) => ({ ...c, name: names.get(c.id) ?? c.name })),
+        },
+      ],
+    }));
+  }
+
   return PACK.subjects.map((subject) => ({
     ...subject,
     sections: subject.sections.map((section) => ({

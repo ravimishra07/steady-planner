@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatRippleModule } from '@angular/material/core';
 import { COACHINGS, OnboardingStore, addDays, startOfToday } from '../onboarding/state';
-import { ALL_CHAPTERS, Chapter, chapterIsDone } from '../onboarding/exam-pack';
+import { Chapter, chapterIsDone } from '../onboarding/exam-pack';
 import { StudyStore, Task, dateKey } from '../study/study-store';
 import { RECALLS, Recall, nextInterval } from '../study/retention';
 import { Block, StudyBlock, subjectLabel } from './scheduler';
@@ -211,10 +211,18 @@ const MIN_BLOCK_HEIGHT = 72;
           </div>
         }
       } @empty {
-        <div class="empty">
-          <mat-icon>event_busy</mat-icon>
-          <span>No room left on this day. Fixed hours take all of it.</span>
-        </div>
+        @if (store.allChapters().length === 0) {
+          <div class="empty column">
+            <mat-icon>playlist_add</mat-icon>
+            <span>Nothing to plan yet — your syllabus is empty.</span>
+            <button matRipple class="empty-cta" (click)="editPlan.emit()">Add chapters</button>
+          </div>
+        } @else {
+          <div class="empty">
+            <mat-icon>event_busy</mat-icon>
+            <span>No room left on this day. Fixed hours take all of it.</span>
+          </div>
+        }
       }
     </section>
 
@@ -777,6 +785,20 @@ const MIN_BLOCK_HEIGHT = 72;
 
     .gap mat-icon { font-size: 18px; width: 18px; height: 18px; }
 
+    .empty.column { flex-direction: column; text-align: center; padding: 32px 0; }
+
+    .empty-cta {
+      height: 40px;
+      margin-top: 8px;
+      padding: 0 20px;
+      border: none;
+      border-radius: var(--mat-sys-corner-full);
+      background: var(--mat-sys-primary);
+      color: var(--mat-sys-on-primary);
+      font: var(--mat-sys-label-large);
+      cursor: pointer;
+    }
+
     .empty {
       display: flex;
       align-items: center;
@@ -1081,7 +1103,7 @@ export class TodayScreen {
   protected readonly backlog = computed(() => {
     const elapsed = Math.max(0, Math.round((startOfToday().getTime() - this.planStart) / 86_400_000));
     const expected = Math.floor(elapsed / 3);
-    const done = ALL_CHAPTERS.filter((c) => chapterIsDone(c, this.store.doneUnits())).length;
+    const done = this.store.allChapters().filter((c) => chapterIsDone(c, this.store.doneUnits())).length;
     return Math.max(0, expected - done);
   });
 
@@ -1218,10 +1240,11 @@ export class TodayScreen {
   protected readonly pickable = computed<Chapter[]>(() => {
     const done = this.store.doneUnits();
     const task = this.pickTask();
+    const all = this.store.allChapters();
     const pool = task === 'Learn'
-      ? ALL_CHAPTERS.filter((c) => !chapterIsDone(c, done))
-      : ALL_CHAPTERS.filter((c) => chapterIsDone(c, done) || this.study.stat(c.id).lastTouched);
-    return (pool.length > 0 ? pool : ALL_CHAPTERS).slice(0, 20);
+      ? all.filter((c) => !chapterIsDone(c, done))
+      : all.filter((c) => chapterIsDone(c, done) || this.study.stat(c.id).lastTouched);
+    return (pool.length > 0 ? pool : all).slice(0, 20);
   });
 
   protected addExtra(slot: { startMinute: number; minutes: number }, chapter: Chapter): void {

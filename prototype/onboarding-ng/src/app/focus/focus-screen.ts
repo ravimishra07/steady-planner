@@ -85,8 +85,13 @@ const LENGTHS = [25, 50, 90];
             }
           } @else {
             <button matRipple class="card empty" (click)="browse()">
-              <span class="card-topic">Nothing left on today's plan</span>
-              <span class="card-go"><mat-icon>search</mat-icon>Pick a topic</span>
+              <span class="card-topic">
+                {{ store.allChapters().length === 0 ? 'No syllabus yet' : "Nothing left on today's plan" }}
+              </span>
+              <span class="card-go">
+                <mat-icon>search</mat-icon>
+                {{ store.allChapters().length === 0 ? 'Add chapters in Syllabus' : 'Pick a topic' }}
+              </span>
             </button>
           }
 
