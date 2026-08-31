@@ -44,14 +44,32 @@ export function setPace(pace: Pace): void {
 /** Shaky pulls the next pass in; solid pushes it out. */
 const RECALL_FACTOR: Record<Recall, number> = { shaky: 0.5, okay: 1, solid: 1.6 };
 
-/** Interval in days for the pass that comes after `revisions` completed ones. */
-export function nextInterval(revisions: number, recall: Recall | null): number {
+/**
+ * Interval in days for the pass after `revisions` completed ones.
+ *
+ * `daysLeft` caps it against the runway. A sixty-day gap is meaningless to
+ * someone thirty days from the exam — the chapter would simply never come back
+ * — so no interval may exceed a third of what is left, which gives a chapter
+ * about three more looks whatever the runway.
+ */
+export function nextInterval(
+  revisions: number,
+  recall: Recall | null,
+  daysLeft?: number,
+): number {
   const base = baseInterval[Math.min(revisions, baseInterval.length - 1)];
-  return Math.max(1, Math.round(base * RECALL_FACTOR[recall ?? 'okay']));
+  const wanted = Math.round(base * RECALL_FACTOR[recall ?? 'okay']);
+  const cap = daysLeft === undefined ? wanted : Math.max(1, Math.floor(daysLeft / 3));
+  return Math.max(1, Math.min(wanted, cap));
 }
 
-export function dueDate(from: Date, revisions: number, recall: Recall | null): Date {
-  return addDays(from, nextInterval(revisions, recall));
+export function dueDate(
+  from: Date,
+  revisions: number,
+  recall: Recall | null,
+  daysLeft?: number,
+): Date {
+  return addDays(from, nextInterval(revisions, recall, daysLeft));
 }
 
 /**

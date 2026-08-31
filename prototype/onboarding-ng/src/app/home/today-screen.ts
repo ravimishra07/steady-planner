@@ -1170,7 +1170,7 @@ export class TodayScreen {
   protected nextDueLabel(block: StudyBlock): string {
     const stat = this.study.stat(block.chapterId);
     const revisions = block.task === 'Revise' ? Math.min(4, stat.revisions + 1) : stat.revisions;
-    const days = nextInterval(revisions, this.recall());
+    const days = nextInterval(revisions, this.recall(), this.store.days());
     return `Next look in ${days} day${days === 1 ? '' : 's'}.`;
   }
 

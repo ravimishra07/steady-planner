@@ -122,7 +122,7 @@ export class StudyStore {
     // Practice run counts as a look at it, so it pushes the due date out too.
     const due =
       session.task === 'Learn' || session.task === 'Revise' || session.task === 'Practice'
-        ? dateKey(dueDate(parseKey(session.dateKey), revisions, recall))
+        ? dateKey(dueDate(parseKey(session.dateKey), revisions, recall, this.onboarding.days()))
         : stat.dueKey;
 
     this.patch(session.chapterId, {
@@ -246,18 +246,43 @@ export class StudyStore {
   /* ---- Retention ------------------------------------------------------ */
 
   /** Every chapter that has been started, with what it is worth right now. */
-  readonly retention = computed(() =>
-    this.onboarding.allChapters().map((chapter) => {
-      const stat = this.stat(chapter.id);
-      return {
-        chapter,
-        stat,
-        state: retentionState(stat.lastTouched, stat.dueKey),
-        strength: strength(stat.lastTouched, stat.dueKey),
-        overdue: overdueDays(stat.dueKey),
-      };
-    }).filter((row) => row.stat.lastTouched !== null),
-  );
+  readonly retention = computed(() => {
+    const done = this.onboarding.doneUnits();
+    const today = startOfToday();
+    let waiting = 0;
+
+    return this.onboarding
+      .allChapters()
+      .map((chapter) => {
+        const stat = this.stat(chapter.id);
+
+        // Chapters ticked during onboarding were studied at some unknown point
+        // before the app existed. They had no due date at all, so they never
+        // came back — the plan quietly dropped everything the student arrived
+        // already knowing. They enter the queue staggered over a fortnight
+        // instead of landing as one wall of overdue work on day one.
+        if (stat.lastTouched === null) {
+          if (!chapterIsDone(chapter, done)) return null;
+          const seeded = dateKey(addDays(today, waiting++ % 14));
+          return {
+            chapter,
+            stat: { ...stat, dueKey: seeded },
+            state: retentionState(dateKey(today), seeded),
+            strength: strength(dateKey(today), seeded),
+            overdue: overdueDays(seeded),
+          };
+        }
+
+        return {
+          chapter,
+          stat,
+          state: retentionState(stat.lastTouched, stat.dueKey),
+          strength: strength(stat.lastTouched, stat.dueKey),
+          overdue: overdueDays(stat.dueKey),
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null);
+  });
 
   /** Due today or overdue, the most decayed first — the revision queue. */
   readonly dueNow = computed(() =>
