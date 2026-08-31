@@ -26,48 +26,79 @@ const LENGTHS = [25, 50, 90];
   template: `
     @switch (focus.status()) {
       @case ('idle') {
-        <section class="stage">
-          @if (suggestion(); as s) {
-            <span class="eyebrow">{{ eyebrow() }}</span>
-
-            <h1 class="topic">{{ s.title }}</h1>
-            <p class="context">{{ s.context }}</p>
-
-            <div class="lengths">
-              @for (m of lengths(); track m) {
-                <button matRipple class="length" [class.on]="minutes() === m" (click)="minutes.set(m)">
-                  {{ m }}m
-                </button>
-              }
-            </div>
-
-            <button matRipple class="go" (click)="start(s)">
-              <mat-icon>play_arrow</mat-icon>
-              Start {{ minutes() }} min
+        @if (browsing()) {
+          <!-- Browsing replaces the screen. A mode, not a layer over one. -->
+          <header class="browse-bar">
+            <button matRipple class="icon-btn" (click)="browsing.set(false)" aria-label="Back">
+              <mat-icon>arrow_back</mat-icon>
             </button>
+            <input class="search" type="search" placeholder="Search chapters and topics"
+                   [ngModel]="query()" (ngModelChange)="query.set($event)" />
+          </header>
 
-            @if (warning(); as w) {
-              <p class="warn"><mat-icon>info</mat-icon>{{ w }}</p>
+          <div class="browse-list">
+            @for (o of allOptions(); track o.id) {
+              <button matRipple class="opt" (click)="choose(o)">
+                <span class="opt-text">
+                  <span class="opt-name">{{ o.title }}</span>
+                  <span class="opt-meta">{{ o.context }}</span>
+                </span>
+                <span class="opt-tag" [class]="'tag-' + o.task.toLowerCase()">{{ o.task }}</span>
+              </button>
+            } @empty {
+              <p class="context">Nothing matches "{{ query() }}".</p>
+            }
+          </div>
+        } @else {
+          <section class="stage">
+            @if (suggestion(); as s) {
+              <span class="eyebrow">{{ eyebrow() }}</span>
+              <h1 class="topic">{{ s.title }}</h1>
+              <p class="context">{{ s.context }}</p>
+
+              <div class="lengths">
+                @for (m of lengths(); track m) {
+                  <button matRipple class="length" [class.on]="minutes() === m" (click)="minutes.set(m)">
+                    {{ m }}m
+                  </button>
+                }
+              </div>
+
+              <button matRipple class="go" (click)="start(s)">
+                <mat-icon>play_arrow</mat-icon>
+                Start {{ minutes() }} min
+              </button>
+
+              @if (warning(); as w) {
+                <p class="warn"><mat-icon>info</mat-icon>{{ w }}</p>
+              }
+            } @else {
+              <mat-icon class="big-icon">check_circle</mat-icon>
+              <h1 class="topic">Nothing left on today's plan</h1>
+              <p class="context">{{ focus.sittingsToday() }} sittings logged today.</p>
+            }
+          </section>
+
+          <!-- The rest of the day, in the same view. Tapping one promotes it. -->
+          <section class="also">
+            <h2 class="also-title">{{ suggestion() ? 'Or cover' : 'Pick something' }}</h2>
+
+            @for (o of alternatives(); track o.id) {
+              <button matRipple class="opt" (click)="choose(o)">
+                <span class="opt-text">
+                  <span class="opt-name">{{ o.title }}</span>
+                  <span class="opt-meta">{{ o.context }}</span>
+                </span>
+                <span class="opt-tag" [class]="'tag-' + o.task.toLowerCase()">{{ o.task }}</span>
+              </button>
             }
 
-            <button matRipple class="link" (click)="openPicker()">
-              {{ override() ? 'Pick another topic' : 'Study something else' }}
-            </button>
-          } @else {
-            <mat-icon class="big-icon">check_circle</mat-icon>
-            <h1 class="topic">Day's plan is done</h1>
-            <p class="context">{{ focus.sittingsToday() }} sittings logged today.</p>
-            <div class="lengths">
-              @for (m of lengths(); track m) {
-                <button matRipple class="length" [class.on]="minutes() === m" (click)="minutes.set(m)">{{ m }}m</button>
-              }
-            </div>
-            <button matRipple class="go ghost" (click)="openPicker()">
+            <button matRipple class="link browse" (click)="browse()">
               <mat-icon>search</mat-icon>
-              Pick a topic
+              Browse all topics
             </button>
-          }
-        </section>
+          </section>
+        }
 
         <footer class="foot">
           <span class="foot-stat"><b>{{ focus.sittingsToday() }}</b> today</span>
@@ -166,40 +197,6 @@ const LENGTHS = [25, 50, 90];
       }
     }
 
-    <!-- Anything in the syllabus, not just what the plan queued. -->
-    @if (pickerOpen()) {
-      <div class="scrim" (click)="pickerOpen.set(false)"></div>
-      <div class="sheet" role="dialog" aria-label="Pick a topic">
-        <span class="handle"></span>
-
-        <div class="tabs">
-          @for (t of pickerTabs; track t.id) {
-            <button matRipple class="tab" [class.on]="pickerTab() === t.id" (click)="pickerTab.set(t.id)">
-              {{ t.label }}
-            </button>
-          }
-        </div>
-
-        @if (pickerTab() === 'all') {
-          <input class="search" type="search" placeholder="Search chapters and topics"
-                 [ngModel]="query()" (ngModelChange)="query.set($event)" />
-        }
-
-        <div class="pick-list">
-          @for (o of options(); track o.id) {
-            <button matRipple class="pick" (click)="choose(o)">
-              <span class="pick-text">
-                <span class="pick-name">{{ o.title }}</span>
-                <span class="pick-meta">{{ o.context }}</span>
-              </span>
-              <span class="pick-tag" [class]="'tag-' + o.task.toLowerCase()">{{ o.task }}</span>
-            </button>
-          } @empty {
-            <p class="context">Nothing matches "{{ query() }}".</p>
-          }
-        </div>
-      </div>
-    }
   `,
   styles: `
     :host {
@@ -393,73 +390,34 @@ const LENGTHS = [25, 50, 90];
       text-align: center;
     }
 
-    /* Picker */
-    .scrim { position: absolute; inset: 0; z-index: 3; background: rgb(0 0 0 / .32); }
+    /* The rest of the day, under the suggestion — not behind a tap. */
+    .stage { flex: none; padding: 24px 0 8px; }
 
-    .sheet {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 4;
-      max-height: 82%;
+    .also {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
       display: flex;
       flex-direction: column;
-      padding: 8px 16px 16px;
-      border-radius: 28px 28px 0 0;
-      background: var(--mat-sys-surface-container-low);
-      text-align: left;
+      padding-top: 8px;
+      border-top: 1px solid var(--mat-sys-outline-variant);
     }
 
-    .handle {
-      width: 32px;
-      height: 4px;
-      margin: 0 auto 12px;
-      border-radius: 2px;
-      background: var(--mat-sys-outline-variant);
-      flex: none;
-    }
-
-    .tabs { display: flex; gap: 8px; flex: none; }
-
-    .tab {
-      flex: 1;
-      height: 36px;
-      border: 1px solid var(--mat-sys-outline-variant);
-      border-radius: var(--mat-sys-corner-full);
-      background: transparent;
+    .also-title {
+      margin: 0 0 4px;
+      font: var(--mat-sys-title-small);
       color: var(--mat-sys-on-surface-variant);
-      font: var(--mat-sys-label-large);
-      cursor: pointer;
     }
 
-    .tab.on {
-      border-color: transparent;
-      background: var(--mat-sys-secondary-container);
-      color: var(--mat-sys-on-secondary-container);
-    }
-
-    .search {
-      flex: none;
-      height: 48px;
-      margin-top: 12px;
-      padding: 0 16px;
-      border: 1px solid var(--mat-sys-outline);
-      border-radius: var(--mat-sys-corner-full);
-      background: transparent;
-      color: var(--mat-sys-on-surface);
-      font: var(--mat-sys-body-medium);
-    }
-
-    .pick-list { flex: 1; min-height: 0; overflow-y: auto; margin-top: 8px; }
-
-    .pick {
+    /* A button sizes to its content even as a flex container, which left the
+       tags at ragged x positions down the list. */
+    .opt {
       width: 100%;
       display: flex;
       align-items: center;
       gap: 12px;
-      min-height: 64px;
-      padding: 10px 0;
+      min-height: 60px;
+      padding: 8px 0;
       border: none;
       background: transparent;
       color: var(--mat-sys-on-surface);
@@ -467,12 +425,12 @@ const LENGTHS = [25, 50, 90];
       cursor: pointer;
     }
 
-    .pick + .pick { border-top: 1px solid var(--mat-sys-outline-variant); }
-    .pick-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-    .pick-name { font: var(--mat-sys-body-large); }
-    .pick-meta { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
+    .opt + .opt { border-top: 1px solid var(--mat-sys-outline-variant); }
+    .opt-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .opt-name { font: var(--mat-sys-body-large); }
+    .opt-meta { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
 
-    .pick-tag {
+    .opt-tag {
       flex: none;
       padding: 2px 10px;
       border-radius: var(--mat-sys-corner-full);
@@ -482,6 +440,46 @@ const LENGTHS = [25, 50, 90];
     .tag-learn { background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container); }
     .tag-practice { background: var(--mat-sys-primary); color: var(--mat-sys-on-primary); }
     .tag-revise { background: transparent; color: var(--mat-sys-primary); box-shadow: inset 0 0 0 1px var(--mat-sys-outline); }
+
+    .link.browse {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      align-self: flex-start;
+      padding: 12px 0;
+    }
+
+    .link.browse mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+    /* Browse mode */
+    .browse-bar { flex: none; display: flex; align-items: center; gap: 8px; padding-bottom: 12px; }
+
+    .icon-btn {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      flex: none;
+      border: none;
+      border-radius: var(--mat-sys-corner-full);
+      background: transparent;
+      color: var(--mat-sys-on-surface);
+      cursor: pointer;
+    }
+
+    .search {
+      flex: 1;
+      min-width: 0;
+      height: 48px;
+      padding: 0 16px;
+      border: 1px solid var(--mat-sys-outline);
+      border-radius: var(--mat-sys-corner-full);
+      background: transparent;
+      color: var(--mat-sys-on-surface);
+      font: var(--mat-sys-body-medium);
+    }
+
+    .browse-list { flex: 1; min-height: 0; overflow-y: auto; }
 
     /* Idle footer */
     .foot {
@@ -534,52 +532,62 @@ export class FocusScreen {
 
   /* ---- Picking something else ----------------------------------------- */
 
-  protected readonly pickerOpen = signal(false);
-  protected readonly pickerTab = signal<'today' | 'due' | 'all'>('today');
+  protected readonly browsing = signal(false);
   protected readonly query = signal('');
-  protected readonly pickerTabs = [
-    { id: 'today' as const, label: 'Today' },
-    { id: 'due' as const, label: 'Due' },
-    { id: 'all' as const, label: 'Syllabus' },
-  ];
 
   /** A topic chosen by hand, which wins over whatever the plan suggested. */
   protected readonly override = signal<FocusTarget | null>(null);
 
-  protected openPicker(): void {
-    this.pickerTab.set(this.planner.remainingToday().length > 0 ? 'today' : 'all');
+  protected browse(): void {
     this.query.set('');
-    this.pickerOpen.set(true);
+    this.browsing.set(true);
   }
 
-  /** The three ways in: what's planned, what's owed, and everything else. */
-  protected readonly options = computed<Option[]>(() => {
-    if (this.pickerTab() === 'today') {
-      return this.planner.remainingToday().map((b) => ({
-        id: 'p' + key(b),
-        title: b.title,
-        context: b.context,
-        task: b.task,
-        target: toTarget(b),
-      }));
-    }
+  /**
+   * What else today holds: the rest of the plan first, then the revision that
+   * has fallen due. Short — this sits under the suggestion, it is not a list
+   * to scroll.
+   */
+  protected readonly alternatives = computed<Option[]>(() => {
+    const chosen = this.suggestion();
+    const planned: Option[] = this.planner.remainingToday().map((b) => ({
+      id: 'p' + key(b),
+      title: b.title,
+      context: b.context,
+      task: b.task,
+      target: toTarget(b),
+    }));
 
-    if (this.pickerTab() === 'due') {
-      return this.study.dueNow().map((row) => ({
-        id: 'd' + row.chapter.id,
+    const due: Option[] = this.study.dueNow().map((row) => ({
+      id: 'd' + row.chapter.id,
+      title: row.chapter.name,
+      context: `${subjectName(row.chapter)} · ${row.overdue > 0 ? row.overdue + 'd late' : 'due today'}`,
+      task: 'Revise' as const,
+      target: {
+        chapterId: row.chapter.id,
         title: row.chapter.name,
-        context: `${subjectName(row.chapter)} · ${row.overdue > 0 ? row.overdue + 'd late' : 'due today'}`,
+        context: subjectName(row.chapter),
         task: 'Revise' as const,
-        target: {
-          chapterId: row.chapter.id,
-          title: row.chapter.name,
-          context: subjectName(row.chapter),
-          task: 'Revise' as const,
-          minutes: 30,
-        },
-      }));
-    }
+        minutes: 30,
+      },
+    }));
 
+    const seen = new Set<string>();
+    const out: Option[] = [];
+    for (const o of [...planned, ...due]) {
+      const id = o.target.chapterId + (o.target.subtopicId ?? '');
+      if (seen.has(id)) continue;
+      if (chosen && chosen.chapterId === o.target.chapterId &&
+          (chosen.subtopicId ?? '') === (o.target.subtopicId ?? '')) continue;
+      seen.add(id);
+      out.push(o);
+      if (out.length === 4) break;
+    }
+    return out;
+  });
+
+  /** Everything in the pack, for the browse mode. */
+  protected readonly allOptions = computed<Option[]>(() => {
     // The whole pack: chapters, and the subtopics inside them.
     const q = this.query().trim().toLowerCase();
     const done = this.store.doneUnits();
@@ -634,7 +642,7 @@ export class FocusScreen {
   protected choose(option: Option): void {
     this.override.set(option.target);
     this.minutes.set(option.target.minutes);
-    this.pickerOpen.set(false);
+    this.browsing.set(false);
   }
 
   protected todayKey(): string { return dateKey(startOfToday()); }
