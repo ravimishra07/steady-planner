@@ -306,9 +306,6 @@ export class OnboardingStore {
 
   /** How fast revision comes back round; read by the retention schedule. */
   readonly revisionPace = persisted<Pace>('revision-pace', 'standard');
-
-  /** Most minutes a day the plan will spend on revision before new material. */
-  readonly revisionCapMinutes = persisted<number>('revision-cap', 60);
   /** Whether a running focus session blocks distracting apps. On by default. */
   readonly blockApps = persisted<boolean>('block-apps', true);
 

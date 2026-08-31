@@ -25,7 +25,6 @@ export interface StudyBlock {
   done: boolean;
   /** Days past due, when this block exists because retention has slipped. */
   overdue?: number;
-  fromClass?: boolean;
 }
 
 export interface GapBlock {
@@ -55,8 +54,6 @@ export interface Candidate {
   minutes: number;
   /** Days past due, for a revision that is late. */
   overdue?: number;
-  /** True when this is what class covered today. */
-  fromClass?: boolean;
 }
 
 /** A sitting shorter than this teaches nothing; longer than this loses focus. */
@@ -156,7 +153,6 @@ export function layOutDay(
         questions: candidate.task === 'Practice' ? Math.round(minutes / 1.2) : undefined,
         done: false,
         overdue: candidate.overdue,
-        fromClass: candidate.fromClass,
       });
 
       cursor += minutes;

@@ -16,10 +16,6 @@ const LENGTH: Record<Task, number> = { Learn: 45, Practice: 60, Revise: 30 };
 export interface PlanInput {
   /** The chosen exam's subjects, in the order to work them. */
   subjectIds: readonly string[];
-  /** Chapters class covered today. Tonight leads with these. */
-  classToday: readonly string[];
-  /** Ceiling on revision, so a backlog cannot eat the whole day. */
-  revisionCapMinutes: number;
   doneUnits: ReadonlySet<string>;
   /** Chapters the user has set aside; the plan never picks them. */
   parked: ReadonlySet<string>;
@@ -45,37 +41,13 @@ export interface PlanInput {
 export function dayCandidates(input: PlanInput): Candidate[] {
   const out: Candidate[] = [];
 
-  // What class did today comes first, always. It is the freshest material and
-  // the reason the student is tired — the plan follows the class.
-  for (const id of input.classToday) {
-    const chapter = input.allChapters.find((c) => c.id === id);
-    if (!chapter || input.parked.has(id)) continue;
-    const covered = chapterIsDone(chapter, input.doneUnits);
-    out.push({
-      task: covered ? 'Practice' : 'Learn',
-      chapter,
-      subtopic: covered ? undefined : chapter.subtopics.find((t) => !input.doneUnits.has(t.id)),
-      minutes: covered ? LENGTH.Practice : LENGTH.Learn,
-      fromClass: true,
-    });
-  }
-
   const learn = learnQueue(input);
   const practice = practiceQueue(input, learn);
   const revise = reviseQueue(input);
 
-  // Overdue revision is not negotiable, but it is capped: without a ceiling a
-  // backlog quietly outranks the syllabus and Class 12 never gets started.
-  let revisionMinutes = 0;
-  while (
-    revise.length > 0 &&
-    (revise[0].overdue ?? 0) >= 3 &&
-    revisionMinutes + revise[0].minutes <= input.revisionCapMinutes &&
-    out.length < input.slots
-  ) {
-    const next = revise.shift()!;
-    revisionMinutes += next.minutes;
-    out.push(next);
+  // Anything badly overdue is not negotiable: it goes at the top of the day.
+  while (revise.length > 0 && (revise[0].overdue ?? 0) >= 3 && out.length < Math.ceil(input.slots / 2)) {
+    out.push(revise.shift()!);
   }
 
   const order: Task[] = ['Learn', 'Revise', 'Practice', 'Learn'];
@@ -84,15 +56,8 @@ export function dayCandidates(input: PlanInput): Candidate[] {
   let i = 0;
   while (out.length < input.slots && (learn.length || practice.length || revise.length)) {
     const task = order[i++ % order.length];
-    if (task === 'Revise' && revisionMinutes >= input.revisionCapMinutes) {
-      i++;
-      continue;
-    }
     const pick = queues[task].shift();
-    if (pick) {
-      if (task === 'Revise') revisionMinutes += pick.minutes;
-      out.push(pick);
-    }
+    if (pick) out.push(pick);
     if (i > input.slots * 4) break;
   }
 

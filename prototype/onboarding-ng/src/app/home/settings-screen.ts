@@ -370,22 +370,6 @@ const SOCIALS = [
             A chapter comes back on these gaps, counted from the day you last studied it. Saying a
             sitting went badly pulls the next one closer; saying it went well pushes it out.
           </p>
-
-          <h2 class="group">Most revision in a day</h2>
-          <div class="sheet pad">
-            <div class="chips">
-              @for (m of revisionCaps; track m) {
-                <button matRipple class="chip" [class.on]="store.revisionCapMinutes() === m"
-                        (click)="store.revisionCapMinutes.set(m)">
-                  {{ m === 0 ? 'No limit' : (m / 60) + 'h' }}
-                </button>
-              }
-            </div>
-          </div>
-          <p class="note">
-            Without a ceiling a backlog quietly outranks new chapters, and the syllabus stops
-            moving. Anything over the limit waits for tomorrow.
-          </p>
         </div>
       }
 
@@ -879,7 +863,6 @@ export class SettingsScreen {
   protected readonly dayInitials = DAY_INITIALS;
   protected readonly breaks = BREAKS;
   protected readonly paces = PACES;
-  protected readonly revisionCaps = [30, 60, 90, 120, 0];
 
   protected paceName(): string {
     return PACES.find((p) => p.id === this.store.revisionPace())?.label ?? '';

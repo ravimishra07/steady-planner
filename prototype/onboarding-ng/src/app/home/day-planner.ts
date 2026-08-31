@@ -38,8 +38,6 @@ export class DayPlanner {
 
     const candidates = dayCandidates({
       subjectIds: this.store.subjects().map((s) => s.id),
-      classToday: dateKey(date) === dateKey(startOfToday()) ? this.study.classToday() : [],
-      revisionCapMinutes: this.store.revisionCapMinutes(),
       doneUnits: this.planningDone(date),
       parked: this.store.parkedChapters(),
       available: (id) => this.availableIn(id),
@@ -185,7 +183,6 @@ export class DayPlanner {
       this.store.orderMode(subjectId),
       this.store.customOrder().get(subjectId),
       this.store.taughtMarker(subjectId),
-      this.study.classCovered(),
     );
   }
 
