@@ -56,3 +56,29 @@ body {
   --mat-sys-surface-container-high: #202b36;
   --mat-sys-surface-container-highest: #293542;
 }
+
+/* Material Symbols, not the legacy Material Icons set: one family with a FILL
+   axis, so an outlined and a filled glyph are the same drawing rather than two
+   different ones. That mixture is what made the navigation bar look assembled
+   from three icon sets. */
+.material-symbols-rounded {
+  font-family: 'Material Symbols Rounded';
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Filled reads as "you are here"; everything else stays outlined. */
+.icon-filled .material-symbols-rounded,
+.material-symbols-rounded.filled {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}

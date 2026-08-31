@@ -10,13 +10,17 @@ import { MoreScreen } from './more-screen';
 
 interface Destination { id: string; label: string; icon: string; }
 
-/** Focus sits in the middle: it is the thing the app is opened to do. */
+/**
+ * Focus sits in the middle: it is the thing the app is opened to do. The
+ * glyphs are all plain Material Symbols of the same weight — no decorated
+ * ones, since a sparkle next to a book and a stopwatch reads as three sets.
+ */
 const DESTINATIONS: Destination[] = [
-  { id: 'home', label: 'Today', icon: 'today' },
-  { id: 'syllabus', label: 'Syllabus', icon: 'menu_book' },
+  { id: 'home', label: 'Today', icon: 'calendar_today' },
+  { id: 'syllabus', label: 'Syllabus', icon: 'book_2' },
   { id: 'focus', label: 'Focus', icon: 'timer' },
-  { id: 'progress', label: 'Progress', icon: 'insights' },
-  { id: 'more', label: 'More', icon: 'more_horiz' },
+  { id: 'progress', label: 'Progress', icon: 'monitoring' },
+  { id: 'settings', label: 'Settings', icon: 'settings' },
 ];
 
 /** The post-onboarding shell: one screen plus the M3 navigation bar. */
@@ -34,7 +38,7 @@ const DESTINATIONS: Destination[] = [
         <app-focus-screen />
       } @else if (current() === 'progress') {
         <app-progress-tab />
-      } @else if (current() === 'more') {
+      } @else if (current() === 'settings') {
         <app-more-screen />
       } @else {
         <div class="placeholder">
@@ -55,7 +59,7 @@ const DESTINATIONS: Destination[] = [
     <nav class="navbar">
       @for (d of destinations; track d.id) {
         <button matRipple class="dest" [class.on]="current() === d.id" (click)="current.set(d.id)">
-          <span class="pill"><mat-icon>{{ d.icon }}</mat-icon></span>
+          <span class="pill"><mat-icon [class.filled]="current() === d.id">{{ d.icon }}</mat-icon></span>
           <span class="dest-label">{{ d.label }}</span>
         </button>
       }

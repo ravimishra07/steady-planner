@@ -60,7 +60,7 @@ import { PACK, Subject, Section, Chapter, chapterIsDone } from '../onboarding/ex
             <span class="meta">{{ subjectMeta(s) }}</span>
           </span>
           <button matRipple class="play filled" [attr.aria-label]="'Start ' + s.name">
-            <mat-icon>play_arrow</mat-icon>
+            <mat-icon class="filled">play_arrow</mat-icon>
           </button>
         </header>
 
@@ -127,7 +127,7 @@ import { PACK, Subject, Section, Chapter, chapterIsDone } from '../onboarding/ex
                     </button>
                     @if (chapter.subtopics.length === 0) {
                       <button matRipple class="play" [attr.aria-label]="'Start ' + chapter.name">
-                        <mat-icon>play_arrow</mat-icon>
+                        <mat-icon class="filled">play_arrow</mat-icon>
                       </button>
                     }
                   </div>
@@ -150,7 +150,7 @@ import { PACK, Subject, Section, Chapter, chapterIsDone } from '../onboarding/ex
                           <mat-icon>check</mat-icon>
                         </button>
                         <button matRipple class="play" [attr.aria-label]="'Start ' + topic.name">
-                          <mat-icon>play_arrow</mat-icon>
+                          <mat-icon class="filled">play_arrow</mat-icon>
                         </button>
                       </div>
                     }

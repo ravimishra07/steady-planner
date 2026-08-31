@@ -117,9 +117,9 @@ const MIN_BLOCK_HEIGHT = 72;
                 </span>
                 <span class="action">
                   @if (block.done) {
-                    <mat-icon>check_circle</mat-icon>Logged
+                    <mat-icon class="filled">check_circle</mat-icon>Logged
                   } @else {
-                    <mat-icon>play_arrow</mat-icon>Start
+                    <mat-icon class="filled">play_arrow</mat-icon>Start
                   }
                 </span>
               </button>

@@ -7,7 +7,7 @@ import { clearDemo, loadDemo } from '../study/demo-data';
 import { clockLabel } from '../onboarding/commitments';
 import { PACK } from '../onboarding/exam-pack';
 
-/** More: the plan's own settings, and the demo-data switch this build needs. */
+/** Settings: the plan's own knobs, and the demo-data switch this build needs. */
 @Component({
   selector: 'app-more-screen',
   imports: [MatIconModule, MatRippleModule],
@@ -48,7 +48,7 @@ import { PACK } from '../onboarding/exam-pack';
       <h2 class="label">Demo data</h2>
       <p class="lede">
         Three weeks of fabricated history — sittings, revision rounds and
-        accuracy. Nothing here is real study data.
+        recall. Nothing here is real study data.
       </p>
       <div class="rows">
         <button matRipple class="row action" (click)="load()">

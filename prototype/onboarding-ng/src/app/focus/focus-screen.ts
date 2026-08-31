@@ -64,7 +64,7 @@ const LENGTHS = [25, 50, 90];
               <span class="card-topic">{{ s.title }}</span>
               <span class="card-meta">{{ s.context }}</span>
               <span class="card-go">
-                <mat-icon>play_arrow</mat-icon>
+                <mat-icon class="filled">play_arrow</mat-icon>
                 Start {{ s.minutes }} min
               </span>
             </button>
@@ -179,11 +179,11 @@ const LENGTHS = [25, 50, 90];
               <span>+5 min</span>
             </button>
             <button matRipple class="control primary" (click)="toggle()">
-              <mat-icon>{{ focus.status() === 'paused' ? 'play_arrow' : 'pause' }}</mat-icon>
+              <mat-icon class="filled">{{ focus.status() === 'paused' ? 'play_arrow' : 'pause' }}</mat-icon>
               <span>{{ focus.status() === 'paused' ? 'Resume' : 'Pause' }}</span>
             </button>
             <button matRipple class="control" (click)="focus.stop()">
-              <mat-icon>stop</mat-icon>
+              <mat-icon class="filled">stop</mat-icon>
               <span>End</span>
             </button>
           </div>

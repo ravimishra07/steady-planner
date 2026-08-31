@@ -23,7 +23,7 @@ import { DAY_SHAPES, OnboardingStore } from '../state';
                   (click)="store.applyShape(s)">
             <span class="head">
               <span class="name">{{ s.label }}</span>
-              @if (store.shapeId() === s.id) { <mat-icon>check_circle</mat-icon> }
+              @if (store.shapeId() === s.id) { <mat-icon class="filled">check_circle</mat-icon> }
             </span>
             <span class="meta">{{ s.weekday }}h weekday · {{ s.weekend }}h weekend</span>
           </button>

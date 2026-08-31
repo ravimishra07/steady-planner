@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { MatIconRegistry } from '@angular/material/icon';
 import { OnboardingStore } from './onboarding/state';
 import { AppearanceStep } from './onboarding/steps/appearance-step';
 import { ExamStep } from './onboarding/steps/exam-step';
@@ -55,4 +56,8 @@ import { AppShell } from './home/app-shell';
 })
 export class App {
   protected readonly store = inject(OnboardingStore);
+
+  constructor() {
+    inject(MatIconRegistry).setDefaultFontSetClass('material-symbols-rounded');
+  }
 }

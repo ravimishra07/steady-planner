@@ -25,7 +25,7 @@ import { EXAMS, OnboardingStore } from '../state';
                   (click)="store.examId.set(e.id)">
             <span class="name">{{ e.label }}</span>
             @if (e.available && store.examId() === e.id) {
-              <mat-icon>check_circle</mat-icon>
+              <mat-icon class="filled">check_circle</mat-icon>
             }
           </button>
         }
