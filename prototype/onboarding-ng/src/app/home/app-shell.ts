@@ -6,7 +6,7 @@ import { SyllabusTab } from './syllabus-tab';
 import { ProgressTab } from './progress-tab';
 import { FocusScreen } from '../focus/focus-screen';
 import { FocusStore, clock } from '../focus/focus-store';
-import { MoreScreen } from './more-screen';
+import { SettingsScreen } from './settings-screen';
 
 interface Destination { id: string; label: string; icon: string; }
 
@@ -26,7 +26,7 @@ const DESTINATIONS: Destination[] = [
 /** The post-onboarding shell: one screen plus the M3 navigation bar. */
 @Component({
   selector: 'app-shell',
-  imports: [MatIconModule, MatRippleModule, TodayScreen, SyllabusTab, ProgressTab, MoreScreen, FocusScreen],
+  imports: [MatIconModule, MatRippleModule, TodayScreen, SyllabusTab, ProgressTab, SettingsScreen, FocusScreen],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="screen">
@@ -39,7 +39,7 @@ const DESTINATIONS: Destination[] = [
       } @else if (current() === 'progress') {
         <app-progress-tab />
       } @else if (current() === 'settings') {
-        <app-more-screen />
+        <app-settings-screen />
       } @else {
         <div class="placeholder">
           <mat-icon>construction</mat-icon>

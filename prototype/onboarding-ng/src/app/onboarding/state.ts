@@ -111,8 +111,8 @@ export const DEFAULT_SLEEP = 23 * 60;
 
 @Injectable({ providedIn: 'root' })
 export class OnboardingStore {
-  readonly accent = signal<AccentId>('purple');
-  readonly appearance = signal<AppearanceId>('dark');
+  readonly accent = persisted<AccentId>('accent', 'purple');
+  readonly appearance = persisted<AppearanceId>('appearance', 'dark');
 
   readonly step = signal<StepId>('appearance');
 
@@ -122,14 +122,31 @@ export class OnboardingStore {
    * the flow instead.
    */
   readonly started = signal(!location.search.includes('onboarding'));
-  readonly dateMode = signal<DateMode>('exam');
-  readonly targetDate = signal<Date>(addDays(startOfToday(), 118));
-  readonly examId = signal('cgl');
-  readonly coachingId = signal('allen');
-  readonly shapeId = signal('col');
-  readonly weekdayHours = signal(4);
-  readonly weekendHours = signal(7);
-  readonly studyPlace = signal('');
+  readonly dateMode = persisted<DateMode>('date-mode', 'exam');
+
+  /**
+   * Stored as an ISO day, not a Date. A Date round-trips through JSON as a
+   * string, and without a codec the target silently reset to "today + 118"
+   * on every reload — which is why the countdown never counted down.
+   */
+  readonly targetDate = persisted<Date>(
+    'target-date',
+    addDays(startOfToday(), 118),
+    // Local components, not toISOString: east of UTC, local midnight is the
+    // previous day in UTC, so the target crept back a day on every reload.
+    (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+    (raw) => {
+      const [y, m, d] = String(raw).split('-').map(Number);
+      return Number.isFinite(y) ? new Date(y, m - 1, d) : addDays(startOfToday(), 118);
+    },
+  );
+
+  readonly examId = persisted('exam', 'cgl');
+  readonly coachingId = persisted('coaching', 'allen');
+  readonly shapeId = persisted('shape', 'col');
+  readonly weekdayHours = persisted('weekday-hours', 4);
+  readonly weekendHours = persisted('weekend-hours', 7);
+  readonly studyPlace = persisted('study-place', '');
 
   /** Units the user says they have already covered. */
   readonly doneUnits = persistedSet('done-units');
