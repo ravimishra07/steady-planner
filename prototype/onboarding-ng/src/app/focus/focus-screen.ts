@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatRippleModule } from '@angular/material/core';
 import { OnboardingStore, startOfToday } from '../onboarding/state';
 import { StudyStore, dateKey } from '../study/study-store';
+import { PACK, Chapter, chapterIsDone } from '../onboarding/exam-pack';
 import { RECALLS, Recall } from '../study/retention';
 import { DayPlanner } from '../home/day-planner';
 import { StudyBlock } from '../home/scheduler';
@@ -49,14 +50,21 @@ const LENGTHS = [25, 50, 90];
               <p class="warn"><mat-icon>info</mat-icon>{{ w }}</p>
             }
 
-            <button matRipple class="link" (click)="skipSuggestion()">Something else</button>
+            <button matRipple class="link" (click)="openPicker()">
+              {{ override() ? 'Pick another topic' : 'Study something else' }}
+            </button>
           } @else {
             <mat-icon class="big-icon">check_circle</mat-icon>
             <h1 class="topic">Day's plan is done</h1>
             <p class="context">{{ focus.sittingsToday() }} sittings logged today.</p>
-            <button matRipple class="go ghost" (click)="startFree()">
-              <mat-icon>timer</mat-icon>
-              Free session
+            <div class="lengths">
+              @for (m of lengths(); track m) {
+                <button matRipple class="length" [class.on]="minutes() === m" (click)="minutes.set(m)">{{ m }}m</button>
+              }
+            </div>
+            <button matRipple class="go ghost" (click)="openPicker()">
+              <mat-icon>search</mat-icon>
+              Pick a topic
             </button>
           }
         </section>
@@ -156,6 +164,41 @@ const LENGTHS = [25, 50, 90];
           </p>
         </section>
       }
+    }
+
+    <!-- Anything in the syllabus, not just what the plan queued. -->
+    @if (pickerOpen()) {
+      <div class="scrim" (click)="pickerOpen.set(false)"></div>
+      <div class="sheet" role="dialog" aria-label="Pick a topic">
+        <span class="handle"></span>
+
+        <div class="tabs">
+          @for (t of pickerTabs; track t.id) {
+            <button matRipple class="tab" [class.on]="pickerTab() === t.id" (click)="pickerTab.set(t.id)">
+              {{ t.label }}
+            </button>
+          }
+        </div>
+
+        @if (pickerTab() === 'all') {
+          <input class="search" type="search" placeholder="Search chapters and topics"
+                 [ngModel]="query()" (ngModelChange)="query.set($event)" />
+        }
+
+        <div class="pick-list">
+          @for (o of options(); track o.id) {
+            <button matRipple class="pick" (click)="choose(o)">
+              <span class="pick-text">
+                <span class="pick-name">{{ o.title }}</span>
+                <span class="pick-meta">{{ o.context }}</span>
+              </span>
+              <span class="pick-tag" [class]="'tag-' + o.task.toLowerCase()">{{ o.task }}</span>
+            </button>
+          } @empty {
+            <p class="context">Nothing matches "{{ query() }}".</p>
+          }
+        </div>
+      </div>
     }
   `,
   styles: `
@@ -350,6 +393,96 @@ const LENGTHS = [25, 50, 90];
       text-align: center;
     }
 
+    /* Picker */
+    .scrim { position: absolute; inset: 0; z-index: 3; background: rgb(0 0 0 / .32); }
+
+    .sheet {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 4;
+      max-height: 82%;
+      display: flex;
+      flex-direction: column;
+      padding: 8px 16px 16px;
+      border-radius: 28px 28px 0 0;
+      background: var(--mat-sys-surface-container-low);
+      text-align: left;
+    }
+
+    .handle {
+      width: 32px;
+      height: 4px;
+      margin: 0 auto 12px;
+      border-radius: 2px;
+      background: var(--mat-sys-outline-variant);
+      flex: none;
+    }
+
+    .tabs { display: flex; gap: 8px; flex: none; }
+
+    .tab {
+      flex: 1;
+      height: 36px;
+      border: 1px solid var(--mat-sys-outline-variant);
+      border-radius: var(--mat-sys-corner-full);
+      background: transparent;
+      color: var(--mat-sys-on-surface-variant);
+      font: var(--mat-sys-label-large);
+      cursor: pointer;
+    }
+
+    .tab.on {
+      border-color: transparent;
+      background: var(--mat-sys-secondary-container);
+      color: var(--mat-sys-on-secondary-container);
+    }
+
+    .search {
+      flex: none;
+      height: 48px;
+      margin-top: 12px;
+      padding: 0 16px;
+      border: 1px solid var(--mat-sys-outline);
+      border-radius: var(--mat-sys-corner-full);
+      background: transparent;
+      color: var(--mat-sys-on-surface);
+      font: var(--mat-sys-body-medium);
+    }
+
+    .pick-list { flex: 1; min-height: 0; overflow-y: auto; margin-top: 8px; }
+
+    .pick {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 64px;
+      padding: 10px 0;
+      border: none;
+      background: transparent;
+      color: var(--mat-sys-on-surface);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .pick + .pick { border-top: 1px solid var(--mat-sys-outline-variant); }
+    .pick-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .pick-name { font: var(--mat-sys-body-large); }
+    .pick-meta { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
+
+    .pick-tag {
+      flex: none;
+      padding: 2px 10px;
+      border-radius: var(--mat-sys-corner-full);
+      font: var(--mat-sys-label-small);
+    }
+
+    .tag-learn { background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container); }
+    .tag-practice { background: var(--mat-sys-primary); color: var(--mat-sys-on-primary); }
+    .tag-revise { background: transparent; color: var(--mat-sys-primary); box-shadow: inset 0 0 0 1px var(--mat-sys-outline); }
+
     /* Idle footer */
     .foot {
       flex: none;
@@ -399,32 +532,154 @@ export class FocusScreen {
   protected readonly correct = signal(0);
   protected readonly minutes = signal(0);
 
-  /** Blocks the user has waved past this session, so "something else" works. */
-  private readonly passed = signal<ReadonlySet<string>>(new Set());
+  /* ---- Picking something else ----------------------------------------- */
+
+  protected readonly pickerOpen = signal(false);
+  protected readonly pickerTab = signal<'today' | 'due' | 'all'>('today');
+  protected readonly query = signal('');
+  protected readonly pickerTabs = [
+    { id: 'today' as const, label: 'Today' },
+    { id: 'due' as const, label: 'Due' },
+    { id: 'all' as const, label: 'Syllabus' },
+  ];
+
+  /** A topic chosen by hand, which wins over whatever the plan suggested. */
+  protected readonly override = signal<FocusTarget | null>(null);
+
+  protected openPicker(): void {
+    this.pickerTab.set(this.planner.remainingToday().length > 0 ? 'today' : 'all');
+    this.query.set('');
+    this.pickerOpen.set(true);
+  }
+
+  /** The three ways in: what's planned, what's owed, and everything else. */
+  protected readonly options = computed<Option[]>(() => {
+    if (this.pickerTab() === 'today') {
+      return this.planner.remainingToday().map((b) => ({
+        id: 'p' + key(b),
+        title: b.title,
+        context: b.context,
+        task: b.task,
+        target: toTarget(b),
+      }));
+    }
+
+    if (this.pickerTab() === 'due') {
+      return this.study.dueNow().map((row) => ({
+        id: 'd' + row.chapter.id,
+        title: row.chapter.name,
+        context: `${subjectName(row.chapter)} · ${row.overdue > 0 ? row.overdue + 'd late' : 'due today'}`,
+        task: 'Revise' as const,
+        target: {
+          chapterId: row.chapter.id,
+          title: row.chapter.name,
+          context: subjectName(row.chapter),
+          task: 'Revise' as const,
+          minutes: 30,
+        },
+      }));
+    }
+
+    // The whole pack: chapters, and the subtopics inside them.
+    const q = this.query().trim().toLowerCase();
+    const done = this.store.doneUnits();
+    const out: Option[] = [];
+
+    for (const subject of PACK.subjects) {
+      for (const section of subject.sections) {
+        for (const chapter of section.chapters) {
+          const chapterHit = chapter.name.toLowerCase().includes(q);
+          if (q === '' || chapterHit) {
+            const covered = chapterIsDone(chapter, done);
+            out.push({
+              id: 'c' + chapter.id,
+              title: chapter.name,
+              context: `${subject.name} · Class ${chapter.cls}`,
+              task: covered ? 'Revise' : 'Practice',
+              target: {
+                chapterId: chapter.id,
+                title: chapter.name,
+                context: subject.name,
+                task: covered ? 'Revise' : 'Practice',
+                minutes: covered ? 30 : 60,
+              },
+            });
+          }
+
+          for (const subtopic of chapter.subtopics) {
+            if (q === '' ? !chapterHit : !subtopic.name.toLowerCase().includes(q)) continue;
+            out.push({
+              id: 's' + subtopic.id,
+              title: subtopic.name,
+              context: `${subject.name} · ${chapter.name}`,
+              task: 'Learn',
+              target: {
+                chapterId: chapter.id,
+                subtopicId: subtopic.id,
+                title: subtopic.name,
+                context: `${subject.name} · ${chapter.name}`,
+                task: 'Learn',
+                minutes: 45,
+              },
+            });
+          }
+
+          if (out.length > 60) return out;
+        }
+      }
+    }
+    return out;
+  });
+
+  protected choose(option: Option): void {
+    this.override.set(option.target);
+    this.minutes.set(option.target.minutes);
+    this.pickerOpen.set(false);
+  }
 
   protected todayKey(): string { return dateKey(startOfToday()); }
 
-  /** Whatever the plan says to do now. The tab never asks the user to choose. */
-  protected readonly suggestion = computed<StudyBlock | null>(() => {
+  /**
+   * What the Start button will run: the hand-picked topic if there is one,
+   * otherwise whatever the plan says to do now. The tab never *asks* the user
+   * to choose, but it never refuses one either.
+   */
+  protected readonly suggestion = computed<FocusTarget | null>(() => {
+    const picked = this.override();
+    if (picked) return picked;
+
     const now = new Date();
     const minuteOfDay = now.getHours() * 60 + now.getMinutes();
-    const passed = this.passed();
-    const owed = this.planner.remainingToday().filter((b) => !passed.has(key(b)));
+    const owed = this.planner.remainingToday();
     if (owed.length === 0) return null;
 
     const current = owed.find(
       (b) => minuteOfDay >= b.startMinute && minuteOfDay < b.startMinute + b.minutes,
     );
-    return current ?? owed.find((b) => b.startMinute >= minuteOfDay) ?? owed[0];
+    return toTarget(current ?? owed.find((b) => b.startMinute >= minuteOfDay) ?? owed[0]);
   });
 
-  /** Says why this block and not another. */
-  protected eyebrow(): string {
-    const s = this.suggestion();
-    if (!s) return '';
-    if (s.overdue !== undefined && s.overdue > 0) return `${s.overdue} days overdue`;
+  /** The planned block behind the suggestion, when it came from the plan. */
+  private plannedBlock(): StudyBlock | null {
+    if (this.override()) return null;
     const now = new Date().getHours() * 60 + new Date().getMinutes();
-    if (now >= s.startMinute && now < s.startMinute + s.minutes) return 'on now';
+    const owed = this.planner.remainingToday();
+    return (
+      owed.find((b) => now >= b.startMinute && now < b.startMinute + b.minutes) ??
+      owed.find((b) => b.startMinute >= now) ??
+      owed[0] ??
+      null
+    );
+  }
+
+  /** Says why this topic and not another. */
+  protected eyebrow(): string {
+    if (this.override()) return 'your pick';
+    const block = this.plannedBlock();
+    if (!block) return '';
+    if (block.overdue !== undefined && block.overdue > 0) return `${block.overdue} days overdue`;
+    const now = new Date().getHours() * 60 + new Date().getMinutes();
+    if (now >= block.startMinute && now < block.startMinute + block.minutes) return 'on now';
     return 'up next';
   }
 
@@ -461,26 +716,9 @@ export class FocusScreen {
     return clock(this.focus.remainingSec());
   }
 
-  protected start(block: StudyBlock): void {
-    this.focus.start(toTarget(block), this.minutes() || block.minutes);
-  }
-
-  protected startFree(): void {
-    const target: FocusTarget = {
-      chapterId: '',
-      title: 'Free session',
-      context: 'Unplanned',
-      task: 'Learn',
-      minutes: 50,
-    };
-    this.focus.start(target, 50);
-  }
-
-  protected skipSuggestion(): void {
-    const s = this.suggestion();
-    if (!s) return;
-    this.passed.set(new Set(this.passed()).add(key(s)));
-    queueMicrotask(() => this.minutes.set(this.suggestion()?.minutes ?? 50));
+  protected start(target: FocusTarget): void {
+    this.focus.start(target, this.minutes() || target.minutes);
+    this.override.set(null);
   }
 
   protected toggle(): void {
@@ -518,6 +756,19 @@ function toTarget(block: StudyBlock): FocusTarget {
     task: block.task,
     minutes: block.minutes,
   };
+}
+
+interface Option {
+  id: string;
+  title: string;
+  context: string;
+  task: FocusTarget['task'];
+  target: FocusTarget;
+}
+
+function subjectName(chapter: Chapter): string {
+  const id = chapter.id.split('.')[0];
+  return PACK.subjects.find((s) => s.id === id)?.name ?? '';
 }
 
 function key(block: StudyBlock): string {
