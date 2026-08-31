@@ -52,6 +52,17 @@ const LENGTHS = [25, 50, 90];
         } @else {
           <header class="bar">
             <h1 class="bar-title">Focus</h1>
+
+            <!-- Persistent, because whether apps get blocked is the one thing
+                 worth knowing before pressing start. -->
+            <button matRipple class="lock" [class.on]="store.blockApps()"
+                    (click)="store.blockApps.set(!store.blockApps())">
+              <mat-icon [class.filled]="store.blockApps()">
+                {{ store.blockApps() ? 'lock' : 'lock_open' }}
+              </mat-icon>
+              {{ store.blockApps() ? blockedCount() + ' apps' : 'Off' }}
+            </button>
+
             <button matRipple class="icon-btn" (click)="browse()" aria-label="Browse all topics">
               <mat-icon>search</mat-icon>
             </button>
@@ -194,7 +205,7 @@ const LENGTHS = [25, 50, 90];
 
           <p class="blocking-note">
             <mat-icon>{{ blocking() ? 'lock' : 'lock_open' }}</mat-icon>
-            {{ blocking() ? 'Distracting apps blocked until this ends' : 'App blocking is off' }}
+            {{ blocking() ? blockedCount() + ' apps blocked until this ends' : 'App blocking is off' }}
           </p>
         </section>
       }
@@ -213,6 +224,28 @@ const LENGTHS = [25, 50, 90];
 
     .bar { flex: none; display: flex; align-items: center; gap: 8px; height: 56px; }
     .bar-title { flex: 1; margin: 0; font: var(--mat-sys-title-large); }
+
+    .lock {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 32px;
+      padding: 0 12px 0 10px;
+      border: 1px solid var(--mat-sys-outline-variant);
+      border-radius: var(--mat-sys-corner-full);
+      background: transparent;
+      color: var(--mat-sys-on-surface-variant);
+      font: var(--mat-sys-label-medium);
+      cursor: pointer;
+    }
+
+    .lock.on {
+      border-color: transparent;
+      background: var(--mat-sys-secondary-container);
+      color: var(--mat-sys-on-secondary-container);
+    }
+
+    .lock mat-icon { font-size: 18px; width: 18px; height: 18px; }
 
     .icon-btn {
       display: grid;
@@ -636,6 +669,10 @@ export class FocusScreen {
 
   /** A topic chosen by hand, which wins over whatever the plan suggested. */
   protected readonly override = signal<FocusTarget | null>(null);
+
+  protected blockedCount(): number {
+    return this.store.blockedApps().size;
+  }
 
   protected browse(): void {
     this.query.set('');

@@ -88,6 +88,21 @@ const PROGRESS_STEPS: StepId[] = [
   'appearance', 'exam', 'coaching', 'commitments', 'date', 'shape', 'hours', 'syllabus',
 ];
 
+export interface BlockableApp { id: string; label: string; icon: string; }
+
+/** What an aspirant actually loses an evening to. */
+export const BLOCKABLE_APPS: BlockableApp[] = [
+  { id: 'instagram', label: 'Instagram', icon: 'photo_camera' },
+  { id: 'youtube', label: 'YouTube', icon: 'smart_display' },
+  { id: 'whatsapp', label: 'WhatsApp', icon: 'chat' },
+  { id: 'x', label: 'X', icon: 'tag' },
+  { id: 'reddit', label: 'Reddit', icon: 'forum' },
+  { id: 'games', label: 'Games', icon: 'sports_esports' },
+  { id: 'browser', label: 'Browser', icon: 'language' },
+];
+
+const DEFAULT_BLOCKED = ['instagram', 'youtube', 'whatsapp', 'x', 'reddit', 'games'];
+
 /** The waking window study can be scheduled inside. */
 export const DEFAULT_WAKE = 6 * 60;
 export const DEFAULT_SLEEP = 23 * 60;
@@ -166,8 +181,17 @@ export class OnboardingStore {
   readonly wakeMinute = persisted<number>('wake', DEFAULT_WAKE);
   /** Gap between two sittings in the same stretch of free time. */
   readonly breakMinutes = persisted<number>('break', 15);
-  /** Whether a running focus session blocks distracting apps. */
+  /** Whether a running focus session blocks distracting apps. On by default. */
   readonly blockApps = persisted<boolean>('block-apps', true);
+
+  /** The apps a session shuts out. Mirrors FocusLockSettings.blockedPackages. */
+  readonly blockedApps = persistedSet('blocked-apps', new Set(DEFAULT_BLOCKED));
+
+  toggleBlockedApp(id: string): void {
+    const next = new Set(this.blockedApps());
+    next.has(id) ? next.delete(id) : next.add(id);
+    this.blockedApps.set(next);
+  }
   readonly sleepMinute = persisted<number>('sleep', DEFAULT_SLEEP);
 
   addCommitment(preset: (typeof COMMITMENT_PRESETS)[number]): void {
