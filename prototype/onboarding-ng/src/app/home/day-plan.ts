@@ -1,4 +1,4 @@
-import { ALL_CHAPTERS, Chapter, PACK, Subtopic, chapterIsDone } from '../onboarding/exam-pack';
+import { Chapter, PACK, Subtopic, chapterIsDone } from '../onboarding/exam-pack';
 import { availableChapters } from '../onboarding/sequence';
 import { ChapterStat, Task } from '../study/study-store';
 import { overdueDays } from '../study/retention';
@@ -28,6 +28,7 @@ export interface PlanInput {
   date: Date;
   /** Slots to fill; more than needed is fine, the packer stops when full. */
   slots: number;
+  allChapters: readonly Chapter[];
 }
 
 /**
@@ -102,7 +103,7 @@ function nextSubtopic(
  * reading a section and then working questions on it is one motion.
  */
 function practiceQueue(input: PlanInput, learn: Candidate[]): Candidate[] {
-  const started = ALL_CHAPTERS.filter(
+  const started = input.allChapters.filter(
     (c) =>
       !input.parked.has(c.id) &&
       (input.stat(c.id).lastTouched !== null || chapterIsDone(c, input.doneUnits)),
@@ -125,7 +126,7 @@ function dedupe(chapters: Chapter[]): Chapter[] {
  * it — not the order chapters were learnt in, not how many passes they have had.
  */
 function reviseQueue(input: PlanInput): Candidate[] {
-  return ALL_CHAPTERS.filter((c) => !input.parked.has(c.id))
+  return input.allChapters.filter((c) => !input.parked.has(c.id))
     .map((chapter) => ({ chapter, stat: input.stat(chapter.id) }))
     .filter((row) => row.stat.lastTouched !== null && row.stat.dueKey !== null)
     .map((row) => ({ ...row, overdue: overdueDays(row.stat.dueKey, input.date) }))

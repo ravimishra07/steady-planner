@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, output, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -57,7 +57,10 @@ const MIN_BLOCK_HEIGHT = 72;
     </header>
 
     <section class="summary">
-      <span class="headline">{{ headline() }}</span>
+      <div class="summary-head">
+        <span class="headline">{{ headline() }}</span>
+        <button matRipple class="edit-plan" (click)="editPlan.emit()"><mat-icon>edit_calendar</mat-icon>Edit plan</button>
+      </div>
       <span class="sub">{{ subline() }}</span>
 
       <div class="bar" [attr.aria-label]="loggedMinutes() + ' of ' + plannedMinutes() + ' minutes done'">
@@ -325,6 +328,9 @@ const MIN_BLOCK_HEIGHT = 72;
     }
 
     .headline { font: var(--mat-sys-headline-small); }
+    .summary-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .edit-plan { height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 0; border-radius: var(--mat-sys-corner-full); background: transparent; color: var(--mat-sys-primary); font: var(--mat-sys-label-large); cursor: pointer; }
+    .edit-plan mat-icon { width: 18px; height: 18px; font-size: 18px; }
     .sub { font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
 
     .bar {
@@ -649,6 +655,7 @@ const MIN_BLOCK_HEIGHT = 72;
   `,
 })
 export class TodayScreen {
+  readonly editPlan = output<void>();
   protected readonly store = inject(OnboardingStore);
   protected readonly study = inject(StudyStore);
   private readonly planner = inject(DayPlanner);
@@ -870,4 +877,3 @@ export class TodayScreen {
     };
   }
 }
-

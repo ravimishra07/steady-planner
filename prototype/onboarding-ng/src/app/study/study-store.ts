@@ -1,7 +1,7 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { persisted, persistedMap } from '../core/persist';
 import { OnboardingStore, addDays, startOfToday } from '../onboarding/state';
-import { ALL_CHAPTERS, Chapter, chapterIsDone } from '../onboarding/exam-pack';
+import { Chapter, chapterIsDone } from '../onboarding/exam-pack';
 import { Recall, dueDate, overdueDays, retentionState, strength } from './retention';
 
 export type Task = 'Learn' | 'Practice' | 'Revise';
@@ -158,9 +158,10 @@ export class StudyStore {
   /** Chapters at each revision depth — the shape a flat percentage hides. */
   readonly rounds = computed(() => {
     const done = this.onboarding.doneUnits();
-    const learned = ALL_CHAPTERS.filter((c) => chapterIsDone(c, done));
+    const chapters = this.onboarding.allChapters();
+    const learned = chapters.filter((c) => chapterIsDone(c, done));
     const at = (n: number) => learned.filter((c) => this.stat(c.id).revisions >= n).length;
-    return { learned: learned.length, r1: at(1), r2: at(2), r3: at(3), total: ALL_CHAPTERS.length };
+    return { learned: learned.length, r1: at(1), r2: at(2), r3: at(3), total: chapters.length };
   });
 
   /* ---- Insight series ------------------------------------------------
@@ -246,7 +247,7 @@ export class StudyStore {
 
   /** Every chapter that has been started, with what it is worth right now. */
   readonly retention = computed(() =>
-    ALL_CHAPTERS.map((chapter) => {
+    this.onboarding.allChapters().map((chapter) => {
       const stat = this.stat(chapter.id);
       return {
         chapter,
@@ -300,6 +301,14 @@ export class StudyStore {
     });
   }
 
+  /** Revision minutes already due on a future date, competing with new work. */
+  revisionMinutesOn(date: Date): number {
+    const key = dateKey(date);
+    return this.retention()
+      .filter((row) => row.stat.dueKey !== null && row.stat.dueKey <= key)
+      .reduce((minutes, row) => minutes + (overdueDays(row.stat.dueKey, date) >= 7 ? 45 : 30), 0);
+  }
+
 
   /** Learnt, never revised once, and already past due. */
   readonly staleChapters = computed(() =>
@@ -308,4 +317,3 @@ export class StudyStore {
       .sort((a, b) => b.overdue - a.overdue),
   );
 }
-

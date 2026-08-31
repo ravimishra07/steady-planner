@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { COACHINGS, OnboardingStore, startOfToday } from '../onboarding/state';
-import { ALL_CHAPTERS, PACK } from '../onboarding/exam-pack';
+import { Chapter } from '../onboarding/exam-pack';
 import { availableChapters } from '../onboarding/sequence';
 import { StudyStore, dateKey } from '../study/study-store';
 import { Block, StudyBlock, freeWindows, layOutDay, subjectLabel } from './scheduler';
@@ -44,6 +44,7 @@ export class DayPlanner {
       stat: (id) => this.study.stat(id),
       date,
       slots: 8,
+      allChapters: this.store.allChapters(),
     });
 
     const laid = layOutDay(
@@ -142,7 +143,7 @@ export class DayPlanner {
       });
 
     for (const extra of this.study.extrasOn(key)) {
-      const chapter = ALL_CHAPTERS.find((c) => c.id === extra.chapterId);
+      const chapter = this.store.allChapters().find((c) => c.id === extra.chapterId);
       if (!chapter) continue;
       const subtopic = chapter.subtopics.find((t) => t.id === extra.subtopicId);
       out.push({
@@ -174,7 +175,7 @@ export class DayPlanner {
 
   /** A subject's chapters, in the chosen order and cut at the taught marker. */
   availableIn(subjectId: string): ReturnType<typeof availableChapters> {
-    const subject = PACK.subjects.find((s) => s.id === subjectId);
+    const subject = this.store.subjects().find((s) => s.id === subjectId);
     if (!subject) return [];
     return availableChapters(
       subject,
@@ -186,6 +187,27 @@ export class DayPlanner {
 
   private coachingName(): string {
     return COACHINGS.find((c) => c.id === this.store.coachingId())?.label ?? 'Coaching';
+  }
+
+  /** Minutes the real day layout gives study after fixed hours and breaks. */
+  capacityOn(date: Date, revisionMinutes = 0): number {
+    const weekday = date.getDay();
+    const windows = freeWindows(
+      this.store.commitments(), weekday, this.store.wakeMinute(), this.store.sleepMinute(),
+    );
+    const asked = (weekday === 0 || weekday === 6 ? this.store.weekendHours() : this.store.weekdayHours()) * 60;
+    const free = windows.reduce((sum, window) => sum + window.minutes, 0);
+    const candidates = Array.from({ length: 32 }, (_, index) => ({
+      task: 'Learn' as const,
+      chapter: { id: `projection.${index}`, name: '', cls: 11 as const, hours: 0, subtopics: [] } as Chapter,
+      minutes: 90,
+    }));
+    const blocks = layOutDay(
+      windows, this.store.commitments(), weekday, candidates, Math.min(asked, free), this.coachingName(), this.store.breakMinutes(),
+    );
+    const planned = blocks.filter((block): block is StudyBlock => block.kind === 'study')
+      .reduce((sum, block) => sum + block.minutes, 0);
+    return Math.max(0, planned - revisionMinutes);
   }
 }
 

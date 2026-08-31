@@ -7,6 +7,7 @@ import { ProgressTab } from './progress-tab';
 import { FocusScreen } from '../focus/focus-screen';
 import { FocusStore, clock } from '../focus/focus-store';
 import { SettingsScreen } from './settings-screen';
+import { OrganiseScreen } from '../syllabus/organise-screen';
 
 interface Destination { id: string; label: string; icon: string; }
 
@@ -26,12 +27,14 @@ const DESTINATIONS: Destination[] = [
 /** The post-onboarding shell: one screen plus the M3 navigation bar. */
 @Component({
   selector: 'app-shell',
-  imports: [MatIconModule, MatRippleModule, TodayScreen, SyllabusTab, ProgressTab, SettingsScreen, FocusScreen],
+  imports: [MatIconModule, MatRippleModule, TodayScreen, SyllabusTab, ProgressTab, SettingsScreen, FocusScreen, OrganiseScreen],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="screen">
-      @if (current() === 'home') {
-        <app-today />
+      @if (organising()) {
+        <app-organise-screen (close)="organising.set(false)" />
+      } @else if (current() === 'home') {
+        <app-today (editPlan)="organising.set(true)" />
       } @else if (current() === 'syllabus') {
         <app-syllabus-tab />
       } @else if (current() === 'focus') {
@@ -159,6 +162,7 @@ const DESTINATIONS: Destination[] = [
 export class AppShell {
   protected readonly destinations = DESTINATIONS;
   protected readonly current = signal('home');
+  protected readonly organising = signal(false);
   protected readonly focus = inject(FocusStore);
 
   protected remaining(): string {

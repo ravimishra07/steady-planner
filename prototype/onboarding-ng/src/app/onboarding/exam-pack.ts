@@ -7,6 +7,7 @@ import { CLASS11_SUBTOPICS } from './class11-subtopics';
 export interface Subtopic {
   id: string;
   name: string;
+  custom?: true;
 }
 
 export interface Chapter {
@@ -18,6 +19,12 @@ export interface Chapter {
   cls: 11 | 12;
   /** Planning estimate in hours. Derived, never sourced — see pack meta. */
   hours: number;
+}
+
+/** A chapter owned by the student rather than the bundled exam pack. */
+export interface CustomChapter extends Chapter {
+  subjectId: string;
+  custom: true;
 }
 
 export interface Section {
@@ -206,6 +213,58 @@ export const PACK: ExamPack = {
 export const ALL_CHAPTERS: Chapter[] = PACK.subjects.flatMap((s) =>
   s.sections.flatMap((sec) => sec.chapters),
 );
+
+/** Merge user-owned chapters and names without mutating the frozen pack. */
+export function mergedSubjects(
+  custom: readonly CustomChapter[],
+  names: ReadonlyMap<string, string>,
+  customSubtopics: ReadonlyMap<string, Subtopic[]> = new Map(),
+  subtopicNames: ReadonlyMap<string, string> = new Map(),
+  hiddenSubtopics: ReadonlySet<string> = new Set(),
+): Subject[] {
+  return PACK.subjects.map((subject) => ({
+    ...subject,
+    sections: subject.sections.map((section) => ({
+      ...section,
+      chapters: [
+        ...section.chapters.map((chapter) => ({
+          ...chapter,
+          name: names.get(chapter.id) ?? chapter.name,
+          subtopics: [
+            ...chapter.subtopics
+              .filter((topic) => !hiddenSubtopics.has(topic.id))
+              .map((topic) => ({ ...topic, name: subtopicNames.get(topic.id) ?? topic.name })),
+            ...(customSubtopics.get(chapter.id) ?? []).map((topic) => ({
+              ...topic,
+              name: subtopicNames.get(topic.id) ?? topic.name,
+            })),
+          ],
+        })),
+        ...custom
+          .filter((chapter) => chapter.subjectId === subject.id && chapter.cls === Number(section.name.slice(-2)))
+          .map((chapter) => ({
+            ...chapter,
+            name: names.get(chapter.id) ?? chapter.name,
+            subtopics: (customSubtopics.get(chapter.id) ?? chapter.subtopics)
+              .filter((topic) => !hiddenSubtopics.has(topic.id))
+              .map((topic) => ({ ...topic, name: subtopicNames.get(topic.id) ?? topic.name })),
+          })),
+      ],
+    })),
+  }));
+}
+
+export function mergedChapters(
+  custom: readonly CustomChapter[],
+  names: ReadonlyMap<string, string>,
+  customSubtopics: ReadonlyMap<string, Subtopic[]> = new Map(),
+  subtopicNames: ReadonlyMap<string, string> = new Map(),
+  hiddenSubtopics: ReadonlySet<string> = new Set(),
+): Chapter[] {
+  return mergedSubjects(custom, names, customSubtopics, subtopicNames, hiddenSubtopics).flatMap((subject) =>
+    subject.sections.flatMap((section) => section.chapters),
+  );
+}
 
 /** A chapter counts as done when every subtopic it lists is done. */
 export function chapterIsDone(chapter: Chapter, done: ReadonlySet<string>): boolean {

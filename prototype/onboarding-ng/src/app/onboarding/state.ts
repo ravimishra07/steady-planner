@@ -1,5 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { ALL_CHAPTERS, chapterIsDone } from './exam-pack';
+import { CustomChapter, Subtopic, chapterIsDone, mergedChapters, mergedSubjects } from './exam-pack';
 import { persisted, persistedMap, persistedSet } from '../core/persist';
 import { COMMITMENT_PRESETS, Commitment, committedMinutes } from './commitments';
 
@@ -192,6 +192,35 @@ export class OnboardingStore {
    */
   readonly taughtUpTo = persistedMap<string>('taught-up-to');
 
+  /** User-owned coaching modules and display-name overrides for any chapter. */
+  readonly customChapters = persisted<CustomChapter[]>('custom-chapters', []);
+  readonly chapterNames = persistedMap<string>('chapter-names');
+  readonly customSubtopics = persistedMap<Subtopic[]>('custom-subtopics');
+  readonly subtopicNames = persistedMap<string>('subtopic-names');
+  readonly hiddenSubtopics = persistedSet('hidden-subtopics');
+  readonly subjects = computed(() => mergedSubjects(
+    this.customChapters(), this.chapterNames(), this.customSubtopics(), this.subtopicNames(), this.hiddenSubtopics(),
+  ));
+  readonly allChapters = computed(() => mergedChapters(
+    this.customChapters(), this.chapterNames(), this.customSubtopics(), this.subtopicNames(), this.hiddenSubtopics(),
+  ));
+
+  addCustomChapter(subjectId: string, name: string, cls: 11 | 12, hours: number): string {
+    const id = `${subjectId}.custom.${crypto.randomUUID()}`;
+    this.customChapters.set([
+      ...this.customChapters(),
+      { id, subjectId, name: name.trim(), cls, hours, subtopics: [], custom: true },
+    ]);
+    return id;
+  }
+
+  renameChapter(id: string, name: string): void {
+    const next = new Map(this.chapterNames());
+    const clean = name.trim();
+    clean ? next.set(id, clean) : next.delete(id);
+    this.chapterNames.set(next);
+  }
+
   orderMode(subjectId: string): OrderMode {
     return this.orderModes().get(subjectId) ?? 'book';
   }
@@ -348,7 +377,7 @@ export class OnboardingStore {
   /** Hours the remaining syllabus needs, shrinking as chapters are ticked. */
   readonly requiredHours = computed(() =>
     Math.round(
-      ALL_CHAPTERS.filter((c) => !chapterIsDone(c, this.doneUnits()) && !this.isParked(c.id))
+      this.allChapters().filter((c) => !chapterIsDone(c, this.doneUnits()) && !this.isParked(c.id))
         .reduce((n, c) => n + c.hours, 0),
     ),
   );

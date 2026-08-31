@@ -4,6 +4,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatRippleModule } from '@angular/material/core';
 import { OnboardingStore } from '../onboarding/state';
 import { PACK, Subject, Section, Chapter, chapterIsDone } from '../onboarding/exam-pack';
+import { orderedChapters } from '../onboarding/sequence';
 
 /**
  * Syllabus browser, following SyllabusScreen.kt: a subject chip row, a
@@ -20,7 +21,7 @@ import { PACK, Subject, Section, Chapter, chapterIsDone } from '../onboarding/ex
       [selectedIndex]="index()"
       (selectedIndexChange)="pick($event)"
       animationDuration="120ms">
-      @for (s of subjects; track s.id) {
+      @for (s of subjects(); track s.id) {
         <mat-tab><ng-template mat-tab-label>{{ s.name }}</ng-template></mat-tab>
       }
     </mat-tab-group>
@@ -110,7 +111,10 @@ import { PACK, Subject, Section, Chapter, chapterIsDone } from '../onboarding/ex
                         </mat-icon>
                       }
                       <span class="node-body">
-                        <span class="node-name" [class.muted]="isDone(chapter)">{{ chapter.name }}</span>
+                        <span class="node-name" [class.muted]="isDone(chapter) || isParked(chapter)">{{ chapter.name }}</span>
+                        @if (isParked(chapter) || isBeyond(chapter)) {
+                          <span class="state-line">{{ isParked(chapter) ? 'Parked' : 'Not taught yet' }}</span>
+                        }
                         <span class="bar">
                           <span class="track"><i [style.width.%]="chapterPercent(chapter)"></i></span>
                           <span class="pct">{{ formatHours(chapter.hours) }}</span>
@@ -334,6 +338,7 @@ import { PACK, Subject, Section, Chapter, chapterIsDone } from '../onboarding/ex
     .depth2 { padding: 6px 0; }
     .node-main:disabled { cursor: default; }
     .node-name.muted { color: var(--mat-sys-on-surface-variant); }
+    .state-line { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
 
     .bar { display: flex; align-items: center; gap: 8px; }
 
@@ -451,7 +456,7 @@ import { PACK, Subject, Section, Chapter, chapterIsDone } from '../onboarding/ex
       gap: 8px;
       overflow-x: auto;
       scrollbar-width: none;
-      mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent 100%);
+      mask-image: linear-gradient(to right, var(--mat-sys-on-surface) calc(100% - 16px), transparent 100%);
     }
 
     .chips::-webkit-scrollbar { display: none; }
@@ -512,7 +517,7 @@ import { PACK, Subject, Section, Chapter, chapterIsDone } from '../onboarding/ex
       position: absolute;
       inset: 0;
       z-index: 3;
-      background: rgb(0 0 0 / .32);
+      background: color-mix(in srgb, var(--mat-sys-scrim) 32%, transparent);
     }
 
     .sheet {
@@ -591,7 +596,7 @@ import { PACK, Subject, Section, Chapter, chapterIsDone } from '../onboarding/ex
 })
 export class SyllabusBrowser {
   protected readonly store = inject(OnboardingStore);
-  protected readonly subjects = PACK.subjects;
+  protected readonly subjects = this.store.subjects;
 
   /** Active filter ids. Empty means everything. */
   private readonly active = signal<ReadonlySet<string>>(new Set());
@@ -647,20 +652,20 @@ export class SyllabusBrowser {
 
   /** The subject on screen; the tabs are the selector. */
   protected readonly subject = computed(
-    () => PACK.subjects.find((s) => s.id === this.current())!,
+    () => this.subjects().find((s) => s.id === this.current())!,
   );
 
   protected readonly index = computed(() =>
-    PACK.subjects.findIndex((s) => s.id === this.current()),
+    this.subjects().findIndex((s) => s.id === this.current()),
   );
 
   protected pick(index: number): void {
-    this.current.set(PACK.subjects[index].id);
+    this.current.set(this.subjects()[index].id);
   }
 
   /** One subject at a time: the chip row is the selector, not a jump list. */
   protected readonly visible = computed(() =>
-    this.subjects.filter((s) => s.id === this.current()),
+    this.subjects().filter((s) => s.id === this.current()),
   );
 
   /** Groups with nothing left after filtering should not render at all. */
@@ -715,6 +720,17 @@ export class SyllabusBrowser {
 
   protected isDone(chapter: Chapter): boolean {
     return chapterIsDone(chapter, this.store.doneUnits());
+  }
+
+  protected isParked(chapter: Chapter): boolean { return this.store.isParked(chapter.id); }
+
+  protected isBeyond(chapter: Chapter): boolean {
+    const subject = this.subjects().find((candidate) => candidate.id === chapter.id.split('.')[0]);
+    if (!subject) return false;
+    const ordered = orderedChapters(subject, this.store.orderMode(subject.id), this.store.customOrder().get(subject.id));
+    const marker = this.store.taughtMarker(subject.id);
+    if (!marker) return false;
+    return ordered.findIndex((item) => item.id === chapter.id) > ordered.findIndex((item) => item.id === marker);
   }
 
   protected isChapterOpen(id: string): boolean { return this.openChapters().has(id); }
