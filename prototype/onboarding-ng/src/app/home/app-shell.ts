@@ -3,6 +3,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatRippleModule } from '@angular/material/core';
 import { TodayScreen } from './today-screen';
 import { SyllabusTab } from './syllabus-tab';
+import { ProgressTab } from './progress-tab';
+import { MoreScreen } from './more-screen';
 
 interface Destination { id: string; label: string; icon: string; }
 
@@ -16,7 +18,7 @@ const DESTINATIONS: Destination[] = [
 /** The post-onboarding shell: one screen plus the M3 navigation bar. */
 @Component({
   selector: 'app-shell',
-  imports: [MatIconModule, MatRippleModule, TodayScreen, SyllabusTab],
+  imports: [MatIconModule, MatRippleModule, TodayScreen, SyllabusTab, ProgressTab, MoreScreen],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="screen">
@@ -24,6 +26,10 @@ const DESTINATIONS: Destination[] = [
         <app-today />
       } @else if (current() === 'syllabus') {
         <app-syllabus-tab />
+      } @else if (current() === 'progress') {
+        <app-progress-tab />
+      } @else if (current() === 'more') {
+        <app-more-screen />
       } @else {
         <div class="placeholder">
           <mat-icon>construction</mat-icon>

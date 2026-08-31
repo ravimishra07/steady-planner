@@ -1,0 +1,172 @@
+import { OnboardingStore, addDays, startOfToday } from '../onboarding/state';
+import { PACK, Chapter } from '../onboarding/exam-pack';
+import {
+  ChapterStat,
+  LoggedSession,
+  StudyStore,
+  Task,
+  TestRecord,
+  dateKey,
+  seedTests,
+} from './study-store';
+
+/**
+ * A fabricated three weeks of use. Nothing here is real study data — it exists
+ * so the screens can be judged with history in them: revision rounds, accuracy,
+ * a test with a score on it. Loaded and cleared from the More tab.
+ */
+
+/** Deterministic, so the demo looks the same every time it is loaded. */
+function rng(seed: number): () => number {
+  let s = seed;
+  return () => {
+    s = (s * 1664525 + 1013904223) % 4294967296;
+    return s / 4294967296;
+  };
+}
+
+const DAYS = 21;
+/**
+ * Chapters per subject the demo has worked through. The weekly tests examine
+ * two chapters per subject per week, so three tests' worth is six.
+ */
+const FINISHED = 6;
+
+interface Built {
+  sessions: LoggedSession[];
+  stats: Map<string, ChapterStat>;
+  done: Set<string>;
+  tests: TestRecord[];
+}
+
+export function buildDemo(): Built {
+  const random = rng(20260830);
+  const sessions: LoggedSession[] = [];
+  const stats = new Map<string, ChapterStat>();
+  const done = new Set<string>();
+
+  const bySubject = PACK.subjects.map((s) => s.sections.flatMap((sec) => sec.chapters));
+
+  // The chapters the demo account has been through, in coaching order.
+  const covered: Chapter[] = [];
+  for (let i = 0; i < FINISHED; i++) {
+    for (const chapters of bySubject) if (chapters[i]) covered.push(chapters[i]);
+  }
+  // One chapter per subject left half-finished — a real syllabus is ragged.
+  const partial = bySubject.map((chapters) => chapters[FINISHED]).filter(Boolean);
+
+  const touch = (id: string, change: Partial<ChapterStat>) => {
+    const prev = stats.get(id) ?? { revisions: 0, attempted: 0, correct: 0, lastTouched: null };
+    stats.set(id, { ...prev, ...change });
+  };
+
+  const today = startOfToday();
+  let cursor = 0;
+
+  for (let back = DAYS; back >= 1; back--) {
+    const date = addDays(today, -back);
+    const key = dateKey(date);
+    const sunday = date.getDay() === 0;
+    // Not every day gets studied. That is the honest part of the picture.
+    if (!sunday && random() < 0.15) continue;
+
+    const count = sunday ? 2 : 3 + Math.floor(random() * 2);
+
+    for (let i = 0; i < count; i++) {
+      const chapter = covered[cursor % covered.length];
+      const task: Task = i === 0 ? 'Learn' : i === count - 1 ? 'Revise' : 'Practice';
+      const minutes = task === 'Learn' ? 45 : task === 'Practice' ? 60 : 30;
+
+      if (task === 'Learn') {
+        const next = chapter.subtopics.find((t) => !done.has(t.id));
+        if (next) done.add(next.id);
+        sessions.push({
+          id: `demo-${key}-${i}`,
+          dateKey: key,
+          chapterId: chapter.id,
+          subtopicId: next?.id,
+          title: next?.name ?? chapter.name,
+          task,
+          minutes,
+        });
+        touch(chapter.id, { lastTouched: key });
+      } else if (task === 'Practice') {
+        const attempted = 30 + Math.floor(random() * 20);
+        // Accuracy drifts up over the three weeks, 58% to about 78%.
+        const rate = 0.58 + (1 - back / DAYS) * 0.2 + random() * 0.06;
+        const correct = Math.round(attempted * Math.min(0.92, rate));
+        const prev = stats.get(chapter.id);
+        sessions.push({
+          id: `demo-${key}-${i}`,
+          dateKey: key,
+          chapterId: chapter.id,
+          title: chapter.name,
+          task,
+          minutes,
+          attempted,
+          correct,
+        });
+        touch(chapter.id, {
+          lastTouched: key,
+          attempted: (prev?.attempted ?? 0) + attempted,
+          correct: (prev?.correct ?? 0) + correct,
+        });
+      } else {
+        const prev = stats.get(chapter.id);
+        sessions.push({
+          id: `demo-${key}-${i}`,
+          dateKey: key,
+          chapterId: chapter.id,
+          title: chapter.name,
+          task,
+          minutes,
+        });
+        touch(chapter.id, {
+          lastTouched: key,
+          revisions: Math.min(3, (prev?.revisions ?? 0) + 1),
+        });
+      }
+
+      cursor++;
+    }
+  }
+
+  // The chapters the account counts as finished, ticked all the way through.
+  for (const chapter of covered) {
+    if (chapter.subtopics.length === 0) done.add(chapter.id);
+    else for (const t of chapter.subtopics) done.add(t.id);
+  }
+  for (const chapter of partial) {
+    const half = Math.ceil(chapter.subtopics.length / 2);
+    chapter.subtopics.slice(0, half).forEach((t) => done.add(t.id));
+    if (chapter.subtopics.length === 0) continue;
+    touch(chapter.id, { lastTouched: dateKey(addDays(today, -1)) });
+  }
+
+  // Past tests get a score; the coming ones stay empty, as they should.
+  const tests = seedTests().map((test, i) => {
+    if (test.dateKey >= dateKey(today)) return test;
+    const attempted = 150 + Math.floor(random() * 25);
+    const correct = Math.round(attempted * (0.52 + i * 0.06 + random() * 0.04));
+    return { ...test, attempted, correct, wrong: attempted - correct };
+  });
+
+  return { sessions, stats, done, tests };
+}
+
+export function loadDemo(onboarding: OnboardingStore, study: StudyStore): void {
+  const demo = buildDemo();
+  study.sessions.set(demo.sessions);
+  study.stats.set(demo.stats);
+  study.tests.set(demo.tests);
+  study.extras.set([]);
+  onboarding.doneUnits.set(demo.done);
+}
+
+export function clearDemo(onboarding: OnboardingStore, study: StudyStore): void {
+  study.sessions.set([]);
+  study.stats.set(new Map());
+  study.tests.set(seedTests());
+  study.extras.set([]);
+  onboarding.doneUnits.set(new Set());
+}

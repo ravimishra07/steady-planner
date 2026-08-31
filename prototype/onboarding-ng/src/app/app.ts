@@ -3,6 +3,7 @@ import { OnboardingStore } from './onboarding/state';
 import { AppearanceStep } from './onboarding/steps/appearance-step';
 import { ExamStep } from './onboarding/steps/exam-step';
 import { CoachingStep } from './onboarding/steps/coaching-step';
+import { CommitmentsStep } from './onboarding/steps/commitments-step';
 import { DateStep } from './onboarding/steps/date-step';
 import { ShapeStep } from './onboarding/steps/shape-step';
 import { HoursStep } from './onboarding/steps/hours-step';
@@ -12,7 +13,7 @@ import { AppShell } from './home/app-shell';
 
 @Component({
   selector: 'app-root',
-  imports: [AppearanceStep, ExamStep, CoachingStep, DateStep, ShapeStep, HoursStep, SyllabusStep, PlanStep, AppShell],
+  imports: [AppearanceStep, ExamStep, CoachingStep, CommitmentsStep, DateStep, ShapeStep, HoursStep, SyllabusStep, PlanStep, AppShell],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="phone" [class]="'accent-' + store.accent() + ' bg-' + store.appearance()">
@@ -24,6 +25,7 @@ import { AppShell } from './home/app-shell';
           @case ('appearance') { <ob-appearance-step /> }
           @case ('exam') { <ob-exam-step /> }
           @case ('coaching') { <ob-coaching-step /> }
+          @case ('commitments') { <ob-commitments-step /> }
           @case ('date') { <ob-date-step /> }
           @case ('shape') { <ob-shape-step /> }
           @case ('hours') { <ob-hours-step /> }
