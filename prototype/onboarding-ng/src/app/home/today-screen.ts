@@ -364,23 +364,23 @@ const MIN_BLOCK_HEIGHT = 72;
 
     .headline { font: var(--mat-sys-headline-small); }
     .summary-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    /* Labelled: an unlabelled calendar-pencil could mean anything. */
+    /* Labelled, because an unlabelled calendar-pencil could mean anything —
+       but quiet, because the headline is what the eye should land on. */
     .edit-plan {
       display: flex;
       align-items: center;
-      gap: 6px;
-      height: 36px;
+      gap: 4px;
+      height: 32px;
       flex: none;
-      padding: 0 14px 0 10px;
-      border: 1px solid var(--mat-sys-outline-variant);
-      border-radius: var(--mat-sys-corner-full);
+      padding: 0 4px;
+      border: 0;
       background: transparent;
       color: var(--mat-sys-on-surface-variant);
-      font: var(--mat-sys-label-large);
+      font: var(--mat-sys-label-medium);
       cursor: pointer;
     }
 
-    .edit-plan mat-icon { width: 18px; height: 18px; font-size: 18px; }
+    .edit-plan mat-icon { width: 16px; height: 16px; font-size: 16px; }
 
     .clockbar { margin: 12px 0 2px; }
 
