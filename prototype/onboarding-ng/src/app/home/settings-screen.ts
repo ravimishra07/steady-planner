@@ -89,21 +89,21 @@ const SOCIALS = [
           <h2 class="group">Plan</h2>
           <div class="sheet">
             <button matRipple class="row" (click)="page.set('plan')">
-              <span class="tile t-primary"><mat-icon>event</mat-icon></span>
+              <mat-icon class="lead">event</mat-icon>
               <span class="row-title">Exam &amp; date</span>
               <span class="row-value">{{ store.targetDate() | date: 'd MMM y' }}</span>
               <mat-icon class="chev">chevron_right</mat-icon>
             </button>
 
             <button matRipple class="row" (click)="page.set('hours')">
-              <span class="tile t-tertiary"><mat-icon>schedule</mat-icon></span>
+              <mat-icon class="lead">schedule</mat-icon>
               <span class="row-title">Hours &amp; breaks</span>
               <span class="row-value">{{ store.weekdayHours() }}h · {{ store.weekendHours() }}h</span>
               <mat-icon class="chev">chevron_right</mat-icon>
             </button>
 
             <button matRipple class="row" (click)="page.set('fixed')">
-              <span class="tile t-tertiary"><mat-icon>event_busy</mat-icon></span>
+              <mat-icon class="lead">event_busy</mat-icon>
               <span class="row-title">Fixed hours</span>
               <span class="row-value">{{ store.commitments().length }} blocks</span>
               <mat-icon class="chev">chevron_right</mat-icon>
@@ -113,18 +113,16 @@ const SOCIALS = [
           <h2 class="group">App</h2>
           <div class="sheet">
             <button matRipple class="row" (click)="page.set('appearance')">
-              <span class="tile t-primary"><mat-icon>palette</mat-icon></span>
+              <mat-icon class="lead">palette</mat-icon>
               <span class="row-title">Appearance</span>
               <span class="row-value">{{ appearanceName() }}</span>
               <mat-icon class="chev">chevron_right</mat-icon>
             </button>
 
             <button matRipple class="row" (click)="page.set('focus')">
-              <span class="tile t-tertiary">
-                <mat-icon [class.filled]="store.blockApps()">
+              <mat-icon class="lead" [class.filled]="store.blockApps()">
                   {{ store.blockApps() ? 'lock' : 'lock_open' }}
                 </mat-icon>
-              </span>
               <span class="row-title">Focus &amp; blocking</span>
               <span class="row-value">{{ store.blockApps() ? store.blockedApps().size + ' apps' : 'Off' }}</span>
               <mat-icon class="chev">chevron_right</mat-icon>
@@ -135,7 +133,7 @@ const SOCIALS = [
           <div class="sheet">
             @for (n of notifications; track n.id) {
               <button matRipple class="row" (click)="toggleNotification(n.id)">
-                <span class="tile t-tertiary"><mat-icon>{{ n.icon }}</mat-icon></span>
+                <mat-icon class="lead">{{ n.icon }}</mat-icon>
                 <span class="row-title">{{ n.label }}</span>
                 <span class="switch" [class.on]="notificationOn(n.id)"><span class="knob"></span></span>
               </button>
@@ -145,14 +143,14 @@ const SOCIALS = [
           <h2 class="group">Your data</h2>
           <div class="sheet">
             <button matRipple class="row" (click)="exportData()">
-              <span class="tile t-primary"><mat-icon>download</mat-icon></span>
+              <mat-icon class="lead">download</mat-icon>
               <span class="row-title">Export my data</span>
               <span class="row-value">{{ storageLabel() }}</span>
               <mat-icon class="chev">chevron_right</mat-icon>
             </button>
 
             <button matRipple class="row danger" (click)="confirmWipe.set(true)">
-              <span class="tile t-error"><mat-icon>delete_forever</mat-icon></span>
+              <mat-icon class="lead">delete_forever</mat-icon>
               <span class="row-title">Delete everything</span>
               <mat-icon class="chev">chevron_right</mat-icon>
             </button>
@@ -161,19 +159,19 @@ const SOCIALS = [
           <h2 class="group">About</h2>
           <div class="sheet">
             <button matRipple class="row" (click)="page.set('legal')">
-              <span class="tile t-tertiary"><mat-icon>shield</mat-icon></span>
+              <mat-icon class="lead">shield</mat-icon>
               <span class="row-title">Privacy &amp; terms</span>
               <mat-icon class="chev">chevron_right</mat-icon>
             </button>
 
             <button matRipple class="row" (click)="page.set('about')">
-              <span class="tile t-tertiary"><mat-icon>info</mat-icon></span>
+              <mat-icon class="lead">info</mat-icon>
               <span class="row-title">Where the numbers come from</span>
               <mat-icon class="chev">chevron_right</mat-icon>
             </button>
 
             <div class="row">
-              <span class="tile t-primary"><mat-icon>verified</mat-icon></span>
+              <mat-icon class="lead">verified</mat-icon>
               <span class="row-title">Version</span>
               <span class="row-value">{{ version }}</span>
             </div>
@@ -188,13 +186,13 @@ const SOCIALS = [
           <h2 class="group">Developer</h2>
           <div class="sheet">
             <button matRipple class="row" (click)="load()">
-              <span class="tile t-tertiary"><mat-icon>science</mat-icon></span>
+              <mat-icon class="lead">science</mat-icon>
               <span class="row-title">Load demo history</span>
               <span class="row-value">{{ loaded() ? 'Loaded' : '' }}</span>
             </button>
 
             <button matRipple class="row" (click)="clear()">
-              <span class="tile t-tertiary"><mat-icon>restart_alt</mat-icon></span>
+              <mat-icon class="lead">restart_alt</mat-icon>
               <span class="row-title">Reset to a fresh account</span>
             </button>
           </div>
@@ -214,17 +212,17 @@ const SOCIALS = [
         <div class="scroll">
           <div class="sheet">
             <div class="row">
-              <span class="tile t-primary"><mat-icon>school</mat-icon></span>
+              <mat-icon class="lead">school</mat-icon>
               <span class="row-title">Exam</span>
               <span class="row-value">{{ pack.displayName }}</span>
             </div>
             <div class="row">
-              <span class="tile t-tertiary"><mat-icon>groups</mat-icon></span>
+              <mat-icon class="lead">groups</mat-icon>
               <span class="row-title">Coaching</span>
               <span class="row-value">{{ coachingName() }}</span>
             </div>
             <label class="row">
-              <span class="tile t-tertiary"><mat-icon>event</mat-icon></span>
+              <mat-icon class="lead">event</mat-icon>
               <span class="row-title">Exam date</span>
               <span class="edit">
                 {{ store.targetDate() | date: 'd MMM y' }}
@@ -347,11 +345,9 @@ const SOCIALS = [
         <div class="scroll">
           <div class="sheet">
             <button matRipple class="row" (click)="store.blockApps.set(!store.blockApps())">
-              <span class="tile t-primary">
-                <mat-icon [class.filled]="store.blockApps()">
+              <mat-icon class="lead" [class.filled]="store.blockApps()">
                   {{ store.blockApps() ? 'lock' : 'lock_open' }}
                 </mat-icon>
-              </span>
               <span class="row-title">Block apps during a session</span>
               <span class="switch" [class.on]="store.blockApps()"><span class="knob"></span></span>
             </button>
@@ -598,20 +594,11 @@ const SOCIALS = [
     .row.danger .row-title { color: var(--mat-sys-error); }
     .tick { color: var(--mat-sys-primary); }
 
-    /* Leading tile: a container, so an icon reads as an object not a glyph. */
-    .tile {
-      display: grid;
-      place-items: center;
-      width: 36px;
-      height: 36px;
-      flex: none;
-      border-radius: 10px;
-    }
-
-    .tile mat-icon { font-size: 20px; width: 20px; height: 20px; }
-    .t-primary { background: var(--mat-sys-primary); color: var(--mat-sys-on-primary); }
-    .t-tertiary { background: var(--mat-sys-tertiary); color: var(--mat-sys-on-tertiary); }
-    .t-error { background: var(--mat-sys-error); color: var(--mat-sys-on-error); }
+    /* M3's leading slot is a 24dp icon or a 40dp avatar. The coloured tile
+       was neither — an iOS convention — and its colour carried no meaning,
+       since primary and tertiary both resolve purple in this theme. */
+    .lead { flex: none; color: var(--mat-sys-on-surface-variant); }
+    .row.danger .lead { color: var(--mat-sys-error); }
 
     /* Controls */
     .field { display: flex; flex-direction: column; gap: 4px; }
