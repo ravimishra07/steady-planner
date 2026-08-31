@@ -320,43 +320,56 @@ const MIN_BLOCK_HEIGHT = 72;
     .weekdays, .grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 2px;
-      padding: 0 12px;
+      padding: 0 8px;
     }
+
+    .grid { row-gap: 4px; }
 
     .weekdays span {
       text-align: center;
-      font: var(--mat-sys-label-small);
+      font: var(--mat-sys-label-medium);
       color: var(--mat-sys-on-surface-variant);
-      padding-bottom: 2px;
+      padding-bottom: 8px;
     }
 
+    /* The cell is the touch target; the selection lives on the number, so it
+       stays a 40dp circle instead of stretching into an ellipse with the
+       column width. */
     .cell {
-      position: relative;
-      height: 40px;
-      display: grid;
-      place-items: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 0;
       border: none;
-      border-radius: var(--mat-sys-corner-full);
       background: transparent;
       color: var(--mat-sys-on-surface);
       font: var(--mat-sys-body-medium);
       cursor: pointer;
     }
 
-    .cell.today .num { color: var(--mat-sys-primary); font-weight: 600; }
-    .cell.on { background: var(--mat-sys-primary); }
-    .cell.on .num { color: var(--mat-sys-on-primary); }
-    .cell.on .dot { background: var(--mat-sys-on-primary); }
+    .num {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      line-height: 1;
+    }
+
+    /* Today unselected is an outline; selected is filled. Never both. */
+    .cell.today .num { box-shadow: inset 0 0 0 1px var(--mat-sys-primary); color: var(--mat-sys-primary); }
+    .cell.on .num { background: var(--mat-sys-primary); color: var(--mat-sys-on-primary); box-shadow: none; }
     .cell.empty { cursor: default; }
 
-    .marks { position: absolute; bottom: 5px; display: flex; gap: 2px; }
+    /* Below the circle, so it never crowds the number. */
+    .marks { display: flex; gap: 3px; height: 5px; }
 
     .dot {
-      width: 4px;
-      height: 4px;
+      width: 5px;
+      height: 5px;
       border-radius: 50%;
-      background: var(--mat-sys-outline);
+      background: var(--mat-sys-outline-variant);
     }
 
     .dot.done { background: var(--mat-sys-primary); }
