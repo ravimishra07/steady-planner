@@ -10,7 +10,15 @@ import { RECALLS, Recall, nextInterval } from '../study/retention';
 import { Block, StudyBlock, subjectLabel } from './scheduler';
 import { DayPlanner, blockKey } from './day-planner';
 
-interface DayCell { date: Date; day: number; planned: boolean; logged: boolean; }
+interface DayCell {
+  date: Date;
+  day: number;
+  label: string;
+  planned: boolean;
+  /** Minutes logged, and the day's own target, for the completion bar. */
+  minutes: number;
+  target: number;
+}
 
 const PX_PER_MINUTE = 0.75;
 const MIN_BLOCK_HEIGHT = 72;
@@ -31,22 +39,25 @@ const MIN_BLOCK_HEIGHT = 72;
         <mat-icon [class.up]="expanded()">keyboard_arrow_down</mat-icon>
       </button>
 
-      <div class="weekdays">
-        @for (d of weekdayLabels; track $index) { <span>{{ d }}</span> }
-      </div>
+      @if (expanded()) {
+        <div class="weekdays">
+          @for (d of weekdayLabels; track $index) { <span>{{ d }}</span> }
+        </div>
+      }
 
-      <div class="grid">
+      <div class="grid" [class.month-grid]="expanded()">
         @for (cell of (expanded() ? monthCells() : weekCells()); track $index) {
           @if (cell) {
             <button
               class="cell"
               [class.on]="isSelected(cell.date)"
               [class.today]="isToday(cell.date)"
+              [class.past]="cell.date < today"
               (click)="selected.set(cell.date)">
+              @if (!expanded()) { <span class="dow">{{ cell.label }}</span> }
               <span class="num">{{ cell.day }}</span>
-              <span class="marks">
-                @if (cell.logged) { <span class="dot done"></span> }
-                @else if (cell.planned) { <span class="dot"></span> }
+              <span class="meter" [class.untouched]="cell.minutes === 0">
+                <span class="meter-fill" [style.width.%]="fill(cell)"></span>
               </span>
             </button>
           } @else {
@@ -323,7 +334,7 @@ const MIN_BLOCK_HEIGHT = 72;
       padding: 0 8px;
     }
 
-    .grid { row-gap: 4px; }
+    .grid { row-gap: 2px; column-gap: 2px; }
 
     .weekdays span {
       text-align: center;
@@ -332,47 +343,55 @@ const MIN_BLOCK_HEIGHT = 72;
       padding-bottom: 8px;
     }
 
-    /* The cell is the touch target; the selection lives on the number, so it
-       stays a 40dp circle instead of stretching into an ellipse with the
-       column width. */
+    /* A day is one object — its letter, its number and how full it was —
+       rather than a letter in one row and a circle in another. */
     .cell {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 3px;
-      padding: 0;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 0 10px;
       border: none;
+      border-radius: 22px;
       background: transparent;
       color: var(--mat-sys-on-surface);
-      font: var(--mat-sys-body-medium);
       cursor: pointer;
+      transition: background 140ms ease;
     }
 
-    .num {
-      display: grid;
-      place-items: center;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      line-height: 1;
+    .dow { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); line-height: 1; }
+    .num { font: var(--mat-sys-title-medium); line-height: 1; }
+    .cell.past .num, .cell.past .dow { opacity: .55; }
+
+    /* Selected is the whole day, not a ring around its number. */
+    .cell.on {
+      background: var(--mat-sys-secondary-container);
+      color: var(--mat-sys-on-secondary-container);
     }
 
-    /* Today unselected is an outline; selected is filled. Never both. */
-    .cell.today .num { box-shadow: inset 0 0 0 1px var(--mat-sys-primary); color: var(--mat-sys-primary); }
-    .cell.on .num { background: var(--mat-sys-primary); color: var(--mat-sys-on-primary); box-shadow: none; }
+    .cell.on .dow { color: var(--mat-sys-on-secondary-container); opacity: .8; }
+    .cell.on .num { font-weight: 600; }
+    .cell.on.past .num, .cell.on.past .dow { opacity: 1; }
+    .cell.today .num { color: var(--mat-sys-primary); }
+    .cell.today.on .num { color: var(--mat-sys-on-secondary-container); }
     .cell.empty { cursor: default; }
 
-    /* Below the circle, so it never crowds the number. */
-    .marks { display: flex; gap: 3px; height: 5px; }
-
-    .dot {
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: var(--mat-sys-outline-variant);
+    /* How full the day was, in place of a dot that only said yes or no. */
+    .meter {
+      width: 20px;
+      height: 3px;
+      border-radius: 2px;
+      background: var(--mat-sys-surface-container-highest);
+      overflow: hidden;
     }
 
-    .dot.done { background: var(--mat-sys-primary); }
+    .meter.untouched { background: transparent; box-shadow: inset 0 0 0 1px var(--mat-sys-surface-container-highest); }
+    .meter-fill { display: block; height: 100%; border-radius: 2px; background: var(--mat-sys-primary); }
+    .cell.on .meter-fill { background: var(--mat-sys-on-secondary-container); }
+
+    /* The month grid keeps the compact form: no weekday letter per cell. */
+    .month-grid .cell { border-radius: 18px; padding: 6px 0 8px; gap: 4px; }
 
     /* One headline number, then the qualifiers under it. */
     .summary {
@@ -793,6 +812,7 @@ export class TodayScreen {
   protected readonly tasks: Task[] = ['Learn', 'Practice', 'Revise'];
 
   protected readonly expanded = signal(false);
+  protected readonly today = startOfToday();
   protected readonly selected = signal(startOfToday());
 
   protected readonly session = signal<StudyBlock | null>(null);
@@ -1058,13 +1078,21 @@ export class TodayScreen {
   }
 
   private cell(date: Date): DayCell {
-    const key = dateKey(date);
+    const weekend = date.getDay() === 0 || date.getDay() === 6;
     return {
       date,
       day: date.getDate(),
+      label: this.weekdayLabels[date.getDay()],
       planned: date >= startOfToday() && date <= this.store.targetDate(),
-      logged: this.study.minutesOn(key) > 0,
+      minutes: this.study.minutesOn(dateKey(date)),
+      target: (weekend ? this.store.weekendHours() : this.store.weekdayHours()) * 60,
     };
+  }
+
+  /** How full a day is, for the bar under its number. */
+  protected fill(cell: DayCell): number {
+    if (cell.target <= 0) return 0;
+    return Math.min(100, Math.round((cell.minutes / cell.target) * 100));
   }
 }
 
