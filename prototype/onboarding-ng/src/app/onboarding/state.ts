@@ -166,6 +166,8 @@ export class OnboardingStore {
   readonly wakeMinute = persisted<number>('wake', DEFAULT_WAKE);
   /** Gap between two sittings in the same stretch of free time. */
   readonly breakMinutes = persisted<number>('break', 15);
+  /** Whether a running focus session blocks distracting apps. */
+  readonly blockApps = persisted<boolean>('block-apps', true);
   readonly sleepMinute = persisted<number>('sleep', DEFAULT_SLEEP);
 
   addCommitment(preset: (typeof COMMITMENT_PRESETS)[number]): void {

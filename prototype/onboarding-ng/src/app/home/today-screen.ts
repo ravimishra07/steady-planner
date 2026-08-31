@@ -7,8 +7,8 @@ import { COACHINGS, OnboardingStore, addDays, startOfToday } from '../onboarding
 import { ALL_CHAPTERS, Chapter, chapterIsDone } from '../onboarding/exam-pack';
 import { StudyStore, Task, dateKey } from '../study/study-store';
 import { RECALLS, Recall, nextInterval } from '../study/retention';
-import { Block, StudyBlock, freeWindows, layOutDay, subjectLabel } from './scheduler';
-import { dayCandidates } from './day-plan';
+import { Block, StudyBlock, subjectLabel } from './scheduler';
+import { DayPlanner, blockKey } from './day-planner';
 
 interface DayCell { date: Date; day: number; planned: boolean; logged: boolean; }
 
@@ -651,15 +651,12 @@ const MIN_BLOCK_HEIGHT = 72;
 export class TodayScreen {
   protected readonly store = inject(OnboardingStore);
   protected readonly study = inject(StudyStore);
+  private readonly planner = inject(DayPlanner);
   protected readonly weekdayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   protected readonly tasks: Task[] = ['Learn', 'Practice', 'Revise'];
 
   protected readonly expanded = signal(false);
   protected readonly selected = signal(startOfToday());
-
-  /** Minutes pushed onto a block, keyed by chapter+task, for this day only. */
-  private readonly pushed = signal<ReadonlyMap<string, number>>(new Map());
-  private readonly skipped = signal<ReadonlySet<string>>(new Set());
 
   protected readonly session = signal<StudyBlock | null>(null);
   protected readonly picker = signal<{ startMinute: number; minutes: number } | null>(null);
@@ -692,107 +689,8 @@ export class TodayScreen {
 
   /* ---- The day ------------------------------------------------------- */
 
-  protected readonly blocks = computed<Block[]>(() => {
-    const date = this.selected();
-    const weekday = date.getDay();
-    const commitments = this.store.commitments();
+  protected readonly blocks = computed<Block[]>(() => this.planner.blocksFor(this.selected()));
 
-    const windows = freeWindows(
-      commitments,
-      weekday,
-      this.store.wakeMinute(),
-      this.store.sleepMinute(),
-    );
-
-    const askedHours = weekday === 0 || weekday === 6
-      ? this.store.weekendHours()
-      : this.store.weekdayHours();
-    const free = windows.reduce((n, w) => n + w.minutes, 0);
-    // Never plan more than the day physically has, even if the slider says so.
-    const target = Math.min(askedHours * 60, free);
-
-    const candidates = dayCandidates({
-      doneUnits: this.planningDone(),
-      parked: this.store.parkedChapters(),
-      learnedSubtopics: this.study.learnedSubtopics(),
-      stat: (id) => this.study.stat(id),
-      date,
-      slots: 8,
-    });
-
-    const laid = layOutDay(
-      windows,
-      commitments,
-      weekday,
-      candidates,
-      target,
-      this.coachingName(),
-      this.store.breakMinutes(),
-    );
-
-    return this.applyEdits(laid);
-  });
-
-  /**
-   * Ticks made *today* are held back from the planner, so finishing a block
-   * does not rewrite the day underneath the user — the block stays where it
-   * is and turns into a logged one.
-   */
-  private readonly planningDone = computed(() => {
-    const today = new Set(
-      this.study.sessionsOn(this.key()).map((s) => s.subtopicId).filter((id): id is string => !!id),
-    );
-    if (today.size === 0) return this.store.doneUnits();
-    const out = new Set(this.store.doneUnits());
-    for (const id of today) out.delete(id);
-    return out as ReadonlySet<string>;
-  });
-
-  /** Pushes, skips, extras and logged state, applied over the generated day. */
-  private applyEdits(blocks: Block[]): Block[] {
-    const key = this.key();
-    const pushed = this.pushed();
-    const skipped = this.skipped();
-
-    const out = blocks
-      .filter((b) => b.kind !== 'study' || !skipped.has(blockKey(b)))
-      .map((b) => {
-        if (b.kind !== 'study') return b;
-        return {
-          ...b,
-          startMinute: b.startMinute + (pushed.get(blockKey(b)) ?? 0),
-          done: this.study.isLogged(key, b.chapterId, b.task, b.subtopicId),
-        };
-      });
-
-    for (const extra of this.study.extrasOn(key)) {
-      const chapter = ALL_CHAPTERS.find((c) => c.id === extra.chapterId);
-      if (!chapter) continue;
-      const subtopic = chapter.subtopics.find((t) => t.id === extra.subtopicId);
-      out.push({
-        kind: 'study',
-        startMinute: extra.startMinute,
-        minutes: extra.minutes,
-        task: extra.task,
-        title: subtopic?.name ?? chapter.name,
-        context: subtopic ? `${subjectLabel(chapter)} · ${chapter.name}` : subjectLabel(chapter),
-        chapterId: chapter.id,
-        subtopicId: extra.subtopicId,
-        questions: extra.task === 'Practice' ? Math.round(extra.minutes / 1.2) : undefined,
-        done: this.study.isLogged(key, chapter.id, extra.task, extra.subtopicId),
-      });
-    }
-
-    // An added block eats the free slot it was dropped into.
-    const claimed = this.study.extrasOn(key);
-    return out
-      .filter(
-        (b) =>
-          b.kind !== 'gap' ||
-          !claimed.some((e) => e.startMinute >= b.startMinute && e.startMinute < b.startMinute + b.minutes),
-      )
-      .sort((a, b) => a.startMinute - b.startMinute);
-  }
 
   protected readonly plannedMinutes = computed(() =>
     this.blocks().filter((b) => b.kind === 'study').reduce((n, b) => n + b.minutes, 0),
@@ -868,14 +766,12 @@ export class TodayScreen {
       this.skip(block);
       return;
     }
-    const next = new Map(this.pushed());
-    next.set(blockKey(block), (next.get(blockKey(block)) ?? 0) + minutes);
-    this.pushed.set(next);
+    this.planner.push(block, minutes);
     this.session.set(null);
   }
 
   protected skip(block: StudyBlock): void {
-    this.skipped.set(new Set(this.skipped()).add(blockKey(block)));
+    this.planner.skip(block);
     this.session.set(null);
   }
 
@@ -975,6 +871,3 @@ export class TodayScreen {
   }
 }
 
-function blockKey(block: StudyBlock): string {
-  return `${block.chapterId}|${block.task}|${block.subtopicId ?? ''}`;
-}
