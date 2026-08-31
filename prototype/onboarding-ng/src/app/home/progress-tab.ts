@@ -3,9 +3,8 @@ import { DatePipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatRippleModule } from '@angular/material/core';
 import { OnboardingStore, addDays, startOfToday } from '../onboarding/state';
-import { ALL_CHAPTERS, Chapter, PACK, Subject, chapterIsDone } from '../onboarding/exam-pack';
-import { StudyStore } from '../study/study-store';
-import { RetentionState } from '../study/retention';
+import { ALL_CHAPTERS, Chapter, PACK, chapterIsDone } from '../onboarding/exam-pack';
+import { StudyStore, dateKey } from '../study/study-store';
 
 /**
  * Weeks the consistency grid shows. Long enough to read as a habit, short
@@ -15,7 +14,6 @@ const HEATMAP_WEEKS = 18;
 /** Days in the hours chart. */
 const HOURS_DAYS = 14;
 
-interface Depth { id: string; name: string; r3: number; r2: number; r1: number; learnt: number; total: number; }
 
 /**
  * Progress: not one percentage, but the four questions an aspirant actually
@@ -27,40 +25,37 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
   imports: [MatIconModule, MatRippleModule, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- Readiness is the focal point: brightest surface, most space, one
-         numeral. Everything below is support for it. -->
+    <!-- Coverage: a count of ticks the user made. Not a score about them. -->
     <header class="hero">
-      <button matRipple class="ring-wrap" (click)="explainOpen.set(true)"
-              aria-label="How these numbers work">
+      <div class="ring-wrap">
         <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
           <circle class="ring-track" cx="60" cy="60" r="52" />
           <circle class="ring-fill" cx="60" cy="60" r="52"
                   [attr.stroke-dasharray]="circumference"
-                  [attr.stroke-dashoffset]="circumference * (1 - readiness() / 100)" />
+                  [attr.stroke-dashoffset]="circumference * (1 - coverage() / 100)" />
         </svg>
         <span class="ring-text">
-          <span class="ring-value">{{ readiness() }}<span class="pct">%</span></span>
-          <span class="ring-unit">exam ready <mat-icon>info</mat-icon></span>
+          <span class="ring-value">{{ coverage() }}<span class="pct">%</span></span>
+          <span class="ring-unit">covered</span>
         </span>
-      </button>
+      </div>
 
       <dl class="facts">
         <div class="fact">
-          <dt>Days to exam</dt>
-          <dd>{{ store.days() }}</dd>
-        </div>
-        <div class="fact">
-          <dt>Chapters learnt</dt>
+          <dt>Chapters done</dt>
           <dd>{{ rounds().learned }}<span class="of"> of {{ inPlay() }}</span></dd>
         </div>
         <div class="fact">
-          <dt>Still remembered</dt>
-          <dd>{{ held() }}</dd>
+          <dt>Hours logged</dt>
+          <dd>{{ compact(study.totalMinutes()) }}</dd>
+        </div>
+        <div class="fact">
+          <dt>Days studied</dt>
+          <dd>{{ study.daysStudied() }}</dd>
         </div>
       </dl>
     </header>
 
-    <!-- The only real card on the page: one subject, and an action. -->
     <section class="pace" [class.behind]="behind()" [class.unknown]="daysNeeded() === null">
       <span class="pace-head">
         <mat-icon>{{ verdictIcon() }}</mat-icon>
@@ -80,58 +75,69 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
       }
     </section>
 
-    <!-- Retention -->
     <section class="block">
-      <h2 class="block-title">Recall</h2>
-
-      <div class="metrics">
-        <div class="metric"><span class="metric-value">{{ counts().fresh }}</span><span class="metric-label">still fresh</span></div>
-        <div class="metric"><span class="metric-value">{{ outstanding() }}</span><span class="metric-label">due to revise</span></div>
-        <div class="metric"><span class="metric-value" [class.alert]="counts().lost > 0">{{ counts().lost }}</span><span class="metric-label">likely forgotten</span></div>
+      <div class="block-head">
+        <h2 class="block-title">Due to revise</h2>
+        <div class="range">
+          @for (r of ranges; track r) {
+            <button matRipple class="range-btn" [class.on]="dueRange() === r" (click)="dueRange.set(r)">{{ r }}d</button>
+          }
+        </div>
       </div>
 
       <div class="plot">
         @for (d of dueAhead(); track $index) {
-          <span class="plot-col" [attr.title]="d.count + ' due'">
+          <span class="plot-col" [attr.title]="d.label + ' — ' + d.count">
             <span class="plot-num" [class.zero]="d.count === 0">{{ d.count }}</span>
             <span class="plot-bar" [style.height.%]="aheadHeight(d.count)" [class.none]="d.count === 0"></span>
-            <span class="plot-tick">{{ $index === 0 ? 'due' : shortDay(d.date) }}</span>
+            <span class="plot-tick">{{ d.tick }}</span>
           </span>
         }
       </div>
 
-      @if (worst().length > 0) {
+      @if (dueList().length > 0) {
         <ul class="rows">
-          @for (row of worst(); track row.chapter.id) {
-            <li class="row">
-              <span class="row-text">
-                <span class="row-name">{{ row.chapter.name }}</span>
-                <span class="row-meta">{{ subjectName(row.chapter) }} · {{ row.overdue }}d late</span>
-              </span>
-              <span class="row-stack">
-                <span class="row-value alert">{{ Math.round(row.strength * 100) }}%</span>
-                <span class="row-unit">recall</span>
-              </span>
+          @for (row of dueList(); track row.chapter.id) {
+            <li>
+              <button matRipple class="row" (click)="addToday(row.chapter)">
+                <span class="row-text">
+                  <span class="row-name">{{ row.chapter.name }}</span>
+                  <span class="row-meta">{{ subjectName(row.chapter) }} · {{ lastSeen(row.stat.lastTouched) }}</span>
+                </span>
+                <span class="row-action" [class.done]="isQueued(row.chapter)">
+                  <mat-icon>{{ isQueued(row.chapter) ? 'check' : 'add' }}</mat-icon>
+                  {{ isQueued(row.chapter) ? 'Added' : 'Today' }}
+                </span>
+              </button>
             </li>
           }
         </ul>
+
+        @if (dueNow().length > 3) {
+          <button matRipple class="more" (click)="showAllDue.set(!showAllDue())">
+            {{ showAllDue() ? 'Show less' : 'Show all ' + dueNow().length }}
+          </button>
+        }
+      } @else {
+        <p class="empty">Nothing due — everything is on its schedule.</p>
       }
     </section>
 
-    <!-- Consistency -->
     <section class="block">
-      <h2 class="block-title">Consistency</h2>
+      <div class="block-head">
+        <h2 class="block-title">Time</h2>
+        <span class="block-aside">{{ streak().current }} day streak</span>
+      </div>
 
-      <div class="metrics">
-        <div class="metric"><span class="metric-value">{{ streak().current }}</span><span class="metric-label">streak</span></div>
-        <div class="metric"><span class="metric-value">{{ streak().longest }}</span><span class="metric-label">longest</span></div>
-        <div class="metric"><span class="metric-value">{{ compact(thisWeek()) }}</span><span class="metric-label">7 days</span></div>
-        <div class="metric">
-          <span class="metric-value" [class.good]="weekDelta() >= 10" [class.alert]="weekDelta() <= -10">
-            {{ weekDelta() > 0 ? '+' : '' }}{{ weekDelta() }}%
+      <p class="lead">{{ hours(averageMinutes()) }} <span class="lead-unit">a day, last {{ hoursDays }} days</span></p>
+
+      <div class="plot tall" [style.--target]="targetRatio()">
+        <span class="target"><span class="target-tag">{{ store.weekdayHours() }}h target</span></span>
+        @for (d of daily(); track d.key) {
+          <span class="plot-col" [attr.title]="barTitle(d)">
+            <span class="plot-bar" [class.none]="d.minutes === 0" [style.height.%]="barHeight(d.minutes)"></span>
           </span>
-          <span class="metric-label">vs before</span>
-        </div>
+        }
       </div>
 
       <div class="months" [style.grid-template-columns]="'14px repeat(' + heatmapWeeks + ', 1fr)'">
@@ -150,123 +156,16 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
           }
         </div>
       </div>
-
-      <div class="legend">
-        <span class="caption">Less</span>
-        @for (l of [0, 1, 2, 3, 4]; track l) { <span class="cell" [class]="'l' + l"></span> }
-        <span class="caption">More</span>
-      </div>
     </section>
 
-    <!-- Hours -->
-    <section class="block">
-      <div class="block-head">
-        <h2 class="block-title">Hours</h2>
-        <span class="block-aside">{{ hoursDays }} days</span>
-      </div>
-
-      <p class="lead">{{ hours(averageMinutes()) }} <span class="lead-unit">a day</span></p>
-
-      <div class="plot tall" [style.--target]="targetRatio()">
-        <span class="target"><span class="target-tag">{{ store.weekdayHours() }}h target</span></span>
-        @for (d of daily(); track d.key) {
-          <span class="plot-col" [attr.title]="barTitle(d)">
-            <span class="plot-bar" [class.none]="d.minutes === 0" [style.height.%]="barHeight(d.minutes)"></span>
-          </span>
-        }
-      </div>
-
-    </section>
-
-    <!-- Depth -->
-    <section class="block">
-      <h2 class="block-title">Revision</h2>
-
-      <ul class="rows">
-        @for (d of depth(); track d.id) {
-          <li class="row bar-row">
-            <span class="row-text">
-              <span class="row-name">{{ d.name }}</span>
-              <span class="track">
-                <span class="seg s3" [style.width.%]="pct(d.r3, d.total)"></span>
-                <span class="seg s2" [style.width.%]="pct(d.r2 - d.r3, d.total)"></span>
-                <span class="seg s1" [style.width.%]="pct(d.r1 - d.r2, d.total)"></span>
-                <span class="seg s0" [style.width.%]="pct(d.learnt - d.r1, d.total)"></span>
-              </span>
-            </span>
-            <span class="row-value">{{ d.learnt }}<span class="of">/{{ d.total }}</span></span>
-          </li>
-        }
-      </ul>
-
-      <div class="key">
-        @for (k of depthKey; track k.cls) {
-          <span class="key-item"><span class="swatch" [class]="k.cls"></span>{{ k.label }}</span>
-        }
-      </div>
-    </section>
-
-    <!-- Accuracy -->
-    <section class="block">
-      <div class="block-head">
-        <h2 class="block-title">Accuracy</h2>
-        <span class="block-aside">{{ attemptedTotal() }} questions</span>
-      </div>
-
-      <ul class="rows">
-        @for (s of subjects; track s.id) {
-          <li class="row bar-row">
-            <span class="row-text">
-              <span class="row-name">{{ s.name }}</span>
-              <span class="track"><span class="seg s3" [style.width.%]="subjectRate(s) ?? 0"></span></span>
-            </span>
-            <span class="row-value">{{ subjectRate(s) === null ? '—' : subjectRate(s) + '%' }}</span>
-          </li>
-        }
-      </ul>
-
-      @if (weak().length > 0) {
-        <h3 class="sub-title">Weakest</h3>
-        <ul class="rows">
-          @for (row of weak(); track row.chapter.id) {
-            <li class="row">
-              <span class="row-text">
-                <span class="row-name">{{ row.chapter.name }}</span>
-                <span class="row-meta">{{ subjectName(row.chapter) }} · {{ row.stat.attempted }} questions</span>
-              </span>
-              <span class="row-stack">
-                <span class="row-value alert">{{ rate(row.rate) }}%</span>
-                <span class="row-unit">correct</span>
-              </span>
-            </li>
-          }
-        </ul>
-      }
-    </section>
-
-    @if (explainOpen()) {
-      <div class="scrim" (click)="explainOpen.set(false)"></div>
-      <div class="sheet" role="dialog" aria-label="How these numbers work">
-        <span class="handle"></span>
-        <h3 class="sheet-title">How these numbers work</h3>
-        <ul class="notes">
-          <li><b>Exam ready</b> — how much you have covered, discounted by how much of it you still remember, plus practice accuracy.</li>
-          <li><b>Still remembered</b> — a chapter is at full strength the day you revise it and fades to nothing one interval past its due date.</li>
-          <li><b>Passes</b> — revisions fall due after 3, 10, 30 and 60 days, pulled in or pushed out by how the last sitting went.</li>
-          <li>Chapter hours are planning estimates, not measurements.</li>
-        </ul>
-      </div>
-    }
-
-    <!-- Rebalance: a gap is a decision to make, not a scolding. -->
     @if (rebalanceOpen()) {
       <div class="scrim" (click)="rebalanceOpen.set(false)"></div>
       <div class="sheet" role="dialog" aria-label="Adjust the plan">
         <span class="handle"></span>
         <h3 class="sheet-title">{{ behind() ? "The plan doesn't fit" : 'Adjust the plan' }}</h3>
         <p class="sheet-sub">
-          {{ store.requiredHours() }}h of syllabus, {{ store.days() }} days, averaging
-          {{ perDay().toFixed(1) }}h a day.
+          {{ store.requiredHours() }}h of syllabus, {{ store.days() }} days,
+          {{ perDay().toFixed(1) }}h a day so far.
           {{ behind() ? 'Something has to give — you pick which.' : 'It fits, for now.' }}
         </p>
 
@@ -277,7 +176,6 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
               <span class="option-head">Study more</span>
               <span class="option-sub">
                 {{ neededPerDay().toFixed(1) }}h a day covers it, up from {{ store.weekdayHours() }}h.
-                Only real if the hours exist.
               </span>
             </span>
           </button>
@@ -471,6 +369,26 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
     .block-head .block-title { margin-bottom: 16px; }
     .block-aside { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
 
+    /* Range control: the window is the user's choice, not a constant. */
+    .range { display: flex; gap: 4px; }
+
+    .range-btn {
+      height: 28px;
+      padding: 0 10px;
+      border: 1px solid var(--mat-sys-outline-variant);
+      border-radius: var(--mat-sys-corner-full);
+      background: transparent;
+      color: var(--mat-sys-on-surface-variant);
+      font: var(--mat-sys-label-small);
+      cursor: pointer;
+    }
+
+    .range-btn.on {
+      border-color: transparent;
+      background: var(--mat-sys-secondary-container);
+      color: var(--mat-sys-on-secondary-container);
+    }
+
     .sub-title {
       margin: 24px 0 8px;
       font: var(--mat-sys-title-small);
@@ -503,7 +421,7 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
     }
 
     /* Plots: one component, two heights ---------------------------------- */
-    .plot { position: relative; display: flex; align-items: flex-end; gap: 5px; height: 76px; }
+    .plot { position: relative; display: flex; align-items: flex-end; gap: 5px; height: 76px; margin-bottom: 20px; }
     .plot.tall { height: 104px; }
     .plot-col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; }
 
@@ -546,16 +464,53 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
     /* Rows: one list component ------------------------------------------- */
     .rows { margin: 0; padding: 0; list-style: none; }
 
+    /* Every row here does something, so every row is a button. */
     .row {
+      width: 100%;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
       min-height: 56px;
       padding: 8px 0;
+      border: none;
+      background: transparent;
+      color: var(--mat-sys-on-surface);
+      text-align: left;
+      cursor: pointer;
     }
 
-    .row + .row { border-top: 1px solid var(--mat-sys-outline-variant); }
+    .rows li + li .row { border-top: 1px solid var(--mat-sys-outline-variant); }
+
+    .row-action {
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font: var(--mat-sys-label-large);
+      color: var(--mat-sys-primary);
+    }
+
+    .row-action.done { color: var(--mat-sys-on-surface-variant); }
+    .row-action mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+    .more {
+      margin-top: 8px;
+      padding: 8px 0;
+      border: none;
+      background: transparent;
+      color: var(--mat-sys-primary);
+      font: var(--mat-sys-label-large);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .empty {
+      margin: 0;
+      padding: 8px 0;
+      font: var(--mat-sys-body-medium);
+      color: var(--mat-sys-on-surface-variant);
+    }
     .row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
     .row-name { font: var(--mat-sys-body-large); color: var(--mat-sys-on-surface); }
     .row-meta { font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
@@ -698,22 +653,10 @@ interface Depth { id: string; name: string; r3: number; r2: number; r1: number; 
 export class ProgressTab {
   protected readonly store = inject(OnboardingStore);
   protected readonly study = inject(StudyStore);
-  protected readonly subjects = PACK.subjects;
   protected readonly hoursDays = HOURS_DAYS;
   protected readonly heatmapWeeks = HEATMAP_WEEKS;
   protected readonly circumference = 2 * Math.PI * 52;
   protected readonly Math = Math;
-
-  /**
-   * Listed in the order the bar stacks them, deepest pass on the left, and
-   * spelled out — "R2" means nothing to someone opening this the first time.
-   */
-  protected readonly depthKey = [
-    { cls: 's3', label: '3rd pass' },
-    { cls: 's2', label: '2nd pass' },
-    { cls: 's1', label: '1st pass' },
-    { cls: 's0', label: 'not revised' },
-  ];
 
   protected readonly rounds = computed(() => this.study.rounds());
 
@@ -722,23 +665,81 @@ export class ProgressTab {
     () => this.rounds().total - this.store.parkedChapters().size,
   );
 
-  /* ---- Retention ------------------------------------------------------ */
+  /** Plain coverage: ticks the user made, over the chapters still in play. */
+  protected readonly coverage = computed(() =>
+    Math.round((this.rounds().learned / Math.max(1, this.inPlay())) * 100),
+  );
 
-  protected readonly counts = computed(() => {
-    const rows = this.study.retention();
-    const of = (state: RetentionState) => rows.filter((r) => r.state === state).length;
-    return { fresh: of('fresh'), due: of('due'), slipping: of('slipping'), lost: of('lost') };
+  /* ---- Due to revise -------------------------------------------------- */
+
+  protected readonly ranges = [7, 30, 90];
+  protected readonly dueRange = signal(7);
+  protected readonly showAllDue = signal(false);
+  protected readonly dueNow = computed(() => this.study.dueNow());
+
+  /** Three at a time until asked for the rest. */
+  protected readonly dueList = computed(() =>
+    this.showAllDue() ? this.dueNow() : this.dueNow().slice(0, 3),
+  );
+
+  /**
+   * Outstanding first, then what falls due. A week or less goes day by day;
+   * longer ranges bucket into weeks so the axis stays readable.
+   */
+  protected readonly dueAhead = computed(() => {
+    const days = this.dueRange();
+    const raw = this.study.dueOver(days);
+    const head = { count: raw[0].count, tick: 'due', label: 'Outstanding' };
+    if (days <= 7) {
+      return [
+        head,
+        ...raw.slice(1).map((d) => ({
+          count: d.count,
+          tick: this.shortDay(d.date),
+          label: d.date.toLocaleDateString(),
+        })),
+      ];
+    }
+    const out = [head];
+    for (let i = 1; i < raw.length; i += 7) {
+      const week = raw.slice(i, i + 7);
+      out.push({
+        count: week.reduce((n, d) => n + d.count, 0),
+        tick: '+' + Math.ceil((i + 6) / 7) + 'w',
+        label: 'week of ' + week[0].date.toLocaleDateString(),
+      });
+    }
+    return out;
   });
 
-  protected held(): string {
-    const value = this.study.heldStrength();
-    return value === null ? '—' : Math.round(value * 100) + '%';
+  /** The row does something: drop a due chapter into today. */
+  protected addToday(chapter: Chapter): void {
+    if (this.isQueued(chapter)) return;
+    this.study.addExtra({
+      dateKey: dateKey(startOfToday()),
+      startMinute: 20 * 60,
+      minutes: 30,
+      task: 'Revise',
+      chapterId: chapter.id,
+    });
   }
 
-  /** Everything already due, whatever its state — what the planner will pick. */
-  protected readonly outstanding = computed(() => this.study.dueNow().length);
+  protected isQueued(chapter: Chapter): boolean {
+    return this.study
+      .extrasOn(dateKey(startOfToday()))
+      .some((e) => e.chapterId === chapter.id);
+  }
 
-  protected readonly dueAhead = computed(() => this.study.dueOver(7));
+  /** A date the user can check, not a modelled percentage. */
+  protected lastSeen(key: string | null): string {
+    if (!key) return 'not opened yet';
+    const [y, m, d] = key.split('-').map(Number);
+    const days = Math.round((startOfToday().getTime() - new Date(y, m - 1, d).getTime()) / 86_400_000);
+    if (days <= 0) return 'last opened today';
+    if (days === 1) return 'last opened yesterday';
+    return `last opened ${days} days ago`;
+  }
+
 
   private readonly aheadMax = computed(() =>
     Math.max(1, ...this.dueAhead().map((d) => d.count)),
@@ -750,34 +751,6 @@ export class ProgressTab {
 
   protected shortDay(date: Date): string {
     return date.toLocaleDateString(undefined, { weekday: 'narrow' });
-  }
-
-  protected readonly worst = computed(() =>
-    this.study.slipping().slice(0, 3),
-  );
-
-  protected stateLabel(state: RetentionState): string {
-    return { fresh: 'holding', due: 'due today', slipping: 'slipping', lost: 'gone cold', new: 'not started' }[state];
-  }
-
-  /* ---- Readiness ------------------------------------------------------ */
-
-  /**
-   * Coverage 40, retention 30, accuracy 30. Coverage counts only what is still
-   * in the plan, and is discounted by how much of it is actually still held —
-   * a syllabus learnt once and abandoned should not read as progress.
-   */
-  protected readonly readiness = computed(() => {
-    const r = this.rounds();
-    const hold = this.study.heldStrength() ?? 0;
-    const coverage = (r.learned / Math.max(1, this.inPlay())) * (0.4 + 0.6 * hold);
-    const accuracy = (this.study.accuracy() ?? 0) / 100;
-    return Math.round((coverage * 0.4 + hold * 0.3 + accuracy * 0.3) * 100);
-  });
-
-  protected accuracyLabel(): string {
-    const a = this.study.accuracy();
-    return a === null ? 'no' : a + '%';
   }
 
   /* ---- Pace ----------------------------------------------------------- */
@@ -889,7 +862,7 @@ export class ProgressTab {
     const needed = this.daysNeeded();
     if (needed === null) return 'Not enough history to judge pace';
     const slack = this.store.days() - needed;
-    if (slack >= 0) return `On track — ${slack} days of slack`;
+    if (slack >= 0) return `On track — ${slack} days spare`;
     // Stated as a shortfall to close, not a debt already run up.
     return `The plan needs ${(this.neededPerDay()).toFixed(1)}h a day`;
   }
@@ -899,9 +872,9 @@ export class ProgressTab {
     if (needed === null) return 'Log a few days of study and this fills in.';
     const slack = this.store.days() - needed;
     if (slack >= 0) {
-      return `${this.remainingHours()}h left · ${this.perDay().toFixed(1)}h a day average`;
+      return `${Math.round(this.remainingHours())}h left · ${this.perDay().toFixed(1)}h a day over ${HOURS_DAYS} days`;
     }
-    return `You are averaging ${this.perDay().toFixed(1)}h. ${this.remainingHours()}h of syllabus, ${this.store.days()} days.`;
+    return `${Math.round(this.remainingHours())}h of syllabus, ${this.store.days()} days, ${this.perDay().toFixed(1)}h a day so far.`;
   }
 
   /* ---- Consistency ---------------------------------------------------- */
@@ -974,69 +947,10 @@ export class ProgressTab {
 
   /* ---- Depth ---------------------------------------------------------- */
 
-  protected readonly depth = computed<Depth[]>(() => {
-    const done = this.store.doneUnits();
-    return PACK.subjects.map((subject) => {
-      const chapters = subject.sections.flatMap((s) => s.chapters);
-      const learnt = chapters.filter((c) => chapterIsDone(c, done));
-      const at = (n: number) => learnt.filter((c) => this.study.stat(c.id).revisions >= n).length;
-      return {
-        id: subject.id,
-        name: subject.name,
-        total: chapters.length,
-        learnt: learnt.length,
-        r1: at(1),
-        r2: at(2),
-        r3: at(3),
-      };
-    });
-  });
-
-  protected pct(part: number, total: number): number {
-    return total === 0 ? 0 : Math.max(0, (part / total) * 100);
-  }
-
-  /* ---- Accuracy ------------------------------------------------------- */
-
-  protected subjectRate(subject: Subject): number | null {
-    let attempted = 0;
-    let correct = 0;
-    for (const chapter of subject.sections.flatMap((s) => s.chapters)) {
-      const stat = this.study.stat(chapter.id);
-      attempted += stat.attempted;
-      correct += stat.correct;
-    }
-    return attempted === 0 ? null : Math.round((correct / attempted) * 100);
-  }
-
-  protected readonly attemptedTotal = computed(() => {
-    let total = 0;
-    for (const s of this.study.stats().values()) total += s.attempted;
-    return total;
-  });
-
-  /* ---- Attention ------------------------------------------------------ */
-
-  protected readonly weak = computed(() => this.study.weakChapters().slice(0, 3));
-  protected readonly stale = computed(() => this.study.staleChapters().slice(0, 3));
-
-  protected rate(value: number): number { return Math.round(value * 100); }
-
   protected subjectName(chapter: Chapter): string {
     const id = chapter.id.split('.')[0];
     return PACK.subjects.find((s) => s.id === id)?.name ?? '';
   }
-
-  protected since(key: string | null): string {
-    if (!key) return 'never';
-    const [y, m, d] = key.split('-').map(Number);
-    const days = Math.round((startOfToday().getTime() - new Date(y, m - 1, d).getTime()) / 86_400_000);
-    if (days <= 0) return 'today';
-    return days === 1 ? 'yesterday' : `${days} days ago`;
-  }
-
-  /* ---- Formatting ----------------------------------------------------- */
-
   /** Short enough for a stat tile: 15h, 45m, 2.5h. */
   protected compact(minutes: number): string {
     if (minutes <= 0) return '0h';

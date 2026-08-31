@@ -154,15 +154,6 @@ export class StudyStore {
     () => new Set(this.sessions().filter((s) => s.subtopicId).map((s) => s.subtopicId!)),
   );
 
-  readonly accuracy = computed(() => {
-    let attempted = 0;
-    let correct = 0;
-    for (const s of this.stats().values()) {
-      attempted += s.attempted;
-      correct += s.correct;
-    }
-    return attempted === 0 ? null : Math.round((correct / attempted) * 100);
-  });
 
   /** Chapters at each revision depth — the shape a flat percentage hides. */
   readonly rounds = computed(() => {
@@ -278,7 +269,18 @@ export class StudyStore {
     this.retention().filter((row) => row.state === 'slipping' || row.state === 'lost'),
   );
 
-  /** Average hold across everything started. The honest version of coverage. */
+  /** Total time logged, ever. A raw count of the user's own doing. */
+  readonly totalMinutes = computed(() =>
+    this.sessions().reduce((n, s) => n + s.minutes, 0),
+  );
+
+  /** Days with anything logged. Also raw. */
+  readonly daysStudied = computed(() => this.minutesByDay().size);
+
+  /**
+   * Average modelled hold. Used to order the revision queue — never shown as
+   * a number, because it is a schedule calculation, not a measurement.
+   */
   readonly heldStrength = computed(() => {
     const rows = this.retention();
     if (rows.length === 0) return null;
@@ -298,13 +300,6 @@ export class StudyStore {
     });
   }
 
-  /** Chapters with enough questions behind them to judge, weakest first. */
-  readonly weakChapters = computed(() =>
-    ALL_CHAPTERS.map((chapter) => ({ chapter, stat: this.stat(chapter.id) }))
-      .filter((row) => row.stat.attempted >= 20)
-      .map((row) => ({ ...row, rate: row.stat.correct / row.stat.attempted }))
-      .sort((a, b) => a.rate - b.rate),
-  );
 
   /** Learnt, never revised once, and already past due. */
   readonly staleChapters = computed(() =>
