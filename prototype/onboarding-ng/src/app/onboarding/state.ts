@@ -1,6 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { ALL_CHAPTERS, chapterIsDone } from './exam-pack';
-import { persisted, persistedSet } from '../core/persist';
+import { persisted, persistedMap, persistedSet } from '../core/persist';
 import { COMMITMENT_PRESETS, Commitment, committedMinutes } from './commitments';
 
 export type AccentId = 'blue' | 'purple' | 'green' | 'amber' | 'rose';
@@ -88,6 +88,25 @@ const PROGRESS_STEPS: StepId[] = [
   'appearance', 'exam', 'coaching', 'commitments', 'date', 'shape', 'hours', 'syllabus',
 ];
 
+/**
+ * How a subject is sequenced. Nobody drags seventy-nine chapters, so the order
+ * is a choice between a few rules — and only "custom" needs the dragging.
+ */
+export type OrderMode = 'book' | 'yield' | 'short' | 'custom';
+
+export interface OrderOption { id: OrderMode; label: string; hint: string; }
+
+/**
+ * Only two rules are offered, because only two can work. The pack divides a
+ * subject's hours and marks evenly across its chapters, so "high-yield first"
+ * and "shortest first" sort a flat list and change nothing. They come back
+ * when the pack carries real per-chapter weights.
+ */
+export const ORDER_MODES: OrderOption[] = [
+  { id: 'book', label: 'Book order', hint: 'As the NCERT contents run' },
+  { id: 'custom', label: 'My order', hint: 'Arrange them to match your class' },
+];
+
 export interface BlockableApp { id: string; label: string; icon: string; }
 
 /** What an aspirant actually loses an evening to. */
@@ -157,6 +176,49 @@ export class OnboardingStore {
    * rather than to fall behind on everything at once.
    */
   readonly parkedChapters = persistedSet('parked');
+
+  /* ---- Sequence ------------------------------------------------------- */
+
+  /** Order rule per subject id. */
+  readonly orderModes = persistedMap<OrderMode>('order-modes');
+
+  /** Explicit chapter order per subject, used only by the custom rule. */
+  readonly customOrder = persistedMap<string[]>('custom-order');
+
+  /**
+   * How far the student's class has actually reached, per subject. The plan
+   * never suggests anything past it — coaching drips modules, and a plan that
+   * runs ahead of the teaching is worse than no plan.
+   */
+  readonly taughtUpTo = persistedMap<string>('taught-up-to');
+
+  orderMode(subjectId: string): OrderMode {
+    return this.orderModes().get(subjectId) ?? 'book';
+  }
+
+  setOrderMode(subjectId: string, mode: OrderMode): void {
+    const next = new Map(this.orderModes());
+    next.set(subjectId, mode);
+    this.orderModes.set(next);
+  }
+
+  setCustomOrder(subjectId: string, chapterIds: string[]): void {
+    const next = new Map(this.customOrder());
+    next.set(subjectId, chapterIds);
+    this.customOrder.set(next);
+    this.setOrderMode(subjectId, 'custom');
+  }
+
+  /** Null means the whole subject is fair game. */
+  taughtMarker(subjectId: string): string | null {
+    return this.taughtUpTo().get(subjectId) ?? null;
+  }
+
+  setTaughtUpTo(subjectId: string, chapterId: string | null): void {
+    const next = new Map(this.taughtUpTo());
+    chapterId === null ? next.delete(subjectId) : next.set(subjectId, chapterId);
+    this.taughtUpTo.set(next);
+  }
 
   isParked(chapterId: string): boolean {
     return this.parkedChapters().has(chapterId);

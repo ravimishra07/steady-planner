@@ -1,4 +1,5 @@
 import { ALL_CHAPTERS, Chapter, PACK, Subtopic, chapterIsDone } from '../onboarding/exam-pack';
+import { availableChapters } from '../onboarding/sequence';
 import { ChapterStat, Task } from '../study/study-store';
 import { overdueDays } from '../study/retention';
 import { Candidate } from './scheduler';
@@ -16,6 +17,11 @@ export interface PlanInput {
   doneUnits: ReadonlySet<string>;
   /** Chapters the user has set aside; the plan never picks them. */
   parked: ReadonlySet<string>;
+  /**
+   * Per subject, the chapters that are in play — ordered by the rule the
+   * student chose and cut at how far their class has reached.
+   */
+  available: (subjectId: string) => Chapter[];
   learnedSubtopics: ReadonlySet<string>;
   stat: (chapterId: string) => ChapterStat;
   /** The day being planned, which is what "due" is measured against. */
@@ -60,8 +66,7 @@ function learnQueue(input: PlanInput): Candidate[] {
   const out: Candidate[] = [];
   for (let round = 0; round < 4; round++) {
     for (const subjectId of ROTATION) {
-      const subject = PACK.subjects.find((s) => s.id === subjectId)!;
-      const chapters = subject.sections.flatMap((sec) => sec.chapters);
+      const chapters = input.available(subjectId);
       const found = nextSubtopic(chapters, input, round);
       if (found) out.push({ task: 'Learn', ...found, minutes: LENGTH.Learn });
     }

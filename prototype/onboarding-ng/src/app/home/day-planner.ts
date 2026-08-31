@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { COACHINGS, OnboardingStore, startOfToday } from '../onboarding/state';
-import { ALL_CHAPTERS } from '../onboarding/exam-pack';
+import { ALL_CHAPTERS, PACK } from '../onboarding/exam-pack';
+import { availableChapters } from '../onboarding/sequence';
 import { StudyStore, dateKey } from '../study/study-store';
 import { Block, StudyBlock, freeWindows, layOutDay, subjectLabel } from './scheduler';
 import { dayCandidates } from './day-plan';
@@ -38,6 +39,7 @@ export class DayPlanner {
     const candidates = dayCandidates({
       doneUnits: this.planningDone(date),
       parked: this.store.parkedChapters(),
+      available: (id) => this.availableIn(id),
       learnedSubtopics: this.study.learnedSubtopics(),
       stat: (id) => this.study.stat(id),
       date,
@@ -168,6 +170,18 @@ export class DayPlanner {
           ),
       )
       .sort((a, b) => a.startMinute - b.startMinute);
+  }
+
+  /** A subject's chapters, in the chosen order and cut at the taught marker. */
+  availableIn(subjectId: string): ReturnType<typeof availableChapters> {
+    const subject = PACK.subjects.find((s) => s.id === subjectId);
+    if (!subject) return [];
+    return availableChapters(
+      subject,
+      this.store.orderMode(subjectId),
+      this.store.customOrder().get(subjectId),
+      this.store.taughtMarker(subjectId),
+    );
   }
 
   private coachingName(): string {
