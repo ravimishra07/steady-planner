@@ -59,12 +59,34 @@ const MIN_BLOCK_HEIGHT = 72;
     <section class="summary">
       <div class="summary-head">
         <span class="headline">{{ headline() }}</span>
-        <button matRipple class="edit-plan" (click)="editPlan.emit()"><mat-icon>edit_calendar</mat-icon>Edit plan</button>
+        <button matRipple class="edit-plan" (click)="editPlan.emit()" aria-label="Edit plan">
+          <mat-icon>edit_calendar</mat-icon>
+        </button>
       </div>
-      <span class="sub">{{ subline() }}</span>
 
-      <div class="bar" [attr.aria-label]="loggedMinutes() + ' of ' + plannedMinutes() + ' minutes done'">
-        <span class="fill" [style.width.%]="donePercent()"></span>
+      <!-- The bar is the shape of the day, not a percentage: one segment per
+           block, width proportional to its length, dim for fixed hours. -->
+      <div class="shape" role="img" [attr.aria-label]="shapeLabel()">
+        @for (seg of shape(); track seg.key) {
+          <span class="seg"
+                [class]="'seg-' + seg.kind"
+                [class.done]="seg.done"
+                [style.flex-grow]="seg.minutes"
+                [attr.title]="seg.title"></span>
+        }
+      </div>
+
+      <div class="facts">
+        <span class="fact">
+          <mat-icon class="filled">check_circle</mat-icon>
+          {{ format(loggedMinutes()) }} of {{ format(plannedMinutes()) }}
+        </span>
+        @if (fixedMinutes() > 0) {
+          <span class="fact muted">
+            <mat-icon>lock</mat-icon>
+            {{ format(fixedMinutes()) }} fixed
+          </span>
+        }
       </div>
     </section>
 
@@ -329,19 +351,57 @@ const MIN_BLOCK_HEIGHT = 72;
 
     .headline { font: var(--mat-sys-headline-small); }
     .summary-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .edit-plan { height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 0; border-radius: var(--mat-sys-corner-full); background: transparent; color: var(--mat-sys-primary); font: var(--mat-sys-label-large); cursor: pointer; }
-    .edit-plan mat-icon { width: 18px; height: 18px; font-size: 18px; }
-    .sub { font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
-
-    .bar {
-      height: 4px;
-      margin-top: 4px;
-      border-radius: 2px;
-      background: var(--mat-sys-surface-container-highest);
-      overflow: hidden;
+    /* Icon only: the headline is the loud thing here, not the way out. */
+    .edit-plan {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      flex: none;
+      border: 0;
+      border-radius: var(--mat-sys-corner-full);
+      background: transparent;
+      color: var(--mat-sys-on-surface-variant);
+      cursor: pointer;
     }
 
-    .fill { display: block; height: 100%; background: var(--mat-sys-primary); }
+    .edit-plan mat-icon { width: 20px; height: 20px; font-size: 20px; }
+
+    .shape { display: flex; gap: 3px; height: 8px; margin: 10px 0 2px; }
+
+    .seg {
+      flex-basis: 0;
+      min-width: 4px;
+      border-radius: 4px;
+      background: var(--mat-sys-surface-container-highest);
+    }
+
+    /* A sitting still to do, a sitting logged, and an hour that was never
+       yours to spend — three states, one bar. */
+    .seg-study { background: transparent; box-shadow: inset 0 0 0 1.5px var(--mat-sys-primary); }
+    .seg-study.done { background: var(--mat-sys-primary); box-shadow: none; }
+
+    .seg-fixed {
+      background: repeating-linear-gradient(
+        135deg,
+        var(--mat-sys-surface-container-highest) 0 3px,
+        transparent 3px 6px
+      );
+    }
+
+    .facts { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; }
+
+    .fact {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font: var(--mat-sys-label-large);
+      color: var(--mat-sys-on-surface);
+    }
+
+    .fact.muted { color: var(--mat-sys-on-surface-variant); }
+    .fact mat-icon { font-size: 16px; width: 16px; height: 16px; color: var(--mat-sys-on-surface-variant); }
+    .fact:first-child mat-icon { color: var(--mat-sys-primary); }
 
 
     .anchors { flex: none; display: flex; gap: 8px; padding: 0 16px 12px; }
@@ -717,12 +777,34 @@ export class TodayScreen {
     return left === 0 ? 'Day complete' : `${this.format(left)} left`;
   }
 
-  protected subline(): string {
-    const parts = [`${this.format(this.loggedMinutes())} of ${this.format(this.plannedMinutes())} done`];
-    const fixed = this.blocks().filter((b) => b.kind === 'fixed').reduce((n, b) => n + b.minutes, 0);
-    if (fixed > 0) parts.push(`${this.format(fixed)} fixed`);
-    parts.push(`${this.store.days()} days to exam`);
-    return parts.join(' · ');
+  protected readonly fixedMinutes = computed(() =>
+    this.blocks().filter((b) => b.kind === 'fixed').reduce((n, b) => n + b.minutes, 0),
+  );
+
+  /**
+   * The day as segments. A percentage bar says how much of an unknown whole is
+   * gone; this says how many sittings there are, how long each runs, and which
+   * are behind you — which is what someone glancing at Today wants to know.
+   */
+  protected readonly shape = computed(() =>
+    this.blocks()
+      .filter((b) => b.kind === 'study' || b.kind === 'fixed')
+      .map((b) => ({
+        key: b.kind + b.startMinute,
+        kind: b.kind,
+        minutes: b.minutes,
+        done: b.kind === 'study' && b.done,
+        title:
+          b.kind === 'study'
+            ? `${b.task} · ${b.title} · ${this.format(b.minutes)}`
+            : `${b.title} · ${this.format(b.minutes)}`,
+      })),
+  );
+
+  protected shapeLabel(): string {
+    const total = this.shape().filter((s) => s.kind === 'study').length;
+    const done = this.shape().filter((s) => s.done).length;
+    return `${done} of ${total} sittings done`;
   }
 
   protected readonly backlog = computed(() => {
