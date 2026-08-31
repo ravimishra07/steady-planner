@@ -4,6 +4,18 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Every control fell back to the browser's own focus ring — a blue rectangle
+   that belongs to no theme. One M3 ring instead, and only for keyboard focus,
+   so a tap does not leave a box behind. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}
+
+:where(a, button, input, select, textarea, [tabindex]):focus:not(:focus-visible) {
+  outline: none;
+}
+
 html { height: 100%; }
 
 body {

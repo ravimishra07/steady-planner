@@ -311,20 +311,34 @@ const MIN_BLOCK_HEIGHT = 72;
     }
 
     /* Calendar chrome — the month label is a control, not a headline. */
-    .chrome { flex: none; padding-bottom: 8px; border-bottom: 1px solid var(--mat-sys-outline-variant); }
+    .chrome {
+      flex: none;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--mat-sys-outline-variant);
+    }
 
+    /* A control, not a caption: it has a shape, a state layer and a hit area
+       that matches what it looks like. */
     .month {
       display: flex;
       align-items: center;
-      gap: 4px;
-      padding: 8px 16px 4px;
+      gap: 2px;
+      align-self: flex-start;
+      height: 40px;
+      margin: 4px 8px 4px 8px;
+      padding: 0 8px 0 12px;
       border: none;
+      border-radius: var(--mat-sys-corner-full);
       background: transparent;
       color: var(--mat-sys-on-surface);
       cursor: pointer;
+      transition: background 140ms ease;
     }
 
-    .month-title { font: var(--mat-sys-title-medium); }
+    .month:hover { background: var(--mat-sys-surface-container-high); }
+    .month-title { font: var(--mat-sys-title-medium); letter-spacing: .1px; }
     .month mat-icon { color: var(--mat-sys-on-surface-variant); transition: transform 150ms; }
     .month mat-icon.up { transform: rotate(180deg); }
 
