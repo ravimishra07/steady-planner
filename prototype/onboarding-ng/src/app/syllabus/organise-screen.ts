@@ -3,7 +3,8 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatRippleModule } from '@angular/material/core';
 import { ORDER_MODES, OrderMode, OnboardingStore, addDays, startOfToday } from '../onboarding/state';
-import { Chapter, CustomChapter, PACK, Subtopic, chapterIsDone, mergedSubjects } from '../onboarding/exam-pack';
+import { Chapter, CustomChapter, PACK, Subtopic, chapterIsDone, mergedSubjects, topicTableKey } from '../onboarding/exam-pack';
+import { SOURCE_LABELS, Suggestion, suggestionsFor, topicKey } from '../onboarding/suggested-topics';
 import { availableChapters, marksOf, orderedChapters } from '../onboarding/sequence';
 import { StudyStore, dateKey } from '../study/study-store';
 import { Landing, overflow, project } from './projection';
@@ -115,7 +116,13 @@ interface Draft {
         </section>
 
         @if (missed().length > 0) {
-          <div class="warn plan-warn"><mat-icon>event_busy</mat-icon><span class="warn-text"><span class="warn-head">{{ missed().length }} chapters miss the exam</span><span class="warn-sub">{{ missedHours() }} estimated hours remain after {{ store.targetDate() | date: 'd MMM' }}</span></span><button matRipple class="warn-btn" (click)="view.set('syllabus')">Adjust</button></div>
+          <div class="short">
+            <span class="short-text">
+              <span class="short-head">{{ missed().length }} chapters are not reached by {{ store.targetDate() | date: 'd MMM' }}</span>
+              <span class="short-sub">{{ missedHours() }}h short · {{ missedMarks() }} marks</span>
+            </span>
+            <button matRipple class="short-btn" (click)="fixing.set(true)">Options</button>
+          </div>
         }
       } @else {
       <h2 class="group">Order</h2>
@@ -129,17 +136,15 @@ interface Draft {
       <p class="hint">{{ modeHint() }}</p>
 
       @if (missed().length > 0) {
-        <div class="warn">
-          <mat-icon>schedule</mat-icon>
-          <span class="warn-text">
-            <span class="warn-head">
-              {{ missed().length }} chapters land after {{ store.targetDate() | date: 'd MMM' }}
+        <div class="short">
+          <span class="short-text">
+            <span class="short-head">
+              At {{ pace() }} a day, {{ missed().length }} chapters are not reached by
+              {{ store.targetDate() | date: 'd MMM' }}
             </span>
-            <span class="warn-sub">
-              {{ missedHours() }}h and {{ missedMarks() }} marks, at {{ pace() }} a day
-            </span>
+            <span class="short-sub">{{ missedHours() }}h short · {{ missedMarks() }} marks</span>
           </span>
-          <button matRipple class="warn-btn" (click)="excludeMissed()">Drop them</button>
+          <button matRipple class="short-btn" (click)="fixing.set(true)">Options</button>
         </div>
       }
 
@@ -246,7 +251,31 @@ interface Draft {
               } @empty {
                 <p class="hint">No topics yet. Add the units your class uses.</p>
               }
-              <div class="add-topic"><input placeholder="New topic" [value]="newTopicName()" (input)="newTopicName.set($any($event.target).value)" (keydown.enter)="addTopic(row.chapter)" /><button matRipple class="filled-btn compact" [disabled]="!newTopicName().trim()" (click)="addTopic(row.chapter)">Add</button></div>
+              <div class="add-topic">
+                <mat-icon class="find">search</mat-icon>
+                <input placeholder="Find a topic, or type your own"
+                       [value]="newTopicName()"
+                       (input)="newTopicName.set($any($event.target).value)"
+                       (keydown.enter)="addTopic(row.chapter)" />
+                @if (canAddTyped(row.chapter)) {
+                  <button matRipple class="filled-btn compact" (click)="addTopic(row.chapter)">Add</button>
+                }
+              </div>
+
+              @if (suggestions(row.chapter).length) {
+                <p class="suggest-head">Commonly taught here</p>
+                <div class="suggest-chips">
+                  @for (s of suggestions(row.chapter); track s.name) {
+                    <button matRipple class="suggest-chip" (click)="addSuggestion(row.chapter, s)">
+                      <mat-icon>add</mat-icon>
+                      <span class="chip-name">{{ s.name }}</span>
+                      <small class="chip-src">{{ sourceNote(s) }}</small>
+                    </button>
+                  }
+                </div>
+              } @else if (newTopicName().trim()) {
+                <p class="hint">No match. Enter adds it as your own topic.</p>
+              }
             </div>
           }
         }
@@ -265,6 +294,37 @@ interface Draft {
         <button matRipple class="text-btn" (click)="discard()">Discard</button>
         <button matRipple class="filled-btn" (click)="preview.set(true)">Preview plan</button>
       </footer>
+    }
+
+    @if (fixing()) {
+      <div class="scrim" (click)="fixing.set(false)"></div>
+      <div class="sheet-modal" role="dialog" aria-label="Ways to fit the syllabus">
+        <span class="handle"></span>
+        <h3 class="modal-title">{{ missedHours() }}h more than the days hold</h3>
+        <p class="hint">
+          The date is fixed. Clearing it all needs {{ neededPace() }} a day —
+          {{ extraPerDay() }} more than the {{ pace() }} you are averaging. The app cannot
+          give you that, so the plan changes instead.
+        </p>
+
+        @if (parkPlan().length) {
+          <button matRipple class="option" (click)="parkLowestYield()">
+            <mat-icon>bookmark_remove</mat-icon>
+            <span class="option-text">
+              <span class="option-head">Park the {{ parkPlan().length }} lowest-scoring chapters</span>
+              <span class="option-sub">Gives up {{ parkMarks() }} marks. Reversible — they stay in the syllabus.</span>
+            </span>
+          </button>
+        }
+
+        <button matRipple class="option" (click)="fixing.set(false)">
+          <mat-icon>event_available</mat-icon>
+          <span class="option-text">
+            <span class="option-head">Leave it</span>
+            <span class="option-sub">Keep the order. The tail moves as you go faster or slower.</span>
+          </span>
+        </button>
+      </div>
     }
 
     @if (preview()) {
@@ -356,7 +416,6 @@ interface Draft {
     .exam-marker { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 12px; border-radius: var(--mat-sys-corner-large); background: var(--mat-sys-tertiary-container); color: var(--mat-sys-on-tertiary-container); }
     .more-milestones { width: 100%; height: 40px; margin-top: 8px; border: 0; border-radius: var(--mat-sys-corner-full); background: transparent; color: var(--mat-sys-primary); font: var(--mat-sys-label-large); cursor: pointer; }
     .empty { margin: 0; padding: 16px; color: var(--mat-sys-on-surface-variant); font: var(--mat-sys-body-medium); }
-    .plan-warn { margin-top: 24px; }
 
     .bar { flex: none; display: flex; align-items: center; gap: 8px; height: 64px; padding: 0 16px 0 4px; }
     .bar-title { flex: 1; margin: 0; font: var(--mat-sys-title-large); }
@@ -570,32 +629,60 @@ interface Draft {
 
     .late { color: var(--mat-sys-error); }
 
-    .warn {
+
+
+    /*
+     * A projection, not an error. Error colours are for something the student
+     * did wrong; running out of days is arithmetic, so it gets a plain card
+     * and the numbers do the work.
+     */
+    .short {
       display: flex;
       align-items: center;
       gap: 12px;
-      margin: 16px 0 0;
-      padding: 12px 16px;
+      margin: 8px 0 16px;
+      padding: 12px 12px 12px 16px;
       border-radius: var(--mat-sys-corner-large);
-      background: var(--mat-sys-error-container);
-      color: var(--mat-sys-on-error-container);
+      background: var(--mat-sys-surface-container-high);
     }
 
-    .warn-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-    .warn-head { font: var(--mat-sys-title-small); }
-    .warn-sub { font: var(--mat-sys-body-small); opacity: .85; }
+    .short-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .short-head { font: var(--mat-sys-body-medium); }
+    .short-sub { font: var(--mat-sys-body-small); color: var(--mat-sys-on-surface-variant); }
 
-    .warn-btn {
+    .short-btn {
       flex: none;
-      height: 32px;
-      padding: 0 14px;
-      border: none;
+      height: 40px;
+      padding: 0 16px;
+      border: 1px solid var(--mat-sys-outline);
       border-radius: var(--mat-sys-corner-full);
-      background: var(--mat-sys-on-error-container);
-      color: var(--mat-sys-error-container);
+      background: transparent;
+      color: var(--mat-sys-primary);
       font: var(--mat-sys-label-large);
       cursor: pointer;
     }
+
+    /* Rows in the options sheet: one lever each, with what it costs. */
+    .option {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      width: 100%;
+      margin-top: 8px;
+      padding: 16px;
+      border: none;
+      border-radius: var(--mat-sys-corner-large);
+      background: var(--mat-sys-surface-container-high);
+      color: var(--mat-sys-on-surface);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .option mat-icon { flex: none; color: var(--mat-sys-on-surface-variant); }
+    .option-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .option-head { font: var(--mat-sys-title-small); }
+    .option-sub { font: var(--mat-sys-body-small); color: var(--mat-sys-on-surface-variant); }
+
     .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
     .bulk { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 8px; min-height: 48px; margin-bottom: 8px; padding: 0 12px; border-radius: var(--mat-sys-corner-large); background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container); font: var(--mat-sys-label-large); }
     .bulk span { flex: 1; }
@@ -616,10 +703,60 @@ interface Draft {
     .topic-row > span, .topic-row > input { flex: 1; min-width: 0; }
     .topic-row > span { font: var(--mat-sys-body-medium); }
     .topic-row input, .add-topic input { height: 40px; padding: 0 12px; border: 1px solid var(--mat-sys-outline); border-radius: var(--mat-sys-corner-small); background: var(--mat-sys-surface); color: var(--mat-sys-on-surface); font: var(--mat-sys-body-large); }
-    .add-topic { display: flex; gap: 8px; padding-top: 8px; }
-    .add-topic input { flex: 1; min-width: 0; }
+    .add-topic { position: relative; display: flex; align-items: center; gap: 8px; padding-top: 8px; }
+    .add-topic input { flex: 1; min-width: 0; padding-left: 40px; }
+    /* The magnifier sits inside the field, so one control reads as search. */
+    .add-topic .find { position: absolute; left: 10px; top: 16px; font-size: 20px; width: 20px; height: 20px; color: var(--mat-sys-on-surface-variant); pointer-events: none; }
+
+    .suggest-head { margin: 12px 0 0; font: var(--mat-sys-label-medium); color: var(--mat-sys-on-surface-variant); }
+
+
+    .suggest-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    /* M3 assist chip: 32dp, outlined, leading icon. */
+    .suggest-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 32px;
+      max-width: 100%;
+      padding: 5px 12px 5px 8px;
+      text-align: left;
+      border: 1px solid var(--mat-sys-outline-variant);
+      border-radius: var(--mat-sys-corner-small);
+      background: transparent;
+      color: var(--mat-sys-on-surface);
+      cursor: pointer;
+    }
+
+    .suggest-chip mat-icon { font-size: 18px; width: 18px; height: 18px; color: var(--mat-sys-on-surface-variant); }
+    .chip-name { flex: 1; min-width: 0; font: var(--mat-sys-label-large); }
+    .chip-src { flex: none; font: var(--mat-sys-label-small); color: var(--mat-sys-on-surface-variant); }
     .filled-btn.compact { padding: 0 16px; }
     .danger-action { height: 40px; padding: 0 12px; border: 0; border-radius: var(--mat-sys-corner-full); background: transparent; color: var(--mat-sys-error); font: var(--mat-sys-label-large); cursor: pointer; }
+
+    @media (min-width: 1000px) {
+      :host { padding-inline: clamp(24px, 5vw, 72px); }
+      .bar, .view-tabs, .tabs, .scroll { width: min(1180px, 100%); margin-inline: auto; }
+      .bar { height: 72px; }
+      .bar-title { font: var(--mat-sys-headline-medium); }
+      .scroll { padding-inline: 0; scrollbar-gutter: stable; }
+      .plan-section { padding: 24px; }
+      .scrim { position: fixed; }
+      .sheet, .dialog {
+        position: fixed;
+        top: 50%;
+        right: 32px;
+        bottom: auto;
+        left: auto;
+        width: min(520px, calc(100vw - 64px));
+        max-height: calc(100dvh - 64px);
+        border-radius: var(--mat-sys-corner-extra-large);
+        transform: translateY(-50%);
+        overflow-y: auto;
+      }
+      .handle { display: none; }
+    }
   `,
 })
 export class OrganiseScreen {
@@ -779,10 +916,48 @@ export class OrganiseScreen {
     this.missed().reduce((n, l) => n + marksOf(l.chapter), 0),
   );
 
-  /** Drop everything that cannot be reached in time, in one move. */
-  protected excludeMissed(): void {
-    const ids = this.missed().map((l) => l.chapter.id);
+  protected readonly fixing = signal(false);
+
+  /** Hours a day that would land everything before the exam. */
+  protected readonly neededPace = computed(() =>
+    `${(this.hoursPerDay() + this.missedHours() / this.store.days()).toFixed(1)}h`,
+  );
+
+  protected readonly extraPerDay = computed(() => {
+    const extra = (this.missedHours() / this.store.days()) * 60;
+    return extra < 60 ? `${Math.round(extra)} min` : `${(extra / 60).toFixed(1)}h`;
+  });
+
+  /**
+   * The fewest chapters worth the least per hour that free up the shortfall.
+   * Cheapest marks first, so what comes out is what costs least to lose.
+   */
+  protected readonly parkPlan = computed<Chapter[]>(() => {
+    // Everything still in play, not only what currently fits: when the whole
+    // tail overflows, shedding the cheapest of the tail is what lets the rest
+    // land in time.
+    const ranked = this.landings()
+      .map((l) => l.chapter)
+      .sort((a, b) => marksOf(a) / a.hours - marksOf(b) / b.hours);
+
+    const take: Chapter[] = [];
+    let freed = 0;
+    for (const chapter of ranked) {
+      if (freed >= this.missedHours()) break;
+      take.push(chapter);
+      freed += chapter.hours;
+    }
+    return take;
+  });
+
+  protected readonly parkMarks = computed(() =>
+    this.parkPlan().reduce((n, c) => n + marksOf(c), 0),
+  );
+
+  protected parkLowestYield(): void {
+    const ids = this.parkPlan().map((c) => c.id);
     this.edit((d) => ids.forEach((id) => d.parked.add(id)));
+    this.fixing.set(false);
   }
 
   /** The projection grouped by month, so the shape of the year is visible. */
@@ -855,6 +1030,37 @@ export class OrganiseScreen {
   protected saveRename(chapter: Chapter): void { const name = this.editingName().trim(); if (name) this.edit((d) => d.chapterNames.set(chapter.id, name)); this.editingId.set(null); }
   protected toggleTopicEditor(id: string): void { this.topicEditorId.set(this.topicEditorId() === id ? null : id); this.newTopicName.set(''); }
   protected isCustomChapter(chapter: Chapter): boolean { return this.draft().customChapters.some((item) => item.id === chapter.id); }
+  /**
+   * Topics a class would teach in this chapter that the student's list does
+   * not hold yet. Typing filters the pool before it offers anything, so the
+   * one field is both the search and the way to add a topic nobody lists.
+   */
+  protected suggestions(chapter: Chapter): Suggestion[] {
+    const have = chapter.subtopics.map((t) => t.name);
+    const pool = suggestionsFor(topicTableKey(chapter), have);
+    const query = topicKey(this.newTopicName());
+    if (!query) return pool.slice(0, 6);
+    return pool.filter((s) => topicKey(s.name).includes(query));
+  }
+
+  /** How many classes teach it — the reason to trust a suggestion. */
+  protected sourceNote(s: Suggestion): string {
+    if (s.src.length >= 3) return `${s.src.length} classes`;
+    return s.src.map((id) => SOURCE_LABELS[id]).join(' · ');
+  }
+
+  protected addSuggestion(chapter: Chapter, s: Suggestion): void {
+    this.newTopicName.set(s.name);
+    this.addTopic(chapter);
+  }
+
+  /** Typed text is offered as its own topic only when it is not already there. */
+  protected canAddTyped(chapter: Chapter): boolean {
+    const name = topicKey(this.newTopicName());
+    if (!name) return false;
+    return !chapter.subtopics.some((t) => topicKey(t.name) === name);
+  }
+
   protected addTopic(chapter: Chapter): void { const name = this.newTopicName().trim(); if (!name) return; this.edit((d) => { const topics = [...(d.customSubtopics.get(chapter.id) ?? [])]; topics.push({ id: `${chapter.id}.custom.${crypto.randomUUID()}`, name, custom: true }); d.customSubtopics.set(chapter.id, topics); }); this.newTopicName.set(''); }
   protected startTopicRename(topic: Subtopic): void { this.topicEditingId.set(topic.id); this.topicEditingName.set(topic.name); }
   protected saveTopicRename(topic: Subtopic): void { const name = this.topicEditingName().trim(); if (name) this.edit((d) => d.subtopicNames.set(topic.id, name)); this.topicEditingId.set(null); }

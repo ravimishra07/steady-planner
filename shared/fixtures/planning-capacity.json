@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "id": "ssc-cgl-118-days-standard-hours",
+      "input": {
+        "rawHours": 634,
+        "days": 118,
+        "weekdayHours": 4,
+        "weekendHours": 7
+      },
+      "expected": {
+        "need": 812,
+        "have": 568,
+        "gap": 244,
+        "coverage": 70,
+        "extraPerDay": 2.1,
+        "topicsToDrop": 18,
+        "daysToPush": 45,
+        "bufferDays": 0,
+        "isShort": true
+      }
+    },
+    {
+      "id": "leftover-day-is-weekday",
+      "input": {
+        "days": 8,
+        "weekdayHours": 4,
+        "weekendHours": 7
+      },
+      "expected": {
+        "availableHours": 38
+      }
+    }
+  ]
+}

@@ -2,7 +2,8 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "cli": {
-    "packageManager": "npm"
+    "packageManager": "npm",
+    "analytics": false
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -65,8 +66,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "8kb",
-                  "maximumError": "16kb"
+                  "maximumWarning": "16kb",
+                  "maximumError": "20kb"
                 }
               ],
               "outputHashing": "all"
@@ -90,6 +91,15 @@
             }
           },
           "defaultConfiguration": "development"
+        },
+        "test": {
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "buildTarget": "onboarding-ng:build:development",
+            "tsConfig": "tsconfig.spec.json",
+            "runner": "vitest",
+            "watch": false
+          }
         }
       }
     }

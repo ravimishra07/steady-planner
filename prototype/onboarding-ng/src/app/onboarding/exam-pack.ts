@@ -390,3 +390,16 @@ export function subjectOf(chapterId: string): Subject {
 export const PACK_TOTAL_HOURS = Math.round(
   ALL_CHAPTERS.reduce((n, c) => n + c.hours, 0),
 );
+
+/**
+ * The key a chapter's topic tables are stored under — both the NCERT section
+ * headings and the coaching suggestions. Botany and Zoology fold into biology,
+ * and the key uses the pack's own chapter name so a rename cannot orphan it.
+ */
+const TOPIC_KEYS: ReadonlyMap<string, string> = new Map(
+  ALL_CHAPTERS.map((c) => [c.id, `${packSubject(c.id.split('.')[0])}::${c.name}`]),
+);
+
+export function topicTableKey(chapter: Chapter): string {
+  return TOPIC_KEYS.get(chapter.id) ?? '';
+}

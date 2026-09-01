@@ -96,7 +96,7 @@ import { ACCENTS, APPEARANCES, OnboardingStore } from '../state';
 
     .dot mat-icon { font-size: 24px; width: 24px; height: 24px; }
 
-    .backgrounds { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .backgrounds { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
 
     .bg {
       display: flex;
@@ -149,6 +149,10 @@ import { ACCENTS, APPEARANCES, OnboardingStore } from '../state';
       width: 12px; height: 12px;
       border-radius: 50%;
       opacity: 1;
+    }
+
+    @media (max-width: 520px) {
+      .backgrounds { grid-template-columns: repeat(3, 1fr); }
     }
   `,
 })

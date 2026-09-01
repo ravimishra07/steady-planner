@@ -963,6 +963,53 @@ const MIN_BLOCK_HEIGHT = 72;
       font: var(--mat-sys-label-large);
       cursor: pointer;
     }
+
+    @media (min-width: 1100px) {
+      :host {
+        display: grid;
+        grid-template-columns: minmax(320px, 420px) minmax(480px, 760px);
+        grid-template-rows: auto auto auto minmax(0, 1fr);
+        justify-content: center;
+        gap: 0 32px;
+        padding: 32px clamp(24px, 4vw, 64px);
+        overflow: hidden;
+      }
+
+      .chrome {
+        grid-column: 1;
+        grid-row: 1;
+        border: 1px solid var(--mat-sys-outline-variant);
+        border-radius: var(--mat-sys-corner-extra-large);
+        background: var(--mat-sys-surface-container-lowest);
+        padding: 12px;
+      }
+
+      .summary { grid-column: 1; grid-row: 2; margin: 20px 0 0; }
+      .anchors { grid-column: 1; grid-row: 3; padding: 16px 0 0; }
+      .timeline {
+        grid-column: 2;
+        grid-row: 1 / -1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 0 12px 64px 0;
+      }
+
+      .block { padding: 16px 20px; }
+      .scrim { position: fixed; }
+      .sheet {
+        position: fixed;
+        top: 50%;
+        right: 32px;
+        bottom: auto;
+        left: auto;
+        width: min(460px, calc(100vw - 64px));
+        max-height: calc(100dvh - 64px);
+        border-radius: var(--mat-sys-corner-extra-large);
+        transform: translateY(-50%);
+        overflow-y: auto;
+      }
+      .handle { display: none; }
+    }
   `,
 })
 export class TodayScreen {

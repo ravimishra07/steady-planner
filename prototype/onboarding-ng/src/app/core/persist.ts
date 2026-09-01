@@ -1,4 +1,5 @@
 import { WritableSignal, effect, signal, untracked } from '@angular/core';
+import { browserPrototypeStorage } from './persistence/prototype-storage';
 
 /**
  * A signal backed by localStorage. Prototype-grade persistence: enough that
@@ -11,10 +12,9 @@ export function persisted<T>(
   encode: (value: T) => unknown = (v) => v,
   decode: (raw: any) => T = (v) => v as T,
 ): WritableSignal<T> {
-  const store = 'steadyline.' + key;
   let initial = fallback;
   try {
-    const raw = localStorage.getItem(store);
+    const raw = browserPrototypeStorage().read(key);
     if (raw !== null) initial = decode(JSON.parse(raw));
   } catch {
     // A corrupt or unavailable store is not worth failing the app over.
@@ -25,7 +25,7 @@ export function persisted<T>(
     const value = s();
     untracked(() => {
       try {
-        localStorage.setItem(store, JSON.stringify(encode(value)));
+        browserPrototypeStorage().write(key, JSON.stringify(encode(value)));
       } catch {}
     });
   });

@@ -1,4 +1,6 @@
-import { addDays, startOfToday } from '../onboarding/state';
+import { addDays, startOfToday } from '../domain/time/date';
+import { Recall } from '../domain/study/models';
+export type { Recall } from '../domain/study/models';
 
 /**
  * Retention: the part of studying that the tick box hides. A chapter that was
@@ -8,8 +10,6 @@ import { addDays, startOfToday } from '../onboarding/state';
  */
 
 /** What the user reports after a sitting. One tap, no numbers. */
-export type Recall = 'shaky' | 'okay' | 'solid';
-
 export const RECALLS: { id: Recall; label: string; icon: string }[] = [
   { id: 'shaky', label: 'Shaky', icon: 'sentiment_dissatisfied' },
   { id: 'okay', label: 'Okay', icon: 'sentiment_neutral' },

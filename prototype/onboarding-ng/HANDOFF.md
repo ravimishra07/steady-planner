@@ -1,5 +1,13 @@
 # Steadyline web prototype — handoff
 
+> **Desktop direction:** Before extending this prototype into the full desktop
+> product study, read [`ARCHITECTURE.md`](./ARCHITECTURE.md) and
+> [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md). They are the current
+> contract for independent Angular code, Android behavioral parity, shared
+> cross-platform artifacts, and desktop-specific interaction design.
+> Current parity evidence and product decisions live in
+> [`PARITY_MATRIX.md`](./PARITY_MATRIX.md) and [`DECISIONS.md`](./DECISIONS.md).
+
 **Branch:** `prototype/onboarding-web` (22 commits ahead of `master`, none pushed)
 **Path:** `prototype/onboarding-ng/`
 **Run:** `npm --prefix prototype/onboarding-ng start -- --port 4300`

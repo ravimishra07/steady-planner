@@ -3,58 +3,10 @@ import { persisted, persistedMap } from '../core/persist';
 import { OnboardingStore, addDays, startOfToday } from '../onboarding/state';
 import { Chapter, chapterIsDone } from '../onboarding/exam-pack';
 import { Recall, dueDate, overdueDays, retentionState, strength } from './retention';
-
-export type Task = 'Learn' | 'Practice' | 'Revise';
-
-/** One sitting the user actually did. The only source of "done" minutes. */
-export interface LoggedSession {
-  id: string;
-  /** yyyy-mm-dd, the key the timeline groups by. */
-  dateKey: string;
-  chapterId: string;
-  subtopicId?: string;
-  title: string;
-  task: Task;
-  minutes: number;
-  attempted?: number;
-  correct?: number;
-  /** How the sitting went, when the user said. */
-  recall?: Recall;
-}
-
-/** Per-chapter state beyond done / not-done. */
-export interface ChapterStat {
-  /** Revision passes completed after the first learn. R1, R2, R3. */
-  revisions: number;
-  attempted: number;
-  correct: number;
-  /** dateKey of the last time the chapter was touched at all. */
-  lastTouched: string | null;
-  /** How well it went last time, as the user reported it. */
-  recall: Recall | null;
-  /** dateKey the next revision falls due. Null until something is learnt. */
-  dueKey: string | null;
-}
-
-/** A block the user added into a free slot themselves. */
-export interface ExtraBlock {
-  id: string;
-  dateKey: string;
-  startMinute: number;
-  minutes: number;
-  task: Task;
-  chapterId: string;
-  subtopicId?: string;
-}
-
-export function dateKey(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
-
-export function parseKey(key: string): Date {
-  const [y, m, d] = key.split('-').map(Number);
-  return new Date(y, m - 1, d);
-}
+import { StudyRepository } from '../data/contracts/study-repository';
+import { ChapterStat, ExtraBlock, LoggedSession, Task, dateKey, parseKey } from '../domain/study/models';
+export { dateKey, parseKey } from '../domain/study/models';
+export type { ChapterStat, ExtraBlock, LoggedSession, Task } from '../domain/study/models';
 
 const EMPTY_STAT: ChapterStat = {
   revisions: 0,
@@ -66,7 +18,7 @@ const EMPTY_STAT: ChapterStat = {
 };
 
 @Injectable({ providedIn: 'root' })
-export class StudyStore {
+export class StudyStore implements StudyRepository {
   private readonly onboarding = inject(OnboardingStore);
 
   readonly sessions = persisted<LoggedSession[]>('sessions', []);

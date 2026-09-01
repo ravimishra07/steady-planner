@@ -9,9 +9,12 @@ import {
 import { persisted, persistedMap, persistedSet } from '../core/persist';
 import { COMMITMENT_PRESETS, Commitment, committedMinutes } from './commitments';
 import { Pace, setPace } from '../study/retention';
+import { availableHours as calculateAvailableHours } from '../domain/planning/capacity';
+import { addDays, startOfToday } from '../domain/time/date';
+export { addDays, startOfToday } from '../domain/time/date';
 
 export type AccentId = 'blue' | 'purple' | 'green' | 'amber' | 'rose';
-export type AppearanceId = 'light' | 'dark' | 'grey' | 'slate';
+export type AppearanceId = 'system' | 'light' | 'dark' | 'grey' | 'slate';
 
 export interface Accent { id: AccentId; label: string; swatch: string; }
 export interface Appearance { id: AppearanceId; label: string; swatch: string; ink: string; }
@@ -27,6 +30,7 @@ export const ACCENTS: Accent[] = [
 
 /** Mirrors BackgroundAppearance.kt. */
 export const APPEARANCES: Appearance[] = [
+  { id: 'system', label: 'System', swatch: '#d8d7dd', ink: '#343239' },
   { id: 'light', label: 'Light', swatch: '#fcfcff', ink: '#191c25' },
   { id: 'dark', label: 'Dark', swatch: '#0a0a0f', ink: '#f4f3f8' },
   { id: 'grey', label: 'Grey', swatch: '#f3f4f6', ink: '#1b1c20' },
@@ -67,16 +71,17 @@ export const COACHINGS: CoachingOption[] = [
 
 export type DateMode = 'exam' | 'syllabus';
 
-export function startOfToday(): Date {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-export function addDays(from: Date, n: number): Date {
-  const d = new Date(from);
-  d.setDate(d.getDate() + n);
-  return d;
+/**
+ * NEET UG sits on the first Sunday of May. It is a fixed public date, not
+ * something to guess from, so the default target is the next one still ahead
+ * rather than a count of days from install.
+ */
+export function nextExamDay(from: Date = startOfToday()): Date {
+  for (let year = from.getFullYear(); ; year++) {
+    const may = new Date(year, 4, 1);
+    const day = new Date(year, 4, 1 + ((7 - may.getDay()) % 7));
+    if (day.getTime() > from.getTime()) return day;
+  }
 }
 
 /** Places people actually name; the last one opens a free-text field. */
@@ -154,13 +159,13 @@ export class OnboardingStore {
    */
   readonly targetDate = persisted<Date>(
     'target-date',
-    addDays(startOfToday(), 118),
+    nextExamDay(),
     // Local components, not toISOString: east of UTC, local midnight is the
     // previous day in UTC, so the target crept back a day on every reload.
     (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
     (raw) => {
       const [y, m, d] = String(raw).split('-').map(Number);
-      return Number.isFinite(y) ? new Date(y, m - 1, d) : addDays(startOfToday(), 118);
+      return Number.isFinite(y) ? new Date(y, m - 1, d) : nextExamDay();
     },
   );
 
@@ -306,8 +311,8 @@ export class OnboardingStore {
 
   /** How fast revision comes back round; read by the retention schedule. */
   readonly revisionPace = persisted<Pace>('revision-pace', 'standard');
-  /** Whether a running focus session blocks distracting apps. On by default. */
-  readonly blockApps = persisted<boolean>('block-apps', true);
+  /** Browser prototype of the native focus-lock preference; it cannot enforce blocking. */
+  readonly blockApps = persisted<boolean>('block-apps', false);
 
   /** The apps a session shuts out. Mirrors FocusLockSettings.blockedPackages. */
   readonly blockedApps = persistedSet('blocked-apps', new Set(DEFAULT_BLOCKED));
@@ -381,7 +386,7 @@ export class OnboardingStore {
   readonly weeklyHours = computed(() => this.weekdayHours() * 5 + this.weekendHours() * 2);
 
   readonly availableHours = computed(() =>
-    Math.round((this.days() / 7) * this.weeklyHours()),
+    calculateAvailableHours(this.days(), this.weekdayHours(), this.weekendHours()),
   );
 
   /** The same runway, capped by the hours the week physically has spare. */

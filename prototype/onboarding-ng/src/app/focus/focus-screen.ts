@@ -60,7 +60,7 @@ const LENGTHS = [25, 50, 90];
               <mat-icon [class.filled]="store.blockApps()">
                 {{ store.blockApps() ? 'lock' : 'lock_open' }}
               </mat-icon>
-              {{ store.blockApps() ? blockedCount() + ' apps' : 'Off' }}
+              {{ store.blockApps() ? 'Shield preview' : 'Shield off' }}
             </button>
 
             <button matRipple class="icon-btn" (click)="browse()" aria-label="Browse all topics">
@@ -210,7 +210,7 @@ const LENGTHS = [25, 50, 90];
 
           <p class="blocking-note">
             <mat-icon>{{ blocking() ? 'lock' : 'lock_open' }}</mat-icon>
-            {{ blocking() ? blockedCount() + ' apps blocked until this ends' : 'App blocking is off' }}
+            {{ blocking() ? 'Shield preview is on; this browser cannot block other apps' : 'Focus shield preview is off' }}
           </p>
         </section>
       }
@@ -643,6 +643,20 @@ const LENGTHS = [25, 50, 90];
 
     .toggle.on { background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container); }
     .foot-stat mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+    @media (min-width: 900px) {
+      :host {
+        width: min(960px, 100%);
+        margin-inline: auto;
+        padding: 32px clamp(32px, 6vw, 80px);
+      }
+      .bar { height: 64px; }
+      .bar-title { font: var(--mat-sys-headline-medium); }
+      .card { min-height: 220px; padding: 32px; }
+      .queue { margin-top: 28px; }
+      .stage { width: min(640px, 100%); margin-inline: auto; }
+      .browse-list, .scroll { scrollbar-gutter: stable; }
+    }
   `,
 })
 export class FocusScreen {

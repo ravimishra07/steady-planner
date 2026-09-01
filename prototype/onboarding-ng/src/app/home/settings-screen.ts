@@ -24,6 +24,8 @@ import { PACK } from '../onboarding/exam-pack';
 import { StudyStore } from '../study/study-store';
 import { PACES } from '../study/retention';
 import { clearDemo, loadDemo } from '../study/demo-data';
+import { browserPrototypeStorage } from '../core/persistence/prototype-storage';
+import { persistedSet } from '../core/persist';
 
 /** Where a row leads, when it leads somewhere. */
 type Page =
@@ -42,7 +44,7 @@ const LEGAL = [
   { heading: 'Who it is shared with', body: 'Nobody. There is no third party to share it with.' },
   {
     heading: 'Deleting it',
-    body: 'Delete everything removes all of it at once. Uninstalling does the same.',
+    body: 'Delete everything removes all prototype data at once. Clearing this site’s browser data does the same.',
   },
   {
     heading: 'Terms of use',
@@ -132,8 +134,8 @@ const SOCIALS = [
               <mat-icon class="lead" [class.filled]="store.blockApps()">
                   {{ store.blockApps() ? 'lock' : 'lock_open' }}
                 </mat-icon>
-              <span class="row-title">Focus &amp; blocking</span>
-              <span class="row-value">{{ store.blockApps() ? store.blockedApps().size + ' apps' : 'Off' }}</span>
+              <span class="row-title">Focus shield preview</span>
+              <span class="row-value">{{ store.blockApps() ? 'Preview on' : 'Off' }}</span>
               <mat-icon class="chev">chevron_right</mat-icon>
             </button>
           </div>
@@ -378,7 +380,7 @@ const SOCIALS = [
           <button matRipple class="icon-btn" (click)="page.set('root')" aria-label="Back">
             <mat-icon>arrow_back</mat-icon>
           </button>
-          <h1 class="bar-title small">Focus &amp; blocking</h1>
+          <h1 class="bar-title small">Focus shield preview</h1>
         </header>
 
         <div class="scroll">
@@ -387,12 +389,12 @@ const SOCIALS = [
               <mat-icon class="lead" [class.filled]="store.blockApps()">
                   {{ store.blockApps() ? 'lock' : 'lock_open' }}
                 </mat-icon>
-              <span class="row-title">Block apps during a session</span>
+              <span class="row-title">Preview native app blocking</span>
               <span class="switch" [class.on]="store.blockApps()"><span class="knob"></span></span>
             </button>
           </div>
 
-          <h2 class="group">Blocked while the timer runs</h2>
+          <h2 class="group">Apps the native versions would block</h2>
           <div class="sheet pad">
             <div class="chips">
               @for (a of apps; track a.id) {
@@ -405,7 +407,7 @@ const SOCIALS = [
             </div>
           </div>
 
-          <p class="note">Released the moment a session stops.</p>
+          <p class="note">A browser cannot block other apps. This setting previews the Android and iOS behavior only.</p>
         </div>
       }
 
@@ -845,6 +847,21 @@ const SOCIALS = [
     }
 
     .text-btn.danger { color: var(--mat-sys-error); }
+
+    @media (min-width: 900px) {
+      :host {
+        width: min(900px, 100%);
+        margin-inline: auto;
+        padding: 24px 48px 64px;
+      }
+      .bar { height: 72px; }
+      .bar-title { font: var(--mat-sys-headline-medium); }
+      .scroll { padding: 0 0 64px; scrollbar-gutter: stable; }
+      .profile { margin-top: 8px; padding: 24px; }
+      .sheet { border: 1px solid var(--mat-sys-outline-variant); }
+      .dialog { left: 50%; right: auto; width: min(440px, calc(100vw - 64px)); transform: translate(-50%, -50%); }
+      .scrim { position: fixed; }
+    }
   `,
 
 })
@@ -893,7 +910,7 @@ export class SettingsScreen {
     { id: 'idle', icon: 'notifications', label: 'Evening nudge' },
   ];
 
-  private readonly notificationsOn = signal<ReadonlySet<string>>(new Set(['plan', 'due']));
+  private readonly notificationsOn = persistedSet('notifications', new Set(['plan', 'due']));
 
   protected notificationOn(id: string): boolean { return this.notificationsOn().has(id); }
 
@@ -961,24 +978,13 @@ export class SettingsScreen {
   /* ---- Data ------------------------------------------------------------ */
 
   protected storageLabel(): string {
-    let bytes = 0;
-    for (const key of Object.keys(localStorage)) {
-      if (key.startsWith('steadyline.')) bytes += localStorage.getItem(key)?.length ?? 0;
-    }
+    const bytes = browserPrototypeStorage().sizeBytes();
     return bytes < 1024 ? `${bytes} B` : `${Math.round(bytes / 1024)} KB`;
   }
 
   /** Everything the app holds, in one file the user keeps. */
   protected exportData(): void {
-    const data: Record<string, unknown> = {};
-    for (const key of Object.keys(localStorage)) {
-      if (!key.startsWith('steadyline.')) continue;
-      try {
-        data[key.replace('steadyline.', '')] = JSON.parse(localStorage.getItem(key)!);
-      } catch {
-        data[key.replace('steadyline.', '')] = localStorage.getItem(key);
-      }
-    }
+    const data = browserPrototypeStorage().export();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -989,9 +995,7 @@ export class SettingsScreen {
   }
 
   protected wipe(): void {
-    for (const key of Object.keys(localStorage)) {
-      if (key.startsWith('steadyline.')) localStorage.removeItem(key);
-    }
+    browserPrototypeStorage().clear();
     location.reload();
   }
 

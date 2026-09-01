@@ -592,6 +592,24 @@ import { orderedChapters } from '../onboarding/sequence';
       font: var(--mat-sys-label-large);
       cursor: pointer;
     }
+
+    @media (min-width: 1000px) {
+      :host { display: block; width: min(1120px, 100%); margin-inline: auto; }
+      .filters { position: sticky; top: 0; z-index: 2; padding-block: 12px; background: var(--mat-sys-surface); }
+      .subject { padding: 20px 24px; }
+      .scrim { position: fixed; }
+      .sheet {
+        position: fixed;
+        top: 50%;
+        right: 32px;
+        bottom: auto;
+        left: auto;
+        width: min(420px, calc(100vw - 64px));
+        border-radius: var(--mat-sys-corner-extra-large);
+        transform: translateY(-50%);
+      }
+      .handle { display: none; }
+    }
   `,
 })
 export class SyllabusBrowser {

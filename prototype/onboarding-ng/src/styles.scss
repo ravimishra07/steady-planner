@@ -24,18 +24,18 @@ body {
   color-scheme: light dark;
   background: light-dark(#e7e7ec, #0c0c10);
   font-family: Roboto, system-ui, sans-serif;
-  display: grid;
-  place-items: center;
+  min-width: 320px;
 }
 
 // The device shell owns the theme, so accent + appearance can be swapped at
 // runtime by changing the classes on it alone.
-.phone {
+.app-theme {
   @include mat.theme((
     color: (primary: mat.$violet-palette, tertiary: mat.$blue-palette),
     typography: Roboto,
     density: 0,
   ));
+  min-height: 100%;
 }
 
 .accent-blue   { @include mat.theme((color: (primary: mat.$azure-palette,  tertiary: mat.$cyan-palette))); }
@@ -48,6 +48,7 @@ body {
 // neutral shift of the surface family (grey / slate), still M3 roles only.
 .bg-light { color-scheme: light; }
 .bg-dark  { color-scheme: dark; }
+.bg-system { color-scheme: light dark; }
 
 .bg-grey {
   color-scheme: light;

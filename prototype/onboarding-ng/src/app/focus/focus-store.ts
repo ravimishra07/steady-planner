@@ -3,19 +3,9 @@ import { persisted } from '../core/persist';
 import { startOfToday } from '../onboarding/state';
 import { StudyStore, dateKey } from '../study/study-store';
 import { Recall } from '../study/retention';
-import { StudyBlock } from '../home/scheduler';
-
-export type FocusStatus = 'idle' | 'running' | 'paused' | 'done';
-
-/** Mirrors FocusBlockRef.kt — enough of a block to run and log a sitting. */
-export interface FocusTarget {
-  chapterId: string;
-  subtopicId?: string;
-  title: string;
-  context: string;
-  task: StudyBlock['task'];
-  minutes: number;
-}
+import { FocusStatus, FocusTarget } from '../domain/focus/models';
+import { FocusRepository } from '../data/contracts/focus-repository';
+export type { FocusStatus, FocusTarget } from '../domain/focus/models';
 
 interface Persisted {
   status: FocusStatus;
@@ -27,6 +17,8 @@ interface Persisted {
   pausedAt: number | null;
   /** Seconds actually spent, accumulated across pauses. */
   elapsedSec: number;
+  /** Wall clock at which the current running segment began. */
+  segmentStartedAt: number | null;
 }
 
 const BLANK: Persisted = {
@@ -36,6 +28,7 @@ const BLANK: Persisted = {
   endsAt: null,
   pausedAt: null,
   elapsedSec: 0,
+  segmentStartedAt: null,
 };
 
 /** A sitting shorter than this is not worth logging as study. */
@@ -51,7 +44,7 @@ export function clock(seconds: number): string {
  * so a finished timer is the app's input, not a thing to remember to log after.
  */
 @Injectable({ providedIn: 'root' })
-export class FocusStore {
+export class FocusStore implements FocusRepository {
   private readonly study = inject(StudyStore);
 
   private readonly state = persisted<Persisted>('focus', BLANK);
@@ -79,7 +72,7 @@ export class FocusStore {
 
   /** Minutes actually sat through, which is what gets logged. */
   readonly spentMinutes = computed(() =>
-    Math.round((this.state().elapsedSec + this.runningSec()) / 60),
+    Math.round((this.state().elapsedSec + this.currentSegmentSec()) / 60),
   );
 
   readonly sittingsToday = computed(
@@ -106,8 +99,9 @@ export class FocusStore {
         this.state.set({
           ...s,
           status: 'done',
-          elapsedSec: s.elapsedSec + s.durationSec,
+          elapsedSec: s.elapsedSec + this.currentSegmentSec(),
           endsAt: null,
+          segmentStartedAt: null,
         });
       }
     });
@@ -123,6 +117,7 @@ export class FocusStore {
       endsAt: Date.now() + durationSec * 1000,
       pausedAt: null,
       elapsedSec: 0,
+      segmentStartedAt: Date.now(),
     });
   }
 
@@ -133,8 +128,9 @@ export class FocusStore {
       ...s,
       status: 'paused',
       pausedAt: this.remainingSec(),
-      elapsedSec: s.elapsedSec + this.runningSec(),
+      elapsedSec: s.elapsedSec + this.currentSegmentSec(),
       endsAt: null,
+      segmentStartedAt: null,
     });
   }
 
@@ -143,7 +139,13 @@ export class FocusStore {
     if (s.status !== 'paused') return;
     const left = s.pausedAt ?? s.durationSec;
     this.now.set(Date.now());
-    this.state.set({ ...s, status: 'running', endsAt: Date.now() + left * 1000, pausedAt: null });
+    this.state.set({
+      ...s,
+      status: 'running',
+      endsAt: Date.now() + left * 1000,
+      pausedAt: null,
+      segmentStartedAt: Date.now(),
+    });
   }
 
   /** Add time to a session already under way. */
@@ -168,9 +170,10 @@ export class FocusStore {
     this.state.set({
       ...s,
       status: 'done',
-      elapsedSec: s.elapsedSec + this.runningSec(),
+      elapsedSec: s.elapsedSec + this.currentSegmentSec(),
       endsAt: null,
       pausedAt: null,
+      segmentStartedAt: null,
     });
   }
 
@@ -178,7 +181,7 @@ export class FocusStore {
   finish(recall: Recall, attempted?: number, correct?: number): number {
     const s = this.state();
     const target = s.target;
-    const seconds = s.elapsedSec + this.runningSec();
+    const seconds = s.elapsedSec + this.currentSegmentSec();
     if (!target || seconds < MIN_LOGGABLE_SEC) {
       this.reset();
       return 0;
@@ -210,13 +213,13 @@ export class FocusStore {
   }
 
   /** Seconds elapsed in the current run, zero unless running. */
-  private runningSec(): number {
+  private currentSegmentSec(): number {
     const s = this.state();
     if (s.status !== 'running' || s.endsAt === null) return 0;
-    return Math.max(0, this.spanSec() - this.remainingSec());
-  }
-
-  private spanSec(): number {
-    return this.state().durationSec;
+    if (s.segmentStartedAt !== null && s.segmentStartedAt !== undefined) {
+      return Math.max(0, Math.round((this.now() - s.segmentStartedAt) / 1000));
+    }
+    // Compatibility for sessions persisted before segmentStartedAt existed.
+    return Math.max(0, s.durationSec - this.remainingSec());
   }
 }

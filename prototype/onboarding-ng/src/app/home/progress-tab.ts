@@ -647,6 +647,36 @@ const HOURS_DAYS = 14;
     .option-text { display: flex; flex-direction: column; gap: 2px; }
     .option-head { font: var(--mat-sys-title-small); }
     .option-sub { font: var(--mat-sys-body-small); color: var(--mat-sys-on-surface-variant); }
+
+    @media (min-width: 1100px) {
+      :host {
+        display: grid;
+        grid-template-columns: minmax(320px, 440px) minmax(460px, 720px);
+        align-content: start;
+        justify-content: center;
+        gap: 24px 32px;
+        padding: 32px clamp(24px, 4vw, 64px) 80px;
+        overflow-y: auto;
+      }
+      .hero { grid-column: 1; margin: 0; }
+      .pace { grid-column: 1; margin: 0; }
+      .block { grid-column: 2; margin: 0; }
+      .block:nth-of-type(3) { grid-row: 1 / span 2; }
+      .scrim { position: fixed; }
+      .sheet {
+        position: fixed;
+        top: 50%;
+        right: 32px;
+        bottom: auto;
+        left: auto;
+        width: min(480px, calc(100vw - 64px));
+        max-height: calc(100dvh - 64px);
+        border-radius: var(--mat-sys-corner-extra-large);
+        transform: translateY(-50%);
+        overflow-y: auto;
+      }
+      .handle { display: none; }
+    }
   `,
 
 })
