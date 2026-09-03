@@ -10,12 +10,14 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import androidx.core.content.ContextCompat
 import androidx.core.app.NotificationCompat
+import com.exam.assistant.MainActivity
 import com.exam.assistant.R
 import com.exam.assistant.SteadylineApp
-import com.exam.assistant.domain.FocusSession
 import com.exam.assistant.domain.FocusStatus
 import com.exam.assistant.domain.shouldBlockPackage
+import com.exam.assistant.domain.withTemporaryAllowance
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -26,7 +28,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Polls the foreground app while a study session is active and, if it is one of the
- * student's chosen distractions, brings [BlockingActivity] to the front.
+ * student's chosen distractions, covers it with the system overlay the student granted.
  *
  * Deliberately dumb: it owns no session/settings state itself. Every tick re-reads
  * [AppContainer.focusStore], [AppContainer.focusLockStore] and
@@ -38,6 +40,13 @@ class FocusLockService : Service() {
 
     private var job: Job? = null
     private val scope = CoroutineScope(SupervisorJob())
+    private val overlayController by lazy {
+        FocusLockOverlayController(
+            context = this,
+            onBackToStudy = ::returnToStudy,
+            onAllowTemporarily = ::allowTemporarily,
+        )
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -51,6 +60,7 @@ class FocusLockService : Service() {
 
     override fun onDestroy() {
         job?.cancel()
+        overlayController.destroy()
         scope.cancel()
         super.onDestroy()
     }
@@ -63,6 +73,7 @@ class FocusLockService : Service() {
                 val session = container.focusStore.load().withClockNow()
                 val sessionActive = session.status == FocusStatus.RUNNING || session.status == FocusStatus.PAUSED
                 if (!sessionActive) {
+                    overlayController.hide()
                     stopSelf()
                     return
                 }
@@ -72,7 +83,13 @@ class FocusLockService : Service() {
                 if (foregroundPackage != null &&
                     shouldBlockPackage(settings, capabilities, foregroundPackage, packageName, System.currentTimeMillis())
                 ) {
-                    launchBlockingScreen(foregroundPackage, session)
+                    overlayController.show(
+                        blockedPackage = foregroundPackage,
+                        topicTitle = session.block?.title.orEmpty(),
+                        remainingSec = session.remainingSec,
+                    )
+                } else {
+                    overlayController.hide()
                 }
             }
             delay(POLL_INTERVAL_MS)
@@ -94,14 +111,25 @@ class FocusLockService : Service() {
         return lastPackage
     }
 
-    private fun launchBlockingScreen(blockedPackage: String, session: FocusSession) {
-        val intent = Intent(this, BlockingActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            putExtra(BlockingActivity.EXTRA_BLOCKED_PACKAGE, blockedPackage)
-            putExtra(BlockingActivity.EXTRA_TOPIC_TITLE, session.block?.title.orEmpty())
-            putExtra(BlockingActivity.EXTRA_REMAINING_SEC, session.remainingSec)
+    private fun returnToStudy() {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
         }
         startActivity(intent)
+    }
+
+    private fun allowTemporarily(blockedPackage: String) {
+        val container = (application as? SteadylineApp)?.container ?: return
+        scope.launch {
+            val current = container.focusLockStore.load()
+            container.focusLockStore.save(
+                withTemporaryAllowance(
+                    current,
+                    blockedPackage,
+                    System.currentTimeMillis(),
+                ),
+            )
+        }
     }
 
     private fun buildNotification(): Notification {
@@ -130,7 +158,7 @@ class FocusLockService : Service() {
         private const val LOOKBACK_MS = 10_000L
 
         fun start(context: Context) {
-            context.startService(Intent(context, FocusLockService::class.java))
+            ContextCompat.startForegroundService(context, Intent(context, FocusLockService::class.java))
         }
 
         fun stop(context: Context) {
