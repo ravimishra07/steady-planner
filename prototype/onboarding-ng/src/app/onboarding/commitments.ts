@@ -56,6 +56,29 @@ export function committedMinutes(list: readonly Commitment[], weekday: number): 
   return total;
 }
 
+export function validateCommitments(list: readonly Commitment[], wake: number, sleep: number): string[] {
+  const issues: string[] = [];
+  if (sleep <= wake) issues.push('Lights out must be after wake-up time.');
+
+  for (const commitment of list) {
+    if (commitment.days.length === 0) issues.push(`${commitment.label} needs at least one day.`);
+    if (commitment.minutes <= 0) issues.push(`${commitment.label} must end after it starts.`);
+    if (commitment.startMinute < wake || commitment.startMinute + commitment.minutes > sleep) {
+      issues.push(`${commitment.label} sits outside your waking hours.`);
+    }
+  }
+
+  for (let day = 0; day < 7; day++) {
+    const onDay = commitmentsOn(list, day);
+    for (let i = 1; i < onDay.length; i++) {
+      if (onDay[i].startMinute < onDay[i - 1].startMinute + onDay[i - 1].minutes) {
+        issues.push(`${onDay[i - 1].label} overlaps ${onDay[i].label}.`);
+      }
+    }
+  }
+  return [...new Set(issues)];
+}
+
 export function clockLabel(minuteOfDay: number): string {
   const h = Math.floor(minuteOfDay / 60) % 24;
   const m = minuteOfDay % 60;

@@ -4,79 +4,82 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.sp
 
 /**
- * The type ramp by name. UI code uses these; it never writes a raw sp value.
+ * The Material 3 type scale used by the Angular reference.
  *
- * The family is the platform default (Roboto) — no bundled font, so nothing is
- * added to the APK and nothing is downloaded at runtime. Swapping to a bundled
- * face later is a change here and nowhere else.
+ * Android's platform sans-serif is Roboto, so no font file is downloaded or
+ * bundled. A future font change remains isolated to this file.
  */
 object AppType {
     val family: FontFamily = FontFamily.Default
 
-    private val trim = LineHeightStyle(
-        alignment = LineHeightStyle.Alignment.Center,
-        trim = LineHeightStyle.Trim.None,
-    )
+    val displayLarge = m3Style(57, 64, FontWeight.Normal, -0.25f)
+    val displayMedium = m3Style(45, 52, FontWeight.Normal)
+    val displaySmall = m3Style(36, 44, FontWeight.Normal)
+    val headlineLarge = m3Style(32, 40, FontWeight.Normal)
+    val headlineMedium = m3Style(28, 36, FontWeight.Normal)
+    val headlineSmall = m3Style(24, 32, FontWeight.Normal)
+    val titleLarge = m3Style(22, 28, FontWeight.Normal)
+    val titleMedium = m3Style(16, 24, FontWeight.Medium, 0.15f)
+    val titleSmall = m3Style(14, 20, FontWeight.Medium, 0.10f)
+    val bodyLarge = m3Style(16, 24, FontWeight.Normal, 0.50f)
+    val bodyMedium = m3Style(14, 20, FontWeight.Normal, 0.25f)
+    val bodySmall = m3Style(12, 16, FontWeight.Normal, 0.40f)
+    val labelLarge = m3Style(14, 20, FontWeight.Medium, 0.10f)
+    val labelMedium = m3Style(12, 16, FontWeight.Medium, 0.50f)
+    val labelSmall = m3Style(11, 16, FontWeight.Medium, 0.50f)
 
-    private fun style(
-        size: androidx.compose.ui.unit.TextUnit,
-        weight: FontWeight,
-        heightMultiple: Double,
-        letterSpacingEm: Double = 0.0,
-    ) = TextStyle(
-        fontFamily = family,
-        fontSize = size,
-        fontWeight = weight,
-        lineHeight = size * heightMultiple.toFloat(),
-        letterSpacing = size * letterSpacingEm.toFloat(),
-        lineHeightStyle = trim,
-    )
-
-    // display and titles
-    val display = style(FontSize.display, FontWeight.Bold, 1.12, -0.03)
-    val countdown = style(FontSize.countdown, FontWeight.Bold, 1.12, -0.03)
-    val mega = style(FontSize.mega, FontWeight.Bold, 1.12, -0.03)
-    val hero = style(FontSize.hero, FontWeight.Bold, 1.12, -0.03)
-    val title = style(FontSize.title, FontWeight.Bold, 1.12, -0.02)
-    val xxl = style(FontSize.xxl, FontWeight.SemiBold, 1.28, -0.02)
-    val xl = style(FontSize.xl, FontWeight.SemiBold, 1.28, -0.01)
-
-    // body
-    val subtitle = style(FontSize.subtitle, FontWeight.SemiBold, 1.28)
-    val headline = style(FontSize.headline, FontWeight.SemiBold, 1.28)
-    val lg = style(FontSize.lg, FontWeight.Medium, 1.45)
-    val lgRegular = style(FontSize.lg, FontWeight.Normal, 1.5)
-    val callout = style(FontSize.callout, FontWeight.Medium, 1.28)
-    val md = style(FontSize.md, FontWeight.Normal, 1.5)
-    val sub = style(FontSize.sub, FontWeight.Normal, 1.45)
-    val sm = style(FontSize.sm, FontWeight.Normal, 1.45)
-
-    // labels
-    val eyebrow = style(FontSize.xs, FontWeight.SemiBold, 1.45, 0.08)
-    val tabLabel = style(FontSize.xs2, FontWeight.Medium, 1.12)
-    val micro = style(FontSize.xxs, FontWeight.SemiBold, 1.12, 0.09)
+    // Compatibility aliases for feature code. They all resolve to the same
+    // measured M3 scale; no feature owns an independent type size.
+    val display = displayLarge
+    val countdown = displayLarge
+    val mega = displayLarge
+    val hero = displaySmall
+    val title = headlineLarge
+    val xxl = headlineMedium
+    val xl = headlineSmall
+    val subtitle = titleLarge
+    val headline = titleMedium
+    val lg = bodyLarge.copy(fontWeight = FontWeight.Medium)
+    val lgRegular = bodyLarge
+    val callout = labelLarge
+    val md = bodyMedium
+    val sub = bodySmall
+    val sm = bodySmall
+    val eyebrow = labelSmall
+    val tabLabel = labelMedium
+    val micro = labelSmall
 }
 
-/**
- * Material's Typography, so stock components inherit the ramp instead of
- * falling back to defaults.
- */
+private fun m3Style(
+    size: Int,
+    lineHeight: Int,
+    weight: FontWeight,
+    tracking: Float = 0f,
+) = TextStyle(
+    fontFamily = AppType.family,
+    fontSize = size.sp,
+    lineHeight = lineHeight.sp,
+    fontWeight = weight,
+    letterSpacing = tracking.sp,
+)
+
 internal val appTypography = Typography(
-    displayLarge = AppType.display,
-    displayMedium = AppType.hero,
-    headlineLarge = AppType.title,
-    headlineMedium = AppType.xxl,
-    headlineSmall = AppType.xl,
-    titleLarge = AppType.subtitle,
-    titleMedium = AppType.headline,
-    titleSmall = AppType.callout,
-    bodyLarge = AppType.lgRegular,
-    bodyMedium = AppType.md,
-    bodySmall = AppType.sub,
-    labelLarge = AppType.callout,
-    labelMedium = AppType.sm,
-    labelSmall = AppType.eyebrow,
+    displayLarge = AppType.displayLarge,
+    displayMedium = AppType.displayMedium,
+    displaySmall = AppType.displaySmall,
+    headlineLarge = AppType.headlineLarge,
+    headlineMedium = AppType.headlineMedium,
+    headlineSmall = AppType.headlineSmall,
+    titleLarge = AppType.titleLarge,
+    titleMedium = AppType.titleMedium,
+    titleSmall = AppType.titleSmall,
+    bodyLarge = AppType.bodyLarge,
+    bodyMedium = AppType.bodyMedium,
+    bodySmall = AppType.bodySmall,
+    labelLarge = AppType.labelLarge,
+    labelMedium = AppType.labelMedium,
+    labelSmall = AppType.labelSmall,
 )

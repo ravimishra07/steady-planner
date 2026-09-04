@@ -1,0 +1,3154 @@
+{
+  "schemaVersion": 2,
+  "examId": "neet",
+  "displayName": "NEET UG",
+  "syllabusVersion": "ncert-rationalised-2026-2",
+  "source": {
+    "scope": "NMC NEET (UG) 2026 syllabus",
+    "chapters": "NCERT rationalised Class 11 and 12 textbook contents",
+    "note": "Botany and Zoology are a planning split of the NCERT Biology books."
+  },
+  "tier1": [
+    {
+      "id": "physics",
+      "n": "Physics",
+      "q": 45,
+      "t": [
+        {
+          "id": "neet.physics.11.units_and_measurements",
+          "n": "Units and Measurements",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.physics.11.units_and_measurements.section_01",
+              "n": "1.1 Introduction",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.11.units_and_measurements.section_02",
+              "n": "1.2 The international system of units",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.11.units_and_measurements.section_03",
+              "n": "1.3 Significant figures",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.11.units_and_measurements.section_04",
+              "n": "1.4 Dimensions of physical quantities",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.11.units_and_measurements.section_05",
+              "n": "1.5 Dimensional formulae and dimensional equations",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.11.units_and_measurements.section_06",
+              "n": "1.6 Dimensional analysis and its applications",
+              "m": 80
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.11.motion_in_a_straight_line",
+          "n": "Motion in a Straight Line",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.physics.11.motion_in_a_straight_line.section_01",
+              "n": "2.1 Introduction",
+              "m": 96
+            },
+            {
+              "id": "neet.physics.11.motion_in_a_straight_line.section_02",
+              "n": "2.2 Instantaneous velocity and speed",
+              "m": 96
+            },
+            {
+              "id": "neet.physics.11.motion_in_a_straight_line.section_03",
+              "n": "2.3 Acceleration",
+              "m": 96
+            },
+            {
+              "id": "neet.physics.11.motion_in_a_straight_line.section_04",
+              "n": "2.4 Kinematic equations for uniformly accelerated motion",
+              "m": 96
+            },
+            {
+              "id": "neet.physics.11.motion_in_a_straight_line.section_05",
+              "n": "2.5 Relative velocity",
+              "m": 96
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.11.motion_in_a_plane",
+          "n": "Motion in a Plane",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.physics.11.motion_in_a_plane.section_01",
+              "n": "3.1 Introduction",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.motion_in_a_plane.section_02",
+              "n": "3.2 Scalars and vectors",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.motion_in_a_plane.section_03",
+              "n": "3.3 Multiplication of vectors by real numbers",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.motion_in_a_plane.section_04",
+              "n": "3.4 Addition and subtraction of vectors — graphical method",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.motion_in_a_plane.section_05",
+              "n": "3.5 Resolution of vectors",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.motion_in_a_plane.section_06",
+              "n": "3.6 Vector addition — analytical method",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.motion_in_a_plane.section_07",
+              "n": "3.7 Motion in a plane",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.motion_in_a_plane.section_08",
+              "n": "3.8 Motion in a plane with constant acceleration",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.motion_in_a_plane.section_09",
+              "n": "3.9 Projectile motion",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.motion_in_a_plane.section_10",
+              "n": "3.10 Uniform circular motion",
+              "m": 48
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.11.laws_of_motion",
+          "n": "Laws of Motion",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.physics.11.laws_of_motion.section_01",
+              "n": "4.1 Introduction",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.laws_of_motion.section_02",
+              "n": "4.2 Aristotle’s fallacy",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.laws_of_motion.section_03",
+              "n": "4.3 The law of inertia",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.laws_of_motion.section_04",
+              "n": "4.4 Newton’s first law of motion",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.laws_of_motion.section_05",
+              "n": "4.5 Newton’s second law of motion",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.laws_of_motion.section_06",
+              "n": "4.6 Newton’s third law of motion",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.laws_of_motion.section_07",
+              "n": "4.7 Conservation of momentum",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.laws_of_motion.section_08",
+              "n": "4.8 Equilibrium of a particle",
+              "m": 43
+            },
+            {
+              "id": "neet.physics.11.laws_of_motion.section_09",
+              "n": "4.9 Common forces in mechanics",
+              "m": 43
+            },
+            {
+              "id": "neet.physics.11.laws_of_motion.section_10",
+              "n": "4.10 Circular motion",
+              "m": 43
+            },
+            {
+              "id": "neet.physics.11.laws_of_motion.section_11",
+              "n": "4.11 Solving problems in mechanics",
+              "m": 43
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.11.work_energy_and_power",
+          "n": "Work, Energy and Power",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.physics.11.work_energy_and_power.section_01",
+              "n": "5.1 Introduction",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.work_energy_and_power.section_02",
+              "n": "5.2 Notions of work and kinetic energy : The work-energy theorem",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.work_energy_and_power.section_03",
+              "n": "5.3 Work",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.work_energy_and_power.section_04",
+              "n": "5.4 Kinetic energy",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.work_energy_and_power.section_05",
+              "n": "5.5 Work done by a variable force",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.work_energy_and_power.section_06",
+              "n": "5.6 The work-energy theorem for a variable force",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.work_energy_and_power.section_07",
+              "n": "5.7 The concept of potential energy",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.work_energy_and_power.section_08",
+              "n": "5.8 The conservation of mechanical energy",
+              "m": 43
+            },
+            {
+              "id": "neet.physics.11.work_energy_and_power.section_09",
+              "n": "5.9 The potential energy of a spring",
+              "m": 43
+            },
+            {
+              "id": "neet.physics.11.work_energy_and_power.section_10",
+              "n": "5.10 Power",
+              "m": 43
+            },
+            {
+              "id": "neet.physics.11.work_energy_and_power.section_11",
+              "n": "5.11 Collisions",
+              "m": 43
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.11.system_of_particles_and_rotational_motion",
+          "n": "System of Particles and Rotational Motion",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.physics.11.system_of_particles_and_rotational_motion.section_01",
+              "n": "6.1 Introduction",
+              "m": 40
+            },
+            {
+              "id": "neet.physics.11.system_of_particles_and_rotational_motion.section_02",
+              "n": "6.2 Centre of mass",
+              "m": 40
+            },
+            {
+              "id": "neet.physics.11.system_of_particles_and_rotational_motion.section_03",
+              "n": "6.3 Motion of centre of mass",
+              "m": 40
+            },
+            {
+              "id": "neet.physics.11.system_of_particles_and_rotational_motion.section_04",
+              "n": "6.4 Linear momentum of a system of particles",
+              "m": 40
+            },
+            {
+              "id": "neet.physics.11.system_of_particles_and_rotational_motion.section_05",
+              "n": "6.5 Vector product of two vectors",
+              "m": 40
+            },
+            {
+              "id": "neet.physics.11.system_of_particles_and_rotational_motion.section_06",
+              "n": "6.6 Angular velocity and its relation with linear velocity",
+              "m": 40
+            },
+            {
+              "id": "neet.physics.11.system_of_particles_and_rotational_motion.section_07",
+              "n": "6.7 Torque and angular momentum",
+              "m": 40
+            },
+            {
+              "id": "neet.physics.11.system_of_particles_and_rotational_motion.section_08",
+              "n": "6.8 Equilibrium of a rigid body",
+              "m": 40
+            },
+            {
+              "id": "neet.physics.11.system_of_particles_and_rotational_motion.section_09",
+              "n": "6.9 Moment of inertia",
+              "m": 40
+            },
+            {
+              "id": "neet.physics.11.system_of_particles_and_rotational_motion.section_10",
+              "n": "6.10 Kinematics of rotational motion about a fixed axis",
+              "m": 40
+            },
+            {
+              "id": "neet.physics.11.system_of_particles_and_rotational_motion.section_11",
+              "n": "6.11 Dynamics of rotational motion about a fixed axis",
+              "m": 40
+            },
+            {
+              "id": "neet.physics.11.system_of_particles_and_rotational_motion.section_12",
+              "n": "6.12 Angular momentum in case of rotation about a fixed axis",
+              "m": 40
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.11.gravitation",
+          "n": "Gravitation",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.physics.11.gravitation.section_01",
+              "n": "7.1 Introduction",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.gravitation.section_02",
+              "n": "7.2 Kepler’s laws",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.gravitation.section_03",
+              "n": "7.3 Universal law of gravitation",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.gravitation.section_04",
+              "n": "7.4 The gravitational constant",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.gravitation.section_05",
+              "n": "7.5 Acceleration due to gravity of the earth",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.gravitation.section_06",
+              "n": "7.6 Acceleration due to gravity below and above the surface of earth",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.gravitation.section_07",
+              "n": "7.7 Gravitational potential energy",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.gravitation.section_08",
+              "n": "7.8 Escape speed",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.gravitation.section_09",
+              "n": "7.9 Earth satellites",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.gravitation.section_10",
+              "n": "7.10 Energy of an orbiting satellite",
+              "m": 48
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.11.mechanical_properties_of_solids",
+          "n": "Mechanical Properties of Solids",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.physics.11.mechanical_properties_of_solids.section_01",
+              "n": "8.1 Introduction",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.11.mechanical_properties_of_solids.section_02",
+              "n": "8.2 Stress and strain",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.11.mechanical_properties_of_solids.section_03",
+              "n": "8.3 Hooke’s law",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.11.mechanical_properties_of_solids.section_04",
+              "n": "8.4 Stress-strain curve",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.11.mechanical_properties_of_solids.section_05",
+              "n": "8.5 Elastic moduli",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.11.mechanical_properties_of_solids.section_06",
+              "n": "8.6 Applications of elastic behaviour of materials",
+              "m": 80
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.11.mechanical_properties_of_fluids",
+          "n": "Mechanical Properties of Fluids",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.physics.11.mechanical_properties_of_fluids.section_01",
+              "n": "9.1 Introduction",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.11.mechanical_properties_of_fluids.section_02",
+              "n": "9.2 Pressure",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.11.mechanical_properties_of_fluids.section_03",
+              "n": "9.3 Streamline flow",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.11.mechanical_properties_of_fluids.section_04",
+              "n": "9.4 Bernoulli’s principle",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.11.mechanical_properties_of_fluids.section_05",
+              "n": "9.5 Viscosity",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.11.mechanical_properties_of_fluids.section_06",
+              "n": "9.6 Surface tension",
+              "m": 80
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.11.thermal_properties_of_matter",
+          "n": "Thermal Properties of Matter",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.physics.11.thermal_properties_of_matter.section_01",
+              "n": "10.1 Introduction",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.thermal_properties_of_matter.section_02",
+              "n": "10.2 Temperature and heat",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.thermal_properties_of_matter.section_03",
+              "n": "10.3 Measurement of temperature",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.thermal_properties_of_matter.section_04",
+              "n": "10.4 Ideal-gas equation and absolute temperature",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.thermal_properties_of_matter.section_05",
+              "n": "10.5 Thermal expansion",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.thermal_properties_of_matter.section_06",
+              "n": "10.6 Specific heat capacity",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.thermal_properties_of_matter.section_07",
+              "n": "10.7 Calorimetry",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.thermal_properties_of_matter.section_08",
+              "n": "10.8 Change of state",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.thermal_properties_of_matter.section_09",
+              "n": "10.9 Heat transfer",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.11.thermal_properties_of_matter.section_10",
+              "n": "10.10 Newton’s law of cooling",
+              "m": 48
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.11.thermodynamics",
+          "n": "Thermodynamics",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.physics.11.thermodynamics.section_01",
+              "n": "11.1 Introduction",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.thermodynamics.section_02",
+              "n": "11.2 Thermal equilibrium",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.thermodynamics.section_03",
+              "n": "11.3 Zeroth law of Thermodynamics",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.thermodynamics.section_04",
+              "n": "11.4 Heat, internal energy and work",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.thermodynamics.section_05",
+              "n": "11.5 First law of thermodynamics",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.thermodynamics.section_06",
+              "n": "11.6 Specific heat capacity",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.thermodynamics.section_07",
+              "n": "11.7 Thermodynamic state variables and equation of state",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.11.thermodynamics.section_08",
+              "n": "11.8 Thermodynamic processes",
+              "m": 43
+            },
+            {
+              "id": "neet.physics.11.thermodynamics.section_09",
+              "n": "11.9 Second law of thermodynamics",
+              "m": 43
+            },
+            {
+              "id": "neet.physics.11.thermodynamics.section_10",
+              "n": "11.10 Reversible and irreversible processes",
+              "m": 43
+            },
+            {
+              "id": "neet.physics.11.thermodynamics.section_11",
+              "n": "11.11 Carnot engine",
+              "m": 43
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.11.kinetic_theory",
+          "n": "Kinetic Theory",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.physics.11.kinetic_theory.section_01",
+              "n": "12.1 Introduction",
+              "m": 69
+            },
+            {
+              "id": "neet.physics.11.kinetic_theory.section_02",
+              "n": "12.2 Molecular nature of matter",
+              "m": 69
+            },
+            {
+              "id": "neet.physics.11.kinetic_theory.section_03",
+              "n": "12.3 Behaviour of gases",
+              "m": 69
+            },
+            {
+              "id": "neet.physics.11.kinetic_theory.section_04",
+              "n": "12.4 Kinetic theory of an ideal gas",
+              "m": 69
+            },
+            {
+              "id": "neet.physics.11.kinetic_theory.section_05",
+              "n": "12.5 Law of equipartition of energy",
+              "m": 68
+            },
+            {
+              "id": "neet.physics.11.kinetic_theory.section_06",
+              "n": "12.6 Specific heat capacity",
+              "m": 68
+            },
+            {
+              "id": "neet.physics.11.kinetic_theory.section_07",
+              "n": "12.7 Mean free path",
+              "m": 68
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.11.oscillations",
+          "n": "Oscillations",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.physics.11.oscillations.section_01",
+              "n": "13.1 Introduction",
+              "m": 60
+            },
+            {
+              "id": "neet.physics.11.oscillations.section_02",
+              "n": "13.2 Periodic and oscillatory motions",
+              "m": 60
+            },
+            {
+              "id": "neet.physics.11.oscillations.section_03",
+              "n": "13.3 Simple harmonic motion",
+              "m": 60
+            },
+            {
+              "id": "neet.physics.11.oscillations.section_04",
+              "n": "13.4 Simple harmonic motion and uniform circular motion",
+              "m": 60
+            },
+            {
+              "id": "neet.physics.11.oscillations.section_05",
+              "n": "13.5 Velocity and acceleration in simple harmonic motion",
+              "m": 60
+            },
+            {
+              "id": "neet.physics.11.oscillations.section_06",
+              "n": "13.6 Force law for simple harmonic motion",
+              "m": 60
+            },
+            {
+              "id": "neet.physics.11.oscillations.section_07",
+              "n": "13.7 Energy in simple harmonic motion",
+              "m": 60
+            },
+            {
+              "id": "neet.physics.11.oscillations.section_08",
+              "n": "13.8 The simple pendulum",
+              "m": 60
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.11.waves",
+          "n": "Waves",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.physics.11.waves.section_01",
+              "n": "14.1 Introduction",
+              "m": 69
+            },
+            {
+              "id": "neet.physics.11.waves.section_02",
+              "n": "14.2 Transverse and longitudinal waves",
+              "m": 69
+            },
+            {
+              "id": "neet.physics.11.waves.section_03",
+              "n": "14.3 Displacement relation in a progressive wave",
+              "m": 69
+            },
+            {
+              "id": "neet.physics.11.waves.section_04",
+              "n": "14.4 The speed of a travelling wave",
+              "m": 69
+            },
+            {
+              "id": "neet.physics.11.waves.section_05",
+              "n": "14.5 The principle of superposition of waves",
+              "m": 68
+            },
+            {
+              "id": "neet.physics.11.waves.section_06",
+              "n": "14.6 Reflection of waves",
+              "m": 68
+            },
+            {
+              "id": "neet.physics.11.waves.section_07",
+              "n": "14.7 Beats",
+              "m": 68
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.12.electric_charges_and_fields",
+          "n": "Electric Charges and Fields",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.physics.12.electric_charges_and_fields.section_01",
+              "n": "1.1 INTRODUCTION",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.12.electric_charges_and_fields.section_02",
+              "n": "1.2 ELECTRIC CHARGE",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.12.electric_charges_and_fields.section_03",
+              "n": "1.3 CONDUCTORS AND INSULATORS",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.12.electric_charges_and_fields.section_04",
+              "n": "1.6 FORCES BETWEEN MULTIPLE CHARGES",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.12.electric_charges_and_fields.section_05",
+              "n": "1.8 ELECTRIC FIELD LINES",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.12.electric_charges_and_fields.section_06",
+              "n": "1.9 ELECTRIC FLUX",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.12.electric_charges_and_fields.section_07",
+              "n": "1.10 ELECTRIC DIPOLE",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.12.electric_charges_and_fields.section_08",
+              "n": "1.11 DIPOLE IN A UNIFORM EXTERNAL FIELD",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.12.electric_charges_and_fields.section_09",
+              "n": "1.13 GAUSS’S LAW",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.12.electric_charges_and_fields.section_10",
+              "n": "1.14 APPLICATIONS OF GAUSS’S LAW",
+              "m": 48
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.12.electrostatic_potential_and_capacitance",
+          "n": "Electrostatic Potential and Capacitance",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.physics.12.electrostatic_potential_and_capacitance.section_01",
+              "n": "2.1 INTRODUCTION",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.12.electrostatic_potential_and_capacitance.section_02",
+              "n": "2.2 ELECTROSTATIC POTENTIAL",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.12.electrostatic_potential_and_capacitance.section_03",
+              "n": "2.4 POTENTIAL DUE TO AN ELECTRIC DIPOLE",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.12.electrostatic_potential_and_capacitance.section_04",
+              "n": "2.5 POTENTIAL DUE TO A SYSTEM OF CHARGES",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.12.electrostatic_potential_and_capacitance.section_05",
+              "n": "2.7 POTENTIAL ENERGY OF A SYSTEM OF CHARGES",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.12.electrostatic_potential_and_capacitance.section_06",
+              "n": "2.9 ELECTROSTATICS OF CONDUCTORS",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.12.electrostatic_potential_and_capacitance.section_07",
+              "n": "2.10 DIELECTRICS AND POLARISATION",
+              "m": 44
+            },
+            {
+              "id": "neet.physics.12.electrostatic_potential_and_capacitance.section_08",
+              "n": "2.11 CAPACITORS AND CAPACITANCE",
+              "m": 43
+            },
+            {
+              "id": "neet.physics.12.electrostatic_potential_and_capacitance.section_09",
+              "n": "2.13 EFFECT OF DIELECTRIC ON CAPACITANCE",
+              "m": 43
+            },
+            {
+              "id": "neet.physics.12.electrostatic_potential_and_capacitance.section_10",
+              "n": "2.14 COMBINATION OF CAPACITORS",
+              "m": 43
+            },
+            {
+              "id": "neet.physics.12.electrostatic_potential_and_capacitance.section_11",
+              "n": "2.15 ENERGY STORED IN A CAPACITOR",
+              "m": 43
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.12.current_electricity",
+          "n": "Current Electricity",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.physics.12.current_electricity.section_01",
+              "n": "3.1 INTRODUCTION",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.12.current_electricity.section_02",
+              "n": "3.2 ELECTRIC CURRENT",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.12.current_electricity.section_03",
+              "n": "3.3 ELECTRIC CURRENTS IN CONDUCTORS",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.12.current_electricity.section_04",
+              "n": "3.4 OHM’S LAW",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.12.current_electricity.section_05",
+              "n": "3.5 DRIFT OF ELECTRONS AND THE ORIGIN OF RESISTIVITY",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.12.current_electricity.section_06",
+              "n": "3.6 LIMITATIONS OF OHM’S LAW",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.12.current_electricity.section_07",
+              "n": "3.7 RESISTIVITY OF VARIOUS MATERIALS",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.12.current_electricity.section_08",
+              "n": "3.10 CELLS, EMF, INTERNAL RESISTANCE",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.12.current_electricity.section_09",
+              "n": "3.11 CELLS IN SERIES AND IN PARALLEL",
+              "m": 48
+            },
+            {
+              "id": "neet.physics.12.current_electricity.section_10",
+              "n": "3.12 KIRCHHOFF’S RULES",
+              "m": 48
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.12.moving_charges_and_magnetism",
+          "n": "Moving Charges and Magnetism",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.physics.12.moving_charges_and_magnetism.section_01",
+              "n": "4.1 INTRODUCTION",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.12.moving_charges_and_magnetism.section_02",
+              "n": "4.4 M A G N E T I C F I E L D D U E T O ELEMENT, BIOT-SAVART LAW",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.12.moving_charges_and_magnetism.section_03",
+              "n": "4.5 MAGNETIC FIELD ON THE AXIS OF A CIRCULAR CURRENT LOOP",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.12.moving_charges_and_magnetism.section_04",
+              "n": "4.6 AMPERE’S CIRCUITAL LAW",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.12.moving_charges_and_magnetism.section_05",
+              "n": "4.7 THE SOLENOID",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.12.moving_charges_and_magnetism.section_06",
+              "n": "4.10 THE MOVING COIL GALVANOMETER",
+              "m": 80
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.12.magnetism_and_matter",
+          "n": "Magnetism and Matter",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.physics.12.magnetism_and_matter.section_01",
+              "n": "5.1 INTRODUCTION",
+              "m": 120
+            },
+            {
+              "id": "neet.physics.12.magnetism_and_matter.section_02",
+              "n": "5.2 THE BAR MAGNET",
+              "m": 120
+            },
+            {
+              "id": "neet.physics.12.magnetism_and_matter.section_03",
+              "n": "5.4 MAGNETISATION AND MAGNETIC INTENSITY",
+              "m": 120
+            },
+            {
+              "id": "neet.physics.12.magnetism_and_matter.section_04",
+              "n": "5.5 MAGNETIC PROPERTIES OF MATERIALS",
+              "m": 120
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.12.electromagnetic_induction",
+          "n": "Electromagnetic Induction",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.physics.12.electromagnetic_induction.section_01",
+              "n": "6.1 INTRODUCTION",
+              "m": 120
+            },
+            {
+              "id": "neet.physics.12.electromagnetic_induction.section_02",
+              "n": "6.2 THE EXPERIMENTS OF FARADAY AND HENRY",
+              "m": 120
+            },
+            {
+              "id": "neet.physics.12.electromagnetic_induction.section_03",
+              "n": "6.4 FARADAY’S LAW OF INDUCTION",
+              "m": 120
+            },
+            {
+              "id": "neet.physics.12.electromagnetic_induction.section_04",
+              "n": "6.7 INDUCTANCE",
+              "m": 120
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.12.alternating_current",
+          "n": "Alternating Current",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.physics.12.alternating_current.section_01",
+              "n": "7.1 INTRODUCTION",
+              "m": 160
+            },
+            {
+              "id": "neet.physics.12.alternating_current.section_02",
+              "n": "7.3 REPRESENTATION OF AC CURRENT AND VOLTAGE BY ROTATING VECTORS — PHASORS",
+              "m": 160
+            },
+            {
+              "id": "neet.physics.12.alternating_current.section_03",
+              "n": "7.4 AC VOLTAGE APPLIED TO AN INDUCTOR",
+              "m": 160
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.12.electromagnetic_waves",
+          "n": "Electromagnetic Waves",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.physics.12.electromagnetic_waves.section_01",
+              "n": "8.1 INTRODUCTION",
+              "m": 240
+            },
+            {
+              "id": "neet.physics.12.electromagnetic_waves.section_02",
+              "n": "8.3 ELECTROMAGNETIC WAVES",
+              "m": 240
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.12.ray_optics_and_optical_instruments",
+          "n": "Ray Optics and Optical Instruments",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.physics.12.ray_optics_and_optical_instruments.section_01",
+              "n": "9.1 INTRODUCTION",
+              "m": 160
+            },
+            {
+              "id": "neet.physics.12.ray_optics_and_optical_instruments.section_02",
+              "n": "9.4 TOTAL INTERNAL REFLECTION",
+              "m": 160
+            },
+            {
+              "id": "neet.physics.12.ray_optics_and_optical_instruments.section_03",
+              "n": "9.6 REFRACTION THROUGH A PRISM",
+              "m": 160
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.12.wave_optics",
+          "n": "Wave Optics",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.physics.12.wave_optics.section_01",
+              "n": "10.1 INTRODUCTION",
+              "m": 120
+            },
+            {
+              "id": "neet.physics.12.wave_optics.section_02",
+              "n": "10.2 HUYGENS PRINCIPLE",
+              "m": 120
+            },
+            {
+              "id": "neet.physics.12.wave_optics.section_03",
+              "n": "10.5 INTERFERENCE OF LIGHT WAVES AND YOUNG’S EXPERIMENT",
+              "m": 120
+            },
+            {
+              "id": "neet.physics.12.wave_optics.section_04",
+              "n": "10.7 POLARISATION",
+              "m": 120
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.12.dual_nature_of_radiation_and_matter",
+          "n": "Dual Nature of Radiation and Matter",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.physics.12.dual_nature_of_radiation_and_matter.section_01",
+              "n": "11.1 INTRODUCTION",
+              "m": 69
+            },
+            {
+              "id": "neet.physics.12.dual_nature_of_radiation_and_matter.section_02",
+              "n": "11.2 ELECTRON EMISSION",
+              "m": 69
+            },
+            {
+              "id": "neet.physics.12.dual_nature_of_radiation_and_matter.section_03",
+              "n": "11.3 PHOTOELECTRIC EFFECT",
+              "m": 69
+            },
+            {
+              "id": "neet.physics.12.dual_nature_of_radiation_and_matter.section_04",
+              "n": "11.4 EXPERIMENTAL STUDY OF PHOTOELECTRIC EFFECT",
+              "m": 69
+            },
+            {
+              "id": "neet.physics.12.dual_nature_of_radiation_and_matter.section_05",
+              "n": "11.5 PHOTOELECTRIC EFFECT AND WAVE THEORY",
+              "m": 68
+            },
+            {
+              "id": "neet.physics.12.dual_nature_of_radiation_and_matter.section_06",
+              "n": "11.6 EINSTEIN’S PHOTOELECTRIC EQUATION: ENERGY QUANTUM OF RADIATION",
+              "m": 68
+            },
+            {
+              "id": "neet.physics.12.dual_nature_of_radiation_and_matter.section_07",
+              "n": "11.7 PARTICLE NATURE OF LIGHT: THE PHOTON",
+              "m": 68
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.12.atoms",
+          "n": "Atoms",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.physics.12.atoms.section_01",
+              "n": "12.1 INTRODUCTION",
+              "m": 120
+            },
+            {
+              "id": "neet.physics.12.atoms.section_02",
+              "n": "12.2 ALPHA-PARTICLE SCATTERING AND RUTHERFORD’S NUCLEAR MODEL OF ATOM",
+              "m": 120
+            },
+            {
+              "id": "neet.physics.12.atoms.section_03",
+              "n": "12.4 BOHR MODEL OF THE HYDROGEN ATOM",
+              "m": 120
+            },
+            {
+              "id": "neet.physics.12.atoms.section_04",
+              "n": "12.6 DE BROGLIE’S EXPLANATION OF BOHR’S SECOND POSTULATE OF QUANTISATION",
+              "m": 120
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.12.nuclei",
+          "n": "Nuclei",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.physics.12.nuclei.section_01",
+              "n": "13.1 INTRODUCTION",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.12.nuclei.section_02",
+              "n": "13.2 ATOMIC MASSES AND COMPOSITION OF NUCLEUS",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.12.nuclei.section_03",
+              "n": "13.3 SIZE OF THE NUCLEUS",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.12.nuclei.section_04",
+              "n": "13.5 NUCLEAR FORCE",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.12.nuclei.section_05",
+              "n": "13.6 RADIOACTIVITY",
+              "m": 80
+            },
+            {
+              "id": "neet.physics.12.nuclei.section_06",
+              "n": "13.7 NUCLEAR ENERGY",
+              "m": 80
+            }
+          ]
+        },
+        {
+          "id": "neet.physics.12.semiconductor_electronics",
+          "n": "Semiconductor Electronics",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.physics.12.semiconductor_electronics.section_01",
+              "n": "14.1 INTRODUCTION",
+              "m": 120
+            },
+            {
+              "id": "neet.physics.12.semiconductor_electronics.section_02",
+              "n": "14.2 CLASSIFICATION OF METALS, CONDUCTORS AND",
+              "m": 120
+            },
+            {
+              "id": "neet.physics.12.semiconductor_electronics.section_03",
+              "n": "14.3 INTRINSIC SEMICONDUCTOR",
+              "m": 120
+            },
+            {
+              "id": "neet.physics.12.semiconductor_electronics.section_04",
+              "n": "14.4 EXTRINSIC SEMICONDUCTOR",
+              "m": 120
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chemistry",
+      "n": "Chemistry",
+      "q": 45,
+      "t": [
+        {
+          "id": "neet.chemistry.11.some_basic_concepts_of_chemistry",
+          "n": "Some Basic Concepts of Chemistry",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.chemistry.11.some_basic_concepts_of_chemistry.section_01",
+              "n": "1.1 IMPORTANCE OF CHEMISTRY",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.11.some_basic_concepts_of_chemistry.section_02",
+              "n": "1.2 NATURE OF MATTER",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.11.some_basic_concepts_of_chemistry.section_03",
+              "n": "1.3 PROPERTIES OF MATTER AND THEIR MEASUREMENT",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.11.some_basic_concepts_of_chemistry.section_04",
+              "n": "1.4 UNCERTAINTY IN MEASUREMENT",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.11.some_basic_concepts_of_chemistry.section_05",
+              "n": "1.5 LAWS OF CHEMICAL COMBINATIONS",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.11.some_basic_concepts_of_chemistry.section_06",
+              "n": "1.6 DALTON’S ATOMIC THEORY",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.11.some_basic_concepts_of_chemistry.section_07",
+              "n": "1.7 ATOMIC AND MOLECULAR MASSES",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.11.some_basic_concepts_of_chemistry.section_08",
+              "n": "1.8 MOLE CONCEPT AND MOLAR MASSES",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.11.some_basic_concepts_of_chemistry.section_09",
+              "n": "1.9 PERCENTAGE COMPOSITION",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.11.some_basic_concepts_of_chemistry.section_10",
+              "n": "1.10 STOICHIOMETRY AND STOICHIOMETRIC CALCULATIONS",
+              "m": 72
+            }
+          ]
+        },
+        {
+          "id": "neet.chemistry.11.structure_of_atom",
+          "n": "Structure of Atom",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.chemistry.11.structure_of_atom.section_01",
+              "n": "2.1 DISCOVERY OF SUB-ATOMIC PARTICLES",
+              "m": 120
+            },
+            {
+              "id": "neet.chemistry.11.structure_of_atom.section_02",
+              "n": "2.2 ATOMIC MODELS",
+              "m": 120
+            },
+            {
+              "id": "neet.chemistry.11.structure_of_atom.section_03",
+              "n": "2.3 DEVELOPMENTS LEADING TO THE BOHR’S MODEL OF ATOM",
+              "m": 120
+            },
+            {
+              "id": "neet.chemistry.11.structure_of_atom.section_04",
+              "n": "2.4 BOHR’S MODEL FOR HYDROGEN ATOM",
+              "m": 120
+            },
+            {
+              "id": "neet.chemistry.11.structure_of_atom.section_05",
+              "n": "2.5 TOWARDS QUANTUM MECHANICAL MODEL OF THE ATOM",
+              "m": 120
+            },
+            {
+              "id": "neet.chemistry.11.structure_of_atom.section_06",
+              "n": "2.6 QUANTUM MECHANICAL MODEL OF ATOM",
+              "m": 120
+            }
+          ]
+        },
+        {
+          "id": "neet.chemistry.11.classification_of_elements_and_periodicity_in_properties",
+          "n": "Classification of Elements and Periodicity in Properties",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.chemistry.11.classification_of_elements_and_periodicity_in_properties.section_01",
+              "n": "3.1 WHY DO WE NEED TO CLASSIFY ELEMENTS ?",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.11.classification_of_elements_and_periodicity_in_properties.section_02",
+              "n": "3.2 GENESIS OF PERIODIC CLASSIFICATION",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.11.classification_of_elements_and_periodicity_in_properties.section_03",
+              "n": "3.3 MODERN PERIODIC LAW AND THE PRESENT FORM OF THE PERIODIC TABLE",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.11.classification_of_elements_and_periodicity_in_properties.section_04",
+              "n": "3.4 NOMENCLATURE OF ELEMENTS WITH ATOMIC NUMBERS > 100",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.11.classification_of_elements_and_periodicity_in_properties.section_05",
+              "n": "3.5 ELECTRONIC CONFIGURATIONS OF ELEMENTS AND THE PERIODIC TABLE",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.11.classification_of_elements_and_periodicity_in_properties.section_06",
+              "n": "3.6 ELECTRONIC CONFIGURATIONS AND TYPES OF ELEMENTS: S-, P-, D-, F- BLOCKS",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.11.classification_of_elements_and_periodicity_in_properties.section_07",
+              "n": "3.7 PERIODIC TRENDS IN PROPERTIES OF ELEMENTS",
+              "m": 102
+            }
+          ]
+        },
+        {
+          "id": "neet.chemistry.11.chemical_bonding_and_molecular_structure",
+          "n": "Chemical Bonding and Molecular Structure",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.chemistry.11.chemical_bonding_and_molecular_structure.section_01",
+              "n": "4.1 KÖSSEL-LEWIS APPROACH TO CHEMICAL BONDING",
+              "m": 80
+            },
+            {
+              "id": "neet.chemistry.11.chemical_bonding_and_molecular_structure.section_02",
+              "n": "4.2 IONIC OR ELECTROVALENT BOND",
+              "m": 80
+            },
+            {
+              "id": "neet.chemistry.11.chemical_bonding_and_molecular_structure.section_03",
+              "n": "4.3 BOND PARAMETERS",
+              "m": 80
+            },
+            {
+              "id": "neet.chemistry.11.chemical_bonding_and_molecular_structure.section_04",
+              "n": "4.4 THE VALENCE SHELL ELECTRON PAIR REPULSION (VSEPR) THEORY",
+              "m": 80
+            },
+            {
+              "id": "neet.chemistry.11.chemical_bonding_and_molecular_structure.section_05",
+              "n": "4.5 VALENCE BOND THEORY",
+              "m": 80
+            },
+            {
+              "id": "neet.chemistry.11.chemical_bonding_and_molecular_structure.section_06",
+              "n": "4.6 HYBRIDISATION",
+              "m": 80
+            },
+            {
+              "id": "neet.chemistry.11.chemical_bonding_and_molecular_structure.section_07",
+              "n": "4.7 MOLECULAR ORBITAL THEORY",
+              "m": 80
+            },
+            {
+              "id": "neet.chemistry.11.chemical_bonding_and_molecular_structure.section_08",
+              "n": "4.8 BONDING IN SOME HOMONUCLEAR DIATOMIC MOLECULES",
+              "m": 80
+            },
+            {
+              "id": "neet.chemistry.11.chemical_bonding_and_molecular_structure.section_09",
+              "n": "4.9 HYDROGEN BONDING",
+              "m": 80
+            }
+          ]
+        },
+        {
+          "id": "neet.chemistry.11.thermodynamics",
+          "n": "Thermodynamics",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.chemistry.11.thermodynamics.section_01",
+              "n": "5.1 THERMODYNAMIC TERMS",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.11.thermodynamics.section_02",
+              "n": "5.2 APPLICATIONS",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.11.thermodynamics.section_03",
+              "n": "5.3 MEASUREMENT OF ΔU AND ΔH: CALORIMETRY",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.11.thermodynamics.section_04",
+              "n": "5.4 ENTHALPY CHANGE, ΔrH OF A REACTION – REACTION ENTHALPY",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.11.thermodynamics.section_05",
+              "n": "5.5 ENTHALPIES FOR DIFFERENT TYPES OF REACTIONS",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.11.thermodynamics.section_06",
+              "n": "5.6 SPONTANEITY",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.11.thermodynamics.section_07",
+              "n": "5.7 GIBBS ENERGY CHANGE AND EQUILIBRIUM",
+              "m": 102
+            }
+          ]
+        },
+        {
+          "id": "neet.chemistry.11.equilibrium",
+          "n": "Equilibrium",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.chemistry.11.equilibrium.section_01",
+              "n": "6.1 EQUILIBRIUM IN PHYSICAL PROCESSES",
+              "m": 56
+            },
+            {
+              "id": "neet.chemistry.11.equilibrium.section_02",
+              "n": "6.2 EQUILIBRIUM IN CHEMICAL PROCESSES - DYNAMIC EQUILIBRIUM",
+              "m": 56
+            },
+            {
+              "id": "neet.chemistry.11.equilibrium.section_03",
+              "n": "6.3 LAW OF CHEMICAL EQUILIBRIUM AND EQUILIBRIUM CONSTANT",
+              "m": 56
+            },
+            {
+              "id": "neet.chemistry.11.equilibrium.section_04",
+              "n": "6.4 HOMOGENEOUS EQUILIBRIA",
+              "m": 56
+            },
+            {
+              "id": "neet.chemistry.11.equilibrium.section_05",
+              "n": "6.5 HETEROGENEOUS EQUILIBRIA",
+              "m": 56
+            },
+            {
+              "id": "neet.chemistry.11.equilibrium.section_06",
+              "n": "6.6 APPLICATIONS OF EQUILIBRIUM CONSTANTS",
+              "m": 55
+            },
+            {
+              "id": "neet.chemistry.11.equilibrium.section_07",
+              "n": "6.7 RELATIONSHIP BETWEEN EQUILIBRIUM CONSTANT K, REACTION QUOTIENT Q AND GIBBS ENERGY G",
+              "m": 55
+            },
+            {
+              "id": "neet.chemistry.11.equilibrium.section_08",
+              "n": "6.8 FACTORS AFFECTING EQUILIBRIA",
+              "m": 55
+            },
+            {
+              "id": "neet.chemistry.11.equilibrium.section_09",
+              "n": "6.9 IONIC EQUILIBRIUM IN SOLUTION",
+              "m": 55
+            },
+            {
+              "id": "neet.chemistry.11.equilibrium.section_10",
+              "n": "6.10 ACIDS, BASES AND SALTS",
+              "m": 55
+            },
+            {
+              "id": "neet.chemistry.11.equilibrium.section_11",
+              "n": "6.11 IONIZATION OF ACIDS AND BASES",
+              "m": 55
+            },
+            {
+              "id": "neet.chemistry.11.equilibrium.section_12",
+              "n": "6.12 BUFFER SOLUTIONS",
+              "m": 55
+            },
+            {
+              "id": "neet.chemistry.11.equilibrium.section_13",
+              "n": "6.13 SOLUBILITY EQUILIBRIA OF SPARINGLY SOLUBLE SALTS",
+              "m": 55
+            }
+          ]
+        },
+        {
+          "id": "neet.chemistry.11.redox_reactions",
+          "n": "Redox Reactions",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.chemistry.11.redox_reactions.section_01",
+              "n": "7.1 CLASSICAL IDEA OF REDOX REACTIONS - OXIDATION AND REDUCTION REACTIONS",
+              "m": 180
+            },
+            {
+              "id": "neet.chemistry.11.redox_reactions.section_02",
+              "n": "7.2 REDOX REACTIONS IN TERMS OF ELECTRON TRANSFER REACTIONS",
+              "m": 180
+            },
+            {
+              "id": "neet.chemistry.11.redox_reactions.section_03",
+              "n": "7.3 OXIDATION NUMBER",
+              "m": 180
+            },
+            {
+              "id": "neet.chemistry.11.redox_reactions.section_04",
+              "n": "7.4 REDOX REACTIONS AND ELECTRODE PROCESSES",
+              "m": 180
+            }
+          ]
+        },
+        {
+          "id": "neet.chemistry.11.organic_chemistry_some_basic_principles_and_techniques",
+          "n": "Organic Chemistry - Some Basic Principles and Techniques",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.chemistry.11.organic_chemistry_some_basic_principles_and_techniques.section_01",
+              "n": "8.1 GENERAL INTRODUCTION",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.11.organic_chemistry_some_basic_principles_and_techniques.section_02",
+              "n": "8.2 TETRAVALENCE OF CARBON: SHAPES OF ORGANIC COMPOUNDS",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.11.organic_chemistry_some_basic_principles_and_techniques.section_03",
+              "n": "8.3 STRUCTURAL REPRESENTATIONS OF ORGANIC COMPOUNDS",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.11.organic_chemistry_some_basic_principles_and_techniques.section_04",
+              "n": "8.4 CLASSIFICATION OF ORGANIC COMPOUNDS",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.11.organic_chemistry_some_basic_principles_and_techniques.section_05",
+              "n": "8.5 NOMENCLATURE OF ORGANIC COMPOUNDS",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.11.organic_chemistry_some_basic_principles_and_techniques.section_06",
+              "n": "8.6 ISOMERISM",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.11.organic_chemistry_some_basic_principles_and_techniques.section_07",
+              "n": "8.7 FUNDAMENTAL CONCEPTS IN ORGANIC REACTION MECHANISM",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.11.organic_chemistry_some_basic_principles_and_techniques.section_08",
+              "n": "8.8 METHODS OF PURIFICATION OF ORGANIC COMPOUNDS",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.11.organic_chemistry_some_basic_principles_and_techniques.section_09",
+              "n": "8.9 QUALITATIVE ANALYSIS OF ORGANIC COMPOUNDS",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.11.organic_chemistry_some_basic_principles_and_techniques.section_10",
+              "n": "8.10 QUANTITATIVE ANALYSIS",
+              "m": 72
+            }
+          ]
+        },
+        {
+          "id": "neet.chemistry.11.hydrocarbons",
+          "n": "Hydrocarbons",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.chemistry.11.hydrocarbons.section_01",
+              "n": "9.1 CLASSIFICATION",
+              "m": 120
+            },
+            {
+              "id": "neet.chemistry.11.hydrocarbons.section_02",
+              "n": "9.2 ALKANES",
+              "m": 120
+            },
+            {
+              "id": "neet.chemistry.11.hydrocarbons.section_03",
+              "n": "9.3 ALKENES",
+              "m": 120
+            },
+            {
+              "id": "neet.chemistry.11.hydrocarbons.section_04",
+              "n": "9.4 ALKYNES",
+              "m": 120
+            },
+            {
+              "id": "neet.chemistry.11.hydrocarbons.section_05",
+              "n": "9.5 AROMATIC HYDROCARBON",
+              "m": 120
+            },
+            {
+              "id": "neet.chemistry.11.hydrocarbons.section_06",
+              "n": "9.6 CARCINOGENICITY AND TOXICITY",
+              "m": 120
+            }
+          ]
+        },
+        {
+          "id": "neet.chemistry.12.solutions",
+          "n": "Solutions",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.chemistry.12.solutions.section_01",
+              "n": "1.1 Types of Solutions",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.12.solutions.section_02",
+              "n": "1.2 Expressing Concentration of Solutions",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.12.solutions.section_03",
+              "n": "1.3 Solubility",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.12.solutions.section_04",
+              "n": "1.4 Vapour Pressure of Liquid Solutions",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.12.solutions.section_05",
+              "n": "1.5 Ideal and Non-ideal Solutions",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.12.solutions.section_06",
+              "n": "1.6 Colligative Properties and Determination of Molar Mass",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.12.solutions.section_07",
+              "n": "1.7 Abnormal Molar Masses",
+              "m": 102
+            }
+          ]
+        },
+        {
+          "id": "neet.chemistry.12.electrochemistry",
+          "n": "Electrochemistry",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.chemistry.12.electrochemistry.section_01",
+              "n": "2.1 Electrochemical Cells",
+              "m": 90
+            },
+            {
+              "id": "neet.chemistry.12.electrochemistry.section_02",
+              "n": "2.2 Galvanic Cells",
+              "m": 90
+            },
+            {
+              "id": "neet.chemistry.12.electrochemistry.section_03",
+              "n": "2.3 Nernst Equation",
+              "m": 90
+            },
+            {
+              "id": "neet.chemistry.12.electrochemistry.section_04",
+              "n": "2.4 Conductance of Electrolytic Solutions",
+              "m": 90
+            },
+            {
+              "id": "neet.chemistry.12.electrochemistry.section_05",
+              "n": "2.5 Electrolytic Cells and Electrolysis",
+              "m": 90
+            },
+            {
+              "id": "neet.chemistry.12.electrochemistry.section_06",
+              "n": "2.6 Batteries",
+              "m": 90
+            },
+            {
+              "id": "neet.chemistry.12.electrochemistry.section_07",
+              "n": "2.7 Fuel Cells",
+              "m": 90
+            },
+            {
+              "id": "neet.chemistry.12.electrochemistry.section_08",
+              "n": "2.8 Corrosion",
+              "m": 90
+            }
+          ]
+        },
+        {
+          "id": "neet.chemistry.12.chemical_kinetics",
+          "n": "Chemical Kinetics",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.chemistry.12.chemical_kinetics.section_01",
+              "n": "3.1 Rate of a Chemical Reaction",
+              "m": 144
+            },
+            {
+              "id": "neet.chemistry.12.chemical_kinetics.section_02",
+              "n": "3.2 Factors Influencing Rate of a Reaction",
+              "m": 144
+            },
+            {
+              "id": "neet.chemistry.12.chemical_kinetics.section_03",
+              "n": "3.3 Integrated Rate Equations",
+              "m": 144
+            },
+            {
+              "id": "neet.chemistry.12.chemical_kinetics.section_04",
+              "n": "3.4 Temperature Dependence of the Rate of a Reaction",
+              "m": 144
+            },
+            {
+              "id": "neet.chemistry.12.chemical_kinetics.section_05",
+              "n": "3.5 Collision Theory of Chemical Reactions",
+              "m": 144
+            }
+          ]
+        },
+        {
+          "id": "neet.chemistry.12.the_d_and_f_block_elements",
+          "n": "The d- and f-Block Elements",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.chemistry.12.the_d_and_f_block_elements.section_01",
+              "n": "4.1 Position in the Periodic Table",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.12.the_d_and_f_block_elements.section_02",
+              "n": "4.2 Electronic Configurations of the d-Block Elements",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.12.the_d_and_f_block_elements.section_03",
+              "n": "4.3 General Properties of the Transition Elements",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.12.the_d_and_f_block_elements.section_04",
+              "n": "4.4 Some Important Compounds of Transition Elements",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.12.the_d_and_f_block_elements.section_05",
+              "n": "4.5 The Lanthanoids",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.12.the_d_and_f_block_elements.section_06",
+              "n": "4.6 The Actinoids",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.12.the_d_and_f_block_elements.section_07",
+              "n": "4.7 Some Applications of d- and f-Block Elements",
+              "m": 102
+            }
+          ]
+        },
+        {
+          "id": "neet.chemistry.12.coordination_compounds",
+          "n": "Coordination Compounds",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.chemistry.12.coordination_compounds.section_01",
+              "n": "5.1 Werner’s Theory of Coordination Compounds",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.12.coordination_compounds.section_02",
+              "n": "5.2 Definitions of Some Important Terms Pertaining to Coordination Compounds",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.12.coordination_compounds.section_03",
+              "n": "5.3 Nomenclature of Coordination Compounds",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.12.coordination_compounds.section_04",
+              "n": "5.4 Isomerism in Coordination Compounds",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.12.coordination_compounds.section_05",
+              "n": "5.5 Bonding in Coordination Compounds",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.12.coordination_compounds.section_06",
+              "n": "5.6 Bonding in Metal Carbonyls",
+              "m": 103
+            },
+            {
+              "id": "neet.chemistry.12.coordination_compounds.section_07",
+              "n": "5.7 Importance and Applications of Coordination Compounds",
+              "m": 102
+            }
+          ]
+        },
+        {
+          "id": "neet.chemistry.12.haloalkanes_and_haloarenes",
+          "n": "Haloalkanes and Haloarenes",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.chemistry.12.haloalkanes_and_haloarenes.section_01",
+              "n": "6.1 Classification",
+              "m": 90
+            },
+            {
+              "id": "neet.chemistry.12.haloalkanes_and_haloarenes.section_02",
+              "n": "6.2 Nomenclature",
+              "m": 90
+            },
+            {
+              "id": "neet.chemistry.12.haloalkanes_and_haloarenes.section_03",
+              "n": "6.3 Nature of C–X Bond",
+              "m": 90
+            },
+            {
+              "id": "neet.chemistry.12.haloalkanes_and_haloarenes.section_04",
+              "n": "6.4 Methods of Preparation of Haloalkanes",
+              "m": 90
+            },
+            {
+              "id": "neet.chemistry.12.haloalkanes_and_haloarenes.section_05",
+              "n": "6.5 Preparation of Haloarenes",
+              "m": 90
+            },
+            {
+              "id": "neet.chemistry.12.haloalkanes_and_haloarenes.section_06",
+              "n": "6.6 Physical Properties",
+              "m": 90
+            },
+            {
+              "id": "neet.chemistry.12.haloalkanes_and_haloarenes.section_07",
+              "n": "6.7 Chemical Reactions",
+              "m": 90
+            },
+            {
+              "id": "neet.chemistry.12.haloalkanes_and_haloarenes.section_08",
+              "n": "6.8 Polyhalogen Compounds",
+              "m": 90
+            }
+          ]
+        },
+        {
+          "id": "neet.chemistry.12.alcohols_phenols_and_ethers",
+          "n": "Alcohols, Phenols and Ethers",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.chemistry.12.alcohols_phenols_and_ethers.section_01",
+              "n": "7.1 Classification",
+              "m": 120
+            },
+            {
+              "id": "neet.chemistry.12.alcohols_phenols_and_ethers.section_02",
+              "n": "7.2 Nomenclature",
+              "m": 120
+            },
+            {
+              "id": "neet.chemistry.12.alcohols_phenols_and_ethers.section_03",
+              "n": "7.3 Structures of Functional Groups",
+              "m": 120
+            },
+            {
+              "id": "neet.chemistry.12.alcohols_phenols_and_ethers.section_04",
+              "n": "7.4 Alcohols and Phenols",
+              "m": 120
+            },
+            {
+              "id": "neet.chemistry.12.alcohols_phenols_and_ethers.section_05",
+              "n": "7.5 Some Commercially Important Alcohols",
+              "m": 120
+            },
+            {
+              "id": "neet.chemistry.12.alcohols_phenols_and_ethers.section_06",
+              "n": "7.6 Ethers",
+              "m": 120
+            }
+          ]
+        },
+        {
+          "id": "neet.chemistry.12.aldehydes_ketones_and_carboxylic_acids",
+          "n": "Aldehydes, Ketones and Carboxylic Acids",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.chemistry.12.aldehydes_ketones_and_carboxylic_acids.section_01",
+              "n": "8.1 Nomenclature and Structure of Carbonyl Group",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.12.aldehydes_ketones_and_carboxylic_acids.section_02",
+              "n": "8.2 Preparation of Aldehydes and Ketones",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.12.aldehydes_ketones_and_carboxylic_acids.section_03",
+              "n": "8.3 Physical Properties",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.12.aldehydes_ketones_and_carboxylic_acids.section_04",
+              "n": "8.4 Chemical Reactions",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.12.aldehydes_ketones_and_carboxylic_acids.section_05",
+              "n": "8.5 Uses of Aldehydes and Ketones",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.12.aldehydes_ketones_and_carboxylic_acids.section_06",
+              "n": "8.6 Nomenclature and Structure of Carboxyl Group",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.12.aldehydes_ketones_and_carboxylic_acids.section_07",
+              "n": "8.7 Methods of Preparation of Carboxylic Acids",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.12.aldehydes_ketones_and_carboxylic_acids.section_08",
+              "n": "8.8 Physical Properties",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.12.aldehydes_ketones_and_carboxylic_acids.section_09",
+              "n": "8.9 Chemical Reactions",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.12.aldehydes_ketones_and_carboxylic_acids.section_10",
+              "n": "8.10 Uses of Carboxylic Acids",
+              "m": 72
+            }
+          ]
+        },
+        {
+          "id": "neet.chemistry.12.amines",
+          "n": "Amines",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.chemistry.12.amines.section_01",
+              "n": "9.1 Structure of Amines",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.12.amines.section_02",
+              "n": "9.2 Classification",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.12.amines.section_03",
+              "n": "9.3 Nomenclature",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.12.amines.section_04",
+              "n": "9.4 Preparation of Amines",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.12.amines.section_05",
+              "n": "9.5 Physical Properties",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.12.amines.section_06",
+              "n": "9.6 Chemical Reactions",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.12.amines.section_07",
+              "n": "9.7 Method of Preparation of Diazonium Salts",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.12.amines.section_08",
+              "n": "9.8 Physical Properties",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.12.amines.section_09",
+              "n": "9.9 Chemical Reactions",
+              "m": 72
+            },
+            {
+              "id": "neet.chemistry.12.amines.section_10",
+              "n": "9.10 Importance of Diazonium Salts in Synthesis of Aromatic Compounds",
+              "m": 72
+            }
+          ]
+        },
+        {
+          "id": "neet.chemistry.12.biomolecules",
+          "n": "Biomolecules",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.chemistry.12.biomolecules.section_01",
+              "n": "10.1 Carbohydrates",
+              "m": 120
+            },
+            {
+              "id": "neet.chemistry.12.biomolecules.section_02",
+              "n": "10.2 Proteins",
+              "m": 120
+            },
+            {
+              "id": "neet.chemistry.12.biomolecules.section_03",
+              "n": "10.3 Enzymes",
+              "m": 120
+            },
+            {
+              "id": "neet.chemistry.12.biomolecules.section_04",
+              "n": "10.4 Vitamins",
+              "m": 120
+            },
+            {
+              "id": "neet.chemistry.12.biomolecules.section_05",
+              "n": "10.5 Nucleic Acids",
+              "m": 120
+            },
+            {
+              "id": "neet.chemistry.12.biomolecules.section_06",
+              "n": "10.6 Hormones",
+              "m": 120
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "botany",
+      "n": "Botany",
+      "q": 45,
+      "t": [
+        {
+          "id": "neet.botany.11.the_living_world",
+          "n": "The Living World",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.botany.11.the_living_world.section_01",
+              "n": "1.1 Diversity in the Living World",
+              "m": 338
+            },
+            {
+              "id": "neet.botany.11.the_living_world.section_02",
+              "n": "1.2 Taxonomic Categories",
+              "m": 337
+            }
+          ]
+        },
+        {
+          "id": "neet.botany.11.biological_classification",
+          "n": "Biological Classification",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.botany.11.biological_classification.section_01",
+              "n": "2.1 Kingdom Monera",
+              "m": 113
+            },
+            {
+              "id": "neet.botany.11.biological_classification.section_02",
+              "n": "2.2 Kingdom Protista",
+              "m": 113
+            },
+            {
+              "id": "neet.botany.11.biological_classification.section_03",
+              "n": "2.3 Kingdom Fungi",
+              "m": 113
+            },
+            {
+              "id": "neet.botany.11.biological_classification.section_04",
+              "n": "2.4 Kingdom Plantae",
+              "m": 112
+            },
+            {
+              "id": "neet.botany.11.biological_classification.section_05",
+              "n": "2.5 Kingdom Animalia",
+              "m": 112
+            },
+            {
+              "id": "neet.botany.11.biological_classification.section_06",
+              "n": "2.6 Viruses, Viroids and Lichens",
+              "m": 112
+            }
+          ]
+        },
+        {
+          "id": "neet.botany.11.plant_kingdom",
+          "n": "Plant Kingdom",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.botany.11.plant_kingdom.section_01",
+              "n": "3.1 Algae",
+              "m": 135
+            },
+            {
+              "id": "neet.botany.11.plant_kingdom.section_02",
+              "n": "3.2 Bryophytes",
+              "m": 135
+            },
+            {
+              "id": "neet.botany.11.plant_kingdom.section_03",
+              "n": "3.3 Pteridophytes",
+              "m": 135
+            },
+            {
+              "id": "neet.botany.11.plant_kingdom.section_04",
+              "n": "3.4 Gymnosperms",
+              "m": 135
+            },
+            {
+              "id": "neet.botany.11.plant_kingdom.section_05",
+              "n": "3.5 Angiosperms",
+              "m": 135
+            }
+          ]
+        },
+        {
+          "id": "neet.botany.11.morphology_of_flowering_plants",
+          "n": "Morphology of Flowering Plants",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.botany.11.morphology_of_flowering_plants.section_01",
+              "n": "5.1 The Root",
+              "m": 75
+            },
+            {
+              "id": "neet.botany.11.morphology_of_flowering_plants.section_02",
+              "n": "5.2 The Stem",
+              "m": 75
+            },
+            {
+              "id": "neet.botany.11.morphology_of_flowering_plants.section_03",
+              "n": "5.3 The Leaf",
+              "m": 75
+            },
+            {
+              "id": "neet.botany.11.morphology_of_flowering_plants.section_04",
+              "n": "5.4 The Inflorescence",
+              "m": 75
+            },
+            {
+              "id": "neet.botany.11.morphology_of_flowering_plants.section_05",
+              "n": "5.5 The Flower",
+              "m": 75
+            },
+            {
+              "id": "neet.botany.11.morphology_of_flowering_plants.section_06",
+              "n": "5.6 The Fruit",
+              "m": 75
+            },
+            {
+              "id": "neet.botany.11.morphology_of_flowering_plants.section_07",
+              "n": "5.7 The Seed",
+              "m": 75
+            },
+            {
+              "id": "neet.botany.11.morphology_of_flowering_plants.section_08",
+              "n": "5.8 Semi-technical Description of a Typical Flowering Plant",
+              "m": 75
+            },
+            {
+              "id": "neet.botany.11.morphology_of_flowering_plants.section_09",
+              "n": "5.9 Description of Some Important Families",
+              "m": 75
+            }
+          ]
+        },
+        {
+          "id": "neet.botany.11.anatomy_of_flowering_plants",
+          "n": "Anatomy of Flowering Plants",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.botany.11.anatomy_of_flowering_plants.section_01",
+              "n": "6.1 The Tissue System",
+              "m": 338
+            },
+            {
+              "id": "neet.botany.11.anatomy_of_flowering_plants.section_02",
+              "n": "6.2 Anatomy of Dicotyledonous and Monocotyledonous Plants",
+              "m": 337
+            }
+          ]
+        },
+        {
+          "id": "neet.botany.11.cell_the_unit_of_life",
+          "n": "Cell: The Unit of Life",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.botany.11.cell_the_unit_of_life.section_01",
+              "n": "8.1 What is a Cell?",
+              "m": 135
+            },
+            {
+              "id": "neet.botany.11.cell_the_unit_of_life.section_02",
+              "n": "8.2 Cell Theory",
+              "m": 135
+            },
+            {
+              "id": "neet.botany.11.cell_the_unit_of_life.section_03",
+              "n": "8.3 An Overview of Cell",
+              "m": 135
+            },
+            {
+              "id": "neet.botany.11.cell_the_unit_of_life.section_04",
+              "n": "8.4 Prokaryotic Cells",
+              "m": 135
+            },
+            {
+              "id": "neet.botany.11.cell_the_unit_of_life.section_05",
+              "n": "8.5 Eukaryotic Cells",
+              "m": 135
+            }
+          ]
+        },
+        {
+          "id": "neet.botany.11.biomolecules",
+          "n": "Biomolecules",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.botany.11.biomolecules.section_01",
+              "n": "9.1 How to Analyse Chemical Composition?",
+              "m": 85
+            },
+            {
+              "id": "neet.botany.11.biomolecules.section_02",
+              "n": "9.2 Primary and Secondary Metabolites",
+              "m": 85
+            },
+            {
+              "id": "neet.botany.11.biomolecules.section_03",
+              "n": "9.3 Biomacromolecules",
+              "m": 85
+            },
+            {
+              "id": "neet.botany.11.biomolecules.section_04",
+              "n": "9.4 Proteins",
+              "m": 84
+            },
+            {
+              "id": "neet.botany.11.biomolecules.section_05",
+              "n": "9.5 Polysaccharides",
+              "m": 84
+            },
+            {
+              "id": "neet.botany.11.biomolecules.section_06",
+              "n": "9.6 Nucleic Acids",
+              "m": 84
+            },
+            {
+              "id": "neet.botany.11.biomolecules.section_07",
+              "n": "9.7 Structure of Proteins",
+              "m": 84
+            },
+            {
+              "id": "neet.botany.11.biomolecules.section_08",
+              "n": "9.8 Enzymes",
+              "m": 84
+            }
+          ]
+        },
+        {
+          "id": "neet.botany.11.cell_cycle_and_cell_division",
+          "n": "Cell Cycle and Cell Division",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.botany.11.cell_cycle_and_cell_division.section_01",
+              "n": "10.1 Cell Cycle",
+              "m": 135
+            },
+            {
+              "id": "neet.botany.11.cell_cycle_and_cell_division.section_02",
+              "n": "10.2 M Phase",
+              "m": 135
+            },
+            {
+              "id": "neet.botany.11.cell_cycle_and_cell_division.section_03",
+              "n": "10.3 Significance of Mitosis",
+              "m": 135
+            },
+            {
+              "id": "neet.botany.11.cell_cycle_and_cell_division.section_04",
+              "n": "10.4 Meiosis",
+              "m": 135
+            },
+            {
+              "id": "neet.botany.11.cell_cycle_and_cell_division.section_05",
+              "n": "10.5 Significance of Meiosis",
+              "m": 135
+            }
+          ]
+        },
+        {
+          "id": "neet.botany.11.photosynthesis_in_higher_plants",
+          "n": "Photosynthesis in Higher Plants",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.botany.11.photosynthesis_in_higher_plants.section_01",
+              "n": "11.1 What do we Know?",
+              "m": 68
+            },
+            {
+              "id": "neet.botany.11.photosynthesis_in_higher_plants.section_02",
+              "n": "11.2 Early Experiments",
+              "m": 68
+            },
+            {
+              "id": "neet.botany.11.photosynthesis_in_higher_plants.section_03",
+              "n": "11.3 Where does Photosynthesis take place?",
+              "m": 68
+            },
+            {
+              "id": "neet.botany.11.photosynthesis_in_higher_plants.section_04",
+              "n": "11.4 How many Pigments are involved in Photosynthesis?",
+              "m": 68
+            },
+            {
+              "id": "neet.botany.11.photosynthesis_in_higher_plants.section_05",
+              "n": "11.5 What is Light Reaction?",
+              "m": 68
+            },
+            {
+              "id": "neet.botany.11.photosynthesis_in_higher_plants.section_06",
+              "n": "11.6 The Electron Transport",
+              "m": 67
+            },
+            {
+              "id": "neet.botany.11.photosynthesis_in_higher_plants.section_07",
+              "n": "11.7 Where are the ATP and NADPH Used?",
+              "m": 67
+            },
+            {
+              "id": "neet.botany.11.photosynthesis_in_higher_plants.section_08",
+              "n": "11.8 The C4 Pathway",
+              "m": 67
+            },
+            {
+              "id": "neet.botany.11.photosynthesis_in_higher_plants.section_09",
+              "n": "11.9 Photorespiration",
+              "m": 67
+            },
+            {
+              "id": "neet.botany.11.photosynthesis_in_higher_plants.section_10",
+              "n": "11.10 Factors affecting Photosynthesis",
+              "m": 67
+            }
+          ]
+        },
+        {
+          "id": "neet.botany.11.respiration_in_plants",
+          "n": "Respiration in Plants",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.botany.11.respiration_in_plants.section_01",
+              "n": "12.1 Do Plants Breathe?",
+              "m": 97
+            },
+            {
+              "id": "neet.botany.11.respiration_in_plants.section_02",
+              "n": "12.2 Glycolysis",
+              "m": 97
+            },
+            {
+              "id": "neet.botany.11.respiration_in_plants.section_03",
+              "n": "12.3 Fermentation",
+              "m": 97
+            },
+            {
+              "id": "neet.botany.11.respiration_in_plants.section_04",
+              "n": "12.4 Aerobic Respiration",
+              "m": 96
+            },
+            {
+              "id": "neet.botany.11.respiration_in_plants.section_05",
+              "n": "12.5 The Respiratory Balance Sheet",
+              "m": 96
+            },
+            {
+              "id": "neet.botany.11.respiration_in_plants.section_06",
+              "n": "12.6 Amphibolic Pathway",
+              "m": 96
+            },
+            {
+              "id": "neet.botany.11.respiration_in_plants.section_07",
+              "n": "12.7 Respiratory Quotient",
+              "m": 96
+            }
+          ]
+        },
+        {
+          "id": "neet.botany.11.plant_growth_and_development",
+          "n": "Plant Growth and Development",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.botany.11.plant_growth_and_development.section_01",
+              "n": "13.1 Growth",
+              "m": 169
+            },
+            {
+              "id": "neet.botany.11.plant_growth_and_development.section_02",
+              "n": "13.2 Differentiation, Dedifferentiation and Redifferentiation",
+              "m": 169
+            },
+            {
+              "id": "neet.botany.11.plant_growth_and_development.section_03",
+              "n": "13.3 Development",
+              "m": 169
+            },
+            {
+              "id": "neet.botany.11.plant_growth_and_development.section_04",
+              "n": "13.4 Plant Growth Regulators",
+              "m": 168
+            }
+          ]
+        },
+        {
+          "id": "neet.botany.12.sexual_reproduction_in_flowering_plants",
+          "n": "Sexual Reproduction in Flowering Plants",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.botany.12.sexual_reproduction_in_flowering_plants.section_01",
+              "n": "1.1 Flower – A Fascinating Organ of Angiosperms",
+              "m": 135
+            },
+            {
+              "id": "neet.botany.12.sexual_reproduction_in_flowering_plants.section_02",
+              "n": "1.2 Pre-fertilisation : Structures and Events",
+              "m": 135
+            },
+            {
+              "id": "neet.botany.12.sexual_reproduction_in_flowering_plants.section_03",
+              "n": "1.3 Double Fertilisation",
+              "m": 135
+            },
+            {
+              "id": "neet.botany.12.sexual_reproduction_in_flowering_plants.section_04",
+              "n": "1.4 Post-fertilisation: Structures and Events",
+              "m": 135
+            },
+            {
+              "id": "neet.botany.12.sexual_reproduction_in_flowering_plants.section_05",
+              "n": "1.5 Apomixis and Polyembryony",
+              "m": 135
+            }
+          ]
+        },
+        {
+          "id": "neet.botany.12.principles_of_inheritance_and_variation",
+          "n": "Principles of Inheritance and Variation",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.botany.12.principles_of_inheritance_and_variation.section_01",
+              "n": "4.1 Mendel’s Laws of Inheritance",
+              "m": 113
+            },
+            {
+              "id": "neet.botany.12.principles_of_inheritance_and_variation.section_02",
+              "n": "4.2 Inheritance of One Gene",
+              "m": 113
+            },
+            {
+              "id": "neet.botany.12.principles_of_inheritance_and_variation.section_03",
+              "n": "4.3 Inheritance of Two Genes",
+              "m": 113
+            },
+            {
+              "id": "neet.botany.12.principles_of_inheritance_and_variation.section_04",
+              "n": "4.4 Sex Determination",
+              "m": 112
+            },
+            {
+              "id": "neet.botany.12.principles_of_inheritance_and_variation.section_05",
+              "n": "4.5 Mutation",
+              "m": 112
+            },
+            {
+              "id": "neet.botany.12.principles_of_inheritance_and_variation.section_06",
+              "n": "4.6 Genetic Disorders",
+              "m": 112
+            }
+          ]
+        },
+        {
+          "id": "neet.botany.12.molecular_basis_of_inheritance",
+          "n": "Molecular Basis of Inheritance",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.botany.12.molecular_basis_of_inheritance.section_01",
+              "n": "5.1 The DNA",
+              "m": 68
+            },
+            {
+              "id": "neet.botany.12.molecular_basis_of_inheritance.section_02",
+              "n": "5.2 The Search for Genetic Material",
+              "m": 68
+            },
+            {
+              "id": "neet.botany.12.molecular_basis_of_inheritance.section_03",
+              "n": "5.3 RNA World",
+              "m": 68
+            },
+            {
+              "id": "neet.botany.12.molecular_basis_of_inheritance.section_04",
+              "n": "5.4 Replication",
+              "m": 68
+            },
+            {
+              "id": "neet.botany.12.molecular_basis_of_inheritance.section_05",
+              "n": "5.5 Transcription",
+              "m": 68
+            },
+            {
+              "id": "neet.botany.12.molecular_basis_of_inheritance.section_06",
+              "n": "5.6 Genetic Code",
+              "m": 67
+            },
+            {
+              "id": "neet.botany.12.molecular_basis_of_inheritance.section_07",
+              "n": "5.7 Translation",
+              "m": 67
+            },
+            {
+              "id": "neet.botany.12.molecular_basis_of_inheritance.section_08",
+              "n": "5.8 Regulation of Gene Expression",
+              "m": 67
+            },
+            {
+              "id": "neet.botany.12.molecular_basis_of_inheritance.section_09",
+              "n": "5.9 Human Genome Project",
+              "m": 67
+            },
+            {
+              "id": "neet.botany.12.molecular_basis_of_inheritance.section_10",
+              "n": "5.10 DNA Fingerprinting",
+              "m": 67
+            }
+          ]
+        },
+        {
+          "id": "neet.botany.12.evolution",
+          "n": "Evolution",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.botany.12.evolution.section_01",
+              "n": "6.1 Origin of Life",
+              "m": 75
+            },
+            {
+              "id": "neet.botany.12.evolution.section_02",
+              "n": "6.2 Evolution of Life Forms - A Theory",
+              "m": 75
+            },
+            {
+              "id": "neet.botany.12.evolution.section_03",
+              "n": "6.3 What are the Evidences for Evolution?",
+              "m": 75
+            },
+            {
+              "id": "neet.botany.12.evolution.section_04",
+              "n": "6.4 What is Adaptive Radiation?",
+              "m": 75
+            },
+            {
+              "id": "neet.botany.12.evolution.section_05",
+              "n": "6.5 Biological Evolution",
+              "m": 75
+            },
+            {
+              "id": "neet.botany.12.evolution.section_06",
+              "n": "6.6 Mechanism of Evolution",
+              "m": 75
+            },
+            {
+              "id": "neet.botany.12.evolution.section_07",
+              "n": "6.7 Hardy - Weinberg Principle",
+              "m": 75
+            },
+            {
+              "id": "neet.botany.12.evolution.section_08",
+              "n": "6.8 A Brief Account of Evolution",
+              "m": 75
+            },
+            {
+              "id": "neet.botany.12.evolution.section_09",
+              "n": "6.9 Origin and Evolution of Man",
+              "m": 75
+            }
+          ]
+        },
+        {
+          "id": "neet.botany.12.biotechnology_principles_and_processes",
+          "n": "Biotechnology: Principles and Processes",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.botany.12.biotechnology_principles_and_processes.section_01",
+              "n": "9.1 Principles of Biotechnology",
+              "m": 225
+            },
+            {
+              "id": "neet.botany.12.biotechnology_principles_and_processes.section_02",
+              "n": "9.2 Tools of Recombinant DNA Technology",
+              "m": 225
+            },
+            {
+              "id": "neet.botany.12.biotechnology_principles_and_processes.section_03",
+              "n": "9.3 Processes of Recombinant DNA Technology",
+              "m": 225
+            }
+          ]
+        },
+        {
+          "id": "neet.botany.12.biotechnology_and_its_applications",
+          "n": "Biotechnology and its Applications",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.botany.12.biotechnology_and_its_applications.section_01",
+              "n": "10.1 Biotechnological Applications in Agriculture",
+              "m": 169
+            },
+            {
+              "id": "neet.botany.12.biotechnology_and_its_applications.section_02",
+              "n": "10.2 Biotechnological Applications in Medicine",
+              "m": 169
+            },
+            {
+              "id": "neet.botany.12.biotechnology_and_its_applications.section_03",
+              "n": "10.3 Transgenic Animals",
+              "m": 169
+            },
+            {
+              "id": "neet.botany.12.biotechnology_and_its_applications.section_04",
+              "n": "10.4 Ethical Issues",
+              "m": 168
+            }
+          ]
+        },
+        {
+          "id": "neet.botany.12.organisms_and_populations",
+          "n": "Organisms and Populations",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.botany.12.organisms_and_populations.section_01",
+              "n": "11.1 Populations",
+              "m": 675
+            }
+          ]
+        },
+        {
+          "id": "neet.botany.12.ecosystem",
+          "n": "Ecosystem",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.botany.12.ecosystem.section_01",
+              "n": "12.1 Ecosystem–Structure and Function",
+              "m": 135
+            },
+            {
+              "id": "neet.botany.12.ecosystem.section_02",
+              "n": "12.2 Productivity",
+              "m": 135
+            },
+            {
+              "id": "neet.botany.12.ecosystem.section_03",
+              "n": "12.3 Decomposition",
+              "m": 135
+            },
+            {
+              "id": "neet.botany.12.ecosystem.section_04",
+              "n": "12.4 Energy Flow",
+              "m": 135
+            },
+            {
+              "id": "neet.botany.12.ecosystem.section_05",
+              "n": "12.5 Ecological Pyramids",
+              "m": 135
+            }
+          ]
+        },
+        {
+          "id": "neet.botany.12.biodiversity_and_conservation",
+          "n": "Biodiversity and Conservation",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.botany.12.biodiversity_and_conservation.section_01",
+              "n": "13.1 Biodiversity",
+              "m": 338
+            },
+            {
+              "id": "neet.botany.12.biodiversity_and_conservation.section_02",
+              "n": "13.2 Biodiversity Conservation",
+              "m": 337
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zoology",
+      "n": "Zoology",
+      "q": 45,
+      "t": [
+        {
+          "id": "neet.zoology.11.animal_kingdom",
+          "n": "Animal Kingdom",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.zoology.11.animal_kingdom.section_01",
+              "n": "4.1 Basis of Classification",
+              "m": 563
+            },
+            {
+              "id": "neet.zoology.11.animal_kingdom.section_02",
+              "n": "4.2 Classification of Animals",
+              "m": 562
+            }
+          ]
+        },
+        {
+          "id": "neet.zoology.11.structural_organisation_in_animals",
+          "n": "Structural Organisation in Animals",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.zoology.11.structural_organisation_in_animals.section_01",
+              "n": "7.1 Organ and Organ System",
+              "m": 563
+            },
+            {
+              "id": "neet.zoology.11.structural_organisation_in_animals.section_02",
+              "n": "7.2 Frogs",
+              "m": 562
+            }
+          ]
+        },
+        {
+          "id": "neet.zoology.11.breathing_and_exchange_of_gases",
+          "n": "Breathing and Exchange of Gases",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.zoology.11.breathing_and_exchange_of_gases.section_01",
+              "n": "14.1 Respiratory Organs",
+              "m": 188
+            },
+            {
+              "id": "neet.zoology.11.breathing_and_exchange_of_gases.section_02",
+              "n": "14.2 Mechanism of Breathing",
+              "m": 188
+            },
+            {
+              "id": "neet.zoology.11.breathing_and_exchange_of_gases.section_03",
+              "n": "14.3 Exchange of Gases",
+              "m": 188
+            },
+            {
+              "id": "neet.zoology.11.breathing_and_exchange_of_gases.section_04",
+              "n": "14.4 Transport of Gases",
+              "m": 187
+            },
+            {
+              "id": "neet.zoology.11.breathing_and_exchange_of_gases.section_05",
+              "n": "14.5 Regulation of Respiration",
+              "m": 187
+            },
+            {
+              "id": "neet.zoology.11.breathing_and_exchange_of_gases.section_06",
+              "n": "14.6 Disorders of Respiratory System",
+              "m": 187
+            }
+          ]
+        },
+        {
+          "id": "neet.zoology.11.body_fluids_and_circulation",
+          "n": "Body Fluids and Circulation",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.zoology.11.body_fluids_and_circulation.section_01",
+              "n": "15.1 Blood",
+              "m": 188
+            },
+            {
+              "id": "neet.zoology.11.body_fluids_and_circulation.section_02",
+              "n": "15.2 Lymph (Tissue Fluid)",
+              "m": 188
+            },
+            {
+              "id": "neet.zoology.11.body_fluids_and_circulation.section_03",
+              "n": "15.3 Circulatory Pathways",
+              "m": 188
+            },
+            {
+              "id": "neet.zoology.11.body_fluids_and_circulation.section_04",
+              "n": "15.4 Double Circulation",
+              "m": 187
+            },
+            {
+              "id": "neet.zoology.11.body_fluids_and_circulation.section_05",
+              "n": "15.5 Regulation of Cardiac Activity",
+              "m": 187
+            },
+            {
+              "id": "neet.zoology.11.body_fluids_and_circulation.section_06",
+              "n": "15.6 Disorders of Circulatory System",
+              "m": 187
+            }
+          ]
+        },
+        {
+          "id": "neet.zoology.11.excretory_products_and_their_elimination",
+          "n": "Excretory Products and their Elimination",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.zoology.11.excretory_products_and_their_elimination.section_01",
+              "n": "16.1 Human Excretory System",
+              "m": 141
+            },
+            {
+              "id": "neet.zoology.11.excretory_products_and_their_elimination.section_02",
+              "n": "16.2 Urine Formation",
+              "m": 141
+            },
+            {
+              "id": "neet.zoology.11.excretory_products_and_their_elimination.section_03",
+              "n": "16.3 Function of the Tubules",
+              "m": 141
+            },
+            {
+              "id": "neet.zoology.11.excretory_products_and_their_elimination.section_04",
+              "n": "16.4 Mechanism of Concentration of the Filtrate",
+              "m": 141
+            },
+            {
+              "id": "neet.zoology.11.excretory_products_and_their_elimination.section_05",
+              "n": "16.5 Regulation of Kidney Function",
+              "m": 141
+            },
+            {
+              "id": "neet.zoology.11.excretory_products_and_their_elimination.section_06",
+              "n": "16.6 Micturition",
+              "m": 140
+            },
+            {
+              "id": "neet.zoology.11.excretory_products_and_their_elimination.section_07",
+              "n": "16.7 Role of other Organs in Excretion",
+              "m": 140
+            },
+            {
+              "id": "neet.zoology.11.excretory_products_and_their_elimination.section_08",
+              "n": "16.8 Disorders of the Excretory System",
+              "m": 140
+            }
+          ]
+        },
+        {
+          "id": "neet.zoology.11.locomotion_and_movement",
+          "n": "Locomotion and Movement",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.zoology.11.locomotion_and_movement.section_01",
+              "n": "17.1 Types of Movement",
+              "m": 225
+            },
+            {
+              "id": "neet.zoology.11.locomotion_and_movement.section_02",
+              "n": "17.2 Muscle",
+              "m": 225
+            },
+            {
+              "id": "neet.zoology.11.locomotion_and_movement.section_03",
+              "n": "17.3 Skeletal System",
+              "m": 225
+            },
+            {
+              "id": "neet.zoology.11.locomotion_and_movement.section_04",
+              "n": "17.4 Joints",
+              "m": 225
+            },
+            {
+              "id": "neet.zoology.11.locomotion_and_movement.section_05",
+              "n": "17.5 Disorders of Muscular and Skeletal System",
+              "m": 225
+            }
+          ]
+        },
+        {
+          "id": "neet.zoology.11.neural_control_and_coordination",
+          "n": "Neural Control and Coordination",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.zoology.11.neural_control_and_coordination.section_01",
+              "n": "18.1 Neural System",
+              "m": 282
+            },
+            {
+              "id": "neet.zoology.11.neural_control_and_coordination.section_02",
+              "n": "18.2 Human Neural System",
+              "m": 281
+            },
+            {
+              "id": "neet.zoology.11.neural_control_and_coordination.section_03",
+              "n": "18.3 Neuron as Structural and Functional Unit of Neural System",
+              "m": 281
+            },
+            {
+              "id": "neet.zoology.11.neural_control_and_coordination.section_04",
+              "n": "18.4 Central Neural System",
+              "m": 281
+            }
+          ]
+        },
+        {
+          "id": "neet.zoology.11.chemical_coordination_and_integration",
+          "n": "Chemical Coordination and Integration",
+          "class": 11,
+          "c": [
+            {
+              "id": "neet.zoology.11.chemical_coordination_and_integration.section_01",
+              "n": "19.1 Endocrine Glands and Hormones",
+              "m": 282
+            },
+            {
+              "id": "neet.zoology.11.chemical_coordination_and_integration.section_02",
+              "n": "19.2 Human Endocrine System",
+              "m": 281
+            },
+            {
+              "id": "neet.zoology.11.chemical_coordination_and_integration.section_03",
+              "n": "19.3 Hormones of Heart, Kidney and Gastrointestinal Tract",
+              "m": 281
+            },
+            {
+              "id": "neet.zoology.11.chemical_coordination_and_integration.section_04",
+              "n": "19.4 Mechanism of Hormone Action",
+              "m": 281
+            }
+          ]
+        },
+        {
+          "id": "neet.zoology.12.human_reproduction",
+          "n": "Human Reproduction",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.zoology.12.human_reproduction.section_01",
+              "n": "2.1 The Male Reproductive System",
+              "m": 161
+            },
+            {
+              "id": "neet.zoology.12.human_reproduction.section_02",
+              "n": "2.2 The Female Reproductive System",
+              "m": 161
+            },
+            {
+              "id": "neet.zoology.12.human_reproduction.section_03",
+              "n": "2.3 Gametogenesis",
+              "m": 161
+            },
+            {
+              "id": "neet.zoology.12.human_reproduction.section_04",
+              "n": "2.4 Menstrual Cycle",
+              "m": 161
+            },
+            {
+              "id": "neet.zoology.12.human_reproduction.section_05",
+              "n": "2.5 Fertilisation and Implantation",
+              "m": 161
+            },
+            {
+              "id": "neet.zoology.12.human_reproduction.section_06",
+              "n": "2.6 Pregnancy and Embryonic Development",
+              "m": 160
+            },
+            {
+              "id": "neet.zoology.12.human_reproduction.section_07",
+              "n": "2.7 Parturition and Lactation",
+              "m": 160
+            }
+          ]
+        },
+        {
+          "id": "neet.zoology.12.reproductive_health",
+          "n": "Reproductive Health",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.zoology.12.reproductive_health.section_01",
+              "n": "3.1 Reproductive Health – Problems and Strategies",
+              "m": 225
+            },
+            {
+              "id": "neet.zoology.12.reproductive_health.section_02",
+              "n": "3.2 Population Explosion and Birth Control",
+              "m": 225
+            },
+            {
+              "id": "neet.zoology.12.reproductive_health.section_03",
+              "n": "3.3 Medical Termination of Pregnancy",
+              "m": 225
+            },
+            {
+              "id": "neet.zoology.12.reproductive_health.section_04",
+              "n": "3.4 Sexually Transmitted Diseases",
+              "m": 225
+            },
+            {
+              "id": "neet.zoology.12.reproductive_health.section_05",
+              "n": "3.5 Infertility",
+              "m": 225
+            }
+          ]
+        },
+        {
+          "id": "neet.zoology.12.human_health_and_disease",
+          "n": "Human Health and Disease",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.zoology.12.human_health_and_disease.section_01",
+              "n": "7.1 Common Diseases in Humans",
+              "m": 225
+            },
+            {
+              "id": "neet.zoology.12.human_health_and_disease.section_02",
+              "n": "7.2 Immunity",
+              "m": 225
+            },
+            {
+              "id": "neet.zoology.12.human_health_and_disease.section_03",
+              "n": "7.3 AIDS",
+              "m": 225
+            },
+            {
+              "id": "neet.zoology.12.human_health_and_disease.section_04",
+              "n": "7.4 Cancer",
+              "m": 225
+            },
+            {
+              "id": "neet.zoology.12.human_health_and_disease.section_05",
+              "n": "7.5 Drugs and Alcohol Abuse",
+              "m": 225
+            }
+          ]
+        },
+        {
+          "id": "neet.zoology.12.microbes_in_human_welfare",
+          "n": "Microbes in Human Welfare",
+          "class": 12,
+          "c": [
+            {
+              "id": "neet.zoology.12.microbes_in_human_welfare.section_01",
+              "n": "8.1 Microbes in Household Products",
+              "m": 188
+            },
+            {
+              "id": "neet.zoology.12.microbes_in_human_welfare.section_02",
+              "n": "8.2 Microbes in Industrial Products",
+              "m": 188
+            },
+            {
+              "id": "neet.zoology.12.microbes_in_human_welfare.section_03",
+              "n": "8.3 Microbes in Sewage Treatment",
+              "m": 188
+            },
+            {
+              "id": "neet.zoology.12.microbes_in_human_welfare.section_04",
+              "n": "8.4 Microbes in Production of Biogas",
+              "m": 187
+            },
+            {
+              "id": "neet.zoology.12.microbes_in_human_welfare.section_05",
+              "n": "8.5 Microbes as Biocontrol Agents",
+              "m": 187
+            },
+            {
+              "id": "neet.zoology.12.microbes_in_human_welfare.section_06",
+              "n": "8.6 Microbes as Biofertilisers",
+              "m": 187
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

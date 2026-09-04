@@ -1,4 +1,4 @@
-import { Commitment } from '../onboarding/commitments';
+import { Commitment, validateCommitments } from '../onboarding/commitments';
 import { PACK } from '../onboarding/exam-pack';
 import { freeWindows, layOutDay } from './scheduler';
 
@@ -37,5 +37,19 @@ describe('desktop planner scheduling rules', () => {
     expect(blocks.filter((block) => block.kind === 'study')).toHaveLength(3);
     expect(blocks.some((block) => block.kind === 'break')).toBe(true);
     expect(blocks).toEqual([...blocks].sort((a, b) => a.startMinute - b.startMinute));
+  });
+
+  it('rejects overlaps, commitments outside waking hours, and empty day selections', () => {
+    const invalid: Commitment[] = [
+      { id: 'a', label: 'School', kind: 'school', startMinute: 5 * 60, minutes: 180, days: [1] },
+      { id: 'b', label: 'Coaching', kind: 'coaching', startMinute: 7 * 60, minutes: 120, days: [1] },
+      { id: 'c', label: 'Tuition', kind: 'tuition', startMinute: 18 * 60, minutes: 60, days: [] },
+    ];
+
+    expect(validateCommitments(invalid, 6 * 60, 22 * 60)).toEqual([
+      'School sits outside your waking hours.',
+      'Tuition needs at least one day.',
+      'School overlaps Coaching.',
+    ]);
   });
 });

@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatRippleModule } from '@angular/material/core';
 import { Shell } from '../shell';
-import { EXAMS, OnboardingStore } from '../state';
+import { EXAMS, OnboardingStore, nextExamDay } from '../state';
 
 @Component({
   selector: 'ob-exam-step',
@@ -22,8 +22,8 @@ import { EXAMS, OnboardingStore } from '../state';
                   [disabled]="!e.available"
                   [attr.aria-checked]="store.examId() === e.id"
                   [class.on]="store.examId() === e.id"
-                  (click)="store.examId.set(e.id)">
-            <span class="name">{{ e.label }}</span>
+                  (click)="choose(e.id)">
+            <span class="copy"><span class="name">{{ e.label }}</span><span class="hint">{{ e.id === 'neet' ? 'Full syllabus included' : 'Add your own chapters' }}</span></span>
             @if (e.available && store.examId() === e.id) {
               <mat-icon class="filled">check_circle</mat-icon>
             }
@@ -34,6 +34,9 @@ import { EXAMS, OnboardingStore } from '../state';
   `,
   styles: `
     .list { display: flex; flex-direction: column; gap: 8px; }
+    .copy { display: flex; flex-direction: column; gap: 2px; }
+    .hint { font: var(--mat-sys-body-small); color: var(--mat-sys-on-surface-variant); }
+    .row.on .hint { color: var(--mat-sys-on-secondary-container); }
 
     /* M3 two-line-free list item: 56dp min height, 16dp inner padding. */
     .row {
@@ -69,4 +72,10 @@ import { EXAMS, OnboardingStore } from '../state';
 export class ExamStep {
   protected readonly store = inject(OnboardingStore);
   protected readonly exams = EXAMS;
+
+  protected choose(id: string): void {
+    this.store.examId.set(id);
+    this.store.dateMode.set(id === 'neet' ? 'exam' : 'syllabus');
+    if (id === 'neet') this.store.targetDate.set(nextExamDay());
+  }
 }

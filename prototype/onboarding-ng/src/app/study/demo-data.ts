@@ -160,6 +160,7 @@ export function loadDemo(onboarding: OnboardingStore, study: StudyStore): void {
   study.stats.set(demo.stats);
   study.extras.set([]);
   onboarding.doneUnits.set(demo.done);
+  study.demoMode.set(true);
 }
 
 export function clearDemo(onboarding: OnboardingStore, study: StudyStore): void {
@@ -167,4 +168,5 @@ export function clearDemo(onboarding: OnboardingStore, study: StudyStore): void 
   study.stats.set(new Map());
   study.extras.set([]);
   onboarding.doneUnits.set(new Set());
+  study.demoMode.set(false);
 }

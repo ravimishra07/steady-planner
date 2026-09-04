@@ -13,9 +13,11 @@ sealed interface Route {
     data object Onboarding : Route { override val path = "onboarding" }
     data object Home : Route { override val path = "home" }
     data object Syllabus : Route { override val path = "syllabus" }
+    data object Organise : Route { override val path = "organise" }
     data object Focus : Route { override val path = "focus" }
     data object Progress : Route { override val path = "progress" }
     data object Settings : Route { override val path = "settings" }
+    data object Appearance : Route { override val path = "settings/appearance" }
     data object SettingsDetail : Route { override val path = "settings/detail" }
     data object Policy : Route { override val path = "policy/{policyId}" }
 }

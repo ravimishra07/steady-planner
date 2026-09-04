@@ -4,6 +4,8 @@ data class SyllabusTopicNode(
     val name: String,
     val hours: Double?,
     val children: List<SyllabusTopicNode> = emptyList(),
+    /** Stable pack id when sourced from the normalized ExamPack; null for legacy positional data. */
+    val id: String? = null,
 )
 
 data class SyllabusSection(
@@ -35,7 +37,7 @@ fun topicHours(node: SyllabusTopicNode): Double =
     node.hours ?: node.children.sumOf { topicHours(it) }
 
 fun leafKeys(node: SyllabusTopicNode, pathKey: String): List<String> {
-    if (node.children.isEmpty()) return listOf(pathKey)
+    if (node.children.isEmpty()) return listOf(node.id ?: pathKey)
     return node.children.flatMapIndexed { index, child ->
         leafKeys(child, "${pathKey}_$index")
     }

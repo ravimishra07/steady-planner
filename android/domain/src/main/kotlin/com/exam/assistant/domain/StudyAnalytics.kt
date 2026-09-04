@@ -7,12 +7,12 @@ import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-enum class InsightPeriod(val label: String, val days: Long?) {
-    DAY("1D", 1),
-    WEEK("7D", 7),
-    MONTH("1M", 30),
-    THREE_MONTHS("3M", 90),
-    ALL("All", null),
+enum class InsightPeriod(val days: Long?) {
+    DAY(1),
+    WEEK(7),
+    MONTH(30),
+    THREE_MONTHS(90),
+    ALL(null),
 }
 
 data class InsightPlan(
@@ -332,7 +332,9 @@ private fun currentStreak(dates: Set<LocalDate>, today: LocalDate): Int {
     return count
 }
 
-fun formatInsightDate(date: LocalDate): String = date.format(DateTimeFormatter.ofPattern("d MMM"))
+fun formatInsightDate(date: LocalDate): String = date.format(
+    DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM).withLocale(java.util.Locale.getDefault()),
+)
 
 fun formatInsightMinutes(minutes: Int?): String {
     if (minutes == null) return "—"

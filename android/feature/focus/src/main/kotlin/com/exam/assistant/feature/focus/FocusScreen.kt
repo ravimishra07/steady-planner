@@ -1,5 +1,6 @@
 package com.exam.assistant.feature.focus
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,28 +11,43 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.MoreTime
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -47,10 +63,14 @@ import com.exam.assistant.core.data.SettingsStore
 import com.exam.assistant.core.data.StudySessionStore
 import com.exam.assistant.core.data.SyllabusRepository
 import com.exam.assistant.core.data.SyllabusStore
+import com.exam.assistant.core.data.repo.AttemptRepository
+import com.exam.assistant.core.data.repo.PlanRepository
+import com.exam.assistant.core.data.repo.StudySessionRepository
 import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
+import com.exam.assistant.core.design.Stroke
 import com.exam.assistant.domain.BlockTag
 import com.exam.assistant.domain.FocusLockDisplayState
 import com.exam.assistant.domain.FocusStatus
@@ -66,6 +86,9 @@ fun FocusRoute(
     studySessionStore: StudySessionStore,
     syllabusRepository: SyllabusRepository,
     syllabusStore: SyllabusStore,
+    attemptRepository: AttemptRepository,
+    planRepository: PlanRepository,
+    studySessionRepository: StudySessionRepository,
     focusLockStore: FocusLockStore,
     focusLockCapabilityChecker: FocusLockCapabilityChecker,
     installedAppProvider: InstalledAppProvider,
@@ -82,6 +105,9 @@ fun FocusRoute(
             studySessionStore,
             syllabusRepository,
             syllabusStore,
+            attemptRepository,
+            planRepository,
+            studySessionRepository,
             appScope,
             onFocusLockStart,
             onFocusLockStop,
@@ -111,6 +137,9 @@ fun FocusRoute(
         onStart = viewModel::startSession,
         onPause = viewModel::pause,
         onResume = viewModel::resume,
+        onExtend = viewModel::extendFiveMinutes,
+        onSetDuration = viewModel::setDuration,
+        onSelectQueueItem = viewModel::selectQueueItem,
         onRequestStop = viewModel::requestStop,
         onConfirmStop = viewModel::confirmStop,
         onDismissStop = viewModel::dismissStopDialog,
@@ -141,6 +170,9 @@ fun FocusScreen(
     onStart: () -> Unit,
     onPause: () -> Unit,
     onResume: () -> Unit,
+    onExtend: () -> Unit,
+    onSetDuration: (Int) -> Unit,
+    onSelectQueueItem: (String) -> Unit,
     onRequestStop: () -> Unit,
     onConfirmStop: () -> Unit,
     onDismissStop: () -> Unit,
@@ -178,6 +210,19 @@ fun FocusScreen(
                 }
             },
         )
+    }
+
+    if (state.status == FocusStatus.IDLE && !showingSetup) {
+        FocusIdleScreen(
+            state = state,
+            lockState = lockState,
+            onStart = onStart,
+            onSelectQueueItem = onSelectQueueItem,
+            onToggleFocusLockEnabled = onToggleFocusLockEnabled,
+            onStartFocusLockSetup = onStartFocusLockSetup,
+            modifier = modifier,
+        )
+        return
     }
 
     Column(
@@ -233,9 +278,35 @@ fun FocusScreen(
                 onFixSetup = onStartFocusLockSetup,
             )
             Spacer(modifier = Modifier.height(Spacing.lg))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                listOf(25, 50, 90).forEach { minutes ->
+                    Surface(
+                        onClick = { onSetDuration(minutes) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(Radius.pill),
+                        color = if (state.durationMinutes == minutes) colors.brandDeep else colors.surfaceControl,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.focus_length_minutes, minutes),
+                            color = if (state.durationMinutes == minutes) colors.onBrand else colors.text,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(vertical = Spacing.sm),
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(Spacing.md))
         } else if (lockState.display is FocusLockDisplayState.Active) {
+            val blockedCount = (lockState.display as FocusLockDisplayState.Active).blockedCount
             Text(
-                text = "Focus Lock · Active · ${(lockState.display as FocusLockDisplayState.Active).blockedCount} apps blocked",
+                text = pluralStringResource(
+                    R.plurals.focus_lock_status_line_active,
+                    blockedCount,
+                    blockedCount,
+                ),
                 style = MaterialTheme.typography.labelMedium,
                 color = colors.brandSoft,
                 modifier = Modifier.padding(bottom = Spacing.md),
@@ -296,10 +367,10 @@ fun FocusScreen(
             Box(contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(
                     progress = { progress },
-                    modifier = Modifier.size(220.dp),
+                    modifier = Modifier.size(Size.focusDial),
                     color = arcColor,
                     trackColor = colors.text.copy(alpha = 0.12f),
-                    strokeWidth = 10.dp,
+                    strokeWidth = Size.summaryTrack,
                 )
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
@@ -336,10 +407,11 @@ fun FocusScreen(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
                     FilledTonalButton(
-                        onClick = onRequestStop,
+                        onClick = onExtend,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text(stringResource(R.string.focus_stop))
+                        Icon(Icons.Filled.MoreTime, contentDescription = null)
+                        Text(stringResource(R.string.focus_add_five))
                     }
                     Button(
                         onClick = if (state.status == FocusStatus.RUNNING) onPause else onResume,
@@ -361,6 +433,13 @@ fun FocusScreen(
                                 stringResource(R.string.focus_resume)
                             },
                         )
+                    }
+                    FilledTonalButton(
+                        onClick = onRequestStop,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Icon(Icons.Filled.Stop, contentDescription = null)
+                        Text(stringResource(R.string.focus_end))
                     }
                 }
             }
@@ -410,31 +489,270 @@ fun FocusScreen(
 }
 
 @Composable
+private fun FocusIdleScreen(
+    state: FocusUiState,
+    lockState: FocusLockUiState,
+    onStart: () -> Unit,
+    onSelectQueueItem: (String) -> Unit,
+    onToggleFocusLockEnabled: (Boolean) -> Unit,
+    onStartFocusLockSetup: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = AppTheme.colors
+    var browsing by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
+    val shieldOn = lockState.display !is FocusLockDisplayState.Off
+    val options = buildList {
+        if (state.hasBlock) {
+            add(
+                FocusQueueItem(
+                    id = "__current__",
+                    title = state.blockTitle,
+                    subtitle = state.blockSubtitle,
+                    tag = state.blockTag ?: BlockTag.READ,
+                    durationMinutes = state.durationMinutes,
+                ),
+            )
+        }
+        addAll(state.queue)
+    }.filter { row ->
+        query.isBlank() || row.title.contains(query, ignoreCase = true) ||
+            row.subtitle.contains(query, ignoreCase = true)
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(Size.tabBarHeight),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            if (browsing) {
+                IconButton(onClick = { browsing = false }, modifier = Modifier.size(Size.timeField)) {
+                    Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.focus_back))
+                }
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    placeholder = { Text(stringResource(R.string.focus_search_topics)) },
+                    shape = CircleShape,
+                    textStyle = MaterialTheme.typography.bodyMedium,
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.focus_title),
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = colors.text,
+                )
+                Surface(
+                    onClick = {
+                        if (shieldOn) onToggleFocusLockEnabled(false) else onStartFocusLockSetup()
+                    },
+                    shape = CircleShape,
+                    color = if (shieldOn) colors.selectionContainer else colors.surface,
+                    contentColor = if (shieldOn) colors.onSelectionContainer else colors.textSecondary,
+                    border = if (shieldOn) null else BorderStroke(Stroke.hairline, colors.outlineVariant),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .height(Size.compactControl)
+                            .padding(horizontal = Spacing.md),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        Icon(
+                            imageVector = if (shieldOn) Icons.Filled.Lock else Icons.Filled.LockOpen,
+                            contentDescription = null,
+                            modifier = Modifier.size(Size.smallIcon),
+                        )
+                        Text(
+                            text = stringResource(
+                                if (shieldOn) R.string.focus_shield_preview else R.string.focus_shield_off,
+                            ),
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                    }
+                }
+                IconButton(
+                    onClick = { query = ""; browsing = true },
+                    modifier = Modifier.size(Size.timeField),
+                ) {
+                    Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.focus_browse_topics))
+                }
+            }
+        }
+
+        if (browsing) {
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                items(options, key = { it.id }) { row ->
+                    FocusQueueRow(
+                        item = row,
+                        onClick = {
+                            if (row.id != "__current__") onSelectQueueItem(row.id)
+                            browsing = false
+                        },
+                    )
+                }
+                if (options.isEmpty()) {
+                    item {
+                        Text(
+                            text = stringResource(R.string.focus_no_topics_match, query),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.textSecondary,
+                            modifier = Modifier.padding(vertical = Spacing.xxl),
+                        )
+                    }
+                }
+            }
+            return@Column
+        }
+
+        Surface(
+            onClick = if (state.hasBlock) onStart else ({ browsing = true }),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = Spacing.sm),
+            shape = RoundedCornerShape(Radius.extraLarge),
+            color = if (state.hasBlock) colors.selectionContainer else colors.surfaceContainerHigh,
+            contentColor = if (state.hasBlock) colors.onSelectionContainer else colors.text,
+        ) {
+            Column(
+                modifier = Modifier.padding(Spacing.xxl),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
+                if (state.hasBlock) {
+                    Text(stringResource(R.string.focus_up_next), style = MaterialTheme.typography.labelLarge)
+                    Text(state.blockTitle, style = MaterialTheme.typography.headlineSmall)
+                    if (state.blockSubtitle.isNotBlank()) {
+                        Text(state.blockSubtitle, style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Row(
+                        modifier = Modifier.padding(top = Spacing.md),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        Icon(
+                            Icons.Filled.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(Size.selectionIndicator),
+                        )
+                        Text(
+                            stringResource(R.string.focus_start_minutes, state.durationMinutes),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                } else {
+                    Text(stringResource(R.string.focus_empty_title), style = MaterialTheme.typography.headlineSmall)
+                    Row(
+                        modifier = Modifier.padding(top = Spacing.md),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        Icon(
+                            Icons.Filled.Search,
+                            contentDescription = null,
+                            modifier = Modifier.size(Size.selectionIndicator),
+                        )
+                        Text(stringResource(R.string.focus_pick_topic), style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+            }
+        }
+
+        if (state.queue.isNotEmpty()) {
+            val left = state.queue.count { !it.completed } + if (state.hasBlock) 1 else 0
+            Text(
+                text = pluralStringResource(R.plurals.focus_left_today, left, left),
+                style = MaterialTheme.typography.titleSmall,
+                color = colors.textSecondary,
+                modifier = Modifier.padding(top = Spacing.xxl, bottom = Spacing.xs),
+            )
+        }
+        LazyColumn(modifier = Modifier.weight(1f)) {
+            items(state.queue, key = { it.id }) { row ->
+                FocusQueueRow(item = row, onClick = { onSelectQueueItem(row.id) })
+            }
+        }
+    }
+}
+
+@Composable
+private fun FocusQueueRow(item: FocusQueueItem, onClick: () -> Unit) {
+    val colors = AppTheme.colors
+    Surface(onClick = onClick, color = colors.surface) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(Size.ctaHeight),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(Size.focusTagVertical),
+            ) {
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (item.completed) colors.textSecondary else colors.text,
+                )
+                Text(item.subtitle, style = MaterialTheme.typography.labelSmall, color = colors.textSecondary)
+            }
+            if (item.completed) {
+                Icon(
+                    Icons.Filled.Check,
+                    contentDescription = stringResource(R.string.focus_done),
+                    tint = colors.primary,
+                )
+            } else {
+                TagChip(item.tag)
+            }
+        }
+    }
+    HorizontalDivider(color = colors.outlineVariant, thickness = Stroke.hairline)
+}
+
+@Composable
 private fun TagChip(tag: BlockTag) {
     val colors = AppTheme.colors
     val background = when (tag) {
-        BlockTag.READ -> colors.infoTint
-        BlockTag.PRACTICE -> colors.successContainer
-        BlockTag.REVISE -> colors.warningTint
+        BlockTag.READ -> colors.selectionContainer
+        BlockTag.PRACTICE -> colors.primary
+        BlockTag.REVISE -> colors.surface
     }
     val foreground = when (tag) {
-        BlockTag.READ -> colors.info
-        BlockTag.PRACTICE -> colors.success
-        BlockTag.REVISE -> colors.warning
+        BlockTag.READ -> colors.onSelectionContainer
+        BlockTag.PRACTICE -> colors.onPrimary
+        BlockTag.REVISE -> colors.primary
     }
-    Surface(color = background, shape = RoundedCornerShape(Radius.sm)) {
+    Surface(
+        color = background,
+        shape = CircleShape,
+        border = if (tag == BlockTag.REVISE) BorderStroke(Stroke.hairline, colors.outline) else null,
+    ) {
         Text(
             text = stringResource(tag.labelRes()),
             style = MaterialTheme.typography.labelSmall,
             color = foreground,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            modifier = Modifier.padding(
+                horizontal = Size.focusTagHorizontal,
+                vertical = Size.focusTagVertical,
+            ),
         )
     }
 }
 
 @StringRes
 private fun BlockTag.labelRes(): Int = when (this) {
-    BlockTag.READ -> R.string.focus_tag_read
+    BlockTag.READ -> R.string.focus_tag_learn
     BlockTag.PRACTICE -> R.string.focus_tag_practice
     BlockTag.REVISE -> R.string.focus_tag_revise
 }

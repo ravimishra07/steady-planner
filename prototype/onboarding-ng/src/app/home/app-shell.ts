@@ -3,6 +3,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatRippleModule } from '@angular/material/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { FocusStore, clock } from '../focus/focus-store';
+import { StudyStore } from '../study/study-store';
 
 interface Destination {
   path: string;
@@ -57,6 +58,9 @@ const DESTINATIONS: Destination[] = [
       </aside>
 
       <main id="main-workspace" class="workspace" tabindex="-1">
+        @if (study.demoMode()) {
+          <div class="demo-banner"><mat-icon>science</mat-icon>Demo data <a routerLink="/settings">Exit in Settings</a></div>
+        }
         <router-outlet />
       </main>
 
@@ -195,6 +199,10 @@ const DESTINATIONS: Destination[] = [
 
     .workspace > router-outlet { display: none; }
     .workspace > :not(router-outlet) { display: block; height: 100%; }
+    .demo-banner { height: 32px; display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--mat-sys-tertiary-container); color: var(--mat-sys-on-tertiary-container); font: var(--mat-sys-label-medium); }
+    .demo-banner mat-icon { width: 16px; height: 16px; font-size: 16px; }
+    .demo-banner a { color: inherit; font-weight: 600; }
+    .workspace:has(.demo-banner) > :not(router-outlet):not(.demo-banner) { height: calc(100% - 32px); }
 
     .running-session {
       position: fixed;
@@ -275,6 +283,7 @@ const DESTINATIONS: Destination[] = [
 export class AppShell {
   protected readonly destinations = DESTINATIONS;
   protected readonly focus = inject(FocusStore);
+  protected readonly study = inject(StudyStore);
   private readonly router = inject(Router);
   protected readonly remaining = computed(() => clock(this.focus.remainingSec()));
 

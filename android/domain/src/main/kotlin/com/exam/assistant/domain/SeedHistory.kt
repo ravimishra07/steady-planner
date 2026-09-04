@@ -21,6 +21,22 @@ private fun flattenLeaves(sections: List<SyllabusSection>): List<SeedLeaf> =
         }
     }
 
+private fun flattenLeaves(pack: ExamPack): List<SeedLeaf> =
+    pack.subjects.flatMap { subject ->
+        subject.nodes.flatMap { node ->
+            node.flatten()
+                .filter { it.children.isEmpty() }
+                .map { leaf ->
+                    SeedLeaf(
+                        nodeKey = leaf.id,
+                        title = leaf.title,
+                        sectionName = subject.name,
+                        subjectId = subject.id,
+                    )
+                }
+        }
+    }
+
 private fun collectLeaves(
     node: SyllabusTopicNode,
     key: String,
@@ -99,8 +115,22 @@ fun generateDemoHistory(
     sections: List<SyllabusSection>,
     today: LocalDate,
     days: Int = DEMO_HISTORY_DAYS,
+): Pair<List<StudySessionRecord>, Set<String>> =
+    generateDemoHistoryFromLeaves(flattenLeaves(sections), today, days)
+
+/** Creates demo history directly from the active exam pack's stable node IDs. */
+fun generateDemoHistory(
+    pack: ExamPack,
+    today: LocalDate,
+    days: Int = DEMO_HISTORY_DAYS,
+): Pair<List<StudySessionRecord>, Set<String>> =
+    generateDemoHistoryFromLeaves(flattenLeaves(pack), today, days)
+
+private fun generateDemoHistoryFromLeaves(
+    leaves: List<SeedLeaf>,
+    today: LocalDate,
+    days: Int,
 ): Pair<List<StudySessionRecord>, Set<String>> {
-    val leaves = flattenLeaves(sections)
     if (leaves.isEmpty() || days <= 0) return emptyList<StudySessionRecord>() to emptySet()
 
     val sessions = mutableListOf<StudySessionRecord>()

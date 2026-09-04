@@ -26,6 +26,7 @@ import { PACES } from '../study/retention';
 import { clearDemo, loadDemo } from '../study/demo-data';
 import { browserPrototypeStorage } from '../core/persistence/prototype-storage';
 import { persistedSet } from '../core/persist';
+import { Router } from '@angular/router';
 
 /** Where a row leads, when it leads somewhere. */
 type Page =
@@ -81,7 +82,7 @@ const SOCIALS = [
           <button matRipple class="profile" (click)="page.set('plan')">
             <span class="crest"><mat-icon class="filled">school</mat-icon></span>
             <span class="profile-text">
-              <span class="profile-name">{{ pack.displayName }}</span>
+              <span class="profile-name">{{ template().displayName }}</span>
               <span class="profile-meta">{{ store.days() }} days left · {{ store.weekdayHours() }}h a day</span>
             </span>
             <span class="profile-stat">
@@ -140,7 +141,7 @@ const SOCIALS = [
             </button>
           </div>
 
-          <h2 class="group">Reminders</h2>
+          <h2 class="group">Reminders · native preview</h2>
           <div class="sheet">
             @for (n of notifications; track n.id) {
               <button matRipple class="row" (click)="toggleNotification(n.id)">
@@ -190,11 +191,11 @@ const SOCIALS = [
 
           <div class="socials">
             @for (s of socials; track s.id) {
-              <button matRipple class="social">{{ s.label }}</button>
+              <button matRipple class="social" disabled [attr.aria-label]="s.label + ' not connected'">{{ s.label }} · not connected</button>
             }
           </div>
 
-          <h2 class="group">Developer</h2>
+          <h2 class="group">Prototype data</h2>
           <div class="sheet">
             <button matRipple class="row" (click)="load()">
               <mat-icon class="lead">science</mat-icon>
@@ -225,7 +226,7 @@ const SOCIALS = [
             <div class="row">
               <mat-icon class="lead">school</mat-icon>
               <span class="row-title">Exam</span>
-              <span class="row-value">{{ pack.displayName }}</span>
+              <span class="row-value">{{ template().displayName }}</span>
             </div>
             <div class="row">
               <mat-icon class="lead">groups</mat-icon>
@@ -242,6 +243,12 @@ const SOCIALS = [
               </span>
             </label>
           </div>
+
+          <button matRipple class="row standalone" (click)="revisitSetup()">
+            <mat-icon class="lead">tune</mat-icon>
+            <span class="row-title">Change exam or study setup</span>
+            <mat-icon class="chev">chevron_right</mat-icon>
+          </button>
 
           <p class="note">{{ store.days() }} days from today.</p>
         </div>
@@ -501,7 +508,7 @@ const SOCIALS = [
               <div class="row note-row"><span class="prose">{{ line }}</span></div>
             }
           </div>
-          <p class="foot">{{ pack.meta.source }}</p>
+          <p class="foot">{{ template().source }}</p>
         </div>
       }
     }
@@ -868,11 +875,12 @@ const SOCIALS = [
 export class SettingsScreen {
   protected readonly store = inject(OnboardingStore);
   protected readonly study = inject(StudyStore);
+  private readonly router = inject(Router);
 
   protected readonly page = signal<Page>('root');
   protected readonly confirmWipe = signal(false);
 
-  protected readonly pack = PACK;
+  protected readonly template = computed(() => this.store.examTemplate());
   protected readonly apps = BLOCKABLE_APPS;
   protected readonly accents = ACCENTS;
   protected readonly appearances = APPEARANCES;
@@ -951,6 +959,11 @@ export class SettingsScreen {
 
   protected coachingName(): string {
     return COACHINGS.find((c) => c.id === this.store.coachingId())?.label ?? 'None';
+  }
+
+  protected revisitSetup(): void {
+    this.store.step.set('exam');
+    void this.router.navigateByUrl('/onboarding');
   }
 
   protected value(minute: number): string { return timeValue(minute); }

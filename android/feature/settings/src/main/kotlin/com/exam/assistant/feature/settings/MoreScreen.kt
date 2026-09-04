@@ -1,6 +1,5 @@
 package com.exam.assistant.feature.settings
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -22,7 +21,14 @@ import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.outlined.Event
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.EventBusy
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material3.Switch
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,38 +45,36 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.pluralStringResource
 import com.exam.assistant.core.design.AppTheme
-import com.exam.assistant.core.design.AccentPalette
+import com.exam.assistant.core.design.AppCard
+import com.exam.assistant.core.design.AppListDivider
+import com.exam.assistant.core.design.AppListGroup
+import com.exam.assistant.core.design.AppListRow
 import com.exam.assistant.core.design.BackgroundAppearance
-import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
+import com.exam.assistant.core.design.Radius
 
 @Composable
 fun MoreScreen(
     planExamLabel: String?,
     daysLeft: Int?,
+    examDateLabel: String?,
+    weekdayHours: Float?,
+    weekendHours: Float?,
+    fixedBlockCount: Int,
     background: BackgroundAppearance,
-    onBackground: (BackgroundAppearance) -> Unit,
-    accentPalette: AccentPalette,
-    onAccentPalette: (AccentPalette) -> Unit,
+    onOpenAppearance: () -> Unit,
     onOpenSettings: () -> Unit,
     onRedoOnboarding: () -> Unit,
     onOpenPolicy: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
-    var showThemeSheet by remember { mutableStateOf(false) }
-    if (showThemeSheet) {
-        ThemeBottomSheet(
-            background = background,
-            onBackground = onBackground,
-            accentPalette = accentPalette,
-            onAccentPalette = onAccentPalette,
-            onDismiss = { showThemeSheet = false },
-        )
-    }
+    var morningReminder by remember { mutableStateOf(true) }
+    var revisionReminder by remember { mutableStateOf(true) }
+    var showRedoDialog by remember { mutableStateOf(false) }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -79,35 +83,105 @@ fun MoreScreen(
     ) {
         Text(
             text = stringResource(R.string.more_title),
-            style = MaterialTheme.typography.headlineLarge,
+            style = MaterialTheme.typography.headlineMedium,
             color = colors.text,
             modifier = Modifier.padding(top = Spacing.sm, bottom = Spacing.lg),
         )
         AccountCard(
             title = planExamLabel ?: stringResource(R.string.more_your_plan),
-            subtitle = if (planExamLabel != null && daysLeft != null) {
-                stringResource(R.string.more_plan_subtitle, planExamLabel, daysLeft)
+            subtitle = if (examDateLabel != null && weekdayHours != null) {
+                stringResource(
+                    R.string.more_plan_card_subtitle,
+                    examDateLabel,
+                    compactHours(weekdayHours),
+                )
             } else {
                 stringResource(R.string.more_no_plan)
             },
             onClick = onOpenSettings,
         )
-        SectionLabel(stringResource(R.string.more_section_plan))
+        SectionLabel(stringResource(R.string.more_section_plan_short))
         ProfileGroup {
-            ProfileRow(Icons.Outlined.Refresh, R.string.more_redo_onboarding, R.string.more_redo_onboarding_sub, onRedoOnboarding)
+            SettingsValueRow(
+                icon = Icons.Outlined.Event,
+                title = stringResource(R.string.more_exam_date),
+                value = examDateLabel.orEmpty(),
+                onClick = { showRedoDialog = true },
+            )
+            AppListDivider()
+            SettingsValueRow(
+                icon = Icons.Outlined.Schedule,
+                title = stringResource(R.string.more_hours_breaks),
+                value = if (weekdayHours != null && weekendHours != null) {
+                    stringResource(
+                        R.string.more_hours_pair,
+                        compactHours(weekdayHours),
+                        compactHours(weekendHours),
+                    )
+                } else "",
+                onClick = onOpenSettings,
+            )
+            AppListDivider()
+            SettingsValueRow(
+                icon = Icons.Outlined.EventBusy,
+                title = stringResource(R.string.more_fixed_hours),
+                value = pluralStringResource(R.plurals.more_blocks, fixedBlockCount, fixedBlockCount),
+                onClick = { showRedoDialog = true },
+            )
         }
-        SectionLabel(stringResource(R.string.more_section_app))
+        SectionLabel(stringResource(R.string.more_section_app_short))
         ProfileGroup {
-            ProfileRow(Icons.Outlined.Palette, R.string.more_theme, R.string.more_theme_sub, onClick = { showThemeSheet = true })
-            HorizontalDivider(color = colors.borderSubtle)
-            ProfileRow(Icons.Outlined.Settings, R.string.more_settings, R.string.more_settings_sub, onOpenSettings)
+            SettingsValueRow(
+                icon = Icons.Outlined.Palette,
+                title = stringResource(R.string.more_appearance),
+                value = stringResource(
+                    when (background) {
+                        BackgroundAppearance.System -> R.string.settings_theme_system
+                        BackgroundAppearance.Light -> R.string.settings_theme_light
+                        BackgroundAppearance.Dark -> R.string.settings_theme_dark
+                        BackgroundAppearance.Grey -> R.string.settings_background_grey
+                        BackgroundAppearance.Slate -> R.string.settings_background_slate
+                    },
+                ),
+                onClick = onOpenAppearance,
+            )
+            AppListDivider()
+            SettingsValueRow(
+                icon = Icons.Outlined.History,
+                title = stringResource(R.string.more_revision_schedule),
+                value = stringResource(R.string.more_revision_standard),
+                onClick = onOpenSettings,
+            )
+            AppListDivider()
+            SettingsValueRow(
+                icon = Icons.Outlined.Shield,
+                title = stringResource(R.string.more_focus_shield_preview),
+                value = stringResource(R.string.more_preview_settings),
+                onClick = onOpenSettings,
+            )
+        }
+        SectionLabel(stringResource(R.string.more_section_reminders))
+        ProfileGroup {
+            SettingsSwitchRow(
+                icon = Icons.Outlined.Notifications,
+                title = stringResource(R.string.more_morning_plan),
+                checked = morningReminder,
+                onCheckedChange = { morningReminder = it },
+            )
+            AppListDivider()
+            SettingsSwitchRow(
+                icon = Icons.Outlined.History,
+                title = stringResource(R.string.more_revision_due),
+                checked = revisionReminder,
+                onCheckedChange = { revisionReminder = it },
+            )
         }
         SectionLabel(stringResource(R.string.more_section_about))
         ProfileGroup {
             ProfileRow(Icons.Outlined.Lock, R.string.more_privacy, R.string.more_privacy_sub) { onOpenPolicy("privacy") }
-            HorizontalDivider(color = colors.borderSubtle)
+            AppListDivider()
             ProfileRow(Icons.Outlined.Info, R.string.more_terms, R.string.more_terms_sub) { onOpenPolicy("terms") }
-            HorizontalDivider(color = colors.borderSubtle)
+            AppListDivider()
             ProfileRow(Icons.Outlined.Info, R.string.more_about, R.string.more_about_sub) { onOpenPolicy("about") }
         }
         Text(
@@ -115,6 +189,28 @@ fun MoreScreen(
             style = MaterialTheme.typography.bodySmall,
             color = colors.textMuted,
             modifier = Modifier.padding(vertical = Spacing.xl),
+        )
+    }
+    if (showRedoDialog) {
+        AlertDialog(
+            onDismissRequest = { showRedoDialog = false },
+            title = { Text(stringResource(R.string.more_redo_confirm_title)) },
+            text = { Text(stringResource(R.string.more_redo_confirm_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showRedoDialog = false
+                        onRedoOnboarding()
+                    },
+                ) {
+                    Text(stringResource(R.string.more_redo_confirm_yes))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRedoDialog = false }) {
+                    Text(stringResource(R.string.more_redo_confirm_no))
+                }
+            },
         )
     }
 }
@@ -161,12 +257,12 @@ private fun AccountCard(title: String, subtitle: String, onClick: () -> Unit) {
     val colors = AppTheme.colors
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(Radius.lg),
-        color = colors.surface,
-        border = BorderStroke(1.dp, colors.border),
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = Spacing.lg),
+        shape = RoundedCornerShape(Radius.extraLarge),
+        color = colors.selectionContainer,
+        contentColor = colors.onSelectionContainer,
     ) {
         Row(
             modifier = Modifier.padding(Spacing.lg),
@@ -175,34 +271,84 @@ private fun AccountCard(title: String, subtitle: String, onClick: () -> Unit) {
             Surface(
                 modifier = Modifier.padding(end = Spacing.md),
                 shape = CircleShape,
-                color = colors.brandContainer,
+                color = colors.primaryContainer,
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.Person,
+                    imageVector = Icons.Outlined.School,
                     contentDescription = null,
-                    tint = colors.onBrandContainer,
+                    tint = colors.onPrimaryContainer,
                     modifier = Modifier.padding(Spacing.md),
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = title, style = MaterialTheme.typography.titleMedium, color = colors.text)
-                Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
+                Text(text = title, style = MaterialTheme.typography.titleMedium)
+                Text(text = subtitle, style = MaterialTheme.typography.bodySmall)
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(stringResource(R.string.more_zero_percent), style = MaterialTheme.typography.headlineSmall)
+                Text(stringResource(R.string.more_covered), style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsValueRow(
+    icon: ImageVector,
+    title: String,
+    value: String,
+    onClick: () -> Unit,
+) {
+    val colors = AppTheme.colors
+    Surface(onClick = onClick, color = colors.surfaceContainerLow) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(Size.standardIcon), tint = colors.textSecondary)
+            Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            if (value.isNotBlank()) {
+                Text(value, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
             }
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = colors.textMuted,
+                tint = colors.textSecondary,
             )
         }
     }
 }
 
 @Composable
+private fun SettingsSwitchRow(
+    icon: ImageVector,
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    val colors = AppTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(Size.standardIcon), tint = colors.textSecondary)
+        Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+private fun compactHours(hours: Float): String =
+    if (hours % 1f == 0f) hours.toInt().toString() else hours.toString()
+
+@Composable
 private fun ProfileGroup(content: @Composable ColumnScope.() -> Unit) {
-    Surface(
-        color = AppTheme.colors.surface,
-        shape = RoundedCornerShape(Radius.lg),
-        border = BorderStroke(1.dp, AppTheme.colors.border),
+    AppListGroup(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = Spacing.lg),
@@ -218,35 +364,12 @@ private fun ProfileRow(
     subtitleRes: Int,
     onClick: () -> Unit,
 ) {
-    val colors = AppTheme.colors
-    Surface(
+    AppListRow(
+        icon = icon,
+        title = stringResource(titleRes),
+        subtitle = stringResource(subtitleRes),
         onClick = onClick,
-        color = colors.surface,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(Spacing.lg),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Surface(shape = RoundedCornerShape(Radius.sm), color = colors.surfaceControl) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = colors.brandDeep,
-                    modifier = Modifier.padding(Spacing.sm),
-                )
-            }
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = Spacing.md),
-            ) {
-                Text(stringResource(titleRes), style = MaterialTheme.typography.titleSmall, color = colors.text)
-                Text(stringResource(subtitleRes), style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
-            }
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = colors.textMuted)
-        }
-    }
+    )
 }
 
 @Composable

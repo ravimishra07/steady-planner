@@ -1,16 +1,16 @@
 package com.exam.assistant.feature.onboarding
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -20,10 +20,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.unit.dp
 import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.AppType
 import com.exam.assistant.core.design.Radius
+import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
 
 @Composable
@@ -34,44 +34,43 @@ internal fun OnboardingSelectableCard(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     titleStyle: TextStyle = MaterialTheme.typography.titleMedium,
+    showUnselectedIndicator: Boolean = false,
     trailing: @Composable (() -> Unit)? = null,
 ) {
     val colors = AppTheme.colors
     val interactive = enabled
     val background = when {
-        !interactive -> colors.surface
-        selected -> colors.brandContainer
-        else -> colors.surface
-    }
-    val borderColor = when {
-        !interactive -> colors.border
-        selected -> colors.brandDeep
-        else -> colors.border
+        !interactive -> colors.surfaceControl
+        selected -> colors.selectionContainer
+        else -> colors.elevated
     }
     val titleColor = when {
         !interactive -> colors.textDisabled
+        selected -> colors.onSelectionContainer
         else -> colors.text
     }
     Surface(
         onClick = onClick,
         enabled = interactive,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = Size.ctaHeight),
         shape = RoundedCornerShape(Radius.lg),
         color = background,
-        border = BorderStroke(1.dp, borderColor),
-        shadowElevation = 0.dp,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.lg, vertical = Spacing.lg),
+                .padding(horizontal = Spacing.lg),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = title, style = titleStyle, color = titleColor)
                 trailing?.invoke()
             }
-            OnboardingSelectionIndicator(selected = selected && interactive, enabled = interactive)
+            if (selected || showUnselectedIndicator) {
+                OnboardingSelectionIndicator(selected = selected && interactive, enabled = interactive)
+            }
         }
     }
 }
@@ -83,30 +82,24 @@ internal fun OnboardingSelectionIndicator(
 ) {
     val colors = AppTheme.colors
     when {
-        selected -> Surface(
-            modifier = Modifier.size(22.dp),
-            shape = CircleShape,
-            color = colors.brandDeep,
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Check,
-                contentDescription = null,
-                tint = colors.onBrand,
-                modifier = Modifier.padding(3.dp),
-            )
-        }
-        enabled -> Surface(
-            modifier = Modifier.size(22.dp),
-            shape = CircleShape,
-            color = colors.surface,
-            border = BorderStroke(1.5.dp, colors.border),
-        ) {}
-        else -> Surface(
-            modifier = Modifier.size(22.dp),
-            shape = CircleShape,
-            color = colors.surface,
-            border = BorderStroke(1.5.dp, colors.borderSubtle),
-        ) {}
+        selected -> Icon(
+            imageVector = Icons.Filled.CheckCircle,
+            contentDescription = null,
+            tint = colors.onSelectionContainer,
+            modifier = Modifier.size(Size.selectionIndicator),
+        )
+        enabled -> Icon(
+            imageVector = Icons.Outlined.RadioButtonUnchecked,
+            contentDescription = null,
+            tint = colors.textSecondary,
+            modifier = Modifier.size(Size.selectionIndicator),
+        )
+        else -> Icon(
+            imageVector = Icons.Outlined.RadioButtonUnchecked,
+            contentDescription = null,
+            tint = colors.textDisabled,
+            modifier = Modifier.size(Size.selectionIndicator),
+        )
     }
 }
 
@@ -151,7 +144,7 @@ private fun HourPill(
             text = text,
             style = AppType.micro,
             color = textColor,
-            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = 3.dp),
+            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
         )
     }
 }

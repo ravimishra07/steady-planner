@@ -24,6 +24,7 @@ export class StudyStore implements StudyRepository {
   readonly sessions = persisted<LoggedSession[]>('sessions', []);
   readonly stats = persistedMap<ChapterStat>('chapter-stats');
   readonly extras = persisted<ExtraBlock[]>('extras', []);
+  readonly demoMode = persisted<boolean>('demo-mode', false);
 
   addExtra(extra: Omit<ExtraBlock, 'id'>): void {
     this.extras.set([...this.extras(), { ...extra, id: crypto.randomUUID() }]);

@@ -9,6 +9,7 @@ android {
     compileSdk = 35
     defaultConfig { minSdk = 24 }
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -17,6 +18,7 @@ android {
 }
 
 dependencies {
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(project(":domain"))
     implementation(project(":core:common"))
     implementation(project(":core:data"))
@@ -28,4 +30,5 @@ dependencies {
     implementation(libs.compose.material.icons)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.lifecycle.viewmodel.compose)
+    testImplementation(libs.junit)
 }

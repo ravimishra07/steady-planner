@@ -5,11 +5,12 @@ import { MatRippleModule } from '@angular/material/core';
 import { OnboardingStore } from '../onboarding/state';
 import { PACK, Subject, Section, Chapter, chapterIsDone } from '../onboarding/exam-pack';
 import { orderedChapters } from '../onboarding/sequence';
+import { FocusStore } from '../focus/focus-store';
+import { Router } from '@angular/router';
 
 /**
- * Syllabus browser, following SyllabusScreen.kt: a subject chip row, a
- * filter/stats bar, then a card per subject whose details open into a tree of
- * rows that each carry progress, a tick and a start control.
+ * Syllabus browser: Material subject tabs, an app-bar-triggered filter popup,
+ * then the selected subject's chapter tree without a redundant subject card.
  */
 @Component({
   selector: 'app-syllabus-browser',
@@ -22,33 +23,16 @@ import { orderedChapters } from '../onboarding/sequence';
       (selectedIndexChange)="pick($event)"
       animationDuration="120ms">
       @for (s of subjects(); track s.id) {
-        <mat-tab><ng-template mat-tab-label>{{ s.name }}</ng-template></mat-tab>
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <span class="subject-tab-label">
+              <mat-icon>{{ subjectIcon(s.id) }}</mat-icon>
+              <span>{{ s.name }}</span>
+            </span>
+          </ng-template>
+        </mat-tab>
       }
     </mat-tab-group>
-
-    <div class="filters">
-      <div class="chips">
-        @for (f of filterChips; track f.id) {
-          <button
-            matRipple
-            class="chip"
-            [class.on]="isFilterOn(f.id)"
-            (click)="toggleFilter(f.id)">
-            @if (isFilterOn(f.id)) { <mat-icon>check</mat-icon> }
-            {{ f.label }}@if (f.count !== null) { <span class="count">{{ f.count() }}</span> }
-          </button>
-        }
-      </div>
-
-      <button
-        matRipple
-        class="more"
-        [class.badged]="hiddenFilterOn()"
-        aria-label="More filters"
-        (click)="sheetOpen.set(true)">
-        <mat-icon>tune</mat-icon>
-      </button>
-    </div>
 
     @for (s of visible(); track s.id) {
       <section class="subject" [id]="'subject-' + s.id">
@@ -60,7 +44,7 @@ import { orderedChapters } from '../onboarding/sequence';
             <span class="name">{{ s.name }}</span>
             <span class="meta">{{ subjectMeta(s) }}</span>
           </span>
-          <button matRipple class="play filled" [attr.aria-label]="'Start ' + s.name">
+          <button matRipple class="play filled" [attr.aria-label]="'Start ' + s.name" (click)="startSubject(s)">
             <mat-icon class="filled">play_arrow</mat-icon>
           </button>
         </header>
@@ -130,7 +114,7 @@ import { orderedChapters } from '../onboarding/sequence';
                       <mat-icon>check</mat-icon>
                     </button>
                     @if (chapter.subtopics.length === 0) {
-                      <button matRipple class="play" [attr.aria-label]="'Start ' + chapter.name">
+                      <button matRipple class="play" [attr.aria-label]="'Start ' + chapter.name" (click)="startChapter(chapter)">
                         <mat-icon class="filled">play_arrow</mat-icon>
                       </button>
                     }
@@ -153,7 +137,7 @@ import { orderedChapters } from '../onboarding/sequence';
                           (click)="store.toggleUnit(topic.id)">
                           <mat-icon>check</mat-icon>
                         </button>
-                        <button matRipple class="play" [attr.aria-label]="'Start ' + topic.name">
+                        <button matRipple class="play" [attr.aria-label]="'Start ' + topic.name" (click)="startTopic(chapter, topic)">
                           <mat-icon class="filled">play_arrow</mat-icon>
                         </button>
                       </div>
@@ -171,19 +155,26 @@ import { orderedChapters } from '../onboarding/sequence';
 
     @if (sheetOpen()) {
       <div class="scrim" (click)="sheetOpen.set(false)"></div>
-      <div class="sheet" role="dialog" aria-label="Filters">
-        <span class="handle"></span>
+      <div class="filter-popup" role="dialog" aria-label="Filter syllabus">
+        <header class="filter-popup-head">
+          <h2>Filter syllabus</h2>
+          <button matRipple class="popup-close" aria-label="Close filters" (click)="sheetOpen.set(false)">
+            <mat-icon>close</mat-icon>
+          </button>
+        </header>
 
-        @for (group of filterGroups; track group.name) {
-          <h4 class="sheet-label">{{ group.name }}</h4>
-          @for (f of group.options; track f.id) {
-            <button matRipple class="sheet-row" (click)="toggleFilter(f.id)">
-              <mat-icon>{{ isFilterOn(f.id) ? 'check_box' : 'check_box_outline_blank' }}</mat-icon>
-              <span class="sheet-name">{{ f.label }}</span>
-              @if (f.count !== null) { <span class="count">{{ f.count() }}</span> }
+        <div class="filter-options">
+          @for (f of filterChips; track f.id) {
+            <button
+              matRipple
+              class="chip"
+              [class.on]="isFilterOn(f.id)"
+              (click)="toggleFilter(f.id)">
+              @if (isFilterOn(f.id)) { <mat-icon>check</mat-icon> }
+              {{ f.label }}@if (f.count !== null) { <span class="count">{{ f.count() }}</span> }
             </button>
           }
-        }
+        </div>
 
         <div class="sheet-actions">
           <button matRipple class="text-button" (click)="resetFilters()">Reset</button>
@@ -199,16 +190,9 @@ import { orderedChapters } from '../onboarding/sequence';
     /* Spacing is set per element, not by a host gap stacking on padding. */
     :host { display: flex; flex-direction: column; }
 
-    /* Filter pills on the left, stat boxes on the right. */
-
-
-
-
-
-
     /* Subject card */
     .subject {
-      margin-top: 0;
+      margin-top: 16px;
       padding: 16px;
       border-radius: var(--mat-sys-corner-extra-large);
       background: var(--mat-sys-surface-container);
@@ -411,18 +395,16 @@ import { orderedChapters } from '../onboarding/sequence';
       background: var(--mat-sys-surface-container);
     }
 
-    /* M3 secondary tabs, 48dp, with a rounded full-width indicator. */
+    /* Official Angular Material M3 secondary tabs with icons and labels. */
     .subjects {
       display: block;
       margin: 0 -16px;
-      --mat-tab-container-height: 48px;
+      --mat-tab-container-height: 64px;
     }
 
     ::ng-deep .subjects .mdc-tab { padding: 0 4px; min-width: 0; }
 
     ::ng-deep .subjects .mdc-tab .mdc-tab__text-label {
-      font: var(--mat-sys-title-small);
-      letter-spacing: 0.1px;
       color: var(--mat-sys-on-surface-variant);
     }
 
@@ -439,29 +421,18 @@ import { orderedChapters } from '../onboarding/sequence';
 
     ::ng-deep .subjects .mat-mdc-tab-header { border-bottom: none; }
 
-    .filters {
-      position: sticky;
-      top: 0;
-      z-index: 2;
-      display: flex;
+    .subject-tab-label {
+      display: inline-flex;
+      flex-direction: column;
       align-items: center;
-      gap: 8px;
-      padding: 8px 0;
-      background: var(--mat-sys-surface);
+      justify-content: center;
+      gap: 2px;
+      font: var(--mat-sys-label-medium);
     }
 
-    .chips {
-      flex: 1;
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      scrollbar-width: none;
-      mask-image: linear-gradient(to right, var(--mat-sys-on-surface) calc(100% - 16px), transparent 100%);
-    }
+    .subject-tab-label mat-icon { width: 24px; height: 24px; font-size: 24px; }
 
-    .chips::-webkit-scrollbar { display: none; }
-
-    /* M3 filter chip: 32dp, outlined until selected, then tonal with a check. */
+    /* M3 filter chips live only inside the app-bar-triggered popup. */
     .chip {
       flex: none;
       display: flex;
@@ -486,83 +457,54 @@ import { orderedChapters } from '../onboarding/sequence';
     .chip mat-icon { font-size: 18px; width: 18px; height: 18px; }
     .count { opacity: .7; }
 
-    .more {
-      position: relative;
-      flex: none;
+    /* Compact popup anchored visually beneath the top app-bar actions. */
+    .scrim {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      background: color-mix(in srgb, var(--mat-sys-scrim) 32%, transparent);
+    }
+
+    .filter-popup {
+      position: fixed;
+      top: 52px;
+      right: 12px;
+      z-index: 21;
+      display: flex;
+      flex-direction: column;
+      width: min(320px, calc(100vw - 24px));
+      padding: 12px 16px 16px;
+      border-radius: var(--mat-sys-corner-extra-large);
+      background: var(--mat-sys-surface-container-high);
+      color: var(--mat-sys-on-surface);
+      box-shadow: var(--mat-sys-level3);
+    }
+
+    .filter-popup-head {
+      display: flex;
+      align-items: center;
+      min-height: 48px;
+    }
+
+    .filter-popup-head h2 {
+      flex: 1;
+      margin: 0;
+      font: var(--mat-sys-title-medium);
+    }
+
+    .popup-close {
       width: 40px;
       height: 40px;
       display: grid;
       place-items: center;
       border: none;
-      border-radius: 50%;
+      border-radius: var(--mat-sys-corner-full);
       background: transparent;
       color: var(--mat-sys-on-surface-variant);
       cursor: pointer;
     }
 
-    /* A filter that is on but not visible in the row still has to show. */
-    .more.badged::after {
-      content: '';
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--mat-sys-primary);
-    }
-
-    /* Bottom sheet */
-    .scrim {
-      position: absolute;
-      inset: 0;
-      z-index: 3;
-      background: color-mix(in srgb, var(--mat-sys-scrim) 32%, transparent);
-    }
-
-    .sheet {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 4;
-      display: flex;
-      flex-direction: column;
-      padding: 8px 16px 16px;
-      border-radius: 28px 28px 0 0;
-      background: var(--mat-sys-surface-container-low);
-      color: var(--mat-sys-on-surface);
-    }
-
-    .handle {
-      width: 32px;
-      height: 4px;
-      margin: 0 auto 8px;
-      border-radius: 2px;
-      background: var(--mat-sys-outline-variant);
-    }
-
-    .sheet-label {
-      margin: 12px 0 4px;
-      font: var(--mat-sys-title-small);
-      color: var(--mat-sys-on-surface-variant);
-    }
-
-    .sheet-row {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      min-height: 56px;
-      padding: 0 4px;
-      border: none;
-      background: transparent;
-      color: var(--mat-sys-on-surface);
-      font: var(--mat-sys-body-large);
-      cursor: pointer;
-    }
-
-    .sheet-name { flex: 1; text-align: left; }
-    .sheet-row mat-icon { color: var(--mat-sys-primary); }
+    .filter-options { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 0 4px; }
 
     .sheet-actions {
       display: flex;
@@ -595,24 +537,12 @@ import { orderedChapters } from '../onboarding/sequence';
 
     @media (min-width: 1000px) {
       :host { display: block; width: min(1120px, 100%); margin-inline: auto; }
-      .filters { position: sticky; top: 0; z-index: 2; padding-block: 12px; background: var(--mat-sys-surface); }
-      .subject { padding: 20px 24px; }
-      .scrim { position: fixed; }
-      .sheet {
-        position: fixed;
-        top: 50%;
-        right: 32px;
-        bottom: auto;
-        left: auto;
-        width: min(420px, calc(100vw - 64px));
-        border-radius: var(--mat-sys-corner-extra-large);
-        transform: translateY(-50%);
-      }
-      .handle { display: none; }
     }
   `,
 })
 export class SyllabusBrowser {
+  private readonly focus = inject(FocusStore);
+  private readonly router = inject(Router);
   protected readonly store = inject(OnboardingStore);
   protected readonly subjects = this.store.subjects;
 
@@ -620,47 +550,25 @@ export class SyllabusBrowser {
   private readonly active = signal<ReadonlySet<string>>(new Set());
   protected readonly sheetOpen = signal(false);
 
-  /** The cuts that ride in the chip row; the rest live in the sheet. */
+  /** The complete compact filter set shown from the top app bar. */
   protected readonly filterChips = [
     { id: 'due', label: 'Due', count: () => this.dueChapters() },
     { id: 'cls11', label: 'Class 11', count: null },
     { id: 'cls12', label: 'Class 12', count: null },
   ];
 
-  protected readonly filterGroups = [
-    {
-      name: 'Status',
-      options: [
-        { id: 'due', label: 'Not finished', count: () => this.dueChapters() },
-        { id: 'done', label: 'Finished', count: () => this.doneChapters() },
-      ],
-    },
-    {
-      name: 'Class',
-      options: [
-        { id: 'cls11', label: 'Class 11', count: null },
-        { id: 'cls12', label: 'Class 12', count: null },
-      ],
-    },
-  ];
+  public openFilters(): void { this.sheetOpen.set(true); }
 
   protected isFilterOn(id: string): boolean { return this.active().has(id); }
 
   protected toggleFilter(id: string): void {
     const next = new Set(this.active());
     next.has(id) ? next.delete(id) : next.add(id);
-    // Status cuts are mutually exclusive; class cuts stack.
-    if (id === 'due') next.delete('done');
-    if (id === 'done') next.delete('due');
     this.active.set(next);
   }
 
   protected resetFilters(): void { this.active.set(new Set()); }
 
-  /** True when something is filtering that the chip row does not show. */
-  protected readonly hiddenFilterOn = computed(() =>
-    [...this.active()].some((id) => !this.filterChips.some((c) => c.id === id)),
-  );
   private readonly openCards = signal<ReadonlySet<string>>(new Set([PACK.subjects[0].id]));
   private readonly openSections = signal<ReadonlySet<string>>(
     new Set([PACK.subjects[0].id + PACK.subjects[0].sections[0].name]),
@@ -681,6 +589,11 @@ export class SyllabusBrowser {
     this.current.set(this.subjects()[index].id);
   }
 
+  protected subjectIcon(id: string): string {
+    return ({ physics: 'bolt', chemistry: 'science', botany: 'local_florist', zoology: 'pets' } as Record<string, string>)[id]
+      ?? 'menu_book';
+  }
+
   /** One subject at a time: the chip row is the selector, not a jump list. */
   protected readonly visible = computed(() =>
     this.subjects().filter((s) => s.id === this.current()),
@@ -695,7 +608,6 @@ export class SyllabusBrowser {
     const active = this.active();
     return section.chapters.filter((c) => {
       if (active.has('due') && this.isDone(c)) return false;
-      if (active.has('done') && !this.isDone(c)) return false;
       if (active.has('cls11') && !active.has('cls12') && c.cls !== 11) return false;
       if (active.has('cls12') && !active.has('cls11') && c.cls !== 12) return false;
       return true;
@@ -708,10 +620,6 @@ export class SyllabusBrowser {
 
   protected dueChapters(): number {
     return this.allChapters().filter((c) => !this.isDone(c)).length;
-  }
-
-  protected doneChapters(): number {
-    return this.allChapters().filter((c) => this.isDone(c)).length;
   }
 
   protected shownChapters(): number {
@@ -811,6 +719,43 @@ export class SyllabusBrowser {
 
   protected toggleCard(id: string): void { this.openCards.set(flip(this.openCards(), id)); }
   protected toggleSection(key: string): void { this.openSections.set(flip(this.openSections(), key)); }
+
+  protected startSubject(subject: Subject): void {
+    const chapter = orderedChapters(subject, this.store.orderMode(subject.id), this.store.customOrder().get(subject.id))
+      .find((item) => !this.store.isParked(item.id) && !this.isBeyond(item) && !this.isDone(item));
+    if (chapter) this.startChapter(chapter);
+  }
+
+  protected startChapter(chapter: Chapter): void {
+    const topic = chapter.subtopics.find((item) => !this.store.doneUnits().has(item.id));
+    if (topic) {
+      this.startTopic(chapter, topic);
+      return;
+    }
+    const subject = this.store.subjects().find((item) => item.id === chapter.id.split('.')[0]);
+    const covered = this.isDone(chapter);
+    this.focus.start({
+      chapterId: chapter.id,
+      title: chapter.name,
+      context: subject?.name ?? 'Syllabus',
+      task: covered ? 'Revise' : 'Practice',
+      minutes: covered ? 30 : 60,
+    }, covered ? 30 : 60);
+    void this.router.navigateByUrl('/focus');
+  }
+
+  protected startTopic(chapter: Chapter, topic: { id: string; name: string }): void {
+    const subject = this.store.subjects().find((item) => item.id === chapter.id.split('.')[0]);
+    this.focus.start({
+      chapterId: chapter.id,
+      subtopicId: topic.id,
+      title: topic.name,
+      context: `${subject?.name ?? 'Syllabus'} · ${chapter.name}`,
+      task: 'Learn',
+      minutes: 45,
+    }, 45);
+    void this.router.navigateByUrl('/focus');
+  }
 
   protected ringFill(percent: number): string {
     return `conic-gradient(var(--mat-sys-primary) ${percent}%, ` +

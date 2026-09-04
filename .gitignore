@@ -12,6 +12,8 @@ node_modules
 
 # testing
 coverage
+__pycache__/
+*.pyc
 
 # next.js
 .next/
@@ -48,6 +50,8 @@ next-env.d.ts
 .claude/settings.local.json
 
 # android
+.gradle/
+.kotlin/
 android/.gradle/
 android/build/
 android/*/build/

@@ -7,8 +7,8 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
-import com.exam.assistant.core.design.AppType
+import androidx.compose.material3.MaterialTheme
+import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
 
 @Composable
@@ -26,10 +26,23 @@ internal fun OnboardingExamStep(
             OnboardingSelectableCard(
                 title = stringResource(exam.labelRes),
                 selected = selected,
-                enabled = exam.available,
                 onClick = { onSelectExam(exam.id) },
-                modifier = Modifier.defaultMinSize(minHeight = 56.dp),
-                titleStyle = AppType.lg,
+                modifier = Modifier.defaultMinSize(minHeight = Size.ctaHeight),
+                titleStyle = MaterialTheme.typography.titleMedium,
+                trailing = {
+                    androidx.compose.material3.Text(
+                        text = stringResource(
+                            if (exam.bundledSyllabus) R.string.onboarding_exam_full_syllabus
+                            else R.string.onboarding_exam_add_chapters,
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (selected) {
+                            com.exam.assistant.core.design.AppTheme.colors.onSelectionContainer
+                        } else {
+                            com.exam.assistant.core.design.AppTheme.colors.textSecondary
+                        },
+                    )
+                },
             )
         }
     }

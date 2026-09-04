@@ -26,12 +26,20 @@ import {
       title="What's already fixed?"
       [progressIndex]="store.progressIndex()"
       [segments]="store.progressSegments"
+      [continueEnabled]="store.commitmentIssues().length === 0"
       (continue)="store.next()">
 
       <p class="lede">
         Class, school, lectures — the hours you can't move. Everything else becomes
         study time.
       </p>
+
+      @if (store.commitmentIssues().length > 0) {
+        <div class="issues" role="alert">
+          <strong>Fix before continuing</strong>
+          @for (issue of store.commitmentIssues(); track issue) { <span>{{ issue }}</span> }
+        </div>
+      }
 
       <div class="group">
         @for (c of store.commitments(); track c.id) {
@@ -116,6 +124,9 @@ import {
   `,
   styles: `
     .lede { margin: 0; font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
+
+    .issues { display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; border-radius: var(--mat-sys-corner-large); background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container); font: var(--mat-sys-body-medium); }
+    .issues strong { font: var(--mat-sys-title-small); }
 
     .group { display: flex; flex-direction: column; gap: 12px; }
     .label { margin: 0; font: var(--mat-sys-title-small); color: var(--mat-sys-on-surface-variant); }

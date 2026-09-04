@@ -104,8 +104,22 @@ export class DayPlanner {
     this.pushed.set(next);
   }
 
+  undoPush(block: StudyBlock, minutes: number): void {
+    const next = new Map(this.pushed());
+    const key = blockKey(block);
+    const remaining = (next.get(key) ?? 0) - minutes;
+    remaining > 0 ? next.set(key, remaining) : next.delete(key);
+    this.pushed.set(next);
+  }
+
   skip(block: StudyBlock): void {
     this.skipped.set(new Set(this.skipped()).add(blockKey(block)));
+  }
+
+  undoSkip(block: StudyBlock): void {
+    const next = new Set(this.skipped());
+    next.delete(blockKey(block));
+    this.skipped.set(next);
   }
 
   /**

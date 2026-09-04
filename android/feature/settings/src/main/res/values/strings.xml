@@ -1,14 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="more_title">Profile</string>
+    <string name="more_title">Settings</string>
     <string name="more_your_plan">Your plan</string>
     <string name="more_no_plan">No plan yet</string>
-    <string name="more_plan_subtitle">%1$s · %2$d days left</string>
+    <string name="more_plan_card_subtitle">%1$s left · %2$sh a day</string>
+    <string name="more_zero_percent">0%</string>
+    <string name="more_covered">covered</string>
+    <string name="more_section_plan_short">Plan</string>
+    <string name="more_section_app_short">App</string>
+    <string name="more_hours_pair">%1$sh · %2$sh</string>
+    <plurals name="more_blocks">
+        <item quantity="one">%1$d block</item>
+        <item quantity="other">%1$d blocks</item>
+    </plurals>
+    <string name="more_appearance">Appearance</string>
+    <string name="more_revision_schedule">Revision schedule</string>
+    <string name="more_revision_standard">Standard</string>
+    <string name="more_focus_shield_preview">Focus shield preview</string>
+    <string name="more_preview_settings">Set up</string>
+    <string name="more_section_reminders">Reminders · native preview</string>
+    <string name="more_morning_plan">Morning plan</string>
+    <string name="more_revision_due">Revision due</string>
     <string name="more_section_plan">Study plan</string>
+    <string name="more_exam_date">Exam &amp; date</string>
+    <string name="more_exam_date_sub">NEET date, coaching and target date</string>
+    <string name="more_hours_breaks">Hours &amp; focus</string>
+    <string name="more_hours_breaks_sub">Daily hours, study spot and timer</string>
+    <string name="more_fixed_hours">Fixed hours</string>
+    <string name="more_fixed_hours_sub">Classes, meals and waking hours</string>
     <string name="more_rebalance">Rebalance</string>
     <string name="more_rebalance_sub">Recover when you fall behind</string>
     <string name="more_redo_onboarding">Redo onboarding</string>
-    <string name="more_redo_onboarding_sub">Change exam, date or hours</string>
+    <string name="more_redo_onboarding_sub">Change date, routine or hours</string>
+    <string name="more_redo_confirm_title">Review your setup again?</string>
+    <string name="more_redo_confirm_body">Your completed study history will stay. Saving will replace only future automatic sessions.</string>
+    <string name="more_redo_confirm_yes">Review setup</string>
+    <string name="more_redo_confirm_no">Cancel</string>
     <string name="more_section_app">Personalize</string>
     <string name="more_theme">Theme</string>
     <string name="more_theme_sub">Accent color and background</string>
@@ -21,14 +48,18 @@
     <string name="more_privacy_sub">What is stored and where</string>
     <string name="more_terms">Terms of use</string>
     <string name="more_terms_sub">The short version</string>
-    <string name="more_about">About PrepTracker</string>
+    <string name="more_about">About NEET Planner</string>
     <string name="more_about_sub">Version and credits</string>
-    <string name="more_footer">PrepTracker · offline app</string>
+    <string name="more_footer">NEET Planner · offline app</string>
+    <string name="settings_exam_neet">NEET UG</string>
 
     <string name="settings_detail_title">Settings</string>
     <string name="settings_appearance">Appearance</string>
     <string name="settings_theme_mode">Mode</string>
     <string name="settings_theme_color">Accent color</string>
+    <string name="settings_theme_title">Theme</string>
+    <string name="settings_theme_description">Choose an accent and background. Changes apply right away.</string>
+    <string name="settings_theme_background">Background</string>
     <string name="settings_theme_system">System</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
@@ -39,9 +70,18 @@
     <string name="settings_palette_forest">Forest</string>
     <string name="settings_palette_sunset">Sunset</string>
     <string name="settings_palette_rose">Rose</string>
+    <string name="settings_palette_blue">Blue</string>
+    <string name="settings_palette_purple">Purple</string>
+    <string name="settings_palette_green">Green</string>
+    <string name="settings_palette_amber">Amber</string>
+    <string name="settings_background_grey">Grey</string>
+    <string name="settings_background_slate">Slate</string>
     <string name="settings_hours">Your hours</string>
     <string name="settings_weekdays">Weekdays</string>
     <string name="settings_weekends">Weekends</string>
+    <string name="settings_hours_value">%1$s h</string>
+    <string name="settings_decrease_hours">Decrease %1$s study time</string>
+    <string name="settings_increase_hours">Increase %1$s study time</string>
     <string name="settings_study_spot">Study spot</string>
     <string name="settings_study_spot_hint">Library, terrace, desk</string>
     <string name="settings_focus">Focus</string>
@@ -59,6 +99,8 @@
     <string name="settings_seed_done_body">Demo data has been added for today and the previous 15 days. Today, Syllabus, and Insights now have sample activity.</string>
     <string name="settings_seed_done_ok">OK</string>
     <string name="settings_seed_error_title">Couldn\'t generate history</string>
+    <string name="settings_seed_error_no_topics">No syllabus topics were available to schedule, so nothing was added.</string>
+    <string name="settings_seed_error_failed">Demo history could not be generated.</string>
     <string name="settings_clear_confirm">Erase your plan, syllabus ticks, and focus sessions?</string>
     <string name="settings_clear_yes">Clear everything</string>
     <string name="settings_clear_no">Cancel</string>
@@ -67,7 +109,7 @@
     <string name="policy_privacy_title">Privacy</string>
     <string name="policy_privacy_body">Everything stays on your phone. Your plan, syllabus ticks, and focus sessions are stored locally. Nothing is sent to a server.</string>
     <string name="policy_terms_title">Terms</string>
-    <string name="policy_terms_body">PrepTracker is a study planning tool. Hours and coverage are estimates, not guarantees. Use your own judgment for exam prep.</string>
-    <string name="policy_about_title">About PrepTracker</string>
-    <string name="policy_about_body">PrepTracker helps you plan exam prep day by day. Version 0.1.0. Built offline-first for serious students.</string>
+    <string name="policy_terms_body">NEET Planner is a study planning tool. Hours and coverage are estimates, not guarantees. Use your own judgment for exam prep.</string>
+    <string name="policy_about_title">About NEET Planner</string>
+    <string name="policy_about_body">NEET Planner helps you plan NEET preparation day by day. Version 0.1.1. Built offline-first for serious students.</string>
 </resources>

@@ -8,7 +8,6 @@ import java.time.LocalDate
 
 data class WeekDayUi(
     val date: LocalDate,
-    val weekdayLabel: String,
     val dayOfMonth: Int,
     val selected: Boolean,
     val status: WeekDayStatus,

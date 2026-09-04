@@ -362,6 +362,10 @@ const MIN_BLOCK_HEIGHT = 72;
       </div>
     }
 
+    @if (undoAction(); as action) {
+      <div class="undo" role="status"><span>{{ action.label }}</span><button (click)="undo()">Undo</button></div>
+    }
+
   `,
   styles: `
     :host {
@@ -372,6 +376,9 @@ const MIN_BLOCK_HEIGHT = 72;
       overflow-y: auto;
       overflow-x: hidden;
     }
+    .undo { position: fixed; z-index: 25; left: 16px; right: 16px; bottom: 92px; min-height: 52px; display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 16px; border-radius: var(--mat-sys-corner-large); background: var(--mat-sys-inverse-surface); color: var(--mat-sys-inverse-on-surface); box-shadow: var(--mat-sys-level3); font: var(--mat-sys-body-medium); }
+    .undo span { flex: 1; }
+    .undo button { height: 40px; padding: 0 16px; border: 0; border-radius: var(--mat-sys-corner-full); background: transparent; color: var(--mat-sys-inverse-primary); font: var(--mat-sys-label-large); cursor: pointer; }
 
     /* Calendar chrome — the month label is a control, not a headline. */
     .chrome {
@@ -1028,6 +1035,7 @@ export class TodayScreen {
   protected readonly selected = signal(startOfToday());
 
   protected readonly session = signal<StudyBlock | null>(null);
+  protected readonly undoAction = signal<{ label: string; run: () => void } | null>(null);
   protected readonly picker = signal<{ startMinute: number; minutes: number } | null>(null);
   protected readonly pickTask = signal<Task>('Learn');
   protected readonly breakOpen = signal(false);
@@ -1266,12 +1274,19 @@ export class TodayScreen {
       return;
     }
     this.planner.push(block, minutes);
+    this.undoAction.set({ label: `Moved ${block.title} by ${minutes} minutes.`, run: () => this.planner.undoPush(block, minutes) });
     this.session.set(null);
   }
 
   protected skip(block: StudyBlock): void {
     this.planner.skip(block);
+    this.undoAction.set({ label: `Skipped ${block.title}.`, run: () => this.planner.undoSkip(block) });
     this.session.set(null);
+  }
+
+  protected undo(): void {
+    this.undoAction()?.run();
+    this.undoAction.set(null);
   }
 
   protected setBreak(minutes: number): void {

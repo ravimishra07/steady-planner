@@ -5,7 +5,7 @@ import com.exam.assistant.domain.SyllabusTickState
 data class SyllabusTreeRow(
     val key: String,
     val name: String,
-    val hoursLabel: String,
+    val estimatedMinutes: Int,
     val depth: Int,
     val hasChildren: Boolean,
     val expanded: Boolean,
@@ -20,20 +20,33 @@ data class SyllabusTreeRow(
     val subjectId: String,
     val sectionName: String,
     val topicPath: String,
+    val classNumber: Int? = null,
+    val isClassGroup: Boolean = false,
+    val excluded: Boolean = false,
+)
+
+data class SyllabusChapterStat(
+    val classNumber: Int?,
+    val complete: Boolean,
 )
 
 data class SyllabusSubjectCard(
     val key: String,
     val name: String,
-    val shortLabel: String,
     val subjectId: String,
     val percent: Int,
-    val timeSpentLabel: String,
+    val timeSpentMinutes: Int,
     val expanded: Boolean,
     val rows: List<SyllabusTreeRow>,
     /** The subject's first topic — what "play" on the card itself jumps into. */
     val firstTopicKey: String?,
     val firstTopicTitle: String,
+    val doneChapterCount: Int,
+    val totalChapterCount: Int,
+    val totalEstimatedMinutes: Int,
+    val questions: Int,
+    val chapterStats: List<SyllabusChapterStat>,
+    val excludedCount: Int = 0,
 )
 
 data class SyllabusUiState(
@@ -41,6 +54,7 @@ data class SyllabusUiState(
     val subjects: List<SyllabusSubjectCard> = emptyList(),
     val allCount: Int = 0,
     val dueCount: Int = 0,
-    val completedPercentLabel: String = "0.00%",
-    val timeSpentLabel: String = "0h 00m",
+    val completedPercent: Int = 0,
+    val timeSpentMinutes: Int = 0,
+    val isEmpty: Boolean = false,
 )

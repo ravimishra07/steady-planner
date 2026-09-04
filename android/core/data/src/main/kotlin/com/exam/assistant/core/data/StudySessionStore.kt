@@ -45,6 +45,28 @@ class StudySessionStore(
         saveAll(all.values.toList())
     }
 
+    /** Compatibility projection of Room's initial plan while legacy Today/Focus are being retired. */
+    suspend fun replaceGeneratedPlan(attemptId: String, sessions: List<StudySessionRecord>) = withContext(dispatchers.io) {
+        val prefix = "auto_${attemptId}_"
+        val kept = loadAll().filterNot { it.id.startsWith(prefix) }
+        saveAll(kept + sessions)
+    }
+
+    suspend fun replaceFutureGeneratedPlan(attemptId: String, start: LocalDate, sessions: List<StudySessionRecord>) = withContext(dispatchers.io) {
+        val prefix = "auto_${attemptId}_"
+        val kept = loadAll().filterNot { it.id.startsWith(prefix) && !it.completed && it.date >= start }
+        saveAll(kept + sessions)
+    }
+
+    suspend fun replace(originalId: String, replacement: StudySessionRecord) = withContext(dispatchers.io) {
+        val kept = loadAll().filterNot { it.id == originalId || it.id == replacement.id }
+        saveAll(kept + replacement)
+    }
+
+    suspend fun delete(id: String) = withContext(dispatchers.io) {
+        saveAll(loadAll().filterNot { it.id == id })
+    }
+
     suspend fun clear() = withContext(dispatchers.io) {
         context.studySessionDataStore.edit { it.remove(sessionsKey) }
         Unit

@@ -19,7 +19,7 @@ class SyllabusRepository(
     }
 
     private fun loadTier1(): List<SyllabusSection> {
-        context.assets.open("syllabus_cgl.json").bufferedReader().use { reader ->
+        context.assets.open("syllabus_neet.json").bufferedReader().use { reader ->
             val root = JSONObject(reader.readText())
             val tier1 = root.getJSONArray("tier1")
             return (0 until tier1.length()).map { index ->

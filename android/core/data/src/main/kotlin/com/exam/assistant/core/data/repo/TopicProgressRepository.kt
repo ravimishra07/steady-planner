@@ -33,6 +33,11 @@ class TopicProgressRepository(
         dao.upsertAll(progress.map { it.toEntity() })
     }
 
+    /** Replaces onboarding's covered-selection cleanly when setup is redone. */
+    suspend fun clearAll(attemptId: String) = withContext(dispatchers.io) {
+        dao.deleteForAttempt(attemptId)
+    }
+
     /** The one entry point for "tick this topic" — centralizes the toggle rule (see [toggledTopicProgress]). */
     suspend fun toggle(attemptId: String, nodeId: String, nowMs: Long): TopicProgress = withContext(dispatchers.io) {
         val current = dao.byNode(attemptId, nodeId)?.toDomain()

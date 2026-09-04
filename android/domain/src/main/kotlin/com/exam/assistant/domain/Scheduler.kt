@@ -9,9 +9,6 @@ package com.exam.assistant.domain
 /** Time the syllabus needs beyond a single read: revision passes and mocks. */
 const val REVISION_MULTIPLIER = 1.28
 
-/** SSC CGL Tier-1 total from syllabus_cgl.json. */
-const val SSC_CGL_RAW_HOURS = 634.0
-
 data class Cushion(
     /** Hours the syllabus needs, revision included. */
     val need: Int,

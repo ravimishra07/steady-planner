@@ -4,47 +4,146 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-/** Semantic colors shared by every feature. UI code must consume these rather than raw colors. */
+/** Complete Material 3 color roles plus stable semantic aliases used by features. */
 @Immutable
 data class AppColors(
-    val bg: Color, val bgDeep: Color, val surface: Color, val surfaceTinted: Color, val surfaceCard: Color,
-    val surfaceControl: Color, val surfaceInk: Color, val elevated: Color, val surface3: Color,
-    val border: Color, val borderSubtle: Color, val hairline: Color, val hairlineSoft: Color,
-    val glassTint: Color, val glassStroke: Color, val ctaBorder: Color,
-    val text: Color, val textSecondary: Color, val textMuted: Color, val textDisabled: Color,
-    val tabBg: Color, val tabUnselected: Color,
-    val brandContainer: Color, val successContainer: Color, val dangerContainer: Color, val dangerSoft: Color,
-    val dangerStripe: Color, val infoTint: Color, val warningTint: Color, val warningRow: Color, val onSuccess: Color,
-    val onBrandContainer: Color, val brand: Color, val brandSoft: Color, val brandDeep: Color,
-    val onBrand: Color, val tabSelected: Color,
+    val primary: Color,
+    val onPrimary: Color,
+    val primaryContainer: Color,
+    val onPrimaryContainer: Color,
+    val inversePrimary: Color,
+    val primaryFixed: Color,
+    val primaryFixedDim: Color,
+    val onPrimaryFixed: Color,
+    val onPrimaryFixedVariant: Color,
+    val secondary: Color,
+    val onSecondary: Color,
+    val secondaryContainer: Color,
+    val onSecondaryContainer: Color,
+    val tertiary: Color,
+    val onTertiary: Color,
+    val tertiaryContainer: Color,
+    val onTertiaryContainer: Color,
+    val background: Color,
+    val onBackground: Color,
+    val surface: Color,
+    val onSurface: Color,
+    val surfaceVariant: Color,
+    val onSurfaceVariant: Color,
+    val inverseSurface: Color,
+    val inverseOnSurface: Color,
+    val error: Color,
+    val onError: Color,
+    val errorContainer: Color,
+    val onErrorContainer: Color,
+    val outline: Color,
+    val outlineVariant: Color,
+    val scrim: Color,
+    val surfaceBright: Color,
+    val surfaceDim: Color,
+    val surfaceContainerLowest: Color,
+    val surfaceContainerLow: Color,
+    val surfaceContainer: Color,
+    val surfaceContainerHigh: Color,
+    val surfaceContainerHighest: Color,
 ) {
-    val success: Color get() = SharedHues.success
-    val successStrong: Color get() = SharedHues.successStrong
-    val warning: Color get() = SharedHues.warning
-    val danger: Color get() = SharedHues.danger
-    val info: Color get() = SharedHues.info
-    val accentCyan: Color get() = SharedHues.accentCyan
+    // Product semantics. These aliases ensure feature code never invents a
+    // color while all values still resolve to the measured M3 scheme.
+    val bg: Color get() = surface
+    val bgDeep: Color get() = surfaceContainerLowest
+    val surfaceTinted: Color get() = primaryContainer
+    val surfaceCard: Color get() = surfaceContainerLow
+    val surfaceControl: Color get() = surfaceContainer
+    val surfaceInk: Color get() = surfaceContainerLowest
+    val elevated: Color get() = surfaceContainerHigh
+    val surface3: Color get() = surfaceContainerHighest
+    val border: Color get() = outlineVariant
+    val borderSubtle: Color get() = outlineVariant.copy(alpha = 0.62f)
+    val hairline: Color get() = outlineVariant.copy(alpha = 0.45f)
+    val hairlineSoft: Color get() = outlineVariant.copy(alpha = 0.28f)
+    val glassTint: Color get() = onSurface.copy(alpha = 0.06f)
+    val glassStroke: Color get() = onSurface.copy(alpha = 0.14f)
+    val ctaBorder: Color get() = primary.copy(alpha = 0.32f)
+    val text: Color get() = onSurface
+    val textSecondary: Color get() = onSurfaceVariant
+    val textMuted: Color get() = onSurfaceVariant.copy(alpha = 0.80f)
+    val textDisabled: Color get() = onSurface.copy(alpha = 0.38f)
+    val tabBg: Color get() = surfaceContainer
+    val tabUnselected: Color get() = onSurfaceVariant
+    /** Selected rows, chips, and navigation indicators in the Angular M3 reference. */
+    val selectionContainer: Color get() = secondaryContainer
+    val onSelectionContainer: Color get() = onSecondaryContainer
+    val brandContainer: Color get() = primaryContainer
+    val successContainer: Color get() = tertiaryContainer
+    val dangerContainer: Color get() = errorContainer
+    val dangerSoft: Color get() = onErrorContainer
+    val dangerStripe: Color get() = error
+    val infoTint: Color get() = tertiaryContainer.copy(alpha = 0.55f)
+    val warningTint: Color get() = secondaryContainer.copy(alpha = 0.62f)
+    val warningRow: Color get() = secondaryContainer.copy(alpha = 0.35f)
+    val onSuccess: Color get() = onTertiaryContainer
+    val onBrandContainer: Color get() = onPrimaryContainer
+    val brand: Color get() = primary
+    val brandSoft: Color get() = primaryFixedDim
+    val brandDeep: Color get() = primary
+    val onBrand: Color get() = onPrimary
+    val tabSelected: Color get() = primary
+    val success: Color get() = tertiary
+    val successStrong: Color get() = tertiary
+    val warning: Color get() = secondary
+    val danger: Color get() = error
+    val info: Color get() = tertiary
+    val accentCyan: Color get() = tertiary
 }
 
-fun resolveAppColors(background: BackgroundAppearance, palette: AccentPalette): AppColors {
-    val surface = background.surfaces
-    val accent = palette.accents
+fun resolveAppColors(
+    background: BackgroundAppearance,
+    palette: AccentPalette,
+    systemDark: Boolean = false,
+): AppColors {
+    val resolvedBackground = background.resolved(systemDark)
+    val neutral = resolvedBackground.neutralRoles
+    val accent = if (resolvedBackground.isDark) palette.roles.dark else palette.roles.light
     return AppColors(
-        bg = surface.bg, bgDeep = surface.bgDeep, surface = surface.surface,
-        surfaceTinted = if (background.isDark) accent.darkContainer else accent.lightContainer,
-        surfaceCard = surface.surfaceCard, surfaceControl = surface.surfaceControl, surfaceInk = surface.surfaceInk,
-        elevated = surface.elevated, surface3 = surface.surface3, border = surface.border, borderSubtle = surface.borderSubtle,
-        hairline = surface.hairline, hairlineSoft = surface.hairlineSoft, glassTint = surface.glassTint,
-        glassStroke = surface.glassStroke, ctaBorder = accent.brand.copy(alpha = if (background.isDark) .42f else .26f),
-        text = surface.text, textSecondary = surface.textSecondary, textMuted = surface.textMuted, textDisabled = surface.textDisabled,
-        tabBg = surface.tabBg, tabUnselected = surface.tabUnselected,
-        brandContainer = if (background.isDark) accent.darkContainer else accent.lightContainer,
-        successContainer = surface.successContainer, dangerContainer = surface.dangerContainer, dangerSoft = surface.dangerSoft,
-        dangerStripe = surface.dangerStripe, infoTint = accent.brand.copy(alpha = if (background.isDark) .18f else .10f),
-        warningTint = surface.warningTint, warningRow = surface.warningRow, onSuccess = surface.onSuccess,
-        onBrandContainer = if (background.isDark) accent.brandSoft else accent.brandDeep,
-        brand = accent.brand, brandSoft = accent.brandSoft, brandDeep = accent.brandDeep,
-        onBrand = SharedHues.onBrand, tabSelected = accent.brandDeep,
+        primary = accent.primary,
+        onPrimary = accent.onPrimary,
+        primaryContainer = accent.primaryContainer,
+        onPrimaryContainer = accent.onPrimaryContainer,
+        inversePrimary = accent.inversePrimary,
+        primaryFixed = accent.primaryFixed,
+        primaryFixedDim = accent.primaryFixedDim,
+        onPrimaryFixed = accent.onPrimaryFixed,
+        onPrimaryFixedVariant = accent.onPrimaryFixedVariant,
+        secondary = accent.secondary,
+        onSecondary = accent.onSecondary,
+        secondaryContainer = accent.secondaryContainer,
+        onSecondaryContainer = accent.onSecondaryContainer,
+        tertiary = accent.tertiary,
+        onTertiary = accent.onTertiary,
+        tertiaryContainer = accent.tertiaryContainer,
+        onTertiaryContainer = accent.onTertiaryContainer,
+        background = neutral.background,
+        onBackground = neutral.onBackground,
+        surface = neutral.surface,
+        onSurface = neutral.onSurface,
+        surfaceVariant = neutral.surfaceVariant,
+        onSurfaceVariant = neutral.onSurfaceVariant,
+        inverseSurface = neutral.inverseSurface,
+        inverseOnSurface = neutral.inverseOnSurface,
+        error = neutral.error,
+        onError = neutral.onError,
+        errorContainer = neutral.errorContainer,
+        onErrorContainer = neutral.onErrorContainer,
+        outline = neutral.outline,
+        outlineVariant = neutral.outlineVariant,
+        scrim = neutral.scrim,
+        surfaceBright = neutral.surfaceBright,
+        surfaceDim = neutral.surfaceDim,
+        surfaceContainerLowest = neutral.surfaceContainerLowest,
+        surfaceContainerLow = neutral.surfaceContainerLow,
+        surfaceContainer = neutral.surfaceContainer,
+        surfaceContainerHigh = neutral.surfaceContainerHigh,
+        surfaceContainerHighest = neutral.surfaceContainerHighest,
     )
 }
 

@@ -7,6 +7,7 @@ import com.exam.assistant.core.data.db.PrepTrackerDatabase
 import com.exam.assistant.core.data.db.toDomain
 import com.exam.assistant.core.data.db.toEntity
 import com.exam.assistant.domain.StudyPlanBlock
+import com.exam.assistant.domain.PlanBlockStatus
 import com.exam.assistant.domain.rescheduleBlock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -37,7 +38,29 @@ class PlanRepository(
         dao.upsertAll(blocks.map { it.toEntity() })
     }
 
+    /** Onboarding owns the initial automatic plan and replaces that intent when setup is redone. */
+    suspend fun replaceAllForAttempt(attemptId: String, blocks: List<StudyPlanBlock>) = withContext(dispatchers.io) {
+        db.withTransaction {
+            dao.deleteForAttempt(attemptId)
+            dao.upsertAll(blocks.map { it.toEntity() })
+        }
+    }
+
+    /** Replans only future automatic intent; completed, skipped, rescheduled and manual history remains immutable. */
+    suspend fun replaceFutureAuto(attemptId: String, start: LocalDate, blocks: List<StudyPlanBlock>) = withContext(dispatchers.io) {
+        db.withTransaction {
+            dao.deleteFutureAuto(attemptId, start.toEpochDay())
+            dao.upsertAll(blocks.map { it.toEntity() })
+        }
+    }
+
     suspend fun byId(id: String): StudyPlanBlock? = withContext(dispatchers.io) { dao.byId(id)?.toDomain() }
+
+    suspend fun skip(id: String, nowMs: Long) = withContext(dispatchers.io) {
+        dao.byId(id)?.toDomain()?.let { block ->
+            dao.upsert(block.copy(status = PlanBlockStatus.SKIPPED, updatedAtEpochMs = nowMs).toEntity())
+        }
+    }
 
     /**
      * Reschedule preserves history: the original block becomes RESCHEDULED

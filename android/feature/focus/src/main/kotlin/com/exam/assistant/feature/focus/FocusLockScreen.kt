@@ -47,16 +47,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.exam.assistant.core.data.InstalledAppInfo
 import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.Radius
+import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.domain.FOCUS_LOCK_SUGGESTED_PACKAGES
 import com.exam.assistant.domain.FocusLockDisplayState
@@ -103,7 +105,7 @@ internal fun FocusLockCard(
                         text = stringResource(R.string.focus_lock_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.textSecondary,
-                        modifier = Modifier.padding(top = 2.dp),
+                        modifier = Modifier.padding(top = Spacing.xxs),
                     )
                 }
                 Switch(
@@ -156,10 +158,10 @@ internal fun FocusLockCard(
                 is FocusLockDisplayState.Ready -> {
                     StatusLine(label = stringResource(R.string.focus_lock_status_ready), color = colors.success)
                     Text(
-                        text = stringResource(R.string.focus_lock_apps_selected, display.blockedCount),
+                        text = pluralStringResource(R.plurals.focus_lock_apps_selected, display.blockedCount, display.blockedCount),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.textMuted,
-                        modifier = Modifier.padding(top = Spacing.xs, bottom = 2.dp),
+                        modifier = Modifier.padding(top = Spacing.xs, bottom = Spacing.xxs),
                     )
                     Text(
                         text = stringResource(R.string.focus_lock_auto_activates),
@@ -180,10 +182,14 @@ internal fun FocusLockCard(
                         modifier = Modifier.padding(top = Spacing.xs),
                     )
                     Text(
-                        text = stringResource(R.string.focus_lock_apps_blocked_active, display.blockedCount),
+                        text = pluralStringResource(
+                            R.plurals.focus_lock_apps_blocked_active,
+                            display.blockedCount,
+                            display.blockedCount,
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.textMuted,
-                        modifier = Modifier.padding(top = 2.dp, bottom = Spacing.sm),
+                        modifier = Modifier.padding(top = Spacing.xxs, bottom = Spacing.sm),
                     )
                 }
             }
@@ -194,7 +200,7 @@ internal fun FocusLockCard(
 @Composable
 private fun StatusLine(label: String, color: androidx.compose.ui.graphics.Color) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.size(8.dp).background(color, CircleShape))
+        Box(modifier = Modifier.size(Spacing.sm).background(color, CircleShape))
         Spacer(Modifier.width(Spacing.xs))
         Text(text = label, style = MaterialTheme.typography.labelLarge, color = color, fontWeight = FontWeight.SemiBold)
     }
@@ -278,10 +284,10 @@ private fun SetupStepRow(number: Int, label: String) {
     val colors = AppTheme.colors
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = Spacing.xs)) {
         Box(
-            modifier = Modifier.size(28.dp).background(colors.brandContainer, CircleShape),
+            modifier = Modifier.size(Size.lockStep).background(colors.brandContainer, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = "$number", style = MaterialTheme.typography.labelLarge, color = colors.brandSoft)
+            Text(text = stringResource(R.string.focus_lock_step_number, number), style = MaterialTheme.typography.labelLarge, color = colors.brandSoft)
         }
         Spacer(Modifier.width(Spacing.md))
         Text(text = label, style = MaterialTheme.typography.bodyLarge, color = colors.text)
@@ -357,14 +363,14 @@ private fun PermissionRow(label: String, description: String, granted: Boolean, 
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(label, style = MaterialTheme.typography.bodyLarge, color = colors.text, fontWeight = FontWeight.Medium)
-            Text(description, style = MaterialTheme.typography.bodySmall, color = colors.textMuted, modifier = Modifier.padding(top = 2.dp))
+            Text(description, style = MaterialTheme.typography.bodySmall, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.xxs))
         }
         if (granted) {
             Box(
-                modifier = Modifier.size(32.dp).background(colors.successContainer, CircleShape),
+                modifier = Modifier.size(Size.compactControl).background(colors.successContainer, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Filled.Check, contentDescription = null, tint = colors.successStrong, modifier = Modifier.size(18.dp))
+                Icon(Icons.Filled.Check, contentDescription = null, tint = colors.successStrong, modifier = Modifier.size(Size.smallIcon))
             }
         } else {
             TextButton(onClick = onGrant) { Text(stringResource(R.string.focus_lock_grant)) }
@@ -395,9 +401,9 @@ private fun AppPickerStep(
     val others = matches.filterNot { it.packageName in suggestedKeys }
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = Spacing.xl, vertical = Spacing.lg)) {
-        Text("Choose distractions", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = colors.text)
+        Text(stringResource(R.string.focus_lock_choose_distractions), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = colors.text)
         Text(
-            text = "These apps will be unavailable while you're studying.",
+            text = stringResource(R.string.focus_lock_choose_distractions_body),
             style = MaterialTheme.typography.bodyMedium,
             color = colors.textSecondary,
             modifier = Modifier.padding(top = Spacing.xs, bottom = Spacing.md),
@@ -407,7 +413,7 @@ private fun AppPickerStep(
             onValueChange = onSearchQueryChange,
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            placeholder = { Text("Search apps…") },
+            placeholder = { Text(stringResource(R.string.focus_lock_search_apps)) },
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = colors.textMuted) },
             shape = RoundedCornerShape(Radius.lg),
             colors = OutlinedTextFieldDefaults.colors(
@@ -423,21 +429,21 @@ private fun AppPickerStep(
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             modifier = Modifier.padding(top = Spacing.md),
         ) {
-            TextButton(onClick = onSelectAll) { Text("Select all") }
-            TextButton(onClick = onClearAll) { Text("Clear") }
+            TextButton(onClick = onSelectAll) { Text(stringResource(R.string.focus_lock_select_all)) }
+            TextButton(onClick = onClearAll) { Text(stringResource(R.string.focus_lock_clear)) }
         }
         if (state.appsLoading) {
-            Text("Loading apps…", style = MaterialTheme.typography.bodyMedium, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.lg))
+            Text(stringResource(R.string.focus_lock_loading_apps), style = MaterialTheme.typography.bodyMedium, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.lg))
         } else {
             LazyColumn(modifier = Modifier.weight(1f)) {
                 if (suggested.isNotEmpty()) {
-                    item { SectionLabel("Suggested") }
+                    item { SectionLabel(stringResource(R.string.focus_lock_suggested)) }
                     items(suggested, key = { it.packageName }) { app ->
                         AppRow(app = app, checked = app.packageName in state.selectedPackages, onToggle = { onToggleApp(app.packageName) })
                     }
                 }
                 if (others.isNotEmpty()) {
-                    item { SectionLabel(if (suggested.isNotEmpty()) "All apps" else "") }
+                    item { SectionLabel(if (suggested.isNotEmpty()) stringResource(R.string.focus_lock_all_apps) else "") }
                     items(others, key = { it.packageName }) { app ->
                         AppRow(app = app, checked = app.packageName in state.selectedPackages, onToggle = { onToggleApp(app.packageName) })
                     }
@@ -445,7 +451,7 @@ private fun AppPickerStep(
                 if (matches.isEmpty()) {
                     item {
                         Text(
-                            text = "No apps match \"$query\".",
+                            text = stringResource(R.string.focus_lock_no_apps_match, query),
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.textMuted,
                             modifier = Modifier.padding(top = Spacing.lg),
@@ -460,8 +466,8 @@ private fun AppPickerStep(
             modifier = Modifier.fillMaxWidth().padding(top = Spacing.md),
             shape = RoundedCornerShape(Radius.lg),
             colors = ButtonDefaults.buttonColors(containerColor = colors.brandDeep, contentColor = colors.onBrand),
-        ) { Text("Save & Enable") }
-        TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Not now") }
+        ) { Text(stringResource(R.string.focus_lock_save_and_enable)) }
+        TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.focus_lock_not_now)) }
     }
 }
 
@@ -485,9 +491,9 @@ private fun AppRow(app: InstalledAppInfo, checked: Boolean, onToggle: () -> Unit
     ) {
         val bitmap = remember(app.packageName) { app.icon?.toBitmap(96, 96)?.asImageBitmap() }
         if (bitmap != null) {
-            Image(bitmap = bitmap, contentDescription = null, modifier = Modifier.size(36.dp))
+            Image(bitmap = bitmap, contentDescription = null, modifier = Modifier.size(Size.dayControl))
         } else {
-            Box(modifier = Modifier.size(36.dp).background(colors.surfaceControl, CircleShape))
+            Box(modifier = Modifier.size(Size.dayControl).background(colors.surfaceControl, CircleShape))
         }
         Spacer(Modifier.width(Spacing.md))
         Text(app.label, style = MaterialTheme.typography.bodyLarge, color = colors.text, modifier = Modifier.weight(1f))

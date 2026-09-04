@@ -1,6 +1,5 @@
 package com.exam.assistant.feature.home
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,13 +10,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
+import com.exam.assistant.core.design.AppCard
 import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
@@ -44,10 +42,7 @@ internal fun HomeEmptyContent(
                 .fillMaxWidth()
                 .padding(bottom = Spacing.xxl),
         )
-        Surface(
-            shape = RoundedCornerShape(Radius.lg),
-            color = colors.surface,
-            border = BorderStroke(1.dp, colors.border),
+        AppCard(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(

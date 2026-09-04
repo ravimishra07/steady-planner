@@ -9,7 +9,6 @@ import { DateStep } from '../onboarding/steps/date-step';
 import { ExamStep } from '../onboarding/steps/exam-step';
 import { HoursStep } from '../onboarding/steps/hours-step';
 import { PlanStep } from '../onboarding/steps/plan-step';
-import { ShapeStep } from '../onboarding/steps/shape-step';
 import { SyllabusStep } from '../onboarding/steps/syllabus-step';
 
 @Component({
@@ -24,7 +23,6 @@ import { SyllabusStep } from '../onboarding/steps/syllabus-step';
     ExamStep,
     HoursStep,
     PlanStep,
-    ShapeStep,
     SyllabusStep,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,7 +35,6 @@ import { SyllabusStep } from '../onboarding/steps/syllabus-step';
           @case ('coaching') { <ob-coaching-step /> }
           @case ('commitments') { <ob-commitments-step /> }
           @case ('date') { <ob-date-step /> }
-          @case ('shape') { <ob-shape-step /> }
           @case ('hours') { <ob-hours-step /> }
           @case ('syllabus') { <ob-syllabus-step /> }
           @case ('plan') { <ob-plan-step /> }

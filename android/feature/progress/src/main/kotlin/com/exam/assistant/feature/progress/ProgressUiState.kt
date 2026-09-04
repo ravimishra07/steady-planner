@@ -11,7 +11,7 @@ data class InsightsUiState(
     val data: InsightsData? = null,
     val targetSections: List<TargetSectionUi> = emptyList(),
     val showTargetManager: Boolean = false,
-    val errorMessage: String? = null,
+    val loadFailed: Boolean = false,
 )
 
 data class TargetSectionUi(

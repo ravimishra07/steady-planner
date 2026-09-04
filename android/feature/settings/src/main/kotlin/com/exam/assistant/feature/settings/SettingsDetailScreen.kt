@@ -20,7 +20,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -28,7 +27,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.exam.assistant.core.data.FocusStore
@@ -36,11 +34,11 @@ import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.SettingsStore
 import com.exam.assistant.core.data.StudySessionStore
-import com.exam.assistant.core.data.SyllabusRepository
 import com.exam.assistant.core.data.SyllabusStore
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.design.AppTheme
+import com.exam.assistant.core.design.AppValueStepper
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
@@ -52,7 +50,6 @@ fun SettingsDetailRoute(
     focusStore: FocusStore,
     syllabusStore: SyllabusStore,
     studySessionStore: StudySessionStore,
-    syllabusRepository: SyllabusRepository,
     examPackRepository: ExamPackRepository,
     attemptRepository: AttemptRepository,
     topicProgressRepository: TopicProgressRepository,
@@ -66,7 +63,6 @@ fun SettingsDetailRoute(
             focusStore,
             syllabusStore,
             studySessionStore,
-            syllabusRepository,
             examPackRepository,
             attemptRepository,
             topicProgressRepository,
@@ -164,7 +160,16 @@ fun SettingsDetailScreen(
         AlertDialog(
             onDismissRequest = onDismissSeedError,
             title = { Text(stringResource(R.string.settings_seed_error_title)) },
-            text = { Text(state.seedError) },
+            text = {
+                Text(
+                    stringResource(
+                        when (state.seedError) {
+                            SeedHistoryError.NoTopics -> R.string.settings_seed_error_no_topics
+                            SeedHistoryError.Failed -> R.string.settings_seed_error_failed
+                        },
+                    ),
+                )
+            },
             confirmButton = {
                 TextButton(onClick = onDismissSeedError) {
                     Text(stringResource(R.string.settings_seed_done_ok))
@@ -189,19 +194,25 @@ fun SettingsDetailScreen(
             )
         }
         SectionTitle(stringResource(R.string.settings_hours))
-        Text(stringResource(R.string.settings_weekdays), style = MaterialTheme.typography.bodyMedium)
-        Slider(
-            value = state.weekdayHours,
-            onValueChange = onWeekdayChange,
-            valueRange = 1f..14f,
-            steps = 25,
+        AppValueStepper(
+            label = stringResource(R.string.settings_weekdays),
+            value = stringResource(R.string.settings_hours_value, settingsHour(state.weekdayHours)),
+            decreaseContentDescription = stringResource(R.string.settings_decrease_hours, stringResource(R.string.settings_weekdays)),
+            increaseContentDescription = stringResource(R.string.settings_increase_hours, stringResource(R.string.settings_weekdays)),
+            onDecrease = { onWeekdayChange((state.weekdayHours - .5f).coerceAtLeast(1f)) },
+            onIncrease = { onWeekdayChange((state.weekdayHours + .5f).coerceAtMost(14f)) },
+            decreaseEnabled = state.weekdayHours > 1f,
+            increaseEnabled = state.weekdayHours < 14f,
         )
-        Text(stringResource(R.string.settings_weekends), style = MaterialTheme.typography.bodyMedium)
-        Slider(
-            value = state.weekendHours,
-            onValueChange = onWeekendChange,
-            valueRange = 1f..16f,
-            steps = 29,
+        AppValueStepper(
+            label = stringResource(R.string.settings_weekends),
+            value = stringResource(R.string.settings_hours_value, settingsHour(state.weekendHours)),
+            decreaseContentDescription = stringResource(R.string.settings_decrease_hours, stringResource(R.string.settings_weekends)),
+            increaseContentDescription = stringResource(R.string.settings_increase_hours, stringResource(R.string.settings_weekends)),
+            onDecrease = { onWeekendChange((state.weekendHours - .5f).coerceAtLeast(1f)) },
+            onIncrease = { onWeekendChange((state.weekendHours + .5f).coerceAtMost(16f)) },
+            decreaseEnabled = state.weekendHours > 1f,
+            increaseEnabled = state.weekendHours < 16f,
         )
         OutlinedTextField(
             value = state.studyPlace,
@@ -259,3 +270,7 @@ private fun SectionTitle(text: String) {
         modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.sm),
     )
 }
+
+private fun settingsHour(value: Float): String = java.text.NumberFormat.getNumberInstance().apply {
+    maximumFractionDigits = 1
+}.format(value)

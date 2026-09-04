@@ -11,7 +11,7 @@ import { OnboardingStore, addDays, startOfToday } from '../state';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ob-shell
-      title="When's the exam?"
+      [title]="store.dateMode() === 'exam' ? 'Confirm the exam date' : 'Set a preparation target'"
       [progressIndex]="store.progressIndex()"
       [segments]="store.progressSegments"
       (continue)="store.next()">
@@ -19,7 +19,7 @@ import { OnboardingStore, addDays, startOfToday } from '../state';
       <div class="readback">
         <div class="when">
           <span class="full">{{ store.targetDate() | date: 'EEEE, d MMM y' }}</span>
-          <span class="meaning">Last day of prep</span>
+          <span class="meaning">{{ store.dateMode() === 'exam' ? 'Exam date' : 'Personal preparation target' }}</span>
         </div>
         <span class="chip">{{ store.days() }} days</span>
       </div>

@@ -12,10 +12,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -29,17 +30,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.AppType
+import com.exam.assistant.core.design.AppValueStepper
+import com.exam.assistant.core.design.CalendarMetrics
 import com.exam.assistant.core.design.Radius
+import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
+import com.exam.assistant.core.design.Stroke
 import com.exam.assistant.domain.Cushion
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.max
 import kotlin.math.roundToInt
-
-private val ExamDateFormatter =
-    DateTimeFormatter.ofPattern("d MMM yyyy", Locale.Builder().setLanguage("en").setRegion("IN").build())
 
 @Composable
 internal fun OnboardingDateStep(
@@ -56,7 +58,7 @@ internal fun OnboardingDateStep(
         Surface(
             shape = RoundedCornerShape(Radius.lg),
             color = colors.surfaceTinted,
-            border = BorderStroke(1.dp, colors.border),
+            border = BorderStroke(Stroke.hairline, colors.border),
         ) {
             Column(modifier = Modifier.padding(Spacing.xxl)) {
                 Row(verticalAlignment = Alignment.Bottom) {
@@ -81,18 +83,18 @@ internal fun OnboardingDateStep(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = Spacing.lg),
-                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    horizontalArrangement = Arrangement.spacedBy(CalendarMetrics.meterHeight),
                 ) {
                     repeat(12) { index ->
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(6.dp)
-                                .padding(0.dp),
+                                .height(Spacing.icon)
+                                .padding(Spacing.none),
                         ) {
                             Surface(
-                                modifier = Modifier.fillMaxWidth().height(6.dp),
-                                shape = RoundedCornerShape(2.dp),
+                                modifier = Modifier.fillMaxWidth().height(Spacing.icon),
+                                shape = RoundedCornerShape(Spacing.xxs),
                                 color = if (index < scaleFilled) colors.brandDeep else colors.elevated,
                             ) {}
                         }
@@ -120,7 +122,7 @@ internal fun OnboardingDateStep(
         Surface(
             shape = RoundedCornerShape(Radius.lg),
             color = colors.surface,
-            border = BorderStroke(1.dp, colors.border),
+            border = BorderStroke(Stroke.hairline, colors.border),
         ) {
             Row(
                 modifier = Modifier
@@ -130,7 +132,7 @@ internal fun OnboardingDateStep(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(text = examDate, style = AppType.headline, color = colors.text)
-                Text(text = "›", style = AppType.subtitle, color = colors.textMuted)
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = colors.textMuted)
             }
         }
         TextButton(
@@ -184,30 +186,24 @@ internal fun OnboardingHoursStep(
 ) {
     val colors = AppTheme.colors
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        HoursSliderCard(
+        HoursStepper(
             label = stringResource(R.string.onboarding_hours_weekdays),
             value = weekdayHours,
-            valueRange = 1f..14f,
-            steps = 25,
-            tickStart = stringResource(R.string.onboarding_hours_slider_min),
-            tickMid = stringResource(R.string.onboarding_hours_slider_mid_weekday),
-            tickEnd = stringResource(R.string.onboarding_hours_slider_max_weekday),
+            minimum = 1f,
+            maximum = 14f,
             onValueChange = onWeekdayChange,
         )
-        HoursSliderCard(
+        HoursStepper(
             label = stringResource(R.string.onboarding_hours_weekends),
             value = weekendHours,
-            valueRange = 1f..16f,
-            steps = 29,
-            tickStart = stringResource(R.string.onboarding_hours_slider_min),
-            tickMid = stringResource(R.string.onboarding_hours_slider_mid_weekend),
-            tickEnd = stringResource(R.string.onboarding_hours_slider_max_weekend),
+            minimum = 1f,
+            maximum = 16f,
             onValueChange = onWeekendChange,
         )
         Surface(
             shape = RoundedCornerShape(Radius.lg),
             color = colors.brandContainer,
-            border = BorderStroke(1.dp, colors.border),
+            border = BorderStroke(Stroke.hairline, colors.border),
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.lg),
@@ -249,57 +245,23 @@ internal fun OnboardingHoursStep(
 }
 
 @Composable
-private fun HoursSliderCard(
+private fun HoursStepper(
     label: String,
     value: Float,
-    valueRange: ClosedFloatingPointRange<Float>,
-    steps: Int,
-    tickStart: String,
-    tickMid: String,
-    tickEnd: String,
+    minimum: Float,
+    maximum: Float,
     onValueChange: (Float) -> Unit,
 ) {
-    val colors = AppTheme.colors
-    Surface(
-        shape = RoundedCornerShape(Radius.lg),
-        color = colors.surface,
-        border = BorderStroke(1.dp, colors.border),
-    ) {
-        Column(modifier = Modifier.padding(Spacing.lg)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(text = label, style = AppType.callout, color = colors.text)
-                Text(
-                    text = stringResource(R.string.onboarding_hours_value, formatHour(value)),
-                    style = AppType.subtitle,
-                    color = colors.brand,
-                )
-            }
-            Slider(
-                value = value,
-                onValueChange = onValueChange,
-                valueRange = valueRange,
-                steps = steps,
-                modifier = Modifier.padding(top = Spacing.sm),
-                colors = SliderDefaults.colors(
-                    thumbColor = colors.brand,
-                    activeTrackColor = colors.brandDeep,
-                    inactiveTrackColor = colors.elevated,
-                ),
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(text = tickStart, style = AppType.micro, color = colors.textMuted)
-                Text(text = tickMid, style = AppType.micro, color = colors.textMuted)
-                Text(text = tickEnd, style = AppType.micro, color = colors.textMuted)
-            }
-        }
-    }
+    AppValueStepper(
+        label = label,
+        value = stringResource(R.string.onboarding_hours_value, formatHour(value)),
+        decreaseContentDescription = stringResource(R.string.onboarding_hours_decrease, label),
+        increaseContentDescription = stringResource(R.string.onboarding_hours_increase, label),
+        onDecrease = { onValueChange((value - .5f).coerceAtLeast(minimum)) },
+        onIncrease = { onValueChange((value + .5f).coerceAtMost(maximum)) },
+        decreaseEnabled = value > minimum,
+        increaseEnabled = value < maximum,
+    )
 }
 
 @Composable
@@ -309,7 +271,7 @@ internal fun OnboardingCushionStep(
 ) {
     val colors = AppTheme.colors
     val gapColor = if (cushion.isShort) colors.danger else colors.success
-    val examDate = formatExamDate(state.daysUntilExam)
+    val examDate = formatExamDate(state.daysUntilTarget)
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Text(
@@ -337,7 +299,7 @@ internal fun OnboardingCushionStep(
         Surface(
             shape = RoundedCornerShape(Radius.lg),
             color = colors.surface,
-            border = BorderStroke(1.dp, colors.border),
+            border = BorderStroke(Stroke.hairline, colors.border),
         ) {
             Column(modifier = Modifier.padding(Spacing.lg)) {
                 Row(
@@ -363,7 +325,7 @@ internal fun OnboardingCushionStep(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = Spacing.md)
-                        .height(46.dp)
+                        .height(Size.onboardingInput)
                         .clip(RoundedCornerShape(Radius.sm)),
                 ) {
                     val covered = cushion.coverage.coerceIn(1, 100).toFloat()
@@ -414,7 +376,7 @@ internal fun OnboardingCushionStep(
         )
         if (cushion.isShort) {
             OnboardingFixCard(
-                metric = "+${cushion.extraPerDay}",
+                metric = stringResource(R.string.onboarding_plan_metric_more, cushion.extraPerDay),
                 title = stringResource(R.string.onboarding_plan_fix_more_hours),
                 subtitle = stringResource(
                     R.string.onboarding_plan_fix_more_hours_sub,
@@ -422,23 +384,23 @@ internal fun OnboardingCushionStep(
                 ),
             )
             OnboardingFixCard(
-                metric = "-${cushion.topicsToDrop}",
+                metric = stringResource(R.string.onboarding_plan_metric_fewer, cushion.topicsToDrop),
                 title = stringResource(R.string.onboarding_plan_fix_drop_topics),
                 subtitle = stringResource(R.string.onboarding_plan_fix_drop_topics_sub),
             )
             OnboardingFixCard(
-                metric = "${cushion.daysToPush}d",
+                metric = stringResource(R.string.onboarding_plan_metric_days, cushion.daysToPush),
                 title = stringResource(R.string.onboarding_plan_fix_later_date),
                 subtitle = stringResource(R.string.onboarding_plan_fix_later_date_sub),
             )
         } else {
             OnboardingFixCard(
-                metric = "2x",
+                metric = stringResource(R.string.onboarding_plan_metric_passes, 2),
                 title = stringResource(R.string.onboarding_plan_fix_revision),
                 subtitle = stringResource(R.string.onboarding_plan_fix_revision_sub),
             )
             OnboardingFixCard(
-                metric = "${cushion.bufferDays}d",
+                metric = stringResource(R.string.onboarding_plan_metric_days, cushion.bufferDays),
                 title = stringResource(R.string.onboarding_plan_fix_buffer_days),
                 subtitle = stringResource(R.string.onboarding_plan_fix_buffer_days_sub),
             )
@@ -456,12 +418,12 @@ private fun OnboardingFixCard(
     Surface(
         shape = RoundedCornerShape(Radius.lg),
         color = colors.surface,
-        border = BorderStroke(1.dp, colors.border),
+        border = BorderStroke(Stroke.hairline, colors.border),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.lg, vertical = 14.dp),
+                .padding(horizontal = Spacing.lg, vertical = Spacing.ml),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -474,13 +436,15 @@ private fun OnboardingFixCard(
                 Text(text = title, style = AppType.callout, color = colors.text)
                 Text(text = subtitle, style = AppType.sub, color = colors.textMuted)
             }
-            Text(text = "›", style = AppType.subtitle, color = colors.textMuted)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = colors.textMuted)
         }
     }
 }
 
 private fun formatExamDate(daysFromNow: Int): String =
-    LocalDate.now().plusDays(daysFromNow.toLong()).format(ExamDateFormatter)
+    LocalDate.now().plusDays(daysFromNow.toLong()).format(
+        DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()),
+    )
 
 private fun formatHour(value: Float): String =
     if (value == value.toLong().toFloat()) value.toLong().toString() else value.toString()

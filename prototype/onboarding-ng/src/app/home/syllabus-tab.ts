@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, viewChild } from '@angular/core';
 import { SyllabusBrowser } from '../syllabus/syllabus-browser';
 import { OrganiseScreen } from '../syllabus/organise-screen';
 import { MatIconModule } from '@angular/material/icon';
@@ -14,8 +14,11 @@ import { MatRippleModule } from '@angular/material/core';
     } @else {
       <header class="bar">
         <h1 class="bar-title">Syllabus</h1>
-        <button matRipple class="icon-btn" (click)="organising.set(true)" aria-label="Organise">
-          <mat-icon>tune</mat-icon>
+        <button matRipple class="icon-btn" (click)="openFilters()" aria-label="Filter syllabus">
+          <mat-icon>filter_alt</mat-icon>
+        </button>
+        <button matRipple class="icon-btn" (click)="organising.set(true)" aria-label="Edit syllabus">
+          <mat-icon>edit_note</mat-icon>
         </button>
       </header>
       <div class="body"><app-syllabus-browser /></div>
@@ -54,5 +57,10 @@ import { MatRippleModule } from '@angular/material/core';
   `,
 })
 export class SyllabusTab {
+  private readonly browser = viewChild.required(SyllabusBrowser);
   protected readonly organising = signal(false);
+
+  protected openFilters(): void {
+    this.browser().openFilters();
+  }
 }

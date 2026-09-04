@@ -1,5 +1,6 @@
 package com.exam.assistant.feature.home
 
+import android.content.res.Resources
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -49,6 +50,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -72,6 +74,7 @@ import com.exam.assistant.domain.topicHours
 @Composable
 internal fun HomeStudyContent(
     state: HomeUiState,
+    onEditPlan: () -> Unit,
     onSelectDate: (java.time.LocalDate) -> Unit,
     onToggleCalendarExpanded: () -> Unit,
     onOpenAdd: () -> Unit,
@@ -90,6 +93,7 @@ internal fun HomeStudyContent(
     onRescheduleToNextSlot: (String) -> Unit,
     onRescheduleToTomorrow: (String) -> Unit,
     onRescheduleToTime: (String, Int) -> Unit,
+    onSkipSession: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
@@ -98,7 +102,7 @@ internal fun HomeStudyContent(
         if (state.sheet == HomeSheet.None) {
             Column(modifier = Modifier.fillMaxSize()) {
                 HomeCalendarChrome(
-                    monthTitle = state.monthTitle,
+                    selectedDate = state.selectedDate,
                     weekDays = state.weekDays,
                     monthDays = state.monthDays,
                     expanded = state.calendarExpanded,
@@ -106,17 +110,15 @@ internal fun HomeStudyContent(
                     onSelectDate = onSelectDate,
                 )
 
-                HomeDayBar(
-                    selectedIsToday = state.selectedIsToday,
-                    selectedDayLabel = state.selectedDayLabel,
-                )
-
-                DaySummaryHeader(
+                TodaySummary(
+                    entries = state.dayTimeline,
                     plannedMinutes = state.plannedTodayMinutes,
                     completedMinutes = state.completedTodayMinutes,
-                    daysUntilExam = state.daysUntilExam,
-                    syllabusPercent = state.syllabusPercent,
-                    modifier = Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.sm),
+                    selectedIsToday = state.selectedIsToday,
+                    onEditPlan = onEditPlan,
+                    modifier = Modifier
+                        .padding(horizontal = Spacing.lg)
+                        .padding(top = Spacing.md, bottom = Spacing.xl),
                 )
 
                 Column(
@@ -136,7 +138,7 @@ internal fun HomeStudyContent(
                         onOpenAdd = onOpenAdd,
                         onOpenAddInGap = onOpenAddInGap,
                     )
-                    Spacer(Modifier.height(72.dp))
+                    Spacer(Modifier.height(Size.themePreview))
                 }
             }
             rescheduleTarget?.let { block ->
@@ -155,6 +157,10 @@ internal fun HomeStudyContent(
                         rescheduleTarget = null
                     },
                     onDismiss = { rescheduleTarget = null },
+                    onSkip = {
+                        onSkipSession(block.id)
+                        rescheduleTarget = null
+                    },
                 )
             }
             if (state.selectedIsToday) {
@@ -213,6 +219,7 @@ private fun StudyPickerFrame(
     onConfirmStart: () -> Unit,
 ) {
     val colors = AppTheme.colors
+    val resources = LocalContext.current.resources
     val picking = state.sheet == HomeSheet.PickTopic
     val query = state.pickerQuery.trim()
 
@@ -262,11 +269,11 @@ private fun StudyPickerFrame(
 
         if (picking) {
             val rows = when {
-                query.isNotEmpty() -> searchRows(state.sections, query)
-                state.pickerLevel == StudyPickerLevel.Subjects -> subjectRows(state.sections)
+                query.isNotEmpty() -> searchRows(resources, state.sections, query)
+                state.pickerLevel == StudyPickerLevel.Subjects -> subjectRows(resources, state.sections)
                 state.pickerLevel == StudyPickerLevel.Topics -> {
                     val sectionIndex = state.pickerSectionIndex
-                    if (sectionIndex == null) emptyList() else topicRows(state.sections, sectionIndex)
+                    if (sectionIndex == null) emptyList() else topicRows(resources, state.sections, sectionIndex)
                 }
                 else -> {
                     val sectionIndex = state.pickerSectionIndex
@@ -276,6 +283,7 @@ private fun StudyPickerFrame(
                     } else {
                         val root = state.sections.getOrNull(sectionIndex)?.topics?.getOrNull(topicIndex)
                         if (root == null) emptyList() else leafRows(
+                            resources = resources,
                             node = root,
                             sectionIndex = sectionIndex,
                             rootPath = state.pickerTopicPath,
@@ -473,12 +481,17 @@ private fun StudyPickerRowView(
     }
 }
 
-private fun subjectRows(sections: List<SyllabusSection>): List<StudyPickerRow> =
+private fun subjectRows(resources: Resources, sections: List<SyllabusSection>): List<StudyPickerRow> =
     sections.mapIndexed { index, section ->
         StudyPickerRow(
             id = "subject-$index",
             title = section.name,
-            subtitle = "${section.topics.size} topics · ${section.topics.sumOf { topicHours(it).toInt() }}h",
+            subtitle = resources.getQuantityString(
+                R.plurals.home_picker_subject_summary,
+                section.topics.size,
+                section.topics.size,
+                section.topics.sumOf { topicHours(it).toInt() },
+            ),
             sectionIndex = index,
             path = emptyList(),
             topicPath = section.name,
@@ -486,29 +499,35 @@ private fun subjectRows(sections: List<SyllabusSection>): List<StudyPickerRow> =
         )
     }
 
-private fun topicRows(sections: List<SyllabusSection>, sectionIndex: Int): List<StudyPickerRow> {
+private fun topicRows(resources: Resources, sections: List<SyllabusSection>, sectionIndex: Int): List<StudyPickerRow> {
     val section = sections.getOrNull(sectionIndex) ?: return emptyList()
     return section.topics.mapIndexed { index, topic ->
         StudyPickerRow(
             id = "topic-$sectionIndex-$index",
             title = topic.name,
             subtitle = if (topic.children.isEmpty()) {
-                formatTopicHours(topic)
+                formatTopicHours(resources, topic)
             } else {
-                "${countLeaves(topic)} subtopics · ${formatTopicHours(topic)}"
+                resources.getQuantityString(
+                    R.plurals.home_picker_subtopic_summary,
+                    countLeaves(topic),
+                    countLeaves(topic),
+                    formatTopicHours(resources, topic),
+                )
             },
             sectionIndex = sectionIndex,
             path = listOf(index),
-            topicPath = listOf(topic.name).joinToString(" · "),
+            topicPath = topic.name,
             opensSubtopics = topic.children.isNotEmpty(),
         )
     }
 }
 
-private fun searchRows(sections: List<SyllabusSection>, query: String): List<StudyPickerRow> =
+private fun searchRows(resources: Resources, sections: List<SyllabusSection>, query: String): List<StudyPickerRow> =
     sections.flatMapIndexed { sectionIndex, section ->
         section.topics.flatMapIndexed { topicIndex, topic ->
             leafRows(
+                resources = resources,
                 node = topic,
                 sectionIndex = sectionIndex,
                 rootPath = listOf(topicIndex),
@@ -521,6 +540,7 @@ private fun searchRows(sections: List<SyllabusSection>, query: String): List<Stu
     }.take(40)
 
 private fun leafRows(
+    resources: Resources,
     node: SyllabusTopicNode,
     sectionIndex: Int,
     rootPath: List<Int>,
@@ -528,21 +548,22 @@ private fun leafRows(
     sectionName: String,
 ): List<StudyPickerRow> {
     if (node.children.isEmpty()) {
-        val topicPath = ancestors.joinToString(" · ")
+        val topicPath = pathOf(resources, ancestors)
         return listOf(
             StudyPickerRow(
                 id = "search-$sectionIndex-${rootPath.joinToString("-")}",
                 title = node.name,
-                subtitle = "$topicPath · $sectionName",
+                subtitle = resources.getString(R.string.home_picker_path, topicPath, sectionName),
                 sectionIndex = sectionIndex,
                 path = rootPath,
-                topicPath = "$sectionName · $topicPath",
+                topicPath = resources.getString(R.string.home_picker_path, sectionName, topicPath),
                 opensSubtopics = false,
             ),
         )
     }
     return node.children.flatMapIndexed { index, child ->
         leafRows(
+            resources = resources,
             node = child,
             sectionIndex = sectionIndex,
             rootPath = rootPath + index,
@@ -573,8 +594,9 @@ private fun DurationPickerContent(
     val revisionDue = remember {
         java.time.LocalDate.now().plusDays(REVISION_INTERVAL_DAYS.toLong())
     }
-    val revisionFormatter = remember {
-        java.time.format.DateTimeFormatter.ofPattern("EEE d MMM", java.util.Locale.getDefault())
+    val revisionPattern = stringResource(R.string.home_revision_date_pattern)
+    val revisionFormatter = remember(revisionPattern) {
+        java.time.format.DateTimeFormatter.ofPattern(revisionPattern, java.util.Locale.getDefault())
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
@@ -706,7 +728,10 @@ private fun DurationPickerContent(
     }
 }
 
-private fun formatTopicHours(node: SyllabusTopicNode): String {
+private fun pathOf(resources: Resources, parts: List<String>): String =
+    parts.reduceOrNull { path, part -> resources.getString(R.string.home_picker_path, path, part) }.orEmpty()
+
+private fun formatTopicHours(resources: Resources, node: SyllabusTopicNode): String {
     val hours = topicHours(node)
-    return if (hours > 0) "${hours.toInt()}h est." else ""
+    return if (hours > 0) resources.getString(R.string.home_estimated_hours, hours.toInt()) else ""
 }

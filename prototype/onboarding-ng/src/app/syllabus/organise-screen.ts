@@ -75,7 +75,7 @@ interface Draft {
         </section>
 
         <section class="plan-section">
-          <span class="eyebrow">Next 7 days</span>
+          <span class="eyebrow">Estimated next 7 days</span>
           <div class="week-strip" role="list" aria-label="Seven day forecast">
             @for (day of week(); track day.key; let i = $index) {
               <button matRipple role="listitem" [class.on]="selectedDay() === i" (click)="selectedDay.set(i)">
@@ -96,14 +96,15 @@ interface Draft {
         </section>
 
         <section class="plan-section">
-          <span class="eyebrow">Timeline to exam</span>
-          <h2 class="plan-title">What will be done by when</h2>
+          <span class="eyebrow">Estimated timeline to exam</span>
+          <h2 class="plan-title">Where the current plan is likely to land</h2>
+          <p class="hint">These dates simulate your current hours, fixed commitments, breaks, revision load, scope, and chapter order. They move when the plan changes.</p>
           <div class="timeline">
             @for (item of visibleMilestones(); track item.chapter.id) {
               <div class="milestone" [class.late]="!item.fits">
                 <span class="rail-dot"></span>
                 <span class="milestone-date">{{ item.date | date: 'd MMM' }}</span>
-                <span class="milestone-copy"><strong>{{ item.chapter.name }}</strong><small>{{ subjectName(item.chapter) }} · {{ item.fits ? 'finished' : 'after exam' }}</small></span>
+                <span class="milestone-copy"><strong>{{ item.chapter.name }}</strong><small>{{ subjectName(item.chapter) }} · {{ item.fits ? 'estimated finish' : 'estimated after exam' }}</small></span>
               </div>
             } @empty {
               <p class="empty">Everything currently in play is already done.</p>
@@ -202,7 +203,7 @@ interface Draft {
                   Not taught yet
                 } @else if (landingFor(row.chapter); as l) {
                   <span [class.late]="!l.fits">
-                    {{ l.fits ? 'Reached' : 'Misses the exam,' }} {{ l.date | date: 'd MMM' }}
+                    {{ l.fits ? 'Estimated' : 'Estimated after exam,' }} {{ l.date | date: 'd MMM' }}
                   </span>
                   · {{ row.chapter.hours }}h
                 } @else {

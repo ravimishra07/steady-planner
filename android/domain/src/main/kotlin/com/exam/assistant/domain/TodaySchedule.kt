@@ -35,15 +35,15 @@ sealed interface TimelineItem {
     data class Entry(val block: TodayBlock) : TimelineItem
 }
 
-/** Fixed demo schedule — matches prototype/web-app/data.js until the real scheduler lands. */
+/** Fixed NEET demo schedule used by domain tests. */
 fun demoTodayBlocks(): List<TodayBlock> = listOf(
     TodayBlock(
         id = "0",
         time = "06:30",
-        title = "Geometry — Triangles",
-        subtitle = "Your book, §4.1–4.4 · 90 min",
+        title = "Physics — Motion in a Straight Line",
+        subtitle = "NCERT chapter · 90 min",
         tag = BlockTag.READ,
-        subjectId = "quant",
+        subjectId = "physics",
         minutes = 90,
     ),
     TodayBlock(
@@ -55,37 +55,37 @@ fun demoTodayBlocks(): List<TodayBlock> = listOf(
     TodayBlock(
         id = "2",
         time = "08:15",
-        title = "Geometry — 40 practice questions",
-        subtitle = "Previous-year set · 75 min",
+        title = "Physics — 40 practice questions",
+        subtitle = "NEET question set · 75 min",
         tag = BlockTag.PRACTICE,
-        subjectId = "quant",
+        subjectId = "physics",
         minutes = 75,
     ),
     TodayBlock(
         id = "3",
         time = "14:00",
-        title = "Revision: Percentage",
+        title = "Revision: Some Basic Concepts of Chemistry",
         subtitle = "Done 6 days ago · 30 min",
         tag = BlockTag.REVISE,
-        subjectId = "quant",
+        subjectId = "chemistry",
         minutes = 30,
     ),
     TodayBlock(
         id = "4",
         time = "15:30",
-        title = "Current Affairs",
-        subtitle = "Rolling topic · 30 min daily",
+        title = "Cell: The Unit of Life",
+        subtitle = "NCERT review · 30 min",
         tag = BlockTag.READ,
-        subjectId = "ga",
+        subjectId = "botany",
         minutes = 30,
     ),
     TodayBlock(
         id = "5",
         time = "18:30",
-        title = "Reasoning — Series",
-        subtitle = "Module 3 · 45 min",
+        title = "Animal Kingdom — Practice",
+        subtitle = "NEET question set · 45 min",
         tag = BlockTag.PRACTICE,
-        subjectId = "reasoning",
+        subjectId = "zoology",
         minutes = 45,
     ),
 )

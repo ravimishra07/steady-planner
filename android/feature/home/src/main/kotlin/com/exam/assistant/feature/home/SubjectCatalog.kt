@@ -11,10 +11,10 @@ internal data class SubjectOption(
 
 internal object SubjectCatalog {
     val options = listOf(
-        SubjectOption("quant", R.string.home_subject_quant, R.string.home_subject_quant_short),
-        SubjectOption("reasoning", R.string.home_subject_reasoning, R.string.home_subject_reasoning_short),
-        SubjectOption("ga", R.string.home_subject_ga, R.string.home_subject_ga_short),
-        SubjectOption("english", R.string.home_subject_english, R.string.home_subject_english_short),
+        SubjectOption("physics", R.string.home_subject_physics, R.string.home_subject_physics_short),
+        SubjectOption("chemistry", R.string.home_subject_chemistry, R.string.home_subject_chemistry_short),
+        SubjectOption("botany", R.string.home_subject_botany, R.string.home_subject_botany_short),
+        SubjectOption("zoology", R.string.home_subject_zoology, R.string.home_subject_zoology_short),
     )
 
     fun allIds(): Set<String> = options.map { it.id }.toSet()

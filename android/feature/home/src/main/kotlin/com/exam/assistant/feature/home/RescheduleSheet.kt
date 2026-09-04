@@ -37,6 +37,7 @@ internal fun RescheduleSheet(
     onMoveToNextSlot: () -> Unit,
     onMoveToTomorrow: () -> Unit,
     onChooseTime: (Int) -> Unit,
+    onSkip: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val colors = AppTheme.colors
@@ -59,7 +60,7 @@ internal fun RescheduleSheet(
                     color = colors.text,
                 )
                 Text(
-                    text = "${block.subjectLabel} · ${block.title}",
+                    text = stringResource(R.string.home_subject_title, block.subjectLabel, block.title),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.textSecondary,
                     modifier = Modifier.padding(bottom = Spacing.sm),
@@ -90,6 +91,9 @@ internal fun RescheduleSheet(
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.text),
                 ) {
                     Text(stringResource(R.string.home_reschedule_choose_time))
+                }
+                TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.home_skip_block), color = colors.danger)
                 }
                 TextButton(
                     onClick = onDismiss,

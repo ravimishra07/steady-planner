@@ -1,5 +1,8 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { Router } from '@angular/router';
+import { OnboardingStore } from './state';
 
 /**
  * Screen scaffold: top app bar with segmented progress, scrolling body, one
@@ -8,11 +11,14 @@ import { MatButtonModule } from '@angular/material/button';
  */
 @Component({
   selector: 'ob-shell',
-  imports: [MatButtonModule],
+  imports: [MatButtonModule, MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="bar">
-      <span class="slot"></span>
+      <button class="nav-button" type="button" (click)="goBack()"
+              [attr.aria-label]="store.canGoBack() ? 'Back' : 'Exit setup'">
+        <mat-icon>{{ store.canGoBack() ? 'arrow_back' : 'close' }}</mat-icon>
+      </button>
 
       @if (progressIndex() !== null) {
         <div class="progress" role="progressbar"
@@ -60,6 +66,19 @@ import { MatButtonModule } from '@angular/material/button';
     }
 
     .slot { width: 48px; flex: none; }
+    .nav-button {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      flex: none;
+      border: 0;
+      border-radius: var(--mat-sys-corner-full);
+      background: transparent;
+      color: var(--mat-sys-on-surface);
+      cursor: pointer;
+    }
+    .nav-button:hover { background: var(--mat-sys-surface-container-high); }
     .grow { flex: 1; }
 
     .progress { display: flex; gap: 4px; flex: 1; }
@@ -111,6 +130,8 @@ import { MatButtonModule } from '@angular/material/button';
   `,
 })
 export class Shell {
+  protected readonly store = inject(OnboardingStore);
+  private readonly router = inject(Router);
   readonly title = input.required<string>();
   readonly ctaLabel = input('Continue');
   readonly continueEnabled = input(true);
@@ -118,6 +139,11 @@ export class Shell {
   readonly segments = input(6);
 
   readonly continue = output<void>();
+
+  protected goBack(): void {
+    if (this.store.canGoBack()) this.store.back();
+    else void this.router.navigateByUrl('/today');
+  }
 
   segmentList(): number[] {
     return Array.from({ length: this.segments() }, (_, i) => i);

@@ -12,6 +12,9 @@
     <string name="focus_stop">Stop</string>
     <string name="focus_pause">Pause</string>
     <string name="focus_resume">Resume</string>
+    <string name="focus_add_five">+5 min</string>
+    <string name="focus_end">End</string>
+    <string name="focus_length_minutes">%1$d min</string>
     <string name="focus_start_another">Start another</string>
     <string name="focus_back_today">Back to today</string>
     <string name="focus_empty_title">Nothing left today</string>
@@ -20,8 +23,22 @@
     <string name="focus_stop_confirm_yes">Stop</string>
     <string name="focus_stop_confirm_no">Keep going</string>
     <string name="focus_tag_read">Read</string>
+    <string name="focus_tag_learn">Learn</string>
     <string name="focus_tag_practice">Practice</string>
     <string name="focus_tag_revise">Revise</string>
+    <string name="focus_back">Back</string>
+    <string name="focus_search_topics">Search today\'s topics</string>
+    <string name="focus_browse_topics">Browse topics</string>
+    <string name="focus_no_topics_match">Nothing matches “%1$s”.</string>
+    <string name="focus_shield_preview">Shield preview</string>
+    <string name="focus_shield_off">Shield off</string>
+    <string name="focus_up_next">up next</string>
+    <string name="focus_start_minutes">Start %1$d min</string>
+    <string name="focus_pick_topic">Pick a topic</string>
+    <plurals name="focus_left_today">
+        <item quantity="one">%1$d left today</item>
+        <item quantity="other">%1$d left today</item>
+    </plurals>
 
     <string name="focus_lock_title">Focus Lock</string>
     <string name="focus_lock_subtitle">Block distracting apps automatically while you study.</string>
@@ -35,18 +52,28 @@
     <string name="focus_lock_choose_distractions">Choose distractions</string>
     <string name="focus_lock_needs_attention_body">Android access is required for distraction blocking.</string>
     <string name="focus_lock_fix_setup">Fix setup</string>
-    <string name="focus_lock_apps_selected">%1$d distracting apps selected</string>
+    <plurals name="focus_lock_apps_selected">
+        <item quantity="one">%1$d distracting app selected</item>
+        <item quantity="other">%1$d distracting apps selected</item>
+    </plurals>
     <string name="focus_lock_auto_activates">Automatically activates during study sessions.</string>
     <string name="focus_lock_manage_apps">Manage apps</string>
     <string name="focus_lock_min_remaining">%1$d min remaining</string>
-    <string name="focus_lock_apps_blocked_active">%1$d apps blocked · Active while you study</string>
-    <string name="focus_lock_status_line_active">Focus Lock · Active · %1$d apps blocked</string>
+    <plurals name="focus_lock_apps_blocked_active">
+        <item quantity="one">%1$d app blocked · Active while you study</item>
+        <item quantity="other">%1$d apps blocked · Active while you study</item>
+    </plurals>
+    <plurals name="focus_lock_status_line_active">
+        <item quantity="one">Focus Lock · Active · %1$d app blocked</item>
+        <item quantity="other">Focus Lock · Active · %1$d apps blocked</item>
+    </plurals>
 
     <string name="focus_lock_setup_title">Set up Focus Lock</string>
     <string name="focus_lock_setup_body">Focus Lock can keep distracting apps unavailable while your study timer is running.</string>
     <string name="focus_lock_setup_step_1">Allow required access</string>
     <string name="focus_lock_setup_step_2">Choose distracting apps</string>
     <string name="focus_lock_setup_step_3">Focus Lock is ready</string>
+    <string name="focus_lock_step_number">%1$d</string>
     <string name="focus_lock_continue">Continue</string>
     <string name="focus_lock_not_now">Not now</string>
 

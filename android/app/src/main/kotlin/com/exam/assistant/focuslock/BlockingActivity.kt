@@ -1,9 +1,11 @@
 package com.exam.assistant.focuslock
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -19,16 +22,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.exam.assistant.MainActivity
+import com.exam.assistant.R
 import com.exam.assistant.SteadylineApp
 import com.exam.assistant.core.design.AccentPalette
 import com.exam.assistant.core.design.AppTheme
@@ -47,6 +53,10 @@ class BlockingActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
 
         val blockedPackage = intent.getStringExtra(EXTRA_BLOCKED_PACKAGE).orEmpty()
         val topicTitle = intent.getStringExtra(EXTRA_TOPIC_TITLE).orEmpty()
@@ -58,6 +68,12 @@ class BlockingActivity : ComponentActivity() {
 
         setContent {
             SteadylineTheme(background = BackgroundAppearance.Dark, palette = AccentPalette.Default) {
+                SideEffect {
+                    WindowCompat.getInsetsController(window, window.decorView).apply {
+                        isAppearanceLightStatusBars = false
+                        isAppearanceLightNavigationBars = false
+                    }
+                }
                 BlockingScreen(
                     blockedAppLabel = blockedAppLabel,
                     topicTitle = topicTitle,
@@ -109,16 +125,16 @@ private fun BlockingScreen(
     if (showConfirm) {
         AlertDialog(
             onDismissRequest = { showConfirm = false },
-            title = { Text("Need access?") },
-            text = { Text("This allows $blockedAppLabel for 5 minutes, then Focus Lock resumes.") },
+            title = { Text(stringResource(R.string.focus_lock_blocking_need_access)) },
+            text = { Text(stringResource(R.string.focus_lock_blocking_need_access_body, blockedAppLabel)) },
             confirmButton = {
                 TextButton(onClick = {
                     showConfirm = false
                     onAllowTemporarily()
-                }) { Text("Allow for 5 min") }
+                }) { Text(stringResource(R.string.focus_lock_blocking_allow)) }
             },
             dismissButton = {
-                TextButton(onClick = { showConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = { showConfirm = false }) { Text(stringResource(R.string.focus_lock_blocking_cancel)) }
             },
         )
     }
@@ -127,6 +143,7 @@ private fun BlockingScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.bg)
+            .safeDrawingPadding()
             .padding(Spacing.xxl),
         contentAlignment = Alignment.Center,
     ) {
@@ -135,12 +152,12 @@ private fun BlockingScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             Text(
-                text = "Focus Lock",
+                text = stringResource(R.string.focus_lock_blocking_label),
                 style = MaterialTheme.typography.labelLarge,
                 color = colors.brandSoft,
             )
             Text(
-                text = "You're studying",
+                text = stringResource(R.string.focus_lock_blocking_headline),
                 style = MaterialTheme.typography.headlineMedium,
                 color = colors.text,
                 textAlign = TextAlign.Center,
@@ -155,13 +172,13 @@ private fun BlockingScreen(
             }
             if (remainingSec > 0) {
                 Text(
-                    text = "${remainingSec / 60} min left",
+                    text = stringResource(R.string.focus_lock_blocking_min_left, remainingSec / 60),
                     style = MaterialTheme.typography.bodyLarge,
                     color = colors.textMuted,
                 )
             }
             Text(
-                text = "$blockedAppLabel is paused during this study session.",
+                text = stringResource(R.string.focus_lock_blocking_app_paused, blockedAppLabel),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.textMuted,
                 textAlign = TextAlign.Center,
@@ -173,10 +190,10 @@ private fun BlockingScreen(
                 shape = RoundedCornerShape(Radius.lg),
                 colors = ButtonDefaults.buttonColors(containerColor = colors.brandDeep, contentColor = colors.onBrand),
             ) {
-                Text("Back to study")
+                Text(stringResource(R.string.focus_lock_blocking_back_to_study))
             }
             TextButton(onClick = { showConfirm = true }) {
-                Text("Need access?", color = colors.textMuted)
+                Text(stringResource(R.string.focus_lock_blocking_need_access), color = colors.textMuted)
             }
         }
     }

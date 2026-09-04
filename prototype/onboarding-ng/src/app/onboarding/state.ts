@@ -7,7 +7,7 @@ import {
   templateFor,
 } from './exam-pack';
 import { persisted, persistedMap, persistedSet } from '../core/persist';
-import { COMMITMENT_PRESETS, Commitment, committedMinutes } from './commitments';
+import { COMMITMENT_PRESETS, Commitment, committedMinutes, validateCommitments } from './commitments';
 import { Pace, setPace } from '../study/retention';
 import { availableHours as calculateAvailableHours } from '../domain/planning/capacity';
 import { addDays, startOfToday } from '../domain/time/date';
@@ -59,6 +59,7 @@ export interface CoachingOption { id: string; label: string; mode: string; icon:
 
 /** Institutes most named in 2026 NEET coaching rankings, plus a self-study exit. */
 export const COACHINGS: CoachingOption[] = [
+  { id: 'school', label: 'School or college', mode: 'Classes set the pace', icon: 'account_balance' },
   { id: 'allen', label: 'Allen Career Institute', mode: 'Classroom · Kota', icon: 'school' },
   { id: 'aakash', label: 'Aakash Institute', mode: 'Classroom · Pan-India', icon: 'account_balance' },
   { id: 'pw', label: 'Physics Wallah', mode: 'Online', icon: 'play_lesson' },
@@ -88,13 +89,13 @@ export function nextExamDay(from: Date = startOfToday()): Date {
 export const STUDY_SPOTS = ['Home desk', 'Library', 'Coaching', 'Hostel room', 'Terrace', 'Cafe', 'Other'];
 
 export const STEPS = [
-  'appearance', 'exam', 'coaching', 'commitments', 'date', 'shape', 'hours', 'syllabus', 'plan',
+  'exam', 'coaching', 'commitments', 'date', 'hours', 'syllabus', 'appearance', 'plan',
 ] as const;
 export type StepId = (typeof STEPS)[number];
 
 /** Segments shown in the top progress bar — the plan step has none, as on Android. */
 const PROGRESS_STEPS: StepId[] = [
-  'appearance', 'exam', 'coaching', 'commitments', 'date', 'shape', 'hours', 'syllabus',
+  'exam', 'coaching', 'commitments', 'date', 'hours', 'syllabus', 'appearance',
 ];
 
 /**
@@ -170,7 +171,7 @@ export class OnboardingStore {
   );
 
   readonly examId = persisted('exam', 'neet');
-  readonly coachingId = persisted('coaching', 'allen');
+  readonly coachingId = persisted('coaching', '');
   readonly shapeId = persisted('shape', 'col');
   readonly weekdayHours = persisted('weekday-hours', 4);
   readonly weekendHours = persisted('weekend-hours', 7);
@@ -359,6 +360,26 @@ export class OnboardingStore {
   readonly weekdayOverbooked = computed(() => this.weekdayHours() > this.weekdayFreeHours());
   readonly weekendOverbooked = computed(() => this.weekendHours() > this.weekendFreeHours());
 
+  /** Human-fixable commitment problems. A plan never hides or silently clamps these. */
+  readonly commitmentIssues = computed(() => {
+    return validateCommitments(this.commitments(), this.wakeMinute(), this.sleepMinute());
+  });
+
+  readonly capacityIssues = computed(() => {
+    const issues: string[] = [];
+    if (this.weekdayOverbooked()) {
+      issues.push(`Weekdays only have ${this.weekdayFreeHours().toFixed(1)} free hours.`);
+    }
+    if (this.weekendOverbooked()) {
+      issues.push(`Weekends only have ${this.weekendFreeHours().toFixed(1)} free hours.`);
+    }
+    return issues;
+  });
+
+  readonly planCanBeBuilt = computed(
+    () => this.commitmentIssues().length === 0 && this.capacityIssues().length === 0 && this.allChapters().length > 0,
+  );
+
   /** The schedule module holds one pace; keep it in step with the setting. */
   private readonly paceSync = effect(() => setPace(this.revisionPace()));
 
@@ -430,9 +451,10 @@ export class OnboardingStore {
 
   readonly reviseDays = computed(() => this.leftoverDays() - this.bufferDays());
 
-  readonly coverage = computed(() =>
-    Math.min(100, Math.round((this.availableHours() / this.requiredHours()) * 100)),
-  );
+  readonly coverage = computed(() => {
+    const required = this.requiredHours();
+    return required <= 0 ? 0 : Math.min(100, Math.round((this.availableHours() / required) * 100));
+  });
 
   readonly examDate = computed(() => this.targetDate());
 

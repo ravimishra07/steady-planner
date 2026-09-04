@@ -7,6 +7,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { FormsModule } from '@angular/forms';
 import { Shell } from '../shell';
 import { OnboardingStore, addDays, startOfToday } from '../state';
+import { Router } from '@angular/router';
 
 /** The plan in the terms the user gave: days, hours, and what each day is for. */
 @Component({
@@ -16,13 +17,18 @@ import { OnboardingStore, addDays, startOfToday } from '../state';
   template: `
     <ob-shell
       title="Your plan"
-      ctaLabel="Start day 1"
+      [ctaLabel]="store.allChapters().length === 0 ? 'Add chapters' : 'Start day 1'"
       [progressIndex]="store.progressSegments - 1"
       [segments]="store.progressSegments"
+      [continueEnabled]="store.allChapters().length === 0 || store.planCanBeBuilt()"
       (continue)="restart()">
 
       <p class="verdict">
-        @if (store.gapHours() > 0) {
+        @if (store.allChapters().length === 0) {
+          <strong>Add at least one chapter</strong> before starting day 1. Open Syllabus → Organise after setup.
+        } @else if (store.capacityIssues().length > 0 || store.commitmentIssues().length > 0) {
+          <strong>The plan does not fit yet.</strong> Go back and resolve the highlighted schedule conflicts.
+        } @else if (store.gapHours() > 0) {
           You're <strong>{{ abs(store.gapHours()) }} hours short</strong> of the whole
           syllabus by {{ store.examDate() | date: 'd MMM' }}.
         } @else {
@@ -30,6 +36,14 @@ import { OnboardingStore, addDays, startOfToday } from '../state';
           before {{ store.examDate() | date: 'd MMM' }}.
         }
       </p>
+
+      @if (store.gapHours() > 0 && store.allChapters().length > 0) {
+        <div class="fixes">
+          <span><mat-icon>schedule</mat-icon>Increase available study hours</span>
+          <span><mat-icon>event</mat-icon>{{ store.dateMode() === 'exam' ? 'Keep the fixed exam date' : 'Move your preparation target' }}</span>
+          <span><mat-icon>content_cut</mat-icon>Reduce scope later in Organise</span>
+        </div>
+      }
 
       <div class="phases">
         <div class="bar">
@@ -118,6 +132,9 @@ import { OnboardingStore, addDays, startOfToday } from '../state';
     }
 
     .verdict strong { color: var(--mat-sys-on-surface); font-weight: 500; }
+    .fixes { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: var(--mat-sys-corner-large); background: var(--mat-sys-surface-container-high); }
+    .fixes span { display: flex; align-items: center; gap: 8px; font: var(--mat-sys-body-medium); }
+    .fixes mat-icon { color: var(--mat-sys-primary); }
 
     .phases { display: flex; flex-direction: column; gap: 12px; }
 
@@ -192,6 +209,7 @@ import { OnboardingStore, addDays, startOfToday } from '../state';
 })
 export class PlanStep {
   protected readonly store = inject(OnboardingStore);
+  private readonly router = inject(Router);
   protected readonly today = startOfToday();
 
   protected abs(n: number): number { return Math.abs(n); }
@@ -208,6 +226,7 @@ export class PlanStep {
 
   /** Onboarding ends here; the app shell takes over. */
   protected restart(): void {
-    this.store.started.set(true);
+    if (this.store.allChapters().length === 0) void this.router.navigateByUrl('/organise');
+    else this.store.started.set(true);
   }
 }

@@ -7,8 +7,12 @@ import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.StudySessionStore
 import com.exam.assistant.core.data.SyllabusRepository
 import com.exam.assistant.core.data.SyllabusStore
+import com.exam.assistant.core.data.SavedCommitment
+import com.exam.assistant.core.data.decodedCommitments
+import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.domain.DAY_TIMELINE_START
 import com.exam.assistant.domain.DayTimelineEntry
+import com.exam.assistant.domain.FixedCommitmentBlock
 import com.exam.assistant.domain.StudySessionRecord
 import com.exam.assistant.domain.buildDayTimeline
 import com.exam.assistant.domain.computeSyllabusProgress
@@ -28,8 +32,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import java.util.UUID
 import kotlin.math.min
 
@@ -38,6 +40,7 @@ class HomeViewModel(
     private val syllabusRepository: SyllabusRepository,
     private val syllabusStore: SyllabusStore,
     private val studySessionStore: StudySessionStore,
+    private val planRepository: PlanRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeUiState())
@@ -47,16 +50,13 @@ class HomeViewModel(
     private val _focusRequests = Channel<StudySessionRecord>(Channel.BUFFERED)
     val focusRequests = _focusRequests.receiveAsFlow()
 
-    private val monthFormatter =
-        DateTimeFormatter.ofPattern("MMMM yyyy", Locale.Builder().setLanguage("en").setRegion("IN").build())
-    private val dayFormatter =
-        DateTimeFormatter.ofPattern("EEEE, d MMM", Locale.Builder().setLanguage("en").setRegion("IN").build())
-    private val weekdayLabels = listOf("S", "M", "T", "W", "T", "F", "S")
-
     private var sections: List<com.exam.assistant.domain.SyllabusSection> = emptyList()
     private var allSessions: List<StudySessionRecord> = emptyList()
     private var weekdayHours = 4f
     private var weekendHours = 7f
+    private var wakeMinute = DAY_TIMELINE_START
+    private var sleepMinute = com.exam.assistant.domain.DAY_TIMELINE_END
+    private var fixedCommitments: List<SavedCommitment> = emptyList()
 
     init {
         refresh()
@@ -79,6 +79,9 @@ class HomeViewModel(
             allSessions = studySessionStore.loadAll()
             weekdayHours = plan?.weekdayHours ?: 4f
             weekendHours = plan?.weekendHours ?: 7f
+            wakeMinute = plan?.wakeMinute ?: DAY_TIMELINE_START
+            sleepMinute = plan?.sleepMinute ?: com.exam.assistant.domain.DAY_TIMELINE_END
+            fixedCommitments = plan?.decodedCommitments().orEmpty()
             val syllabusProgress = computeSyllabusProgress(sections, syllabusStore.load().doneLeaves)
             val today = LocalDate.now()
             val running = allSessions
@@ -325,13 +328,29 @@ class HomeViewModel(
         viewModelScope.launch {
             val session = allSessions.firstOrNull { it.id == sessionId } ?: return@launch
             if (session.completed) return@launch
-            val slotToday = findNextFreeSlot(allSessions, session.date, session.durationMinutes, currentMinuteOfDay())
+            val slotToday = findNextFreeSlot(
+                allSessions,
+                session.date,
+                session.durationMinutes,
+                currentMinuteOfDay(),
+                fixedBlocksFor(session.date),
+                wakeMinute,
+                sleepMinute,
+            )
             if (slotToday != null) {
                 applyReschedule(session, session.date, slotToday)
                 return@launch
             }
             val tomorrow = session.date.plusDays(1)
-            val slotTomorrow = findNextFreeSlot(allSessions, tomorrow, session.durationMinutes, DAY_TIMELINE_START)
+            val slotTomorrow = findNextFreeSlot(
+                allSessions,
+                tomorrow,
+                session.durationMinutes,
+                wakeMinute,
+                fixedBlocksFor(tomorrow),
+                wakeMinute,
+                sleepMinute,
+            )
             applyReschedule(session, tomorrow, slotTomorrow ?: session.startMinuteOfDay)
         }
     }
@@ -352,17 +371,45 @@ class HomeViewModel(
         }
     }
 
+    fun skipSession(sessionId: String) {
+        viewModelScope.launch {
+            planRepository.skip(sessionId, System.currentTimeMillis())
+            studySessionStore.delete(sessionId)
+            allSessions = studySessionStore.loadAll()
+            _state.update { it.rebuild() }
+        }
+    }
+
     private suspend fun applyReschedule(session: StudySessionRecord, date: LocalDate, startMinuteOfDay: Int) {
-        val updated = session.copy(
-            date = date,
-            startMinuteOfDay = startMinuteOfDay,
-            runningEndsAtMs = null,
-            completed = false,
-        )
-        studySessionStore.upsert(updated)
+        val normalized = planRepository.byId(session.id)
+        val replacementId = if (normalized != null) UUID.randomUUID().toString() else session.id
+        if (normalized != null) {
+            planRepository.reschedule(
+                original = normalized,
+                newDate = date,
+                newStartMinuteOfDay = startMinuteOfDay,
+                newBlockId = replacementId,
+                nowMs = System.currentTimeMillis(),
+            )
+        }
+        val updated = session.copy(id = replacementId, date = date, startMinuteOfDay = startMinuteOfDay, runningEndsAtMs = null, completed = false)
+        if (replacementId == session.id) studySessionStore.upsert(updated)
+        else studySessionStore.replace(session.id, updated)
         allSessions = studySessionStore.loadAll()
         _state.update { it.rebuild() }
     }
+
+    private fun fixedBlocksFor(date: LocalDate): List<FixedCommitmentBlock> = fixedCommitments
+        .filter { date.dayOfWeek.value % 7 in it.days }
+        .map {
+            FixedCommitmentBlock(
+                id = it.id,
+                kind = it.kind,
+                startMinuteOfDay = it.startMinute,
+                endMinuteOfDay = it.endMinute,
+                customLabel = it.customLabel,
+            )
+        }
 
     private fun HomeUiState.rebuild(): HomeUiState {
         if (!hasPlan) {
@@ -397,19 +444,21 @@ class HomeViewModel(
             date = selectedDate,
             today = today,
             nowMinuteOfDay = currentMinuteOfDay(),
+            fixedCommitments = fixedBlocksFor(selectedDate),
+            dayStartMinute = wakeMinute,
+            dayEndMinute = sleepMinute,
         )
         val plannedMinutes = builtTimeline.sumOf { entry ->
             (entry as? DayTimelineEntry.Study)?.block?.durationMinutes ?: 0
         }
 
-        fun dayUi(date: LocalDate, weekdayIndex: Int): WeekDayUi {
+        fun dayUi(date: LocalDate): WeekDayUi {
             val dayBudget = todayBudget(weekdayHours, weekendHours, date)
             val dayDone = allSessions
                 .filter { it.date == date && it.completed }
                 .sumOf { it.durationMinutes }
             return WeekDayUi(
                 date = date,
-                weekdayLabel = weekdayLabels[weekdayIndex],
                 dayOfMonth = date.dayOfMonth,
                 selected = date == selectedDate,
                 status = weekStatusForDay(date, today, dayDone, dayBudget),
@@ -422,15 +471,14 @@ class HomeViewModel(
         repeat(leadingBlanks) { monthCells += null }
         for (day in 0 until monthAnchor.lengthOfMonth()) {
             val date = monthAnchor.plusDays(day.toLong())
-            monthCells += dayUi(date, date.dayOfWeek.value % 7)
+            monthCells += dayUi(date)
         }
 
         return copy(
-            monthTitle = selectedDate.format(monthFormatter),
-            weekDays = weekAround(selectedDate).mapIndexed { index, date -> dayUi(date, index) },
+            weekDays = weekAround(selectedDate).map(::dayUi),
             monthDays = monthCells,
             selectedIsToday = selectedIsToday,
-            selectedDayLabel = if (selectedIsToday) "" else selectedDate.format(dayFormatter),
+            selectedDayLabel = "",
             dayBudgetHours = budget,
             completionPercent = percent,
             dayTimeline = builtTimeline,
@@ -445,9 +493,10 @@ class HomeViewModel(
         private val syllabusRepository: SyllabusRepository,
         private val syllabusStore: SyllabusStore,
         private val studySessionStore: StudySessionStore,
+        private val planRepository: PlanRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            HomeViewModel(planStore, syllabusRepository, syllabusStore, studySessionStore) as T
+            HomeViewModel(planStore, syllabusRepository, syllabusStore, studySessionStore, planRepository) as T
     }
 }

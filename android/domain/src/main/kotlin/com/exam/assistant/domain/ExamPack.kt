@@ -1,5 +1,8 @@
 package com.exam.assistant.domain
 
+/** The only exam supported by the shipping app. */
+const val NEET_EXAM_ID = "neet"
+
 /**
  * The static, versioned content of one exam's syllabus. Replaces the
  * positional [SyllabusSection]/[SyllabusTopicNode] model — every node here

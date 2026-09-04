@@ -3,7 +3,10 @@ package com.exam.assistant
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,9 +32,11 @@ import com.exam.assistant.feature.home.HomeRoute
 import com.exam.assistant.feature.onboarding.OnboardingRoute
 import com.exam.assistant.feature.progress.ProgressRoute
 import com.exam.assistant.feature.settings.MoreRoute
+import com.exam.assistant.feature.settings.AppearanceScreen
 import com.exam.assistant.feature.settings.PolicyScreen
 import com.exam.assistant.feature.settings.SettingsDetailRoute
 import com.exam.assistant.feature.syllabus.SyllabusRoute
+import com.exam.assistant.feature.syllabus.OrganiseRoute
 
 @Composable
 fun SteadylineNavHost(
@@ -50,8 +55,9 @@ fun SteadylineNavHost(
 
     Scaffold(
         containerColor = AppTheme.colors.bg,
+        contentWindowInsets = WindowInsets.safeDrawing,
         bottomBar = {
-            if (tab != null && tab != Tab.Focus) {
+            if (tab != null) {
                 SteadylineBottomBar(
                     selected = tab,
                     onSelect = { target ->
@@ -75,8 +81,20 @@ fun SteadylineNavHost(
             composable(Route.Onboarding.path) {
                 OnboardingRoute(
                     planStore = container.planStore,
-                    onFinished = {
-                        navController.navigate(Route.Home.path) {
+                    examPackRepository = container.examPackRepository,
+                    attemptRepository = container.attemptRepository,
+                    availabilityRepository = container.availabilityRepository,
+                    studyPreferenceRepository = container.studyPreferenceRepository,
+                    targetSyllabusRepository = container.targetSyllabusRepository,
+                    planRepository = container.planRepository,
+                    studySessionStore = container.studySessionStore,
+                    dispatchers = container.dispatchers,
+                    background = background,
+                    onBackground = onBackground,
+                    accentPalette = accentPalette,
+                    onAccentPalette = onAccentPalette,
+                    onFinished = { openOrganise ->
+                        navController.navigate(if (openOrganise) Route.Organise.path else Route.Home.path) {
                             popUpTo(Route.Onboarding.path) { inclusive = true }
                         }
                     },
@@ -88,7 +106,9 @@ fun SteadylineNavHost(
                     syllabusRepository = container.syllabusRepository,
                     syllabusStore = container.syllabusStore,
                     studySessionStore = container.studySessionStore,
+                    planRepository = container.planRepository,
                     onSetupPlan = { navController.navigate(Route.Onboarding.path) },
+                    onEditPlan = { navController.navigate(Route.Organise.path) },
                     onStartFocus = { session ->
                         val current = container.focusStore.load()
                         container.focusStore.save(
@@ -96,13 +116,14 @@ fun SteadylineNavHost(
                                 status = FocusStatus.RUNNING,
                                 durationSec = session.durationMinutes * 60,
                                 remainingSec = session.durationMinutes * 60,
-                                endsAtMs = session.runningEndsAtMs,
+                                endsAtMs = session.runningEndsAtMs
+                                    ?: (System.currentTimeMillis() + session.durationMinutes * 60_000L),
                                 completedToday = current.completedToday,
                                 block = FocusBlockRef(
                                     id = session.id,
                                     title = session.title,
                                     subtitle = if (session.isRevision) {
-                                        "Revision · ${session.sectionName}"
+                                        context.getString(R.string.focus_revision_title, session.sectionName)
                                     } else {
                                         session.sectionName
                                     },
@@ -118,7 +139,7 @@ fun SteadylineNavHost(
                     },
                     pendingSyllabusPick = container.pendingSyllabusPick,
                     onConsumedSyllabusPick = { container.pendingSyllabusPick.value = null },
-                    modifier = Modifier.padding(padding),
+                    modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                 )
             }
             composable(Route.Syllabus.path) {
@@ -126,6 +147,7 @@ fun SteadylineNavHost(
                     examPackRepository = container.examPackRepository,
                     topicProgressRepository = container.topicProgressRepository,
                     attemptRepository = container.attemptRepository,
+                    targetSyllabusRepository = container.targetSyllabusRepository,
                     onStartTopic = { pick ->
                         container.pendingSyllabusPick.value = pick
                         navController.navigate(Route.Home.path) {
@@ -133,7 +155,22 @@ fun SteadylineNavHost(
                             launchSingleTop = true
                         }
                     },
-                    modifier = Modifier.padding(padding),
+                    onOrganise = { navController.navigate(Route.Organise.path) },
+                    modifier = Modifier.padding(padding).consumeWindowInsets(padding),
+                )
+            }
+            composable(Route.Organise.path) {
+                OrganiseRoute(
+                    examPackRepository = container.examPackRepository,
+                    attemptRepository = container.attemptRepository,
+                    targetSyllabusRepository = container.targetSyllabusRepository,
+                    topicProgressRepository = container.topicProgressRepository,
+                    availabilityRepository = container.availabilityRepository,
+                    planRepository = container.planRepository,
+                    planStore = container.planStore,
+                    studySessionStore = container.studySessionStore,
+                    onBack = { navController.popBackStack() },
+                    modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                 )
             }
             composable(Route.Focus.path) {
@@ -143,10 +180,10 @@ fun SteadylineNavHost(
                     settingsStore = container.settings,
                     studySessionStore = container.studySessionStore,
                     syllabusRepository = container.syllabusRepository,
-                    examPackRepository = container.examPackRepository,
-                    attemptRepository = container.attemptRepository,
-                    topicProgressRepository = container.topicProgressRepository,
                     syllabusStore = container.syllabusStore,
+                    attemptRepository = container.attemptRepository,
+                    planRepository = container.planRepository,
+                    studySessionRepository = container.studySessionRepository,
                     focusLockStore = container.focusLockStore,
                     focusLockCapabilityChecker = container.focusLockCapabilityChecker,
                     installedAppProvider = container.installedAppProvider,
@@ -159,30 +196,41 @@ fun SteadylineNavHost(
                     },
                     onFocusLockStart = { FocusLockService.start(context) },
                     onFocusLockStop = { FocusLockService.stop(context) },
-                    modifier = Modifier.padding(padding),
+                    modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                 )
             }
             composable(Route.Progress.path) {
                 ProgressRoute(
                     planStore = container.planStore,
-                    syllabusRepository = container.syllabusRepository,
-                    syllabusStore = container.syllabusStore,
-                    studySessionStore = container.studySessionStore,
+                    examPackRepository = container.examPackRepository,
+                    attemptRepository = container.attemptRepository,
+                    planRepository = container.planRepository,
+                    studySessionRepository = container.studySessionRepository,
+                    topicProgressRepository = container.topicProgressRepository,
+                    targetSyllabusRepository = container.targetSyllabusRepository,
                     onOpenSettings = { navController.navigate(Route.Settings.path) },
-                    modifier = Modifier.padding(padding),
+                    modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                 )
             }
             composable(Route.Settings.path) {
                 MoreRoute(
                     planStore = container.planStore,
                     background = background,
-                    onBackground = onBackground,
-                    accentPalette = accentPalette,
-                    onAccentPalette = onAccentPalette,
+                    onOpenAppearance = { navController.navigate(Route.Appearance.path) },
                     onOpenSettings = { navController.navigate(Route.SettingsDetail.path) },
                     onRedoOnboarding = { navController.navigate(Route.Onboarding.path) },
                     onOpenPolicy = { id -> navController.navigate("policy/$id") },
-                    modifier = Modifier.padding(padding),
+                    modifier = Modifier.padding(padding).consumeWindowInsets(padding),
+                )
+            }
+            composable(Route.Appearance.path) {
+                AppearanceScreen(
+                    background = background,
+                    onBackground = onBackground,
+                    accentPalette = accentPalette,
+                    onAccentPalette = onAccentPalette,
+                    onBack = { navController.popBackStack() },
+                    modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                 )
             }
             composable(Route.SettingsDetail.path) {
@@ -192,14 +240,16 @@ fun SteadylineNavHost(
                     focusStore = container.focusStore,
                     syllabusStore = container.syllabusStore,
                     studySessionStore = container.studySessionStore,
-                    syllabusRepository = container.syllabusRepository,
+                    examPackRepository = container.examPackRepository,
+                    attemptRepository = container.attemptRepository,
+                    topicProgressRepository = container.topicProgressRepository,
                     onBack = { navController.popBackStack() },
                     onCleared = {
                         navController.navigate(Route.Onboarding.path) {
                             popUpTo(0) { inclusive = true }
                         }
                     },
-                    modifier = Modifier.padding(padding),
+                    modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                 )
             }
             composable(
@@ -209,7 +259,7 @@ fun SteadylineNavHost(
                 PolicyScreen(
                     policyId = entry.arguments?.getString("policyId").orEmpty(),
                     onBack = { navController.popBackStack() },
-                    modifier = Modifier.padding(padding),
+                    modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                 )
             }
         }

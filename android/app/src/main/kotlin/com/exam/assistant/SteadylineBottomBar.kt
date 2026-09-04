@@ -1,11 +1,18 @@
 package com.exam.assistant
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +37,7 @@ fun SteadylineBottomBar(
         modifier = modifier,
         containerColor = colors.tabBg,
         contentColor = colors.text,
+        windowInsets = WindowInsets.navigationBars,
     ) {
         Tab.entries.forEach { tab ->
             val isSelected = tab == selected
@@ -38,7 +46,7 @@ fun SteadylineBottomBar(
                 onClick = { onSelect(tab) },
                 icon = {
                     Icon(
-                        imageVector = tab.icon,
+                        imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
                         contentDescription = stringResource(tab.labelRes),
                     )
                 },
@@ -53,7 +61,7 @@ fun SteadylineBottomBar(
                     selectedTextColor = colors.tabSelected,
                     unselectedIconColor = colors.tabUnselected,
                     unselectedTextColor = colors.tabUnselected,
-                    indicatorColor = colors.brandContainer,
+                    indicatorColor = colors.selectionContainer,
                 ),
             )
         }
@@ -64,11 +72,17 @@ fun SteadylineBottomBar(
 enum class Tab(
     val route: Route,
     @StringRes val labelRes: Int,
-    val icon: ImageVector,
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector,
 ) {
-    Home(Route.Home, R.string.tab_today, Icons.Outlined.Home),
-    Syllabus(Route.Syllabus, R.string.tab_syllabus, Icons.AutoMirrored.Outlined.MenuBook),
-    Focus(Route.Focus, R.string.tab_focus, Icons.Outlined.Timer),
-    Progress(Route.Progress, R.string.tab_insights, Icons.Outlined.BarChart),
-    Settings(Route.Settings, R.string.tab_more, Icons.Outlined.AccountCircle),
+    Home(Route.Home, R.string.tab_today, Icons.Filled.Home, Icons.Outlined.Home),
+    Syllabus(
+        Route.Syllabus,
+        R.string.tab_syllabus,
+        Icons.AutoMirrored.Filled.MenuBook,
+        Icons.AutoMirrored.Outlined.MenuBook,
+    ),
+    Focus(Route.Focus, R.string.tab_focus, Icons.Filled.Timer, Icons.Outlined.Timer),
+    Progress(Route.Progress, R.string.tab_progress, Icons.Filled.BarChart, Icons.Outlined.BarChart),
+    Settings(Route.Settings, R.string.tab_settings, Icons.Filled.Settings, Icons.Outlined.Settings),
 }

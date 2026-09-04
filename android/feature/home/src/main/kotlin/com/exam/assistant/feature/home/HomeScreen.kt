@@ -12,6 +12,7 @@ import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.StudySessionStore
 import com.exam.assistant.core.data.SyllabusRepository
 import com.exam.assistant.core.data.SyllabusStore
+import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.domain.PendingSyllabusPick
 import com.exam.assistant.domain.StudySessionRecord
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +23,9 @@ fun HomeRoute(
     syllabusRepository: SyllabusRepository,
     syllabusStore: SyllabusStore,
     studySessionStore: StudySessionStore,
+    planRepository: PlanRepository,
     onSetupPlan: () -> Unit,
+    onEditPlan: () -> Unit,
     onStartFocus: suspend (StudySessionRecord) -> Unit,
     pendingSyllabusPick: StateFlow<PendingSyllabusPick?>,
     onConsumedSyllabusPick: () -> Unit,
@@ -33,6 +36,7 @@ fun HomeRoute(
             syllabusRepository,
             syllabusStore,
             studySessionStore,
+            planRepository,
         ),
     ),
 ) {
@@ -57,6 +61,7 @@ fun HomeRoute(
     HomeScreen(
         state = state,
         onSetupPlan = onSetupPlan,
+        onEditPlan = onEditPlan,
         onSelectDate = viewModel::selectDate,
         onToggleCalendarExpanded = viewModel::toggleCalendarExpanded,
         onOpenAdd = viewModel::openAddStudy,
@@ -75,6 +80,7 @@ fun HomeRoute(
         onRescheduleToNextSlot = viewModel::rescheduleToNextSlot,
         onRescheduleToTomorrow = viewModel::rescheduleToTomorrowSameTime,
         onRescheduleToTime = viewModel::rescheduleToTime,
+        onSkipSession = viewModel::skipSession,
         modifier = modifier,
     )
 }
@@ -83,6 +89,7 @@ fun HomeRoute(
 fun HomeScreen(
     state: HomeUiState,
     onSetupPlan: () -> Unit,
+    onEditPlan: () -> Unit,
     onSelectDate: (java.time.LocalDate) -> Unit,
     onToggleCalendarExpanded: () -> Unit,
     onOpenAdd: () -> Unit,
@@ -101,6 +108,7 @@ fun HomeScreen(
     onRescheduleToNextSlot: (String) -> Unit,
     onRescheduleToTomorrow: (String) -> Unit,
     onRescheduleToTime: (String, Int) -> Unit,
+    onSkipSession: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -108,6 +116,7 @@ fun HomeScreen(
             state.loading -> Unit
             state.hasPlan -> HomeStudyContent(
                 state = state,
+                onEditPlan = onEditPlan,
                 onSelectDate = onSelectDate,
                 onToggleCalendarExpanded = onToggleCalendarExpanded,
                 onOpenAdd = onOpenAdd,
@@ -126,6 +135,7 @@ fun HomeScreen(
                 onRescheduleToNextSlot = onRescheduleToNextSlot,
                 onRescheduleToTomorrow = onRescheduleToTomorrow,
                 onRescheduleToTime = onRescheduleToTime,
+                onSkipSession = onSkipSession,
             )
             else -> HomeEmptyContent(onSetupPlan = onSetupPlan)
         }

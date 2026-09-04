@@ -29,8 +29,18 @@ data class DayBlock(
     val durationMinutes: Int get() = endMinuteOfDay - startMinuteOfDay
 }
 
+/** A user-entered fixed obligation shown on Today and treated as unavailable time. */
+data class FixedCommitmentBlock(
+    val id: String,
+    val kind: String,
+    val startMinuteOfDay: Int,
+    val endMinuteOfDay: Int,
+    val customLabel: String? = null,
+)
+
 sealed interface DayTimelineEntry {
     data class Study(val block: DayBlock) : DayTimelineEntry
+    data class Fixed(val block: FixedCommitmentBlock) : DayTimelineEntry
     data class Gap(val startMinuteOfDay: Int, val endMinuteOfDay: Int) : DayTimelineEntry
     data class NowMarker(val minuteOfDay: Int) : DayTimelineEntry
 }
@@ -82,13 +92,20 @@ fun buildDayTimeline(
     date: LocalDate,
     today: LocalDate,
     nowMinuteOfDay: Int,
+    fixedCommitments: List<FixedCommitmentBlock> = emptyList(),
+    dayStartMinute: Int = DAY_TIMELINE_START,
+    dayEndMinute: Int = DAY_TIMELINE_END,
 ): List<DayTimelineEntry> {
     val isToday = date == today
     val realBlocks = sessions.sortedBy { it.startMinuteOfDay }.map { sessionToDayBlock(it, sections) }
 
-    var dayStart = DAY_TIMELINE_START
-    var dayEnd = DAY_TIMELINE_END
+    var dayStart = dayStartMinute
+    var dayEnd = dayEndMinute
     realBlocks.forEach { block ->
+        dayStart = minOf(dayStart, block.startMinuteOfDay)
+        dayEnd = maxOf(dayEnd, block.endMinuteOfDay)
+    }
+    fixedCommitments.forEach { block ->
         dayStart = minOf(dayStart, block.startMinuteOfDay)
         dayEnd = maxOf(dayEnd, block.endMinuteOfDay)
     }
@@ -96,20 +113,26 @@ fun buildDayTimeline(
 
     val gaps = mutableListOf<Slot>()
     var cursor = dayStart
-    realBlocks.forEach { block ->
-        if (block.startMinuteOfDay > cursor) gaps += Slot(cursor, block.startMinuteOfDay)
-        cursor = maxOf(cursor, block.endMinuteOfDay)
+    val occupied = buildList {
+        realBlocks.forEach { add(Slot(it.startMinuteOfDay, it.endMinuteOfDay)) }
+        fixedCommitments.forEach { add(Slot(it.startMinuteOfDay, it.endMinuteOfDay)) }
+    }.sortedBy { it.start }
+    occupied.forEach { slot ->
+        if (slot.start > cursor) gaps += Slot(cursor, slot.start)
+        cursor = maxOf(cursor, slot.end)
     }
     if (dayEnd > cursor) gaps += Slot(cursor, dayEnd)
 
     val autoBlocks = mutableListOf<DayBlock>()
     if (isToday && pendingRevisions.isNotEmpty()) {
         pendingRevisions.forEach { suggestion ->
-            val gapIndex = gaps.indexOfFirst { it.end - it.start >= AUTO_REVISION_MINUTES }
+            gaps.sortBy { it.start }
+            val gapIndex = gaps.indexOfFirst { slot ->
+                maxOf(slot.start, nowMinuteOfDay) + AUTO_REVISION_MINUTES <= slot.end
+            }
             if (gapIndex >= 0) {
                 val slot = gaps[gapIndex]
-                val earliestStart = maxOf(slot.start, nowMinuteOfDay)
-                val blockStart = if (earliestStart + AUTO_REVISION_MINUTES > slot.end) slot.start else earliestStart
+                val blockStart = maxOf(slot.start, nowMinuteOfDay)
                 val blockEnd = blockStart + AUTO_REVISION_MINUTES
                 val daysAgo = ChronoUnit.DAYS.between(suggestion.studiedOn, today).toInt()
                 autoBlocks += DayBlock(
@@ -134,18 +157,16 @@ fun buildDayTimeline(
     val allBlocks = (realBlocks + autoBlocks).sortedBy { it.startMinuteOfDay }
     val timelineGaps = gaps.filter { it.end > it.start }.sortedBy { it.start }
 
-    val entries = mutableListOf<DayTimelineEntry>()
-    var bi = 0
-    var gi = 0
-    while (bi < allBlocks.size || gi < timelineGaps.size) {
-        val nextBlock = allBlocks.getOrNull(bi)
-        val nextGap = timelineGaps.getOrNull(gi)
-        if (nextBlock != null && (nextGap == null || nextBlock.startMinuteOfDay <= nextGap.start)) {
-            entries += DayTimelineEntry.Study(nextBlock)
-            bi++
-        } else if (nextGap != null) {
-            entries += DayTimelineEntry.Gap(nextGap.start, nextGap.end)
-            gi++
+    val entries = buildList<DayTimelineEntry> {
+        allBlocks.forEach { add(DayTimelineEntry.Study(it)) }
+        fixedCommitments.forEach { add(DayTimelineEntry.Fixed(it)) }
+        timelineGaps.forEach { add(DayTimelineEntry.Gap(it.start, it.end)) }
+    }.sortedBy { entry ->
+        when (entry) {
+            is DayTimelineEntry.Study -> entry.block.startMinuteOfDay
+            is DayTimelineEntry.Fixed -> entry.block.startMinuteOfDay
+            is DayTimelineEntry.Gap -> entry.startMinuteOfDay
+            is DayTimelineEntry.NowMarker -> entry.minuteOfDay
         }
     }
 
@@ -158,6 +179,13 @@ fun buildDayTimeline(
     for (entry in entries) {
         when (entry) {
             is DayTimelineEntry.Study -> {
+                if (!markerPlaced && nowMinuteOfDay <= entry.block.startMinuteOfDay) {
+                    withNow += DayTimelineEntry.NowMarker(nowMinuteOfDay)
+                    markerPlaced = true
+                }
+                withNow += entry
+            }
+            is DayTimelineEntry.Fixed -> {
                 if (!markerPlaced && nowMinuteOfDay <= entry.block.startMinuteOfDay) {
                     withNow += DayTimelineEntry.NowMarker(nowMinuteOfDay)
                     markerPlaced = true
@@ -199,12 +227,20 @@ fun findNextFreeSlot(
     date: LocalDate,
     minMinutes: Int,
     notBefore: Int,
+    fixedCommitments: List<FixedCommitmentBlock> = emptyList(),
+    dayStartMinute: Int = DAY_TIMELINE_START,
+    dayEndMinute: Int = DAY_TIMELINE_END,
 ): Int? {
-    val daySessions = sessions.filter { it.date == date && !it.completed }.sortedBy { it.startMinuteOfDay }
-    var cursor = notBefore.coerceAtLeast(DAY_TIMELINE_START)
-    daySessions.forEach { session ->
-        if (session.startMinuteOfDay - cursor >= minMinutes) return cursor
-        cursor = maxOf(cursor, session.startMinuteOfDay + session.durationMinutes)
+    val occupied = buildList {
+        sessions.filter { it.date == date && !it.completed }.forEach {
+            add(Slot(it.startMinuteOfDay, it.startMinuteOfDay + it.durationMinutes))
+        }
+        fixedCommitments.forEach { add(Slot(it.startMinuteOfDay, it.endMinuteOfDay)) }
+    }.sortedBy { it.start }
+    var cursor = notBefore.coerceAtLeast(dayStartMinute)
+    occupied.forEach { slot ->
+        if (slot.start - cursor >= minMinutes) return cursor
+        cursor = maxOf(cursor, slot.end)
     }
-    return if (DAY_TIMELINE_END - cursor >= minMinutes) cursor else null
+    return if (dayEndMinute - cursor >= minMinutes) cursor else null
 }

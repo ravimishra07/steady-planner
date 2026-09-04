@@ -25,6 +25,12 @@ const HOURS_DAYS = 14;
   imports: [MatIconModule, MatRippleModule, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (study.sessions().length === 0) {
+      <section class="first-use">
+        <mat-icon>monitoring</mat-icon>
+        <span><strong>Your progress starts with a Focus sitting</strong><small>Complete one study session to build pace, revision, time, and consistency here.</small></span>
+      </section>
+    }
     <!-- Coverage: a count of ticks the user made. Not a score about them. -->
     <header class="hero">
       <div class="ring-wrap">
@@ -170,7 +176,7 @@ const HOURS_DAYS = 14;
         </p>
 
         @if (behind()) {
-          <button matRipple class="option" (click)="applyHours()">
+          <button matRipple class="option" (click)="confirmAction.set('hours')">
             <mat-icon>schedule</mat-icon>
             <span class="option-text">
               <span class="option-head">Study more</span>
@@ -181,11 +187,11 @@ const HOURS_DAYS = 14;
           </button>
 
           @if (store.dateMode() === 'syllabus') {
-            <button matRipple class="option" (click)="applyDate()">
+            <button matRipple class="option" (click)="confirmAction.set('date')">
               <mat-icon>event</mat-icon>
               <span class="option-text">
                 <span class="option-head">Move the target</span>
-                <span class="option-sub">At this pace the syllabus lands {{ finishLabel() }}.</span>
+                <span class="option-sub">At this pace the estimated syllabus finish is {{ finishLabel() }}.</span>
               </span>
             </button>
           } @else {
@@ -194,13 +200,13 @@ const HOURS_DAYS = 14;
               <span class="option-text">
                 <span class="option-head">The date can't move</span>
                 <span class="option-sub">
-                  The exam is {{ store.targetDate() | date: 'd MMM y' }}; this pace lands {{ finishLabel() }}.
+                  The exam is {{ store.targetDate() | date: 'd MMM y' }}; the estimated finish is {{ finishLabel() }}.
                 </span>
               </span>
             </div>
           }
 
-          <button matRipple class="option" (click)="applyPark()">
+          <button matRipple class="option" (click)="confirmAction.set('park')">
             <mat-icon>content_cut</mat-icon>
             <span class="option-text">
               <span class="option-head">Cut scope</span>
@@ -220,6 +226,14 @@ const HOURS_DAYS = 14;
             </span>
           </button>
         }
+
+        @if (confirmAction(); as action) {
+          <div class="confirm-change" role="alertdialog" aria-label="Confirm plan change">
+            <strong>Apply this plan change?</strong>
+            <span>{{ actionSummary(action) }}</span>
+            <div><button matRipple class="more" (click)="confirmAction.set(null)">Cancel</button><button matRipple class="pace-cta" (click)="applyConfirmed(action)">Apply change</button></div>
+          </div>
+        }
       </div>
     }
   `,
@@ -237,6 +251,11 @@ const HOURS_DAYS = 14;
     }
 
     /* Hero ------------------------------------------------------------- */
+    .first-use { display: flex; align-items: center; gap: 12px; margin: 12px 16px; padding: 16px; border-radius: var(--mat-sys-corner-large); background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container); }
+    .first-use > span { display: flex; flex-direction: column; gap: 2px; }
+    .first-use strong { font: var(--mat-sys-title-small); }
+    .first-use small { font: var(--mat-sys-body-small); }
+
     .hero {
       position: relative;
       display: flex;
@@ -646,6 +665,10 @@ const HOURS_DAYS = 14;
     .option.muted mat-icon { color: var(--mat-sys-on-surface-variant); }
     .option-text { display: flex; flex-direction: column; gap: 2px; }
     .option-head { font: var(--mat-sys-title-small); }
+    .confirm-change { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; padding: 16px; border-radius: var(--mat-sys-corner-large); background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container); }
+    .confirm-change strong { font: var(--mat-sys-title-small); }
+    .confirm-change span { font: var(--mat-sys-body-medium); }
+    .confirm-change div { display: flex; justify-content: flex-end; gap: 8px; }
     .option-sub { font: var(--mat-sys-body-small); color: var(--mat-sys-on-surface-variant); }
 
     @media (min-width: 1100px) {
@@ -808,6 +831,7 @@ export class ProgressTab {
 
   protected readonly rebalanceOpen = signal(false);
   protected readonly explainOpen = signal(false);
+  protected readonly confirmAction = signal<'hours' | 'date' | 'park' | null>(null);
 
   protected perDay(): number {
     return this.study.averageMinutes(HOURS_DAYS) / 60;
@@ -881,6 +905,19 @@ export class ProgressTab {
   protected unpark(): void {
     this.store.unparkAll();
     this.rebalanceOpen.set(false);
+  }
+
+  protected actionSummary(action: 'hours' | 'date' | 'park'): string {
+    if (action === 'hours') return `Daily study rises from ${this.store.weekdayHours()}h to about ${this.neededPerDay().toFixed(1)}h.`;
+    if (action === 'date') return `The preparation target moves to the estimated finish, ${this.finishLabel()}.`;
+    return `${this.parkCount()} lower-yield chapters move out of the active plan. They remain available to restore.`;
+  }
+
+  protected applyConfirmed(action: 'hours' | 'date' | 'park'): void {
+    this.confirmAction.set(null);
+    if (action === 'hours') this.applyHours();
+    else if (action === 'date') this.applyDate();
+    else this.applyPark();
   }
 
   protected verdictIcon(): string {

@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -29,14 +29,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.exam.assistant.core.design.AppTheme
+import com.exam.assistant.core.design.CalendarMetrics
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Spacing
+import com.exam.assistant.core.design.Stroke
 import com.exam.assistant.domain.WeekDayStatus
 import java.time.LocalDate
 
 @Composable
 internal fun HomeCalendarChrome(
-    monthTitle: String,
+    selectedDate: LocalDate,
     weekDays: List<WeekDayUi>,
     monthDays: List<WeekDayUi?>,
     expanded: Boolean,
@@ -45,23 +47,25 @@ internal fun HomeCalendarChrome(
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
+    val monthPattern = stringResource(R.string.home_month_pattern)
+    val monthTitle = selectedDate.format(
+        java.time.format.DateTimeFormatter.ofPattern(monthPattern, java.util.Locale.getDefault()),
+    )
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
+                .height(CalendarMetrics.monthControlHeight)
                 .clickable(onClick = onToggleExpanded)
-                .padding(horizontal = Spacing.screen)
-                .padding(top = Spacing.sm, bottom = Spacing.sm),
+                .padding(horizontal = Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = monthTitle,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
                 color = colors.text,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
             )
             Icon(
                 imageVector = Icons.Filled.KeyboardArrowDown,
@@ -84,12 +88,20 @@ private fun WeekdayHeaderRow() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+            .padding(horizontal = Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(CalendarMetrics.gridGap),
     ) {
-        listOf("S", "M", "T", "W", "T", "F", "S").forEach { label ->
+        listOf(
+            R.string.home_weekday_sunday,
+            R.string.home_weekday_monday,
+            R.string.home_weekday_tuesday,
+            R.string.home_weekday_wednesday,
+            R.string.home_weekday_thursday,
+            R.string.home_weekday_friday,
+            R.string.home_weekday_saturday,
+        ).forEach { labelRes ->
             Text(
-                text = label,
+                text = stringResource(labelRes),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Medium,
                 color = colors.textSecondary,
@@ -112,9 +124,9 @@ private fun HomeWeekStrip(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.lg)
+                .padding(horizontal = Spacing.sm)
                 .padding(bottom = Spacing.md),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            horizontalArrangement = Arrangement.spacedBy(CalendarMetrics.gridGap),
         ) {
             days.forEach { day ->
                 DayCell(day = day, onSelectDate = onSelectDate, modifier = Modifier.weight(1f))
@@ -123,7 +135,7 @@ private fun HomeWeekStrip(
         Spacer(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(1.dp)
+                .height(Stroke.hairline)
                 .background(colors.hairlineSoft),
         )
     }
@@ -142,8 +154,8 @@ private fun HomeMonthGrid(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = Spacing.lg),
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    .padding(horizontal = Spacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(CalendarMetrics.gridGap),
             ) {
                 week.forEach { day ->
                     if (day != null) {
@@ -158,7 +170,7 @@ private fun HomeMonthGrid(
         Spacer(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(1.dp)
+                .height(Stroke.hairline)
                 .background(colors.hairlineSoft),
         )
     }
@@ -173,53 +185,60 @@ private fun DayCell(
     val colors = AppTheme.colors
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(Radius.sm))
+            .clip(RoundedCornerShape(CalendarMetrics.dayCorner))
+            .background(if (day.selected) colors.selectionContainer else Color.Transparent)
             .clickable { onSelectDate(day.date) }
-            .padding(vertical = 6.dp),
+            .padding(top = CalendarMetrics.dayTopPadding, bottom = CalendarMetrics.dayBottomPadding),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(CalendarMetrics.dayGap),
     ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(if (day.selected) colors.brandDeep else Color.Transparent),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = day.dayOfMonth.toString(),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (day.selected) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (day.selected) colors.onBrand else colors.text,
-            )
-        }
-        HomeWeekDot(status = day.status)
+        Text(
+            text = day.dayOfMonth.toString(),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+            color = if (day.selected) colors.onSelectionContainer else colors.text,
+        )
+        HomeWeekMeter(status = day.status, selected = day.selected)
     }
 }
 
 @Composable
-private fun HomeWeekDot(status: WeekDayStatus) {
+private fun HomeWeekMeter(status: WeekDayStatus, selected: Boolean) {
     val colors = AppTheme.colors
-    val dotColor = when (status) {
-        WeekDayStatus.DONE -> colors.success
-        WeekDayStatus.PARTIAL -> colors.warning
-        WeekDayStatus.TODAY, WeekDayStatus.PLANNED -> colors.brandSoft
-        WeekDayStatus.REST -> colors.elevated
+    val fillFraction = when (status) {
+        WeekDayStatus.DONE -> 1f
+        WeekDayStatus.PARTIAL -> .5f
+        WeekDayStatus.TODAY, WeekDayStatus.PLANNED -> .2f
+        WeekDayStatus.REST -> 0f
     }
     Box(
         modifier = Modifier
-            .size(6.dp)
-            .clip(CircleShape)
-            .background(dotColor),
-    )
+            .width(CalendarMetrics.meterWidth)
+            .height(CalendarMetrics.meterHeight)
+            .clip(RoundedCornerShape(Radius.full))
+            .background(colors.surface3),
+    ) {
+        if (fillFraction > 0f) {
+            Box(
+                Modifier
+                    .fillMaxWidth(fillFraction)
+                    .height(CalendarMetrics.meterHeight)
+                    .background(if (selected) colors.onSelectionContainer else colors.primary),
+            )
+        }
+    }
 }
 
 @Composable
 internal fun HomeDayBar(
     selectedIsToday: Boolean,
-    selectedDayLabel: String,
+    selectedDate: LocalDate,
 ) {
     val colors = AppTheme.colors
+    val pattern = stringResource(R.string.home_selected_day_pattern)
+    val selectedDayLabel = selectedDate.format(
+        java.time.format.DateTimeFormatter.ofPattern(pattern, java.util.Locale.getDefault()),
+    )
     Text(
         text = if (selectedIsToday) stringResource(R.string.home_today) else selectedDayLabel,
         style = MaterialTheme.typography.titleSmall,
@@ -228,6 +247,6 @@ internal fun HomeDayBar(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.screen)
-            .padding(top = Spacing.md, bottom = 2.dp),
+            .padding(top = Spacing.md, bottom = Spacing.xxs),
     )
 }

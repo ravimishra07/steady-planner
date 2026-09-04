@@ -101,4 +101,7 @@ interface StudyPlanBlockDao {
 
     @Query("DELETE FROM study_plan_block WHERE attemptId = :attemptId")
     suspend fun deleteForAttempt(attemptId: String)
+
+    @Query("DELETE FROM study_plan_block WHERE attemptId = :attemptId AND scheduledDateEpochDay >= :startEpochDay AND source = 'AUTO' AND status = 'PLANNED'")
+    suspend fun deleteFutureAuto(attemptId: String, startEpochDay: Long)
 }

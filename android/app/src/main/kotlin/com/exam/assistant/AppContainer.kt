@@ -80,13 +80,10 @@ class AppContainer(private val context: Context) {
     private val migrationStore: MigrationStore by lazy { MigrationStore(context, dispatchers) }
     val migrationRepository: MigrationRepository by lazy {
         MigrationRepository(
-            context = context,
             dispatchers = dispatchers,
             planStore = planStore,
             studySessionStore = studySessionStore,
             syllabusStore = syllabusStore,
-            legacySyllabusRepository = syllabusRepository,
-            examPackRepository = examPackRepository,
             migrationStore = migrationStore,
             attemptRepository = attemptRepository,
         )

@@ -7,18 +7,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.SavedPlan
-import com.exam.assistant.core.design.AccentPalette
+import com.exam.assistant.core.data.decodedCommitments
 import com.exam.assistant.core.design.BackgroundAppearance
+import com.exam.assistant.domain.NEET_EXAM_ID
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun MoreRoute(
     planStore: PlanStore,
     background: BackgroundAppearance,
-    onBackground: (BackgroundAppearance) -> Unit,
-    accentPalette: AccentPalette,
-    onAccentPalette: (AccentPalette) -> Unit,
+    onOpenAppearance: () -> Unit,
     onOpenSettings: () -> Unit,
     onRedoOnboarding: () -> Unit,
     onOpenPolicy: (String) -> Unit,
@@ -29,21 +32,19 @@ fun MoreRoute(
         plan = planStore.load()
     }
     MoreScreen(
-        planExamLabel = plan?.let { examLabel(it.examId) },
+        planExamLabel = plan?.takeIf { it.examId == NEET_EXAM_ID }?.let { stringResource(R.string.settings_exam_neet) },
         daysLeft = plan?.daysUntilExam,
+        examDateLabel = plan?.targetDateEpochDay?.let { epochDay ->
+            LocalDate.ofEpochDay(epochDay).format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()))
+        },
+        weekdayHours = plan?.weekdayHours,
+        weekendHours = plan?.weekendHours,
+        fixedBlockCount = plan?.decodedCommitments()?.size ?: 0,
         background = background,
-        onBackground = onBackground,
-        accentPalette = accentPalette,
-        onAccentPalette = onAccentPalette,
+        onOpenAppearance = onOpenAppearance,
         onOpenSettings = onOpenSettings,
         onRedoOnboarding = onRedoOnboarding,
         onOpenPolicy = onOpenPolicy,
         modifier = modifier,
     )
-}
-
-private fun examLabel(examId: String): String = when (examId) {
-    "cgl" -> "SSC CGL"
-    "chsl" -> "SSC CHSL"
-    else -> examId.uppercase()
 }

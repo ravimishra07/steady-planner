@@ -9,6 +9,7 @@ import com.exam.assistant.core.data.RemoteConfig
 import com.exam.assistant.core.data.SettingsStore
 import com.exam.assistant.core.design.AccentPalette
 import com.exam.assistant.core.design.BackgroundAppearance
+import com.exam.assistant.domain.NEET_EXAM_ID
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,7 +45,7 @@ class StartupViewModel(
             coroutineScope {
                 val background = async { settings.backgroundAppearanceOnce() }
                 val palette = async { settings.accentPaletteOnce() }
-                val hasPlan = async { planStore.exists() }
+                val hasPlan = async { planStore.existsForExam(NEET_EXAM_ID) }
                 _state.value = StartupState(
                     ready = true,
                     background = BackgroundAppearance.fromId(

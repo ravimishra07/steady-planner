@@ -31,9 +31,22 @@ class PlanStore(
     private val placeKey = stringPreferencesKey("study_place")
     private val activeSubjectsKey = stringSetPreferencesKey("active_subjects")
     private val blocksDoneKey = stringSetPreferencesKey("blocks_done")
+    private val targetDateKey = stringPreferencesKey("target_date_epoch_day")
+    private val coachingKey = stringPreferencesKey("coaching_id")
+    private val wakeMinuteKey = intPreferencesKey("wake_minute")
+    private val sleepMinuteKey = intPreferencesKey("sleep_minute")
+    private val useProvidedSyllabusKey = booleanPreferencesKey("use_provided_syllabus")
+    private val coveredSubjectIdsKey = stringSetPreferencesKey("covered_subject_ids")
+    private val commitmentsKey = stringSetPreferencesKey("fixed_commitments")
 
     suspend fun exists(): Boolean = withContext(dispatchers.io) {
         context.planDataStore.data.first()[existsKey] ?: false
+    }
+
+    /** A stale plan for another product must never route into the NEET app. */
+    suspend fun existsForExam(examId: String): Boolean = withContext(dispatchers.io) {
+        val prefs = context.planDataStore.data.first()
+        prefs[existsKey] == true && prefs[examKey] == examId
     }
 
     suspend fun save(plan: SavedPlan) = withContext(dispatchers.io) {
@@ -45,6 +58,13 @@ class PlanStore(
             it[weekdayKey] = plan.weekdayHours
             it[weekendKey] = plan.weekendHours
             it[placeKey] = plan.studyPlace
+            plan.targetDateEpochDay?.let { epochDay -> it[targetDateKey] = epochDay.toString() }
+            it[coachingKey] = plan.coachingId
+            it[wakeMinuteKey] = plan.wakeMinute
+            it[sleepMinuteKey] = plan.sleepMinute
+            it[useProvidedSyllabusKey] = plan.useProvidedSyllabus
+            it[coveredSubjectIdsKey] = plan.coveredSubjectIds
+            it[commitmentsKey] = plan.commitments
         }
         Unit
     }
@@ -59,6 +79,13 @@ class PlanStore(
             weekdayHours = prefs[weekdayKey] ?: return@withContext null,
             weekendHours = prefs[weekendKey] ?: return@withContext null,
             studyPlace = prefs[placeKey].orEmpty(),
+            targetDateEpochDay = prefs[targetDateKey]?.toLongOrNull(),
+            coachingId = prefs[coachingKey].orEmpty(),
+            wakeMinute = prefs[wakeMinuteKey] ?: 6 * 60,
+            sleepMinute = prefs[sleepMinuteKey] ?: 23 * 60,
+            useProvidedSyllabus = prefs[useProvidedSyllabusKey] ?: true,
+            coveredSubjectIds = prefs[coveredSubjectIdsKey].orEmpty(),
+            commitments = prefs[commitmentsKey].orEmpty(),
         )
     }
 

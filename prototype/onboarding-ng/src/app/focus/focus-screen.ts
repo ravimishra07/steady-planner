@@ -133,7 +133,7 @@ const LENGTHS = [25, 50, 90];
 
           @if (focus.spentMinutes() < 1) {
             <p class="context">Under a minute — nothing worth logging.</p>
-            <button matRipple class="go ghost" (click)="focus.discard()">
+            <button matRipple class="go ghost" (click)="requestDiscard()">
               <mat-icon>close</mat-icon>
               Close
             </button>
@@ -152,20 +152,21 @@ const LENGTHS = [25, 50, 90];
             <div class="score">
               <label>
                 <span>Attempted</span>
-                <input type="number" min="0" [ngModel]="attempted()" (ngModelChange)="attempted.set(+$event)" />
+                <input type="number" min="0" [ngModel]="attempted()" (ngModelChange)="setAttempted(+$event)" />
               </label>
               <label>
                 <span>Correct</span>
-                <input type="number" min="0" [ngModel]="correct()" (ngModelChange)="correct.set(+$event)" />
+                <input type="number" min="0" [max]="attempted()" [ngModel]="correct()" (ngModelChange)="correct.set(+$event)" />
               </label>
             </div>
           }
 
-          <button matRipple class="go" (click)="save()">
+          @if (!scoreValid()) { <p class="input-error" role="alert">Correct answers cannot exceed attempted answers.</p> }
+          <button matRipple class="go" [disabled]="!scoreValid()" (click)="save()">
             <mat-icon>check</mat-icon>
             Log {{ spent() }}
           </button>
-          <button matRipple class="link" (click)="focus.discard()">Discard</button>
+          <button matRipple class="link" (click)="requestDiscard()">Discard</button>
           }
         </section>
       }
@@ -216,6 +217,15 @@ const LENGTHS = [25, 50, 90];
       }
     }
 
+    @if (confirmDiscard()) {
+      <div class="confirm-scrim"></div>
+      <section class="confirm" role="dialog" aria-label="Discard this sitting">
+        <h2>Discard this sitting?</h2>
+        <p>{{ spent() }} will not be logged.</p>
+        <div><button matRipple class="link" (click)="confirmDiscard.set(false)">Keep it</button><button matRipple class="go" (click)="discard()">Discard</button></div>
+      </section>
+    }
+
   `,
   styles: `
     :host {
@@ -226,6 +236,13 @@ const LENGTHS = [25, 50, 90];
       background: var(--mat-sys-surface);
       color: var(--mat-sys-on-surface);
     }
+    .input-error { margin: 0; color: var(--mat-sys-error); font: var(--mat-sys-body-medium); }
+    .confirm-scrim { position: fixed; inset: 0; z-index: 30; background: color-mix(in srgb, var(--mat-sys-scrim) 50%, transparent); }
+    .confirm { position: fixed; z-index: 31; left: 16px; right: 16px; bottom: 24px; display: flex; flex-direction: column; gap: 12px; padding: 24px; border-radius: var(--mat-sys-corner-extra-large); background: var(--mat-sys-surface-container-high); color: var(--mat-sys-on-surface); box-shadow: var(--mat-sys-level3); }
+    .confirm h2, .confirm p { margin: 0; }
+    .confirm h2 { font: var(--mat-sys-title-large); }
+    .confirm p { font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
+    .confirm div { display: flex; justify-content: flex-end; gap: 8px; }
 
     .bar { flex: none; display: flex; align-items: center; gap: 8px; height: 56px; }
     .bar-title { flex: 1; margin: 0; font: var(--mat-sys-title-large); }
@@ -672,6 +689,7 @@ export class FocusScreen {
   protected readonly recall = signal<Recall>('okay');
   protected readonly attempted = signal(0);
   protected readonly correct = signal(0);
+  protected readonly confirmDiscard = signal(false);
 
   /* ---- Picking something else ----------------------------------------- */
 
@@ -885,10 +903,31 @@ export class FocusScreen {
   }
 
   protected save(): void {
+    if (!this.scoreValid()) return;
     this.focus.finish(this.recall(), this.attempted(), this.correct());
     this.recall.set('okay');
     this.attempted.set(0);
     this.correct.set(0);
+  }
+
+  protected setAttempted(value: number): void {
+    const attempted = Math.max(0, value);
+    this.attempted.set(attempted);
+    if (this.correct() > attempted) this.correct.set(attempted);
+  }
+
+  protected scoreValid(): boolean {
+    return this.focus.target()?.task !== 'Practice' || this.correct() <= this.attempted();
+  }
+
+  protected requestDiscard(): void {
+    if (this.focus.spentMinutes() < 1) this.discard();
+    else this.confirmDiscard.set(true);
+  }
+
+  protected discard(): void {
+    this.focus.discard();
+    this.confirmDiscard.set(false);
   }
 
   /** Blocking follows the session: on while it runs, off the moment it stops. */

@@ -1,5 +1,6 @@
 package com.exam.assistant
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -25,6 +26,12 @@ class MainActivity : ComponentActivity() {
         val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // The app draws the correct themed surface behind both system bars.
+            // Android's three-button contrast scrim would otherwise make the
+            // navigation area look like a separate black or white strip.
+            window.isNavigationBarContrastEnforced = false
+        }
 
         // Holds only until theme and plan-presence resolve — two small DataStore
         // reads running in parallel. If this ever feels long the fix is smaller

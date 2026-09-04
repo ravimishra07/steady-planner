@@ -19,9 +19,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.HourglassEmpty
+import androidx.compose.material.icons.outlined.ShowChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -48,28 +52,43 @@ import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.StudySessionStore
 import com.exam.assistant.core.data.SyllabusRepository
 import com.exam.assistant.core.data.SyllabusStore
+import com.exam.assistant.core.data.ExamPackRepository
+import com.exam.assistant.core.data.repo.AttemptRepository
+import com.exam.assistant.core.data.repo.PlanRepository
+import com.exam.assistant.core.data.repo.StudySessionRepository
+import com.exam.assistant.core.data.repo.TargetSyllabusRepository
+import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.design.AppTheme
+import com.exam.assistant.core.design.CalendarMetrics
+import com.exam.assistant.core.design.AppCard
 import com.exam.assistant.core.design.Radius
+import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
+import com.exam.assistant.core.design.Stroke
 import com.exam.assistant.domain.InsightPeriod
 import com.exam.assistant.domain.InsightsData
 import com.exam.assistant.domain.SubjectInsight
 import com.exam.assistant.domain.SubjectStatus
 import com.exam.assistant.domain.StudyDayInsight
 import com.exam.assistant.domain.formatInsightDate
-import com.exam.assistant.domain.formatInsightMinutes
 import kotlin.math.ceil
 
 @Composable
 fun ProgressRoute(
     planStore: PlanStore,
-    syllabusRepository: SyllabusRepository,
-    syllabusStore: SyllabusStore,
-    studySessionStore: StudySessionStore,
-    onOpenSettings: () -> Unit = {},
+    examPackRepository: ExamPackRepository,
+    attemptRepository: AttemptRepository,
+    planRepository: PlanRepository,
+    studySessionRepository: StudySessionRepository,
+    topicProgressRepository: TopicProgressRepository,
+    targetSyllabusRepository: TargetSyllabusRepository,
     modifier: Modifier = Modifier,
+    onOpenSettings: () -> Unit = {},
     viewModel: ProgressViewModel = viewModel(
-        factory = ProgressViewModel.Factory(planStore, syllabusRepository, syllabusStore, studySessionStore),
+        factory = ProgressViewModel.Factory(
+            planStore, examPackRepository, attemptRepository, planRepository, studySessionRepository,
+            topicProgressRepository, targetSyllabusRepository,
+        ),
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -88,12 +107,12 @@ fun ProgressRoute(
 @Composable
 fun ProgressScreen(
     state: InsightsUiState,
+    modifier: Modifier = Modifier,
     onPeriodSelected: (InsightPeriod) -> Unit = {},
     onOpenSettings: () -> Unit = {},
     onManageTarget: () -> Unit = {},
     onCloseTargetManager: () -> Unit = {},
     onToggleSection: (String) -> Unit = {},
-    modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
     if (!state.hasPlan && !state.loading) {
@@ -103,9 +122,9 @@ fun ProgressScreen(
         return
     }
 
-    if (!state.loading && state.errorMessage != null) {
+    if (!state.loading && state.loadFailed) {
         Box(modifier = modifier.fillMaxSize().padding(Spacing.screen), contentAlignment = Alignment.Center) {
-            Text(state.errorMessage, style = MaterialTheme.typography.bodyLarge, color = colors.textMuted)
+            Text(stringResource(R.string.insights_load_failed), style = MaterialTheme.typography.bodyLarge, color = colors.textMuted)
         }
         return
     }
@@ -118,6 +137,10 @@ fun ProgressScreen(
     }
 
     val data = state.data
+    if (!data.hasStudyHistory) {
+        EmptyProgressScreen(data = data, modifier = modifier)
+        return
+    }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -182,20 +205,227 @@ fun ProgressScreen(
 }
 
 @Composable
+private fun EmptyProgressScreen(data: InsightsData, modifier: Modifier = Modifier) {
+    val colors = AppTheme.colors
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = Spacing.lg),
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = Spacing.xl),
+            shape = RoundedCornerShape(Radius.large),
+            color = colors.selectionContainer,
+            contentColor = colors.onSelectionContainer,
+        ) {
+            Row(
+                modifier = Modifier.padding(Spacing.lg),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Outlined.ShowChart, contentDescription = null, modifier = Modifier.size(Size.standardIcon))
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    Text(stringResource(R.string.progress_empty_banner_title), style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.progress_empty_banner_body), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = Spacing.xxxl),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xxl),
+        ) {
+            Box(modifier = Modifier.size(Size.progressRing), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(
+                    progress = { data.syllabusPercent / 100f },
+                    modifier = Modifier.fillMaxSize(),
+                    color = colors.primary,
+                    trackColor = colors.surfaceContainerHighest,
+                    strokeWidth = Size.progressRingStroke,
+                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        stringResource(R.string.insights_percent_value, data.syllabusPercent),
+                        style = MaterialTheme.typography.headlineMedium,
+                    )
+                    Text(stringResource(R.string.progress_covered), style = MaterialTheme.typography.labelSmall)
+                }
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+            ) {
+                ProgressFact(
+                    stringResource(R.string.progress_chapters_done),
+                    stringResource(
+                        R.string.progress_fraction,
+                        data.syllabusCompletedTopics,
+                        data.syllabusTotalTopics,
+                    ),
+                )
+                ProgressFact(stringResource(R.string.progress_hours_logged), stringResource(R.string.progress_zero_hours))
+                ProgressFact(stringResource(R.string.progress_days_studied), data.studyDaysInPeriod.toString())
+            }
+        }
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = Spacing.xxl),
+            shape = RoundedCornerShape(Radius.large),
+            color = colors.surface,
+            border = androidx.compose.foundation.BorderStroke(Stroke.hairline, colors.outlineVariant),
+        ) {
+            Row(
+                modifier = Modifier.padding(Spacing.lg),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Icon(
+                    Icons.Outlined.HourglassEmpty,
+                    contentDescription = null,
+                    modifier = Modifier.size(Size.smallIcon),
+                    tint = colors.primary,
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    Text(stringResource(R.string.progress_not_enough_pace), style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        stringResource(R.string.progress_not_enough_pace_body),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.textSecondary,
+                    )
+                }
+            }
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(top = Spacing.xxxl),
+            color = colors.outlineVariant,
+            thickness = Stroke.hairline,
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = Spacing.xxl),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                stringResource(R.string.progress_due_to_revise),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+            )
+            listOf(R.string.progress_period_7d, R.string.progress_period_30d, R.string.progress_period_90d)
+                .forEachIndexed { index, label ->
+                    Surface(
+                        modifier = Modifier.padding(start = Spacing.xs),
+                        shape = RoundedCornerShape(Radius.pill),
+                        color = if (index == 0) colors.selectionContainer else colors.surface,
+                        border = if (index == 0) null else androidx.compose.foundation.BorderStroke(
+                            Stroke.hairline,
+                            colors.outlineVariant,
+                        ),
+                    ) {
+                        Text(
+                            stringResource(label),
+                            style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                        )
+                    }
+                }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = Spacing.xxxl),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            listOf(
+                R.string.progress_day_due,
+                R.string.progress_day_w,
+                R.string.progress_day_t,
+                R.string.progress_day_f,
+                R.string.progress_day_s,
+                R.string.progress_day_s,
+                R.string.progress_day_m,
+            ).forEach { label ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(stringResource(R.string.progress_zero), style = MaterialTheme.typography.labelSmall, color = colors.textSecondary)
+                    Spacer(Modifier.height(Spacing.sm))
+                    Text(stringResource(label), style = MaterialTheme.typography.labelSmall, color = colors.textSecondary)
+                }
+            }
+        }
+        Text(
+            stringResource(R.string.progress_nothing_due),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(top = Spacing.xxxl),
+        )
+        HorizontalDivider(
+            modifier = Modifier.padding(top = Spacing.xxxl),
+            color = colors.outlineVariant,
+            thickness = Stroke.hairline,
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = Spacing.xxl),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(R.string.progress_time), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.progress_zero_streak), style = MaterialTheme.typography.labelSmall)
+        }
+        Text(
+            stringResource(R.string.progress_time_empty),
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.padding(top = Spacing.xl),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(Size.progressChart)
+                .padding(top = Spacing.xxxl),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            HorizontalDivider(color = colors.outlineVariant, thickness = Stroke.hairline)
+            Text(
+                stringResource(R.string.progress_target_hours),
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = Spacing.xs),
+            )
+        }
+        Spacer(Modifier.height(Spacing.xxl))
+    }
+}
+
+@Composable
+private fun ProgressFact(label: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, style = MaterialTheme.typography.bodyMedium)
+        Text(value, style = MaterialTheme.typography.titleSmall)
+    }
+}
+
+@Composable
 private fun PeriodSelector(selected: InsightPeriod, onSelect: (InsightPeriod) -> Unit) {
     val colors = AppTheme.colors
-    Surface(shape = RoundedCornerShape(Radius.md), color = colors.surfaceControl, border = androidx.compose.foundation.BorderStroke(1.dp, colors.borderSubtle)) {
+    Surface(shape = RoundedCornerShape(Radius.md), color = colors.surfaceControl) {
         Row(modifier = Modifier.fillMaxWidth().padding(Spacing.xs)) {
             InsightPeriod.entries.forEach { period ->
                 TextButton(
                     onClick = { onSelect(period) },
-                    modifier = Modifier.weight(1f).height(36.dp),
+                    modifier = Modifier.weight(1f).height(Size.dayControl),
                     shape = RoundedCornerShape(Radius.sm),
                     colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
-                        containerColor = if (period == selected) colors.brandContainer else Color.Transparent,
-                        contentColor = if (period == selected) colors.onBrandContainer else colors.textMuted,
+                        containerColor = if (period == selected) colors.selectionContainer else Color.Transparent,
+                        contentColor = if (period == selected) colors.onSelectionContainer else colors.textMuted,
                     ),
-                ) { Text(period.label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold) }
+                ) { Text(periodLabel(period), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold) }
             }
         }
     }
@@ -213,16 +443,16 @@ private fun InsightsSection(title: String, subtitle: String, content: @Composabl
 @Composable
 private fun QuickStats(data: InsightsData) {
     val colors = AppTheme.colors
-    Surface(shape = RoundedCornerShape(Radius.lg), color = colors.surface, border = androidx.compose.foundation.BorderStroke(1.dp, colors.border)) {
+    AppCard {
         Column {
             StatLine(
-                leftLabel = stringResource(R.string.insights_total_studied), leftValue = formatInsightMinutes(data.totalStudiedMinutes.takeIf { data.hasStudyInPeriod }),
+                leftLabel = stringResource(R.string.insights_total_studied), leftValue = insightDuration(data.totalStudiedMinutes.takeIf { data.hasStudyInPeriod }),
                 rightLabel = stringResource(R.string.insights_sessions), rightValue = data.completedSessionCount.takeIf { data.hasStudyInPeriod }?.toString() ?: "—",
             )
             HorizontalDivider(color = colors.borderSubtle)
             StatLine(
-                leftLabel = stringResource(R.string.insights_avg_day), leftValue = formatInsightMinutes(data.averagePerActiveDayMinutes),
-                rightLabel = stringResource(R.string.insights_best_day), rightValue = formatInsightMinutes(data.bestDay?.minutes), rightNote = data.bestDay?.let { formatInsightDate(it.date) },
+                leftLabel = stringResource(R.string.insights_avg_day), leftValue = insightDuration(data.averagePerActiveDayMinutes),
+                rightLabel = stringResource(R.string.insights_best_day), rightValue = insightDuration(data.bestDay?.minutes), rightNote = data.bestDay?.let { formatInsightDate(it.date) },
             )
         }
     }
@@ -242,7 +472,7 @@ private fun StatItem(label: String, value: String, modifier: Modifier, note: Str
     Column(modifier = modifier) {
         Text(value, style = MaterialTheme.typography.headlineSmall, color = AppTheme.colors.text, fontWeight = FontWeight.Bold)
         Text(label, style = MaterialTheme.typography.labelSmall, color = AppTheme.colors.textMuted, modifier = Modifier.padding(top = Spacing.xs))
-        if (note != null) Text(note, style = MaterialTheme.typography.labelSmall, color = AppTheme.colors.textSecondary, modifier = Modifier.padding(top = 2.dp))
+        if (note != null) Text(note, style = MaterialTheme.typography.labelSmall, color = AppTheme.colors.textSecondary, modifier = Modifier.padding(top = Spacing.xxs))
     }
 }
 
@@ -251,7 +481,7 @@ private fun ConsistencyCard(data: InsightsData) {
     val colors = AppTheme.colors
     val weeks = remember(data.heatmapDays) { data.heatmapDays.chunked(7) }
     var selectedIndex by remember(data.period) { mutableIntStateOf(data.heatmapDays.indexOfLast { it.minutes > 0 }.coerceAtLeast(0)) }
-    Surface(shape = RoundedCornerShape(Radius.lg), color = colors.surface, border = androidx.compose.foundation.BorderStroke(1.dp, colors.border)) {
+    AppCard {
         Column(modifier = Modifier.padding(Spacing.lg)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 monthLabels(weeks).forEach { label ->
@@ -274,7 +504,7 @@ private fun ConsistencyCard(data: InsightsData) {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .aspectRatio(1f)
-                                    .clip(RoundedCornerShape(3.dp))
+                                    .clip(RoundedCornerShape(CalendarMetrics.meterHeight))
                                     .background(heatColor(insight.minutes))
                                     .clickable { selectedIndex = index },
                             )
@@ -290,13 +520,13 @@ private fun ConsistencyCard(data: InsightsData) {
                             Column {
                                 Text(formatInsightDate(selected.date), style = MaterialTheme.typography.labelMedium, color = colors.text, fontWeight = FontWeight.SemiBold)
                                 Text(
-                                    if (selected.minutes > 0) formatInsightMinutes(selected.minutes) else stringResource(R.string.insights_no_study_this_day),
+                                    if (selected.minutes > 0) insightDuration(selected.minutes) else stringResource(R.string.insights_no_study_this_day),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = colors.textSecondary,
                                 )
                             }
                             if (selected.minutes > 0) {
-                                Text(stringResource(R.string.insights_sessions_count, selected.sessions), style = MaterialTheme.typography.bodySmall, color = colors.textSecondary, modifier = Modifier.align(Alignment.CenterVertically))
+                                Text(pluralStringResource(R.plurals.insights_sessions_count, selected.sessions, selected.sessions), style = MaterialTheme.typography.bodySmall, color = colors.textSecondary, modifier = Modifier.align(Alignment.CenterVertically))
                             }
                         }
                     }
@@ -310,8 +540,8 @@ private fun ConsistencyCard(data: InsightsData) {
             }
             HorizontalDivider(modifier = Modifier.padding(top = Spacing.md), color = colors.borderSubtle)
             Row(modifier = Modifier.fillMaxWidth().padding(top = Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-                SummaryItem(stringResource(R.string.insights_current_streak), if (data.hasStudyHistory) streakLabel(data.currentStreak) else "—", Modifier.weight(1f))
-                SummaryItem(stringResource(R.string.insights_active_this_period), if (data.hasStudyInPeriod) "${data.studyDaysInPeriod} / ${data.periodDays.size} days" else "—", Modifier.weight(1f))
+                SummaryItem(stringResource(R.string.insights_current_streak), if (data.hasStudyHistory) streakLabel(data.currentStreak) else stringResource(R.string.insights_no_value), Modifier.weight(1f))
+                SummaryItem(stringResource(R.string.insights_active_this_period), if (data.hasStudyInPeriod) pluralStringResource(R.plurals.insights_active_days_fraction, data.periodDays.size, data.studyDaysInPeriod, data.periodDays.size) else stringResource(R.string.insights_no_value), Modifier.weight(1f))
             }
         }
     }
@@ -320,7 +550,7 @@ private fun ConsistencyCard(data: InsightsData) {
 @Composable
 private fun Legend(color: Color, label: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Box(Modifier.size(10.dp).clip(RoundedCornerShape(3.dp)).background(color))
+        Box(Modifier.size(Size.legendDot).clip(RoundedCornerShape(CalendarMetrics.meterHeight)).background(color))
         Text(label, style = MaterialTheme.typography.labelSmall, color = AppTheme.colors.textMuted)
     }
 }
@@ -329,12 +559,12 @@ private fun Legend(color: Color, label: String) {
 private fun SummaryItem(label: String, value: String, modifier: Modifier) {
     Column(modifier = modifier) {
         Text(value, style = MaterialTheme.typography.titleMedium, color = AppTheme.colors.text, fontWeight = FontWeight.SemiBold)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = AppTheme.colors.textMuted, modifier = Modifier.padding(top = 2.dp))
+        Text(label, style = MaterialTheme.typography.labelSmall, color = AppTheme.colors.textMuted, modifier = Modifier.padding(top = Spacing.xxs))
     }
 }
 
 private fun monthLabels(weeks: List<List<com.exam.assistant.domain.StudyDayInsight>>): List<String> {
-    val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM")
+    val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM", java.util.Locale.getDefault())
     var lastMonth = -1
     return weeks.mapNotNull { week ->
         val date = week.firstOrNull()?.date ?: return@mapNotNull null
@@ -363,16 +593,16 @@ private fun heatColor(minutes: Int): Color {
 private fun StudyTimeCard(data: InsightsData) {
     val colors = AppTheme.colors
     val points = data.trendDays
-    Surface(shape = RoundedCornerShape(Radius.lg), color = colors.surface, border = androidx.compose.foundation.BorderStroke(1.dp, colors.border)) {
+    AppCard {
         Column(modifier = Modifier.padding(Spacing.lg)) {
             if (!data.hasStudyInPeriod || points.none { it.minutes > 0 }) {
                 EmptyData(text = stringResource(R.string.insights_empty_history))
             } else {
                 val maxMinutes = points.maxOf { it.minutes }.coerceAtLeast(1)
-                Row(modifier = Modifier.fillMaxWidth().height(156.dp), horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.Bottom) {
+                Row(modifier = Modifier.fillMaxWidth().height(Size.progressChartTall), horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.Bottom) {
                     points.forEachIndexed { index, point ->
                         Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom) {
-                            Text(formatInsightMinutes(point.minutes), style = MaterialTheme.typography.labelSmall, color = colors.textMuted)
+                            Text(insightDuration(point.minutes), style = MaterialTheme.typography.labelSmall, color = colors.textMuted)
                             Spacer(Modifier.height(Spacing.xs))
                             Box(modifier = Modifier.fillMaxWidth(.72f).height((82f * point.minutes / maxMinutes).coerceAtLeast(4f).dp).clip(RoundedCornerShape(topStart = Radius.sm, topEnd = Radius.sm)).background(if (index == points.lastIndex) colors.brand else colors.brandDeep))
                             Text(trendLabel(point, data.period), style = MaterialTheme.typography.labelSmall, color = if (index == points.lastIndex) colors.brandSoft else colors.textMuted, modifier = Modifier.padding(top = Spacing.xs))
@@ -381,7 +611,7 @@ private fun StudyTimeCard(data: InsightsData) {
                 }
             }
             Text(
-                text = if (data.hasStudyInPeriod) stringResource(R.string.insights_total_period, formatInsightMinutes(data.totalStudiedMinutes)) else stringResource(R.string.insights_start_studying),
+                text = if (data.hasStudyInPeriod) stringResource(R.string.insights_total_period, insightDuration(data.totalStudiedMinutes)) else stringResource(R.string.insights_start_studying),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.textSecondary,
                 modifier = Modifier.padding(top = Spacing.md),
@@ -393,14 +623,14 @@ private fun StudyTimeCard(data: InsightsData) {
 @Composable
 private fun PlanActualCard(data: InsightsData) {
     val colors = AppTheme.colors
-    Surface(shape = RoundedCornerShape(Radius.lg), color = colors.surface, border = androidx.compose.foundation.BorderStroke(1.dp, colors.border)) {
+    AppCard {
         Column(modifier = Modifier.padding(Spacing.lg)) {
             if (data.plannedMinutes == 0) {
                 EmptyData(text = stringResource(R.string.insights_no_planned_blocks))
             } else {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-                    MetricPair(stringResource(R.string.insights_planned), formatInsightMinutes(data.plannedMinutes))
-                    MetricPair(stringResource(R.string.insights_studied), formatInsightMinutes(data.actualMinutes), colors.brandSoft, Alignment.End)
+                    MetricPair(stringResource(R.string.insights_planned), insightDuration(data.plannedMinutes))
+                    MetricPair(stringResource(R.string.insights_studied), insightDuration(data.actualMinutes), colors.brandSoft, Alignment.End)
                 }
                 ProgressBar(percent = data.planPercent ?: 0, color = colors.brand, modifier = Modifier.padding(top = Spacing.md))
                 Text(
@@ -410,7 +640,7 @@ private fun PlanActualCard(data: InsightsData) {
                     modifier = Modifier.padding(top = Spacing.sm),
                 )
                 Text(
-                    text = if (data.planDeltaMinutes >= 0) stringResource(R.string.insights_ahead, formatInsightMinutes(data.planDeltaMinutes)) else stringResource(R.string.insights_behind, formatInsightMinutes(-data.planDeltaMinutes)),
+                    text = if (data.planDeltaMinutes >= 0) stringResource(R.string.insights_ahead, insightDuration(data.planDeltaMinutes)) else stringResource(R.string.insights_behind, insightDuration(-data.planDeltaMinutes)),
                     style = MaterialTheme.typography.bodySmall,
                     color = if (data.planDeltaMinutes >= 0) colors.success else colors.warning,
                     modifier = Modifier.padding(top = Spacing.sm),
@@ -431,18 +661,18 @@ private fun MetricPair(label: String, value: String, valueColor: Color = AppThem
 @Composable
 private fun SyllabusCard(data: InsightsData, onManageTarget: () -> Unit) {
     val colors = AppTheme.colors
-    Surface(shape = RoundedCornerShape(Radius.lg), color = colors.surface, border = androidx.compose.foundation.BorderStroke(1.dp, colors.border)) {
+    AppCard {
         Column(modifier = Modifier.padding(Spacing.lg)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-                Text(stringResource(R.string.insights_topics_fraction, data.syllabusCompletedTopics, data.syllabusTotalTopics), style = MaterialTheme.typography.headlineSmall, color = colors.text, fontWeight = FontWeight.Bold)
+                Text(pluralStringResource(R.plurals.insights_topics_fraction, data.syllabusTotalTopics, data.syllabusCompletedTopics, data.syllabusTotalTopics), style = MaterialTheme.typography.headlineSmall, color = colors.text, fontWeight = FontWeight.Bold)
                 Text(stringResource(R.string.insights_covered, data.syllabusPercent), style = MaterialTheme.typography.titleMedium, color = colors.brandSoft, fontWeight = FontWeight.SemiBold)
             }
             Row(modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(stringResource(R.string.insights_remaining_count, data.syllabusRemainingTopics), style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
-                TextButton(onClick = onManageTarget, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) { Text(stringResource(R.string.insights_manage_target), color = colors.brandSoft) }
+                Text(pluralStringResource(R.plurals.insights_remaining_count, data.syllabusRemainingTopics, data.syllabusRemainingTopics), style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
+                TextButton(onClick = onManageTarget, contentPadding = androidx.compose.foundation.layout.PaddingValues(Spacing.none)) { Text(stringResource(R.string.insights_manage_target), color = colors.brandSoft) }
             }
             ProgressBar(data.syllabusPercent, colors.brand, Modifier.padding(top = Spacing.xs))
-            if (data.excludedTopicCount > 0) Text(stringResource(R.string.insights_target_of_official, data.syllabusTotalTopics, data.officialTopicCount), style = MaterialTheme.typography.labelSmall, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.sm))
+            if (data.excludedTopicCount > 0) Text(pluralStringResource(R.plurals.insights_target_of_official, data.officialTopicCount, data.syllabusTotalTopics, data.officialTopicCount), style = MaterialTheme.typography.labelSmall, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.sm))
         }
     }
 }
@@ -451,7 +681,7 @@ private fun SyllabusCard(data: InsightsData, onManageTarget: () -> Unit) {
 private fun ForecastCard(data: InsightsData) {
     val colors = AppTheme.colors
     val forecast = data.forecast
-    Surface(shape = RoundedCornerShape(Radius.lg), color = colors.warningRow, border = androidx.compose.foundation.BorderStroke(1.dp, colors.warningTint)) {
+    Surface(shape = RoundedCornerShape(Radius.lg), color = colors.warningRow) {
         Column(modifier = Modifier.padding(Spacing.lg)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 MetricPair(stringResource(R.string.insights_target_date), formatInsightDate(forecast.targetDate))
@@ -463,8 +693,8 @@ private fun ForecastCard(data: InsightsData) {
                 val delta = forecast.daysDelta ?: 0
                 Text(
                     text = when {
-                        delta > 0 -> stringResource(R.string.insights_days_behind, delta)
-                        delta < 0 -> stringResource(R.string.insights_days_ahead, -delta)
+                        delta > 0 -> pluralStringResource(R.plurals.insights_days_behind, delta, delta)
+                        delta < 0 -> pluralStringResource(R.plurals.insights_days_ahead, -delta, -delta)
                         else -> stringResource(R.string.insights_on_time)
                     },
                     style = MaterialTheme.typography.titleMedium,
@@ -475,12 +705,12 @@ private fun ForecastCard(data: InsightsData) {
                 Surface(shape = RoundedCornerShape(Radius.md), color = colors.warningTint.copy(alpha = .5f), modifier = Modifier.padding(top = Spacing.md)) {
                     Column(modifier = Modifier.padding(Spacing.md)) {
                         Text(stringResource(R.string.insights_to_finish_by, formatInsightDate(forecast.targetDate)), style = MaterialTheme.typography.labelSmall, color = colors.textSecondary)
-                        Text(if ((forecast.extraMinutesPerDay ?: 0) > 0) "+${formatInsightMinutes(forecast.extraMinutesPerDay)} / day" else stringResource(R.string.insights_current_pace_works), style = MaterialTheme.typography.titleLarge, color = colors.text, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = Spacing.xs))
+                        Text(if ((forecast.extraMinutesPerDay ?: 0) > 0) stringResource(R.string.insights_extra_per_day, insightDuration(forecast.extraMinutesPerDay)) else stringResource(R.string.insights_current_pace_works), style = MaterialTheme.typography.titleLarge, color = colors.text, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = Spacing.xs))
                     }
                 }
                 Row(modifier = Modifier.padding(top = Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.xl)) {
-                    MetricPair(stringResource(R.string.insights_recent_average), formatInsightMinutes(forecast.recentAverageMinutesPerDay))
-                    MetricPair(stringResource(R.string.insights_required_pace), formatInsightMinutes(forecast.requiredMinutesPerDay), colors.warning)
+                    MetricPair(stringResource(R.string.insights_recent_average), insightDuration(forecast.recentAverageMinutesPerDay))
+                    MetricPair(stringResource(R.string.insights_required_pace), insightDuration(forecast.requiredMinutesPerDay), colors.warning)
                 }
                 Text(stringResource(R.string.insights_forecast_note), style = MaterialTheme.typography.labelSmall, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.md))
             }
@@ -491,7 +721,7 @@ private fun ForecastCard(data: InsightsData) {
 @Composable
 private fun SubjectsCard(subjects: List<SubjectInsight>) {
     val colors = AppTheme.colors
-    Surface(shape = RoundedCornerShape(Radius.lg), color = colors.surface, border = androidx.compose.foundation.BorderStroke(1.dp, colors.border)) {
+    AppCard {
         Column {
             subjects.forEachIndexed { index, subject ->
                 SubjectRow(subject)
@@ -507,27 +737,27 @@ private fun SubjectRow(subject: SubjectInsight) {
     var expanded by remember { mutableStateOf(false) }
     Column(modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(subjectShortName(subject.name), style = MaterialTheme.typography.titleSmall, color = colors.text, fontWeight = FontWeight.SemiBold)
+            Text(subject.name, style = MaterialTheme.typography.titleSmall, color = colors.text, fontWeight = FontWeight.SemiBold)
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Text("${subject.percent}%", style = MaterialTheme.typography.bodySmall, color = colors.textSecondary)
+                Text(stringResource(R.string.insights_percent_value, subject.percent), style = MaterialTheme.typography.bodySmall, color = colors.textSecondary)
                 Text(subjectStatusLabel(subject.status), style = MaterialTheme.typography.bodySmall, color = subjectStatusColor(subject.status), fontWeight = FontWeight.SemiBold)
             }
         }
         ProgressBar(subject.percent, subjectStatusColor(subject.status), Modifier.padding(top = Spacing.sm))
-        if (expanded) Text(stringResource(R.string.insights_subject_detail, subject.completedTopics, subject.totalTopics), style = MaterialTheme.typography.labelSmall, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.sm))
+        if (expanded) Text(pluralStringResource(R.plurals.insights_subject_detail, subject.totalTopics, subject.completedTopics, subject.totalTopics), style = MaterialTheme.typography.labelSmall, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.sm))
     }
 }
 
 @Composable
 private fun RemainingCard(subjects: List<SubjectInsight>, totalRemaining: Int) {
     val colors = AppTheme.colors
-    Surface(shape = RoundedCornerShape(Radius.lg), color = colors.surface, border = androidx.compose.foundation.BorderStroke(1.dp, colors.border)) {
+    AppCard {
         Column(modifier = Modifier.padding(horizontal = Spacing.lg)) {
-            Text(stringResource(R.string.insights_topics_left, totalRemaining), style = MaterialTheme.typography.headlineSmall, color = colors.text, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.sm))
+            Text(pluralStringResource(R.plurals.insights_topics_left, totalRemaining, totalRemaining), style = MaterialTheme.typography.headlineSmall, color = colors.text, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.sm))
             subjects.forEach { subject ->
                 Row(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.md), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(subjectShortName(subject.name), style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
-                    Text(stringResource(R.string.insights_left, subject.remainingTopics), style = MaterialTheme.typography.bodyMedium, color = colors.text, fontWeight = FontWeight.SemiBold)
+                    Text(subject.name, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
+                    Text(pluralStringResource(R.plurals.insights_left, subject.remainingTopics, subject.remainingTopics), style = MaterialTheme.typography.bodyMedium, color = colors.text, fontWeight = FontWeight.SemiBold)
                 }
                 if (subject != subjects.last()) HorizontalDivider(color = colors.borderSubtle)
             }
@@ -539,7 +769,7 @@ private fun RemainingCard(subjects: List<SubjectInsight>, totalRemaining: Int) {
 private fun RevisionCard(data: InsightsData) {
     val colors = AppTheme.colors
     var showDue by remember { mutableStateOf(false) }
-    Surface(shape = RoundedCornerShape(Radius.lg), color = colors.surface, border = androidx.compose.foundation.BorderStroke(1.dp, colors.border)) {
+    AppCard {
         Column(modifier = Modifier.padding(Spacing.lg)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 RevisionMetric(stringResource(R.string.insights_due_now), data.revision.dueNow, Modifier.weight(1f))
@@ -552,13 +782,13 @@ private fun RevisionCard(data: InsightsData) {
                 val onTime = data.revision.onTimePercent ?: 0
                 Row(modifier = Modifier.fillMaxWidth().padding(top = Spacing.lg), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(stringResource(R.string.insights_revision_on_time), style = MaterialTheme.typography.bodySmall, color = colors.textSecondary)
-                    Text("$onTime%", style = MaterialTheme.typography.bodySmall, color = colors.brandSoft, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.insights_percent_value, onTime), style = MaterialTheme.typography.bodySmall, color = colors.brandSoft, fontWeight = FontWeight.SemiBold)
                 }
                 ProgressBar(onTime, colors.brand, Modifier.padding(top = Spacing.sm))
             }
             if (data.revision.dueTitles.isNotEmpty()) {
                 TextButton(onClick = { showDue = !showDue }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.insights_revision_action)) }
-                if (showDue) data.revision.dueTitles.forEach { title -> Text("• $title", style = MaterialTheme.typography.bodySmall, color = colors.textSecondary, modifier = Modifier.padding(top = Spacing.xs)) }
+                if (showDue) data.revision.dueTitles.forEach { title -> Text(stringResource(R.string.insights_bullet_item, title), style = MaterialTheme.typography.bodySmall, color = colors.textSecondary, modifier = Modifier.padding(top = Spacing.xs)) }
             }
         }
     }
@@ -568,7 +798,7 @@ private fun RevisionCard(data: InsightsData) {
 private fun RevisionMetric(label: String, value: Int, modifier: Modifier) {
     Surface(shape = RoundedCornerShape(Radius.sm), color = AppTheme.colors.surfaceControl, modifier = modifier) {
         Column(modifier = Modifier.padding(Spacing.sm)) {
-            Text(value.takeIf { it > 0 }?.toString() ?: "—", style = MaterialTheme.typography.titleLarge, color = AppTheme.colors.text, fontWeight = FontWeight.Bold)
+            Text(value.takeIf { it > 0 }?.toString() ?: stringResource(R.string.insights_no_value), style = MaterialTheme.typography.titleLarge, color = AppTheme.colors.text, fontWeight = FontWeight.Bold)
             Text(label, style = MaterialTheme.typography.labelSmall, color = AppTheme.colors.textMuted, modifier = Modifier.padding(top = Spacing.xs))
         }
     }
@@ -577,13 +807,13 @@ private fun RevisionMetric(label: String, value: Int, modifier: Modifier) {
 @Composable
 private fun PatternCard(data: InsightsData) {
     val colors = AppTheme.colors
-    Surface(shape = RoundedCornerShape(Radius.lg), color = colors.surface, border = androidx.compose.foundation.BorderStroke(1.dp, colors.border)) {
+    AppCard {
         Column(modifier = Modifier.padding(horizontal = Spacing.lg)) {
-            PatternRow(stringResource(R.string.insights_average_session), formatInsightMinutes(data.averageSessionMinutes))
-            PatternRow(stringResource(R.string.insights_longest_session), formatInsightMinutes(data.longestSessionMinutes))
-            data.averageBreakMinutes?.let { PatternRow(stringResource(R.string.insights_average_break), formatInsightMinutes(it)) }
-            PatternRow(stringResource(R.string.insights_study_days), if (data.hasStudyHistory) "${data.studyDaysInPeriod}" else "—")
-            PatternRow(stringResource(R.string.insights_longest_streak), if (data.hasStudyHistory) "${data.longestStreak} days" else "—", last = true)
+            PatternRow(stringResource(R.string.insights_average_session), insightDuration(data.averageSessionMinutes))
+            PatternRow(stringResource(R.string.insights_longest_session), insightDuration(data.longestSessionMinutes))
+            data.averageBreakMinutes?.let { PatternRow(stringResource(R.string.insights_average_break), insightDuration(it)) }
+            PatternRow(stringResource(R.string.insights_study_days), if (data.hasStudyHistory) pluralStringResource(R.plurals.insights_days_count, data.studyDaysInPeriod, data.studyDaysInPeriod) else stringResource(R.string.insights_no_value))
+            PatternRow(stringResource(R.string.insights_longest_streak), if (data.hasStudyHistory) streakLabel(data.longestStreak) else stringResource(R.string.insights_no_value), last = true)
         }
     }
 }
@@ -591,7 +821,7 @@ private fun PatternCard(data: InsightsData) {
 @Composable
 private fun PatternRow(label: String, value: String, last: Boolean = false) {
     val colors = AppTheme.colors
-    Row(modifier = Modifier.fillMaxWidth().then(if (last) Modifier else Modifier.padding(bottom = 0.dp)).padding(vertical = Spacing.md), horizontalArrangement = Arrangement.SpaceBetween) {
+    Row(modifier = Modifier.fillMaxWidth().then(if (last) Modifier else Modifier.padding(bottom = Spacing.none)).padding(vertical = Spacing.md), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, style = MaterialTheme.typography.bodySmall, color = colors.textSecondary)
         Text(value, style = MaterialTheme.typography.bodySmall, color = colors.text, fontWeight = FontWeight.SemiBold)
     }
@@ -601,8 +831,8 @@ private fun PatternRow(label: String, value: String, last: Boolean = false) {
 @Composable
 private fun ProgressBar(percent: Int, color: Color, modifier: Modifier = Modifier) {
     val colors = AppTheme.colors
-    Box(modifier = modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(50)).background(colors.elevated)) {
-        Box(modifier = Modifier.fillMaxWidth(percent.coerceIn(0, 100) / 100f).height(6.dp).clip(RoundedCornerShape(50)).background(color))
+    Box(modifier = modifier.fillMaxWidth().height(Size.progressBar).clip(RoundedCornerShape(Radius.full)).background(colors.elevated)) {
+        Box(modifier = Modifier.fillMaxWidth(percent.coerceIn(0, 100) / 100f).height(Size.progressBar).clip(RoundedCornerShape(Radius.full)).background(color))
     }
 }
 
@@ -624,7 +854,7 @@ private fun TargetManagerDialog(sections: List<TargetSectionUi>, onToggle: (Stri
                     Row(modifier = Modifier.fillMaxWidth().clickable { onToggle(section.key) }.padding(top = Spacing.md), verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = !section.excluded, onCheckedChange = { onToggle(section.key) })
                         Column(modifier = Modifier.padding(start = Spacing.sm)) {
-                            Text(subjectShortName(section.name), style = MaterialTheme.typography.bodyMedium, color = colors.text)
+                            Text(section.name, style = MaterialTheme.typography.bodyMedium, color = colors.text)
                             Text(if (section.excluded) stringResource(R.string.insights_not_preparing) else stringResource(R.string.insights_preparing), style = MaterialTheme.typography.labelSmall, color = colors.textMuted)
                         }
                     }
@@ -636,20 +866,41 @@ private fun TargetManagerDialog(sections: List<TargetSectionUi>, onToggle: (Stri
     )
 }
 
-private fun periodSubtitle(period: InsightPeriod): String = when (period) {
-    InsightPeriod.DAY -> "Your study behaviour today"
-    InsightPeriod.WEEK -> "Your study behaviour for the last 7 days"
-    InsightPeriod.MONTH -> "Your study behaviour for the last 30 days"
-    InsightPeriod.THREE_MONTHS -> "Your study behaviour for the last 3 months"
-    InsightPeriod.ALL -> "Your study behaviour across this plan"
+@Composable
+private fun periodSubtitle(period: InsightPeriod): String = stringResource(when (period) {
+    InsightPeriod.DAY -> R.string.insights_period_day
+    InsightPeriod.WEEK -> R.string.insights_period_week
+    InsightPeriod.MONTH -> R.string.insights_period_month
+    InsightPeriod.THREE_MONTHS -> R.string.insights_period_three_months
+    InsightPeriod.ALL -> R.string.insights_period_all
+})
+
+@Composable
+private fun insightDuration(minutes: Int?): String = when {
+    minutes == null -> stringResource(R.string.insights_no_value)
+    minutes < 60 -> stringResource(R.string.insights_minutes_value, minutes)
+    minutes % 60 == 0 -> stringResource(R.string.insights_hours_value, minutes / 60)
+    else -> stringResource(R.string.insights_hours_minutes_value, minutes / 60, minutes % 60)
 }
 
-private fun trendLabel(point: StudyDayInsight, period: InsightPeriod): String = when (period) {
-    InsightPeriod.DAY, InsightPeriod.WEEK -> point.date.dayOfWeek.name.take(3).lowercase().replaceFirstChar { it.uppercase() }
-    else -> "${point.date.dayOfMonth} ${point.date.month.name.take(3).lowercase().replaceFirstChar { it.uppercase() }}"
-}
+@Composable
+private fun periodLabel(period: InsightPeriod): String = stringResource(when (period) {
+    InsightPeriod.DAY -> R.string.insights_period_label_day
+    InsightPeriod.WEEK -> R.string.insights_period_label_week
+    InsightPeriod.MONTH -> R.string.insights_period_label_month
+    InsightPeriod.THREE_MONTHS -> R.string.insights_period_label_three_months
+    InsightPeriod.ALL -> R.string.insights_period_label_all
+})
 
-private fun streakLabel(days: Int): String = "$days days"
+private fun trendLabel(point: StudyDayInsight, period: InsightPeriod): String = point.date.format(
+    java.time.format.DateTimeFormatter.ofPattern(
+        if (period == InsightPeriod.DAY || period == InsightPeriod.WEEK) "EEE" else "d MMM",
+        java.util.Locale.getDefault(),
+    ),
+)
+
+@Composable
+private fun streakLabel(days: Int): String = pluralStringResource(R.plurals.insights_days_count, days, days)
 
 @Composable
 private fun subjectStatusLabel(status: SubjectStatus): String = stringResource(
@@ -665,14 +916,6 @@ private fun subjectStatusColor(status: SubjectStatus): Color = when (status) {
     SubjectStatus.AHEAD -> AppTheme.colors.success
     SubjectStatus.ON_TRACK -> AppTheme.colors.brandSoft
     SubjectStatus.BEHIND -> AppTheme.colors.warning
-}
-
-private fun subjectShortName(name: String): String = when {
-    name.contains("Quant", ignoreCase = true) -> "Quant"
-    name.contains("Reasoning", ignoreCase = true) -> "Reasoning"
-    name.contains("Awareness", ignoreCase = true) -> "GA"
-    name.contains("English", ignoreCase = true) -> "English"
-    else -> name
 }
 
 private fun Color.textFaint(): Color = copy(alpha = .55f)
