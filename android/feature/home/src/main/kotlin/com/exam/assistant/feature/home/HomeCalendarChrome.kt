@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,12 +26,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.CalendarMetrics
 import com.exam.assistant.core.design.Radius
+import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.core.design.Stroke
 import com.exam.assistant.domain.WeekDayStatus
@@ -51,11 +59,24 @@ internal fun HomeCalendarChrome(
     val monthTitle = selectedDate.format(
         java.time.format.DateTimeFormatter.ofPattern(monthPattern, java.util.Locale.getDefault()),
     )
+    val monthStateDescription = stringResource(
+        if (expanded) R.string.home_calendar_state_expanded else R.string.home_calendar_state_collapsed,
+        monthTitle,
+    )
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
-                .height(CalendarMetrics.monthControlHeight)
-                .clickable(onClick = onToggleExpanded)
+                .heightIn(min = Size.touchTarget)
+                .semantics(mergeDescendants = true) {
+                    stateDescription = monthStateDescription
+                    role = Role.Button
+                }
+                .clickable(
+                    onClickLabel = stringResource(
+                        if (expanded) R.string.home_calendar_collapse else R.string.home_calendar_expand,
+                    ),
+                    onClick = onToggleExpanded,
+                )
                 .padding(horizontal = Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -69,7 +90,9 @@ internal fun HomeCalendarChrome(
             )
             Icon(
                 imageVector = Icons.Filled.KeyboardArrowDown,
-                contentDescription = null,
+                contentDescription = stringResource(
+                    if (expanded) R.string.home_calendar_collapse else R.string.home_calendar_expand,
+                ),
                 tint = colors.textSecondary,
                 modifier = Modifier.rotate(if (expanded) 180f else 0f),
             )
@@ -92,13 +115,13 @@ private fun WeekdayHeaderRow() {
         horizontalArrangement = Arrangement.spacedBy(CalendarMetrics.gridGap),
     ) {
         listOf(
-            R.string.home_weekday_sunday,
             R.string.home_weekday_monday,
             R.string.home_weekday_tuesday,
             R.string.home_weekday_wednesday,
             R.string.home_weekday_thursday,
             R.string.home_weekday_friday,
             R.string.home_weekday_saturday,
+            R.string.home_weekday_sunday,
         ).forEach { labelRes ->
             Text(
                 text = stringResource(labelRes),
@@ -183,11 +206,34 @@ private fun DayCell(
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
+    val datePattern = stringResource(R.string.home_accessibility_date_pattern)
+    val fullDate = day.date.format(
+        java.time.format.DateTimeFormatter.ofPattern(datePattern, java.util.Locale.getDefault()),
+    )
+    val status = stringResource(
+        when (day.status) {
+            WeekDayStatus.DONE -> R.string.home_calendar_status_done
+            WeekDayStatus.PARTIAL -> R.string.home_calendar_status_partial
+            WeekDayStatus.TODAY -> R.string.home_calendar_status_today
+            WeekDayStatus.PLANNED -> R.string.home_calendar_status_planned
+            WeekDayStatus.REST -> R.string.home_calendar_status_no_progress
+        },
+    )
     Column(
         modifier = modifier
+            .heightIn(min = Size.touchTarget)
             .clip(RoundedCornerShape(CalendarMetrics.dayCorner))
             .background(if (day.selected) colors.selectionContainer else Color.Transparent)
-            .clickable { onSelectDate(day.date) }
+            .semantics(mergeDescendants = true) {
+                contentDescription = fullDate
+                stateDescription = status
+                selected = day.selected
+                role = Role.Button
+            }
+            .clickable(
+                onClickLabel = stringResource(R.string.home_calendar_select_date, fullDate),
+                onClick = { onSelectDate(day.date) },
+            )
             .padding(top = CalendarMetrics.dayTopPadding, bottom = CalendarMetrics.dayBottomPadding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(CalendarMetrics.dayGap),

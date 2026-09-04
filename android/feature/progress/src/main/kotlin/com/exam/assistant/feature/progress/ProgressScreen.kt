@@ -48,7 +48,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.StudySessionStore
 import com.exam.assistant.core.data.SyllabusRepository
 import com.exam.assistant.core.data.SyllabusStore
@@ -58,6 +57,8 @@ import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.StudySessionRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
+import com.exam.assistant.core.data.repo.RollingPlanRepository
+import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.CalendarMetrics
 import com.exam.assistant.core.design.AppCard
@@ -75,19 +76,22 @@ import kotlin.math.ceil
 
 @Composable
 fun ProgressRoute(
-    planStore: PlanStore,
     examPackRepository: ExamPackRepository,
     attemptRepository: AttemptRepository,
     planRepository: PlanRepository,
     studySessionRepository: StudySessionRepository,
     topicProgressRepository: TopicProgressRepository,
     targetSyllabusRepository: TargetSyllabusRepository,
+    rollingPlanRepository: RollingPlanRepository,
+    studyPreferenceRepository: StudyPreferenceRepository,
     modifier: Modifier = Modifier,
     onOpenSettings: () -> Unit = {},
+    onGoToday: () -> Unit = {},
     viewModel: ProgressViewModel = viewModel(
         factory = ProgressViewModel.Factory(
-            planStore, examPackRepository, attemptRepository, planRepository, studySessionRepository,
+            examPackRepository, attemptRepository, planRepository, studySessionRepository,
             topicProgressRepository, targetSyllabusRepository,
+            rollingPlanRepository, studyPreferenceRepository,
         ),
     ),
 ) {
@@ -97,6 +101,7 @@ fun ProgressRoute(
         state = state,
         onPeriodSelected = viewModel::selectPeriod,
         onOpenSettings = onOpenSettings,
+        onGoToday = onGoToday,
         onManageTarget = viewModel::openTargetManager,
         onCloseTargetManager = viewModel::closeTargetManager,
         onToggleSection = viewModel::toggleSectionTarget,
@@ -110,6 +115,7 @@ fun ProgressScreen(
     modifier: Modifier = Modifier,
     onPeriodSelected: (InsightPeriod) -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    onGoToday: () -> Unit = {},
     onManageTarget: () -> Unit = {},
     onCloseTargetManager: () -> Unit = {},
     onToggleSection: (String) -> Unit = {},
@@ -138,7 +144,7 @@ fun ProgressScreen(
 
     val data = state.data
     if (!data.hasStudyHistory) {
-        EmptyProgressScreen(data = data, modifier = modifier)
+        EmptyProgressScreen(data = data, onGoToday = onGoToday, modifier = modifier)
         return
     }
     Column(
@@ -205,7 +211,7 @@ fun ProgressScreen(
 }
 
 @Composable
-private fun EmptyProgressScreen(data: InsightsData, modifier: Modifier = Modifier) {
+private fun EmptyProgressScreen(data: InsightsData, onGoToday: () -> Unit, modifier: Modifier = Modifier) {
     val colors = AppTheme.colors
     Column(
         modifier = modifier
@@ -234,170 +240,18 @@ private fun EmptyProgressScreen(data: InsightsData, modifier: Modifier = Modifie
             }
         }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = Spacing.xxxl),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xxl),
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(top = Spacing.xxl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            Box(modifier = Modifier.size(Size.progressRing), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(
-                    progress = { data.syllabusPercent / 100f },
-                    modifier = Modifier.fillMaxSize(),
-                    color = colors.primary,
-                    trackColor = colors.surfaceContainerHighest,
-                    strokeWidth = Size.progressRingStroke,
-                )
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        stringResource(R.string.insights_percent_value, data.syllabusPercent),
-                        style = MaterialTheme.typography.headlineMedium,
-                    )
-                    Text(stringResource(R.string.progress_covered), style = MaterialTheme.typography.labelSmall)
-                }
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(Spacing.lg),
-            ) {
-                ProgressFact(
-                    stringResource(R.string.progress_chapters_done),
-                    stringResource(
-                        R.string.progress_fraction,
-                        data.syllabusCompletedTopics,
-                        data.syllabusTotalTopics,
-                    ),
-                )
-                ProgressFact(stringResource(R.string.progress_hours_logged), stringResource(R.string.progress_zero_hours))
-                ProgressFact(stringResource(R.string.progress_days_studied), data.studyDaysInPeriod.toString())
-            }
-        }
-
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = Spacing.xxl),
-            shape = RoundedCornerShape(Radius.large),
-            color = colors.surface,
-            border = androidx.compose.foundation.BorderStroke(Stroke.hairline, colors.outlineVariant),
-        ) {
-            Row(
-                modifier = Modifier.padding(Spacing.lg),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                verticalAlignment = Alignment.Top,
-            ) {
-                Icon(
-                    Icons.Outlined.HourglassEmpty,
-                    contentDescription = null,
-                    modifier = Modifier.size(Size.smallIcon),
-                    tint = colors.primary,
-                )
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    Text(stringResource(R.string.progress_not_enough_pace), style = MaterialTheme.typography.titleSmall)
-                    Text(
-                        stringResource(R.string.progress_not_enough_pace_body),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.textSecondary,
-                    )
-                }
-            }
-        }
-
-        HorizontalDivider(
-            modifier = Modifier.padding(top = Spacing.xxxl),
-            color = colors.outlineVariant,
-            thickness = Stroke.hairline,
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = Spacing.xxl),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                stringResource(R.string.progress_due_to_revise),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f),
+            ProgressFact(
+                stringResource(R.string.progress_chapters_done),
+                stringResource(R.string.progress_fraction, data.syllabusCompletedTopics, data.syllabusTotalTopics),
             )
-            listOf(R.string.progress_period_7d, R.string.progress_period_30d, R.string.progress_period_90d)
-                .forEachIndexed { index, label ->
-                    Surface(
-                        modifier = Modifier.padding(start = Spacing.xs),
-                        shape = RoundedCornerShape(Radius.pill),
-                        color = if (index == 0) colors.selectionContainer else colors.surface,
-                        border = if (index == 0) null else androidx.compose.foundation.BorderStroke(
-                            Stroke.hairline,
-                            colors.outlineVariant,
-                        ),
-                    ) {
-                        Text(
-                            stringResource(label),
-                            style = MaterialTheme.typography.labelMedium,
-                            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                        )
-                    }
-                }
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = Spacing.xxxl),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            listOf(
-                R.string.progress_day_due,
-                R.string.progress_day_w,
-                R.string.progress_day_t,
-                R.string.progress_day_f,
-                R.string.progress_day_s,
-                R.string.progress_day_s,
-                R.string.progress_day_m,
-            ).forEach { label ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(stringResource(R.string.progress_zero), style = MaterialTheme.typography.labelSmall, color = colors.textSecondary)
-                    Spacer(Modifier.height(Spacing.sm))
-                    Text(stringResource(label), style = MaterialTheme.typography.labelSmall, color = colors.textSecondary)
-                }
+            ProgressFact(stringResource(R.string.progress_days_studied), data.studyDaysInPeriod.toString())
+            Button(onClick = onGoToday, modifier = Modifier.fillMaxWidth().height(Size.ctaHeight)) {
+                Text(stringResource(R.string.progress_start_next))
             }
-        }
-        Text(
-            stringResource(R.string.progress_nothing_due),
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(top = Spacing.xxxl),
-        )
-        HorizontalDivider(
-            modifier = Modifier.padding(top = Spacing.xxxl),
-            color = colors.outlineVariant,
-            thickness = Stroke.hairline,
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = Spacing.xxl),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(stringResource(R.string.progress_time), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            Text(stringResource(R.string.progress_zero_streak), style = MaterialTheme.typography.labelSmall)
-        }
-        Text(
-            stringResource(R.string.progress_time_empty),
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(top = Spacing.xl),
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(Size.progressChart)
-                .padding(top = Spacing.xxxl),
-            contentAlignment = Alignment.BottomCenter,
-        ) {
-            HorizontalDivider(color = colors.outlineVariant, thickness = Stroke.hairline)
-            Text(
-                stringResource(R.string.progress_target_hours),
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = Spacing.xs),
-            )
         }
         Spacer(Modifier.height(Spacing.xxl))
     }
@@ -630,7 +484,7 @@ private fun PlanActualCard(data: InsightsData) {
             } else {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
                     MetricPair(stringResource(R.string.insights_planned), insightDuration(data.plannedMinutes))
-                    MetricPair(stringResource(R.string.insights_studied), insightDuration(data.actualMinutes), colors.brandSoft, Alignment.End)
+                    MetricPair(stringResource(R.string.insights_completed_planned), insightDuration(data.completedPlannedMinutes), colors.brandSoft, Alignment.End)
                 }
                 ProgressBar(percent = data.planPercent ?: 0, color = colors.brand, modifier = Modifier.padding(top = Spacing.md))
                 Text(
@@ -639,6 +493,14 @@ private fun PlanActualCard(data: InsightsData) {
                     color = colors.textSecondary,
                     modifier = Modifier.padding(top = Spacing.sm),
                 )
+                if (data.extraStudyMinutes > 0) {
+                    Text(
+                        text = stringResource(R.string.insights_extra_study, insightDuration(data.extraStudyMinutes)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.textSecondary,
+                        modifier = Modifier.padding(top = Spacing.xs),
+                    )
+                }
                 Text(
                     text = if (data.planDeltaMinutes >= 0) stringResource(R.string.insights_ahead, insightDuration(data.planDeltaMinutes)) else stringResource(R.string.insights_behind, insightDuration(-data.planDeltaMinutes)),
                     style = MaterialTheme.typography.bodySmall,
@@ -685,7 +547,18 @@ private fun ForecastCard(data: InsightsData) {
         Column(modifier = Modifier.padding(Spacing.lg)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 MetricPair(stringResource(R.string.insights_target_date), formatInsightDate(forecast.targetDate))
-                MetricPair(stringResource(R.string.insights_at_current_pace), forecast.forecastDate?.let(::formatInsightDate) ?: stringResource(R.string.insights_not_enough_history), colors.warning, Alignment.End)
+                val earliest = forecast.forecastEarliestDate
+                val latest = forecast.forecastLatestDate
+                val paceRange = if (earliest != null && latest != null) {
+                    stringResource(
+                        R.string.insights_forecast_range,
+                        formatInsightDate(earliest),
+                        formatInsightDate(latest),
+                    )
+                } else {
+                    stringResource(R.string.insights_not_enough_history)
+                }
+                MetricPair(stringResource(R.string.insights_at_current_pace), paceRange, colors.warning, Alignment.End)
             }
             if (!forecast.hasReliablePace) {
                 Text(stringResource(R.string.insights_forecast_insufficient), style = MaterialTheme.typography.bodySmall, color = colors.textSecondary, modifier = Modifier.padding(top = Spacing.lg))
@@ -712,6 +585,16 @@ private fun ForecastCard(data: InsightsData) {
                     MetricPair(stringResource(R.string.insights_recent_average), insightDuration(forecast.recentAverageMinutesPerDay))
                     MetricPair(stringResource(R.string.insights_required_pace), insightDuration(forecast.requiredMinutesPerDay), colors.warning)
                 }
+                Text(
+                    stringResource(
+                        R.string.insights_forecast_evidence,
+                        forecast.evidenceActiveDays,
+                        forecast.evidenceWindowDays,
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.textMuted,
+                    modifier = Modifier.padding(top = Spacing.sm),
+                )
                 Text(stringResource(R.string.insights_forecast_note), style = MaterialTheme.typography.labelSmall, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.md))
             }
         }

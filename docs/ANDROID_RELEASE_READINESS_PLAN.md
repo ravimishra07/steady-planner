@@ -10,6 +10,29 @@
 
 **Current decision:** **NO-GO for production release**
 
+## Implementation update — 4 September 2026
+
+The production-code pass is substantially complete. The release remains **NO-GO** until the device, upgrade, accessibility, performance, signing, Play-policy, and internal-track gates below are executed with the actual release artifact.
+
+Implemented in `android/`:
+
+- Canonical Room-backed Today → Focus → completion → syllabus/revision/Insights flow with stable NEET IDs; legacy stores are retained only for migration and final cleanup.
+- Idempotent legacy import that preserves valid NEET plan/history instead of deleting it, plus exported Room schemas and explicit migrations through schema 4.
+- Workload-weighted rolling 21-day generation, target-date cap, preservation of manual/history blocks, remaining-minute accounting, exclusions, deterministic refill, and real Organise preview/order behavior.
+- Durable Focus expiry in foreground and after process relaunch, coarse checkpoints, partial-save/discard choices, and post-session Struggled/Okay/Strong revision calibration.
+- Monday-first Today, validated placement, calm missed-work recovery, useful-gap threshold, Start-now hierarchy, expandable cards, stable-ID topic picker, and explicit Learn/Practice/Revise/Mock input.
+- Truthful planned/completed/extra-study analytics, target-pace subject status, forecast evidence threshold/ranges, and a concise first-use CTA instead of a fake dashboard.
+- Saved-state hydration for onboarding edits, process-restorable onboarding drafts, Android Back handling, and removal of the unreachable exam step.
+- Canonical Syllabus progress, next-unfinished Play behavior, accessible action sizes, genuine Organise preview, and explicit Settings save/error/unsaved-change behavior.
+- Focus Lock service gating, lower polling frequency, accurate privacy copy, and backup/device-transfer exclusion rules.
+
+Still required before **GO**:
+
+- Physical-device clean-install, upgrade, process-death, Focus Lock/OEM, TalkBack, font-scale, 12/24-hour, battery, and backup/transfer verification.
+- Migration fixtures from every previously distributed Firebase build and failure-injection/instrumentation coverage.
+- Compose accessibility/navigation tests, baseline profile and macrobenchmark evidence.
+- Signed release AAB, R8/release-only verification, final application-ID/signing decision, Play Data safety and `specialUse` review material, internal testing publication, artifact hash, and rollback notes.
+
 This document is the release contract for the first production Android release. A checked box must mean that the behavior is implemented in the shipping app, covered by appropriate tests, and verified on a physical Android device where device behavior matters.
 
 ## 1. Definition of release-ready
@@ -41,16 +64,16 @@ The app is release-ready only when all of the following are true:
 
 | Area | Current status | Production assessment |
 |---|---|---|
-| Onboarding | Substantially implemented | WIP: create flow works, but edit hydration, process-death recovery, existing-coverage baseline, Android Back behavior, and final build distribution remain incomplete. |
-| Today | Implemented visually | Not release-ready: split data identity, missed-work recovery, start hierarchy, schedule validation, expandable details, gap behavior, loading/error state, and calendar consistency need work. |
+| Onboarding | Production code substantially implemented | Create/edit hydration, draft restoration, Android Back, Monday-first defaults, and canonical planning are implemented. Existing-coverage baseline and device validation remain. |
+| Today | Production code substantially implemented | Canonical IDs/data, recovery, Start hierarchy, validation, expandable details, actionable-gap behavior, and Monday-first calendar are implemented. Device/UI automation remains. |
 | Syllabus | Implemented visually | Not release-ready: progress identity can disagree, parent Play can start the wrong unit, filters/tri-state actions need truth and accessibility hardening. |
-| Organise | Partial | Contains stub behavior: ordering does not affect the saved plan and the “preview” is not a regenerated future plan. |
-| Focus timer | Implemented visually | Release-blocked: natural expiry does not durably complete the session; early stop discards valid effort. |
-| Focus Lock | Implemented but unverified | Starts unconditionally and can show a false “active” notification when blocking is disabled. Battery, overlay, OEM, and Play-policy validation remain. |
-| Insights | Implemented visually | Not trustworthy yet: mixed identifiers, incorrect plan/actual denominator, premature exact forecasts, static first-use mock sections, and non-transactional target editing. |
-| Settings | Partial | Multiple visible stubs: reminder switches, hardcoded `0%`, misleading routes, production demo-data control, stale version copy, and non-transactional hour changes. |
-| Persistence and migration | Transitional | Release-blocked: legacy and normalized stores coexist, operations are non-atomic, and a legacy upgrade can delete valid data. |
-| Testing and release engineering | Early | Domain unit tests exist; feature integration, Compose UI, accessibility, migration, process-death, and benchmark coverage are absent. |
+| Organise | Implemented, verification pending | Default/Shortest affects generation, fake Custom was removed, preview is regenerated, and the impact count is real. Transaction/failure device tests remain. |
+| Focus timer | Implemented, verification pending | Natural expiry, relaunch reconciliation, partial save, discard, coarse persistence, and adaptive outcome input are implemented. Background/device matrix remains. |
+| Focus Lock | Implemented but device-unverified | Service start is gated by enabled/configured/capable state and ordinary timers do not start it. Battery, overlay, OEM, and Play-policy validation remain. |
+| Insights | Production code substantially implemented | Canonical sources, truthful denominators, forecast ranges/evidence, target refill, and concise first-use state are implemented. Chart/device cases remain. |
+| Settings | Production code substantially implemented | Visible stubs/demo controls are removed, coverage/version are real, and preference saves regenerate the plan. Device and storage-failure verification remain. |
+| Persistence and migration | Canonical runtime implemented | Room is the core-loop source and legacy import is idempotent/recoverable. Distributed-build fixtures and physical upgrade evidence remain release blockers. |
+| Testing and release engineering | Unit/lint/debug-build stage | Domain/feature tests and schema export exist. Compose UI/accessibility, migration instrumentation, benchmarks, signed release, and physical gates remain. |
 
 ## 3. P0 — Release blockers
 

@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Upsert
 import com.exam.assistant.domain.PreferenceStrength
+import com.exam.assistant.domain.PlanningOrder
 import com.exam.assistant.domain.StudyPreferences
 import com.exam.assistant.domain.SubjectPreferredWindow
 import com.exam.assistant.domain.SubjectPriority
@@ -16,6 +17,9 @@ import java.time.DayOfWeek
 @Entity(tableName = "study_preferences")
 data class StudyPreferencesEntity(
     @PrimaryKey val attemptId: String,
+    val weekdayTargetMinutes: Int,
+    val weekendTargetMinutes: Int,
+    val planningOrder: String,
     val preferredSessionMinutes: Int?,
     val shortBreakMinutes: Int?,
     val longBreakMinutes: Int?,
@@ -27,6 +31,9 @@ data class StudyPreferencesEntity(
 
 fun StudyPreferencesEntity.toDomain() = StudyPreferences(
     attemptId = attemptId,
+    weekdayTargetMinutes = weekdayTargetMinutes,
+    weekendTargetMinutes = weekendTargetMinutes,
+    planningOrder = PlanningOrder.valueOf(planningOrder),
     preferredSessionMinutes = preferredSessionMinutes,
     shortBreakMinutes = shortBreakMinutes,
     longBreakMinutes = longBreakMinutes,
@@ -38,6 +45,9 @@ fun StudyPreferencesEntity.toDomain() = StudyPreferences(
 
 fun StudyPreferences.toEntity() = StudyPreferencesEntity(
     attemptId = attemptId,
+    weekdayTargetMinutes = weekdayTargetMinutes,
+    weekendTargetMinutes = weekendTargetMinutes,
+    planningOrder = planningOrder.name,
     preferredSessionMinutes = preferredSessionMinutes,
     shortBreakMinutes = shortBreakMinutes,
     longBreakMinutes = longBreakMinutes,

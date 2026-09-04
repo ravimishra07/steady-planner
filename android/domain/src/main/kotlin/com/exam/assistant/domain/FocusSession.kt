@@ -26,15 +26,32 @@ data class FocusSession(
     val block: FocusBlockRef? = null,
     val completedToday: Int = 0,
 ) {
-    fun withClockNow(): FocusSession {
+    fun remainingSecondsAt(nowMs: Long): Int {
+        if (status != FocusStatus.RUNNING || endsAtMs == null) return remainingSec.coerceAtLeast(0)
+        val millisLeft = endsAtMs - nowMs
+        if (millisLeft <= 0) return 0
+        return (((millisLeft - 1) / 1_000L) + 1L)
+            .coerceAtMost(durationSec.toLong())
+            .toInt()
+    }
+
+    fun focusedSecondsAt(nowMs: Long): Int =
+        (durationSec - remainingSecondsAt(nowMs)).coerceIn(0, durationSec)
+
+    fun isExpiredAt(nowMs: Long): Boolean =
+        status == FocusStatus.RUNNING && endsAtMs?.let { it <= nowMs } == true
+
+    fun withClockAt(nowMs: Long): FocusSession {
         if (status != FocusStatus.RUNNING || endsAtMs == null) return this
-        val left = ((endsAtMs - System.currentTimeMillis()) / 1000).toInt()
-        return if (left <= 0) {
+        val left = remainingSecondsAt(nowMs)
+        return if (isExpiredAt(nowMs)) {
             copy(status = FocusStatus.DONE, remainingSec = 0, endsAtMs = null)
         } else {
             copy(remainingSec = left)
         }
     }
+
+    fun withClockNow(): FocusSession = withClockAt(System.currentTimeMillis())
 }
 
 const val DEFAULT_FOCUS_DURATION_SEC = 50 * 60

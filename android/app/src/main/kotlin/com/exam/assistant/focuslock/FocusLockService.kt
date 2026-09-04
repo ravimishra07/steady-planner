@@ -154,7 +154,8 @@ class FocusLockService : Service() {
     companion object {
         private const val CHANNEL_ID = "focus_lock"
         private const val NOTIFICATION_ID = 4201
-        private const val POLL_INTERVAL_MS = 800L
+        // Fast enough to cover a distracting app promptly without an aggressive sub-second wake loop.
+        private const val POLL_INTERVAL_MS = 1_500L
         private const val LOOKBACK_MS = 10_000L
 
         fun start(context: Context) {

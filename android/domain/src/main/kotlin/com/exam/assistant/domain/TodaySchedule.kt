@@ -2,6 +2,7 @@ package com.exam.assistant.domain
 
 import java.time.DayOfWeek
 import java.time.LocalDate
+import kotlin.math.roundToInt
 
 enum class BlockTag {
     READ,
@@ -95,8 +96,14 @@ fun todayBudget(weekdayHours: Float, weekendHours: Float, date: LocalDate = Loca
     return if (weekend) weekendHours.toInt() else weekdayHours.toInt()
 }
 
+/** Exact capacity for scheduling and progress; preserves half-hour targets such as 4.5h. */
+fun todayBudgetMinutes(weekdayHours: Float, weekendHours: Float, date: LocalDate = LocalDate.now()): Int {
+    val weekend = date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY
+    return (((if (weekend) weekendHours else weekdayHours) * 60f).roundToInt()).coerceAtLeast(0)
+}
+
 fun weekAround(anchor: LocalDate): List<LocalDate> {
-    val start = anchor.minusDays(anchor.dayOfWeek.value.toLong() % 7)
+    val start = anchor.minusDays((anchor.dayOfWeek.value - DayOfWeek.MONDAY.value).toLong())
     return (0 until 7).map { start.plusDays(it.toLong()) }
 }
 

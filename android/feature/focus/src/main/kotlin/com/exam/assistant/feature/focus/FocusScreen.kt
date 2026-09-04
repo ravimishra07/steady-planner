@@ -31,6 +31,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -58,14 +59,12 @@ import com.exam.assistant.core.data.FocusLockCapabilityChecker
 import com.exam.assistant.core.data.FocusLockStore
 import com.exam.assistant.core.data.FocusStore
 import com.exam.assistant.core.data.InstalledAppProvider
-import com.exam.assistant.core.data.PlanStore
+import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.SettingsStore
-import com.exam.assistant.core.data.StudySessionStore
-import com.exam.assistant.core.data.SyllabusRepository
-import com.exam.assistant.core.data.SyllabusStore
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.StudySessionRepository
+import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
@@ -74,6 +73,7 @@ import com.exam.assistant.core.design.Stroke
 import com.exam.assistant.domain.BlockTag
 import com.exam.assistant.domain.FocusLockDisplayState
 import com.exam.assistant.domain.FocusStatus
+import com.exam.assistant.domain.StudyOutcome
 import com.exam.assistant.domain.formatFocusClock
 import androidx.annotation.StringRes
 import kotlinx.coroutines.CoroutineScope
@@ -81,14 +81,12 @@ import kotlinx.coroutines.CoroutineScope
 @Composable
 fun FocusRoute(
     focusStore: FocusStore,
-    planStore: PlanStore,
     settingsStore: SettingsStore,
-    studySessionStore: StudySessionStore,
-    syllabusRepository: SyllabusRepository,
-    syllabusStore: SyllabusStore,
+    examPackRepository: ExamPackRepository,
     attemptRepository: AttemptRepository,
     planRepository: PlanRepository,
     studySessionRepository: StudySessionRepository,
+    rollingPlanRepository: RollingPlanRepository,
     focusLockStore: FocusLockStore,
     focusLockCapabilityChecker: FocusLockCapabilityChecker,
     installedAppProvider: InstalledAppProvider,
@@ -100,14 +98,12 @@ fun FocusRoute(
     viewModel: FocusViewModel = viewModel(
         factory = FocusViewModel.Factory(
             focusStore,
-            planStore,
             settingsStore,
-            studySessionStore,
-            syllabusRepository,
-            syllabusStore,
+            examPackRepository,
             attemptRepository,
             planRepository,
             studySessionRepository,
+            rollingPlanRepository,
             appScope,
             onFocusLockStart,
             onFocusLockStop,
@@ -126,7 +122,6 @@ fun FocusRoute(
     val remaining by viewModel.remainingSeconds.collectAsStateWithLifecycle()
     val lockState by focusLockViewModel.state.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) { viewModel.refresh() }
     LaunchedEffect(state.status) { focusLockViewModel.refresh() }
 
     FocusScreen(
@@ -141,9 +136,11 @@ fun FocusRoute(
         onSetDuration = viewModel::setDuration,
         onSelectQueueItem = viewModel::selectQueueItem,
         onRequestStop = viewModel::requestStop,
-        onConfirmStop = viewModel::confirmStop,
+        onSavePartialAndStop = viewModel::savePartialAndStop,
+        onDiscardAndStop = viewModel::discardAndStop,
         onDismissStop = viewModel::dismissStopDialog,
         onStartAnother = viewModel::startAnother,
+        onOutcome = viewModel::recordOutcome,
         onBackToday = onClose,
         onToggleFocusLockEnabled = focusLockViewModel::setEnabled,
         onStartFocusLockSetup = focusLockViewModel::startSetup,
@@ -174,9 +171,11 @@ fun FocusScreen(
     onSetDuration: (Int) -> Unit,
     onSelectQueueItem: (String) -> Unit,
     onRequestStop: () -> Unit,
-    onConfirmStop: () -> Unit,
+    onSavePartialAndStop: () -> Unit,
+    onDiscardAndStop: () -> Unit,
     onDismissStop: () -> Unit,
     onStartAnother: () -> Unit,
+    onOutcome: (StudyOutcome) -> Unit,
     onBackToday: () -> Unit,
     onToggleFocusLockEnabled: (Boolean) -> Unit,
     onStartFocusLockSetup: () -> Unit,
@@ -193,20 +192,43 @@ fun FocusScreen(
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
+    if (state.loading) {
+        Box(
+            modifier = modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            CircularProgressIndicator(color = colors.brandSoft)
+        }
+        return
+    }
+
     val showingSetup = state.status == FocusStatus.IDLE && lockState.setupStep != FocusLockSetupStep.None
     if (state.showStopDialog) {
         AlertDialog(
             onDismissRequest = onDismissStop,
-            title = { Text(stringResource(R.string.focus_stop)) },
-            text = { Text(stringResource(R.string.focus_stop_confirm)) },
+            title = { Text(stringResource(R.string.focus_stop_title)) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.focus_stop_confirm))
+                    TextButton(
+                        onClick = onDiscardAndStop,
+                        modifier = Modifier.align(Alignment.End),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.focus_stop_discard),
+                            color = colors.danger,
+                        )
+                    }
+                }
+            },
             confirmButton = {
-                TextButton(onClick = onConfirmStop) {
-                    Text(stringResource(R.string.focus_stop_confirm_yes))
+                TextButton(onClick = onSavePartialAndStop) {
+                    Text(stringResource(R.string.focus_stop_save))
                 }
             },
             dismissButton = {
                 TextButton(onClick = onDismissStop) {
-                    Text(stringResource(R.string.focus_stop_confirm_no))
+                    Text(stringResource(R.string.focus_stop_keep_going))
                 }
             },
         )
@@ -450,6 +472,20 @@ fun FocusScreen(
                         .padding(bottom = Spacing.lg),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
+                    Text(stringResource(R.string.focus_outcome_prompt), style = MaterialTheme.typography.titleSmall)
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        listOf(
+                            StudyOutcome.STRUGGLED to R.string.focus_outcome_struggled,
+                            StudyOutcome.OKAY to R.string.focus_outcome_okay,
+                            StudyOutcome.STRONG to R.string.focus_outcome_strong,
+                        ).forEach { (outcome, label) ->
+                            FilterChip(
+                                selected = state.outcome == outcome,
+                                onClick = { onOutcome(outcome) },
+                                label = { Text(stringResource(label)) },
+                            )
+                        }
+                    }
                     Button(
                         onClick = onStartAnother,
                         modifier = Modifier.fillMaxWidth(),

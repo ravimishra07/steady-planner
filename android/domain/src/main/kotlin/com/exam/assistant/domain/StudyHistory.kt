@@ -37,6 +37,8 @@ data class StudySession(
     val focusLockUsed: Boolean,
     val interruptionCount: Int,
 
+    val outcome: StudyOutcome? = null,
+
     val customTitle: String?,
 
     val createdAtEpochMs: Long,
@@ -48,6 +50,12 @@ enum class StudySessionStatus {
     PAUSED,
     COMPLETED,
     ABANDONED,
+}
+
+enum class StudyOutcome {
+    STRUGGLED,
+    OKAY,
+    STRONG,
 }
 
 /**

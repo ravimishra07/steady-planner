@@ -14,6 +14,8 @@ import com.exam.assistant.domain.StudySessionStatus
 import com.exam.assistant.domain.revisionStateAfterLearn
 import com.exam.assistant.domain.revisionStateAfterReview
 import com.exam.assistant.domain.topicProgressAfterStudy
+import com.exam.assistant.domain.StudyOutcome
+import com.exam.assistant.domain.revisionStateWithOutcome
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
@@ -60,6 +62,11 @@ class StudySessionRepository(
             sessionDao.subjectSums(attemptId, start.toEpochDay(), end.toEpochDay()).associate { it.subjectId to it.totalSeconds }
         }
 
+    suspend fun completedLearnMinutesByNode(attemptId: String): Map<String, Int> =
+        withContext(dispatchers.io) {
+            sessionDao.completedLearnSumsByNode(attemptId).associate { it.nodeId to (it.totalSeconds / 60) }
+        }
+
     suspend fun earliestStudyDate(attemptId: String): LocalDate? =
         withContext(dispatchers.io) { sessionDao.earliestStudyDate(attemptId)?.let(LocalDate::ofEpochDay) }
 
@@ -75,7 +82,7 @@ class StudySessionRepository(
         session
     }
 
-    /** Persists elapsed-time updates while a session is running/paused (ticker writes). */
+    /** Persists a transition or coarse checkpoint while a session is running/paused. */
     suspend fun updateRunning(session: StudySession) = withContext(dispatchers.io) {
         sessionDao.upsert(session.toEntity())
     }
@@ -126,9 +133,9 @@ class StudySessionRepository(
                 val revisionDao = db.revisionStateDao()
                 val currentRevision = revisionDao.byNode(session.attemptId, nodeId)?.toDomain()
                 val updatedRevision = if (session.activityType == StudyActivityType.REVISION) {
-                    revisionStateAfterReview(currentRevision, session.attemptId, nodeId, today, nowMs)
+                    revisionStateAfterReview(currentRevision, session.attemptId, nodeId, today, nowMs, session.outcome)
                 } else {
-                    revisionStateAfterLearn(currentRevision, session.attemptId, nodeId, today, nowMs)
+                    revisionStateAfterLearn(currentRevision, session.attemptId, nodeId, today, nowMs, session.outcome)
                 }
                 revisionDao.upsert(updatedRevision.toEntity())
             }
@@ -136,7 +143,60 @@ class StudySessionRepository(
         completed
     }
 
+    /**
+     * Saves useful time when the student ends early. The history is closed and
+     * the topic becomes in-progress, but the planned block and revision cycle
+     * stay untouched because the planned session was not fully completed.
+     */
+    suspend fun completePartialSession(
+        session: StudySession,
+        nowMs: Long,
+    ): StudySession = withContext(dispatchers.io) {
+        val completed = session.copy(
+            status = StudySessionStatus.COMPLETED,
+            endedAtEpochMs = nowMs,
+            updatedAtEpochMs = nowMs,
+        )
+        db.withTransaction {
+            sessionDao.upsert(completed.toEntity())
+            sessionDao.openSegment(session.id)?.let { open ->
+                sessionDao.upsertSegment(
+                    open.copy(endedAtEpochMs = nowMs, focusedSeconds = completed.focusedSeconds),
+                )
+            }
+            val nodeId = session.nodeId
+            if (nodeId != null) {
+                val progressDao = db.topicProgressDao()
+                val current = progressDao.byNode(session.attemptId, nodeId)?.toDomain()
+                progressDao.upsert(topicProgressAfterStudy(current, session.attemptId, nodeId, nowMs).toEntity())
+            }
+        }
+        completed
+    }
+
     suspend fun abandonSession(session: StudySession, nowMs: Long) = withContext(dispatchers.io) {
-        sessionDao.upsert(session.copy(status = StudySessionStatus.ABANDONED, endedAtEpochMs = nowMs, updatedAtEpochMs = nowMs).toEntity())
+        db.withTransaction {
+            sessionDao.upsert(
+                session.copy(
+                    status = StudySessionStatus.ABANDONED,
+                    endedAtEpochMs = nowMs,
+                    updatedAtEpochMs = nowMs,
+                ).toEntity(),
+            )
+            sessionDao.openSegment(session.id)?.let { open ->
+                sessionDao.upsertSegment(open.copy(endedAtEpochMs = nowMs, focusedSeconds = 0))
+            }
+        }
+    }
+
+    suspend fun recordOutcome(sessionId: String, outcome: StudyOutcome, nowMs: Long) = withContext(dispatchers.io) {
+        db.withTransaction {
+            val session = sessionDao.byId(sessionId)?.toDomain() ?: return@withTransaction
+            sessionDao.upsert(session.copy(outcome = outcome, updatedAtEpochMs = nowMs).toEntity())
+            val nodeId = session.nodeId ?: return@withTransaction
+            val revisionDao = db.revisionStateDao()
+            val current = revisionDao.byNode(session.attemptId, nodeId)?.toDomain() ?: return@withTransaction
+            revisionDao.upsert(revisionStateWithOutcome(current, session.studyDate, outcome, nowMs).toEntity())
+        }
     }
 }

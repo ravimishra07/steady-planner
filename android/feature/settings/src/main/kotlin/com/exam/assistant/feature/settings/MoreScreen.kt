@@ -1,6 +1,7 @@
 package com.exam.assistant.feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -17,19 +18,14 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Palette
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.EventBusy
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.School
-import androidx.compose.material.icons.outlined.Shield
-import androidx.compose.material3.Switch
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -37,9 +33,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,7 +43,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
 import com.exam.assistant.core.design.AppTheme
-import com.exam.assistant.core.design.AppCard
 import com.exam.assistant.core.design.AppListDivider
 import com.exam.assistant.core.design.AppListGroup
 import com.exam.assistant.core.design.AppListRow
@@ -58,13 +53,17 @@ import com.exam.assistant.core.design.Radius
 
 @Composable
 fun MoreScreen(
+    loading: Boolean,
+    loadFailed: Boolean,
     planExamLabel: String?,
-    daysLeft: Int?,
     examDateLabel: String?,
     weekdayHours: Float?,
     weekendHours: Float?,
     fixedBlockCount: Int,
+    coveragePercent: Int?,
+    appVersion: String,
     background: BackgroundAppearance,
+    onRetry: () -> Unit,
     onOpenAppearance: () -> Unit,
     onOpenSettings: () -> Unit,
     onRedoOnboarding: () -> Unit,
@@ -72,9 +71,26 @@ fun MoreScreen(
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
-    var morningReminder by remember { mutableStateOf(true) }
-    var revisionReminder by remember { mutableStateOf(true) }
     var showRedoDialog by remember { mutableStateOf(false) }
+    if (loading) {
+        SettingsStatusScreen(
+            title = stringResource(R.string.more_title),
+            message = stringResource(R.string.settings_loading),
+            loading = true,
+            modifier = modifier,
+        )
+        return
+    }
+    if (loadFailed) {
+        SettingsStatusScreen(
+            title = stringResource(R.string.more_title),
+            message = stringResource(R.string.settings_load_failed),
+            actionLabel = stringResource(R.string.settings_retry),
+            onAction = onRetry,
+            modifier = modifier,
+        )
+        return
+    }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -98,6 +114,7 @@ fun MoreScreen(
             } else {
                 stringResource(R.string.more_no_plan)
             },
+            coveragePercent = coveragePercent,
             onClick = onOpenSettings,
         )
         SectionLabel(stringResource(R.string.more_section_plan_short))
@@ -145,36 +162,6 @@ fun MoreScreen(
                 ),
                 onClick = onOpenAppearance,
             )
-            AppListDivider()
-            SettingsValueRow(
-                icon = Icons.Outlined.History,
-                title = stringResource(R.string.more_revision_schedule),
-                value = stringResource(R.string.more_revision_standard),
-                onClick = onOpenSettings,
-            )
-            AppListDivider()
-            SettingsValueRow(
-                icon = Icons.Outlined.Shield,
-                title = stringResource(R.string.more_focus_shield_preview),
-                value = stringResource(R.string.more_preview_settings),
-                onClick = onOpenSettings,
-            )
-        }
-        SectionLabel(stringResource(R.string.more_section_reminders))
-        ProfileGroup {
-            SettingsSwitchRow(
-                icon = Icons.Outlined.Notifications,
-                title = stringResource(R.string.more_morning_plan),
-                checked = morningReminder,
-                onCheckedChange = { morningReminder = it },
-            )
-            AppListDivider()
-            SettingsSwitchRow(
-                icon = Icons.Outlined.History,
-                title = stringResource(R.string.more_revision_due),
-                checked = revisionReminder,
-                onCheckedChange = { revisionReminder = it },
-            )
         }
         SectionLabel(stringResource(R.string.more_section_about))
         ProfileGroup {
@@ -182,7 +169,12 @@ fun MoreScreen(
             AppListDivider()
             ProfileRow(Icons.Outlined.Info, R.string.more_terms, R.string.more_terms_sub) { onOpenPolicy("terms") }
             AppListDivider()
-            ProfileRow(Icons.Outlined.Info, R.string.more_about, R.string.more_about_sub) { onOpenPolicy("about") }
+            AppListRow(
+                icon = Icons.Outlined.Info,
+                title = stringResource(R.string.more_about),
+                subtitle = stringResource(R.string.more_about_version, appVersion),
+                onClick = { onOpenPolicy("about") },
+            )
         }
         Text(
             text = stringResource(R.string.more_footer),
@@ -218,14 +210,20 @@ fun MoreScreen(
 @Composable
 fun PolicyScreen(
     policyId: String,
+    appVersion: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
-    val (titleRes, bodyRes) = when (policyId) {
-        "privacy" -> R.string.policy_privacy_title to R.string.policy_privacy_body
-        "terms" -> R.string.policy_terms_title to R.string.policy_terms_body
-        else -> R.string.policy_about_title to R.string.policy_about_body
+    val titleRes = when (policyId) {
+        "privacy" -> R.string.policy_privacy_title
+        "terms" -> R.string.policy_terms_title
+        else -> R.string.policy_about_title
+    }
+    val body = when (policyId) {
+        "privacy" -> stringResource(R.string.policy_privacy_body)
+        "terms" -> stringResource(R.string.policy_terms_body)
+        else -> stringResource(R.string.policy_about_body, appVersion)
     }
     Column(
         modifier = modifier
@@ -244,7 +242,7 @@ fun PolicyScreen(
             )
         }
         Text(
-            text = stringResource(bodyRes),
+            text = body,
             style = MaterialTheme.typography.bodyLarge,
             color = colors.textSecondary,
             modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.xxl),
@@ -253,7 +251,12 @@ fun PolicyScreen(
 }
 
 @Composable
-private fun AccountCard(title: String, subtitle: String, onClick: () -> Unit) {
+private fun AccountCard(
+    title: String,
+    subtitle: String,
+    coveragePercent: Int?,
+    onClick: () -> Unit,
+) {
     val colors = AppTheme.colors
     Surface(
         onClick = onClick,
@@ -284,9 +287,14 @@ private fun AccountCard(title: String, subtitle: String, onClick: () -> Unit) {
                 Text(text = title, style = MaterialTheme.typography.titleMedium)
                 Text(text = subtitle, style = MaterialTheme.typography.bodySmall)
             }
-            Column(horizontalAlignment = Alignment.End) {
-                Text(stringResource(R.string.more_zero_percent), style = MaterialTheme.typography.headlineSmall)
-                Text(stringResource(R.string.more_covered), style = MaterialTheme.typography.labelSmall)
+            if (coveragePercent != null) {
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        stringResource(R.string.more_coverage_percent, coveragePercent),
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
+                    Text(stringResource(R.string.more_covered), style = MaterialTheme.typography.labelSmall)
+                }
             }
         }
     }
@@ -319,27 +327,6 @@ private fun SettingsValueRow(
                 tint = colors.textSecondary,
             )
         }
-    }
-}
-
-@Composable
-private fun SettingsSwitchRow(
-    icon: ImageVector,
-    title: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    val colors = AppTheme.colors
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
-    ) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(Size.standardIcon), tint = colors.textSecondary)
-        Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
@@ -380,4 +367,40 @@ private fun SectionLabel(text: String) {
         color = AppTheme.colors.textMuted,
         modifier = Modifier.padding(bottom = Spacing.sm, top = Spacing.sm),
     )
+}
+
+@Composable
+private fun SettingsStatusScreen(
+    title: String,
+    message: String,
+    modifier: Modifier = Modifier,
+    loading: Boolean = false,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+) {
+    val colors = AppTheme.colors
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = Spacing.screen),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineMedium,
+            color = colors.text,
+            modifier = Modifier.padding(top = Spacing.sm, bottom = Spacing.lg),
+        )
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                if (loading) CircularProgressIndicator()
+                Text(text = message, style = MaterialTheme.typography.bodyLarge, color = colors.textSecondary)
+                if (actionLabel != null && onAction != null) {
+                    Button(onClick = onAction) { Text(actionLabel) }
+                }
+            }
+        }
+    }
 }

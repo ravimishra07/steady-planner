@@ -5,6 +5,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [
@@ -21,8 +23,8 @@ import androidx.room.TypeConverters
         SubjectStudyPreferenceEntity::class,
         SubjectPreferredWindowEntity::class,
     ],
-    version = 1,
-    exportSchema = false,
+    version = 4,
+    exportSchema = true,
 )
 @TypeConverters(Converters::class)
 abstract class PrepTrackerDatabase : RoomDatabase() {
@@ -45,7 +47,32 @@ abstract class PrepTrackerDatabase : RoomDatabase() {
                     context.applicationContext,
                     PrepTrackerDatabase::class.java,
                     "prep_tracker.db",
-                ).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .build()
+                    .also { instance = it }
             }
+
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE study_preferences ADD COLUMN weekdayTargetMinutes INTEGER NOT NULL DEFAULT 240",
+                )
+                db.execSQL(
+                    "ALTER TABLE study_preferences ADD COLUMN weekendTargetMinutes INTEGER NOT NULL DEFAULT 420",
+                )
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE study_session ADD COLUMN outcome TEXT")
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE study_preferences ADD COLUMN planningOrder TEXT NOT NULL DEFAULT 'DEFAULT'")
+            }
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.exam.assistant.feature.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,14 +30,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.exam.assistant.core.data.FocusStore
 import com.exam.assistant.core.data.ExamPackRepository
+import com.exam.assistant.core.data.FocusStore
 import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.SettingsStore
 import com.exam.assistant.core.data.StudySessionStore
 import com.exam.assistant.core.data.SyllabusStore
 import com.exam.assistant.core.data.repo.AttemptRepository
-import com.exam.assistant.core.data.repo.TopicProgressRepository
+import com.exam.assistant.core.data.repo.RollingPlanRepository
+import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.AppValueStepper
 import com.exam.assistant.core.design.Radius
@@ -52,41 +54,49 @@ fun SettingsDetailRoute(
     studySessionStore: StudySessionStore,
     examPackRepository: ExamPackRepository,
     attemptRepository: AttemptRepository,
-    topicProgressRepository: TopicProgressRepository,
+    studyPreferenceRepository: StudyPreferenceRepository,
+    rollingPlanRepository: RollingPlanRepository,
     onBack: () -> Unit,
     onCleared: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsDetailViewModel = viewModel(
         factory = SettingsDetailViewModel.Factory(
-            planStore,
-            settingsStore,
-            focusStore,
-            syllabusStore,
-            studySessionStore,
-            examPackRepository,
-            attemptRepository,
-            topicProgressRepository,
+            planStore = planStore,
+            settingsStore = settingsStore,
+            focusStore = focusStore,
+            syllabusStore = syllabusStore,
+            studySessionStore = studySessionStore,
+            examPackRepository = examPackRepository,
+            attemptRepository = attemptRepository,
+            studyPreferenceRepository = studyPreferenceRepository,
+            rollingPlanRepository = rollingPlanRepository,
         ),
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val requestBack = {
+        if (viewModel.requestBack()) onBack()
+    }
+    BackHandler(onBack = requestBack)
     SettingsDetailScreen(
         state = state,
-        onBack = onBack,
+        onBack = requestBack,
+        onRetry = viewModel::refresh,
         onWeekdayChange = viewModel::setWeekdayHours,
         onWeekendChange = viewModel::setWeekendHours,
         onStudyPlaceChange = viewModel::setStudyPlace,
         onFocusDuration = viewModel::setFocusDurationMinutes,
-        onRequestClear = viewModel::requestClear,
-        onConfirmClear = {
-            viewModel.confirmClear(onCleared)
+        onSave = viewModel::save,
+        onDismissSaveResult = viewModel::dismissSaveResult,
+        onDismissDiscard = viewModel::dismissDiscard,
+        onConfirmDiscard = {
+            viewModel.confirmDiscard()
+            onBack()
         },
+        onRequestClear = viewModel::requestClear,
+        onConfirmClear = { viewModel.confirmClear(onCleared) },
         onDismissClear = viewModel::dismissClear,
-        onRequestSeed = viewModel::requestSeed,
-        onConfirmSeed = viewModel::confirmSeed,
-        onDismissSeed = viewModel::dismissSeed,
-        onDismissSeedDone = viewModel::dismissSeedDone,
-        onDismissSeedError = viewModel::dismissSeedError,
+        onDismissClearError = viewModel::dismissClearError,
         modifier = modifier,
     )
 }
@@ -95,18 +105,19 @@ fun SettingsDetailRoute(
 fun SettingsDetailScreen(
     state: SettingsDetailUiState,
     onBack: () -> Unit,
+    onRetry: () -> Unit,
     onWeekdayChange: (Float) -> Unit,
     onWeekendChange: (Float) -> Unit,
     onStudyPlaceChange: (String) -> Unit,
     onFocusDuration: (Int) -> Unit,
+    onSave: () -> Unit,
+    onDismissSaveResult: () -> Unit,
+    onDismissDiscard: () -> Unit,
+    onConfirmDiscard: () -> Unit,
     onRequestClear: () -> Unit,
     onConfirmClear: () -> Unit,
     onDismissClear: () -> Unit,
-    onRequestSeed: () -> Unit,
-    onConfirmSeed: () -> Unit,
-    onDismissSeed: () -> Unit,
-    onDismissSeedDone: () -> Unit,
-    onDismissSeedError: () -> Unit,
+    onDismissClearError: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
@@ -116,63 +127,45 @@ fun SettingsDetailScreen(
             title = { Text(stringResource(R.string.settings_clear_plan)) },
             text = { Text(stringResource(R.string.settings_clear_confirm)) },
             confirmButton = {
-                TextButton(onClick = onConfirmClear) {
-                    Text(stringResource(R.string.settings_clear_yes))
+                TextButton(onClick = onConfirmClear, enabled = !state.clearing) {
+                    Text(
+                        if (state.clearing) stringResource(R.string.settings_clearing)
+                        else stringResource(R.string.settings_clear_yes),
+                    )
                 }
             },
             dismissButton = {
-                TextButton(onClick = onDismissClear) {
+                TextButton(onClick = onDismissClear, enabled = !state.clearing) {
                     Text(stringResource(R.string.settings_clear_no))
                 }
             },
         )
     }
-    if (state.showSeedDialog) {
+    if (state.clearFailed) {
         AlertDialog(
-            onDismissRequest = onDismissSeed,
-            title = { Text(stringResource(R.string.settings_seed_title)) },
-            text = { Text(stringResource(R.string.settings_seed_confirm)) },
+            onDismissRequest = onDismissClearError,
+            title = { Text(stringResource(R.string.settings_clear_failed_title)) },
+            text = { Text(stringResource(R.string.settings_clear_failed_body)) },
             confirmButton = {
-                TextButton(onClick = onConfirmSeed) {
-                    Text(stringResource(R.string.settings_seed_yes))
+                TextButton(onClick = onDismissClearError) {
+                    Text(stringResource(R.string.settings_ok))
+                }
+            },
+        )
+    }
+    if (state.showDiscardDialog) {
+        AlertDialog(
+            onDismissRequest = onDismissDiscard,
+            title = { Text(stringResource(R.string.settings_discard_title)) },
+            text = { Text(stringResource(R.string.settings_discard_body)) },
+            confirmButton = {
+                TextButton(onClick = onConfirmDiscard) {
+                    Text(stringResource(R.string.settings_discard_yes))
                 }
             },
             dismissButton = {
-                TextButton(onClick = onDismissSeed) {
-                    Text(stringResource(R.string.settings_seed_no))
-                }
-            },
-        )
-    }
-    if (state.seedDone) {
-        AlertDialog(
-            onDismissRequest = onDismissSeedDone,
-            title = { Text(stringResource(R.string.settings_seed_done_title)) },
-            text = { Text(stringResource(R.string.settings_seed_done_body)) },
-            confirmButton = {
-                TextButton(onClick = onDismissSeedDone) {
-                    Text(stringResource(R.string.settings_seed_done_ok))
-                }
-            },
-        )
-    }
-    if (state.seedError != null) {
-        AlertDialog(
-            onDismissRequest = onDismissSeedError,
-            title = { Text(stringResource(R.string.settings_seed_error_title)) },
-            text = {
-                Text(
-                    stringResource(
-                        when (state.seedError) {
-                            SeedHistoryError.NoTopics -> R.string.settings_seed_error_no_topics
-                            SeedHistoryError.Failed -> R.string.settings_seed_error_failed
-                        },
-                    ),
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = onDismissSeedError) {
-                    Text(stringResource(R.string.settings_seed_done_ok))
+                TextButton(onClick = onDismissDiscard) {
+                    Text(stringResource(R.string.settings_discard_no))
                 }
             },
         )
@@ -185,7 +178,10 @@ fun SettingsDetailScreen(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack, modifier = Modifier.size(Size.touchTarget)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back))
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.settings_back),
+                )
             }
             Text(
                 text = stringResource(R.string.settings_detail_title),
@@ -193,71 +189,150 @@ fun SettingsDetailScreen(
                 color = colors.text,
             )
         }
-        SectionTitle(stringResource(R.string.settings_hours))
-        AppValueStepper(
-            label = stringResource(R.string.settings_weekdays),
-            value = stringResource(R.string.settings_hours_value, settingsHour(state.weekdayHours)),
-            decreaseContentDescription = stringResource(R.string.settings_decrease_hours, stringResource(R.string.settings_weekdays)),
-            increaseContentDescription = stringResource(R.string.settings_increase_hours, stringResource(R.string.settings_weekdays)),
-            onDecrease = { onWeekdayChange((state.weekdayHours - .5f).coerceAtLeast(1f)) },
-            onIncrease = { onWeekdayChange((state.weekdayHours + .5f).coerceAtMost(14f)) },
-            decreaseEnabled = state.weekdayHours > 1f,
-            increaseEnabled = state.weekdayHours < 14f,
-        )
-        AppValueStepper(
-            label = stringResource(R.string.settings_weekends),
-            value = stringResource(R.string.settings_hours_value, settingsHour(state.weekendHours)),
-            decreaseContentDescription = stringResource(R.string.settings_decrease_hours, stringResource(R.string.settings_weekends)),
-            increaseContentDescription = stringResource(R.string.settings_increase_hours, stringResource(R.string.settings_weekends)),
-            onDecrease = { onWeekendChange((state.weekendHours - .5f).coerceAtLeast(1f)) },
-            onIncrease = { onWeekendChange((state.weekendHours + .5f).coerceAtMost(16f)) },
-            decreaseEnabled = state.weekendHours > 1f,
-            increaseEnabled = state.weekendHours < 16f,
-        )
-        OutlinedTextField(
-            value = state.studyPlace,
-            onValueChange = onStudyPlaceChange,
-            label = { Text(stringResource(R.string.settings_study_spot)) },
-            placeholder = { Text(stringResource(R.string.settings_study_spot_hint)) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        SectionTitle(stringResource(R.string.settings_focus))
-        Text(stringResource(R.string.settings_focus_length), style = MaterialTheme.typography.bodyMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            listOf(25, 50, 90).forEach { minutes ->
-                FilterChip(
-                    selected = state.focusDurationMinutes == minutes,
-                    onClick = { onFocusDuration(minutes) },
-                    label = { Text(stringResource(R.string.settings_focus_minutes, minutes)) },
+        when {
+            state.loading -> {
+                Text(
+                    text = stringResource(R.string.settings_loading),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = colors.textSecondary,
+                    modifier = Modifier.padding(top = Spacing.lg),
+                )
+            }
+            state.loadFailed -> {
+                Text(
+                    text = stringResource(R.string.settings_load_failed),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = colors.textSecondary,
+                    modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.md),
+                )
+                Button(onClick = onRetry) { Text(stringResource(R.string.settings_retry)) }
+            }
+            else -> {
+                SettingsEditor(
+                    state = state,
+                    onWeekdayChange = onWeekdayChange,
+                    onWeekendChange = onWeekendChange,
+                    onStudyPlaceChange = onStudyPlaceChange,
+                    onFocusDuration = onFocusDuration,
+                    onSave = onSave,
+                    onDismissSaveResult = onDismissSaveResult,
+                    onRequestClear = onRequestClear,
                 )
             }
         }
-        SectionTitle(stringResource(R.string.settings_data))
-        Button(
-            onClick = onRequestSeed,
-            enabled = !state.seeding,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = Spacing.sm),
-            shape = RoundedCornerShape(Radius.lg),
-            colors = ButtonDefaults.buttonColors(containerColor = colors.brandDeep, contentColor = colors.onBrand),
-        ) {
-            Text(
-                if (state.seeding) {
-                    stringResource(R.string.settings_seed_in_progress)
-                } else {
-                    stringResource(R.string.settings_seed_button)
-                },
+    }
+}
+
+@Composable
+private fun SettingsEditor(
+    state: SettingsDetailUiState,
+    onWeekdayChange: (Float) -> Unit,
+    onWeekendChange: (Float) -> Unit,
+    onStudyPlaceChange: (String) -> Unit,
+    onFocusDuration: (Int) -> Unit,
+    onSave: () -> Unit,
+    onDismissSaveResult: () -> Unit,
+    onRequestClear: () -> Unit,
+) {
+    val colors = AppTheme.colors
+    SectionTitle(stringResource(R.string.settings_hours))
+    AppValueStepper(
+        label = stringResource(R.string.settings_weekdays),
+        value = stringResource(R.string.settings_hours_value, settingsHour(state.weekdayHours)),
+        decreaseContentDescription = stringResource(
+            R.string.settings_decrease_hours,
+            stringResource(R.string.settings_weekdays),
+        ),
+        increaseContentDescription = stringResource(
+            R.string.settings_increase_hours,
+            stringResource(R.string.settings_weekdays),
+        ),
+        onDecrease = { onWeekdayChange((state.weekdayHours - .5f).coerceAtLeast(1f)) },
+        onIncrease = { onWeekdayChange((state.weekdayHours + .5f).coerceAtMost(14f)) },
+        decreaseEnabled = !state.saving && state.weekdayHours > 1f,
+        increaseEnabled = !state.saving && state.weekdayHours < 14f,
+    )
+    AppValueStepper(
+        label = stringResource(R.string.settings_weekends),
+        value = stringResource(R.string.settings_hours_value, settingsHour(state.weekendHours)),
+        decreaseContentDescription = stringResource(
+            R.string.settings_decrease_hours,
+            stringResource(R.string.settings_weekends),
+        ),
+        increaseContentDescription = stringResource(
+            R.string.settings_increase_hours,
+            stringResource(R.string.settings_weekends),
+        ),
+        onDecrease = { onWeekendChange((state.weekendHours - .5f).coerceAtLeast(1f)) },
+        onIncrease = { onWeekendChange((state.weekendHours + .5f).coerceAtMost(16f)) },
+        decreaseEnabled = !state.saving && state.weekendHours > 1f,
+        increaseEnabled = !state.saving && state.weekendHours < 16f,
+    )
+    OutlinedTextField(
+        value = state.studyPlace,
+        onValueChange = onStudyPlaceChange,
+        enabled = !state.saving,
+        singleLine = true,
+        label = { Text(stringResource(R.string.settings_study_spot)) },
+        placeholder = { Text(stringResource(R.string.settings_study_spot_hint)) },
+        modifier = Modifier.fillMaxWidth(),
+    )
+    SectionTitle(stringResource(R.string.settings_focus))
+    Text(stringResource(R.string.settings_focus_length), style = MaterialTheme.typography.bodyMedium)
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        listOf(25, 50, 90).forEach { minutes ->
+            FilterChip(
+                selected = state.focusDurationMinutes == minutes,
+                onClick = { onFocusDuration(minutes) },
+                enabled = !state.saving,
+                label = { Text(stringResource(R.string.settings_focus_minutes, minutes)) },
             )
         }
-        Button(
-            onClick = onRequestClear,
+    }
+    Button(
+        onClick = onSave,
+        enabled = state.hasUnsavedChanges && !state.saving,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = Spacing.lg),
+        shape = RoundedCornerShape(Radius.lg),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = colors.brandDeep,
+            contentColor = colors.onBrand,
+        ),
+    ) {
+        Text(
+            if (state.saving) stringResource(R.string.settings_saving)
+            else stringResource(R.string.settings_save),
+        )
+    }
+    if (state.saveDone || state.saveFailed) {
+        TextButton(
+            onClick = onDismissSaveResult,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(Radius.lg),
-            colors = ButtonDefaults.buttonColors(containerColor = colors.danger, contentColor = colors.onBrand),
         ) {
-            Text(stringResource(R.string.settings_clear_plan))
+            Text(
+                text = stringResource(
+                    if (state.saveDone) R.string.settings_saved else R.string.settings_save_failed,
+                ),
+                color = if (state.saveDone) colors.success else colors.danger,
+            )
         }
+    }
+    SectionTitle(stringResource(R.string.settings_data))
+    Button(
+        onClick = onRequestClear,
+        enabled = !state.saving && !state.clearing,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = Spacing.xl),
+        shape = RoundedCornerShape(Radius.lg),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = colors.danger,
+            contentColor = colors.onBrand,
+        ),
+    ) {
+        Text(stringResource(R.string.settings_clear_plan))
     }
 }
 

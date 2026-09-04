@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="progress_no_plan">Finish onboarding to see your Insights.</string>
-    <string name="progress_empty_banner_title">Your progress starts with a Focus sitting</string>
+    <string name="progress_empty_banner_title">Your progress starts with a Focus session</string>
     <string name="progress_empty_banner_body">Complete one study session to build pace, revision, time, and consistency here.</string>
+    <string name="progress_start_next">Start next session</string>
     <string name="progress_covered">covered</string>
     <string name="progress_chapters_done">Chapters done</string>
     <string name="progress_fraction">%1$d of %2$d</string>
@@ -67,6 +68,8 @@
     <string name="insights_active_this_period">Active days</string>
     <string name="insights_planned">Planned</string>
     <string name="insights_studied">Studied</string>
+    <string name="insights_completed_planned">Completed from plan</string>
+    <string name="insights_extra_study">Plus %1$s of extra study</string>
     <string name="insights_plan_percent">%1$d%% of plan completed</string>
     <string name="insights_no_actual_yet">No completed study yet</string>
     <string name="insights_no_planned_blocks">No planned study blocks yet.</string>
@@ -91,7 +94,9 @@
     <string name="insights_target_date">Target date</string>
     <string name="insights_at_current_pace">At current pace</string>
     <string name="insights_not_enough_history">Not enough history</string>
-    <string name="insights_forecast_insufficient">Keep studying for a few more days to build a reliable pace estimate.</string>
+    <string name="insights_forecast_insufficient">A pace range appears after 7 active days. Until then, your target remains adjustable.</string>
+    <string name="insights_forecast_range">%1$s–%2$s</string>
+    <string name="insights_forecast_evidence">Based on %1$d active days in the last %2$d days</string>
     <plurals name="insights_days_behind">
         <item quantity="one">%1$d day behind</item>
         <item quantity="other">%1$d days behind</item>

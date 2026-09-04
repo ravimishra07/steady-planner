@@ -1,6 +1,7 @@
 package com.exam.assistant.core.data.repo
 
 import android.content.Context
+import androidx.room.withTransaction
 import com.exam.assistant.core.common.AppDispatchers
 import com.exam.assistant.core.data.db.PrepTrackerDatabase
 import com.exam.assistant.core.data.db.toDomain
@@ -14,7 +15,8 @@ class TargetSyllabusRepository(
     context: Context,
     private val dispatchers: AppDispatchers,
 ) {
-    private val dao = PrepTrackerDatabase.get(context).targetNodeOverrideDao()
+    private val db = PrepTrackerDatabase.get(context)
+    private val dao = db.targetNodeOverrideDao()
 
     suspend fun overridesFor(attemptId: String): List<TargetNodeOverride> =
         withContext(dispatchers.io) { dao.allOnce(attemptId).map { it.toDomain() } }
@@ -26,4 +28,14 @@ class TargetSyllabusRepository(
 
     suspend fun clearOverride(attemptId: String, nodeId: String) =
         withContext(dispatchers.io) { dao.delete(attemptId, nodeId) }
+
+    suspend fun replaceStates(attemptId: String, states: Map<String, TargetNodeState>, nowMs: Long) =
+        withContext(dispatchers.io) {
+            db.withTransaction {
+                dao.deleteForAttempt(attemptId)
+                states.forEach { (nodeId, state) ->
+                    dao.upsert(TargetNodeOverride(attemptId, nodeId, state, nowMs).toEntity())
+                }
+            }
+        }
 }

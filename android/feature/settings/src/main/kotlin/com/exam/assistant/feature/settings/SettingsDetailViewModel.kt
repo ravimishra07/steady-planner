@@ -3,39 +3,40 @@ package com.exam.assistant.feature.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.exam.assistant.core.data.FocusStore
 import com.exam.assistant.core.data.ExamPackRepository
+import com.exam.assistant.core.data.FocusStore
 import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.SettingsStore
 import com.exam.assistant.core.data.StudySessionStore
 import com.exam.assistant.core.data.SyllabusStore
 import com.exam.assistant.core.data.repo.AttemptRepository
-import com.exam.assistant.core.data.repo.TopicProgressRepository
-import com.exam.assistant.domain.NEET_EXAM_ID
-import com.exam.assistant.domain.TopicProgress
-import com.exam.assistant.domain.TopicProgressStatus
-import com.exam.assistant.domain.generateDemoHistory
+import com.exam.assistant.core.data.repo.RollingPlanRepository
+import com.exam.assistant.core.data.repo.StudyPreferenceRepository
+import com.exam.assistant.domain.StudyPreferences
+import java.time.LocalDate
+import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import kotlin.math.roundToInt
 
 data class SettingsDetailUiState(
+    val loading: Boolean = true,
+    val loadFailed: Boolean = false,
+    val saving: Boolean = false,
+    val saveFailed: Boolean = false,
+    val saveDone: Boolean = false,
+    val hasUnsavedChanges: Boolean = false,
     val weekdayHours: Float = 4f,
     val weekendHours: Float = 7f,
     val studyPlace: String = "",
     val focusDurationMinutes: Int = 50,
     val showClearDialog: Boolean = false,
-    val showSeedDialog: Boolean = false,
-    val seeding: Boolean = false,
-    val seedDone: Boolean = false,
-    val seedError: SeedHistoryError? = null,
+    val clearing: Boolean = false,
+    val clearFailed: Boolean = false,
+    val showDiscardDialog: Boolean = false,
 )
-
-enum class SeedHistoryError { NoTopics, Failed }
 
 class SettingsDetailViewModel(
     private val planStore: PlanStore,
@@ -45,7 +46,8 @@ class SettingsDetailViewModel(
     private val studySessionStore: StudySessionStore,
     private val examPackRepository: ExamPackRepository,
     private val attemptRepository: AttemptRepository,
-    private val topicProgressRepository: TopicProgressRepository,
+    private val studyPreferenceRepository: StudyPreferenceRepository,
+    private val rollingPlanRepository: RollingPlanRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsDetailUiState())
@@ -56,137 +58,155 @@ class SettingsDetailViewModel(
     }
 
     fun refresh() {
+        _state.update { it.copy(loading = true, loadFailed = false, saveFailed = false) }
         viewModelScope.launch {
-            val plan = planStore.load()
-            val focusSec = settingsStore.focusDurationSec()
-            _state.update {
-                it.copy(
-                    weekdayHours = plan?.weekdayHours ?: 4f,
-                    weekendHours = plan?.weekendHours ?: 7f,
-                    studyPlace = plan?.studyPlace.orEmpty(),
-                    focusDurationMinutes = focusSec / 60,
+            runCatching {
+                val attempt = attemptRepository.activeAttempt()
+                val preferences = attempt?.let { studyPreferenceRepository.forAttempt(it.id) }
+                val focusSec = settingsStore.focusDurationSec()
+                LoadedSettings(
+                    weekdayHours = preferences?.weekdayTargetMinutes?.div(60f) ?: 4f,
+                    weekendHours = preferences?.weekendTargetMinutes?.div(60f) ?: 7f,
+                    studyPlace = preferences?.defaultStudyPlace.orEmpty(),
+                    focusDurationMinutes = preferences?.preferredSessionMinutes
+                        ?: focusSec / 60,
                 )
+            }.onSuccess { loaded ->
+                _state.update {
+                    it.copy(
+                        loading = false,
+                        loadFailed = false,
+                        weekdayHours = loaded.weekdayHours,
+                        weekendHours = loaded.weekendHours,
+                        studyPlace = loaded.studyPlace,
+                        focusDurationMinutes = loaded.focusDurationMinutes,
+                        hasUnsavedChanges = false,
+                    )
+                }
+            }.onFailure {
+                _state.update { it.copy(loading = false, loadFailed = true) }
             }
         }
     }
 
-    fun setWeekdayHours(value: Float) {
-        val stepped = (value * 2).roundToInt() / 2f
-        _state.update { it.copy(weekdayHours = stepped) }
-        persistHours()
+    fun setWeekdayHours(value: Float) = updateDraft {
+        copy(weekdayHours = steppedHours(value))
     }
 
-    fun setWeekendHours(value: Float) {
-        val stepped = (value * 2).roundToInt() / 2f
-        _state.update { it.copy(weekendHours = stepped) }
-        persistHours()
+    fun setWeekendHours(value: Float) = updateDraft {
+        copy(weekendHours = steppedHours(value))
     }
 
-    fun setStudyPlace(value: String) {
-        _state.update { it.copy(studyPlace = value) }
-        persistHours()
+    fun setStudyPlace(value: String) = updateDraft {
+        copy(studyPlace = value)
     }
 
-    fun setFocusDurationMinutes(minutes: Int) {
+    fun setFocusDurationMinutes(minutes: Int) = updateDraft {
+        copy(focusDurationMinutes = minutes)
+    }
+
+    fun save() {
+        val draft = _state.value
+        if (draft.loading || draft.saving || !draft.hasUnsavedChanges) return
+        _state.update { it.copy(saving = true, saveFailed = false, saveDone = false) }
         viewModelScope.launch {
-            settingsStore.setFocusDurationSec(minutes * 60)
-            _state.update { it.copy(focusDurationMinutes = minutes) }
+            runCatching {
+                val attempt = attemptRepository.activeAttempt()
+                    ?: error("An active attempt is required to save study preferences")
+                val currentPreferences = studyPreferenceRepository.forAttempt(attempt.id)
+                    ?: StudyPreferences(attemptId = attempt.id)
+                studyPreferenceRepository.upsert(
+                    currentPreferences.copy(
+                        weekdayTargetMinutes = (draft.weekdayHours * 60).roundToInt(),
+                        weekendTargetMinutes = (draft.weekendHours * 60).roundToInt(),
+                        preferredSessionMinutes = draft.focusDurationMinutes,
+                        defaultStudyPlace = draft.studyPlace.trim().ifBlank { null },
+                    ),
+                )
+                check(rollingPlanRepository.replenish(fromDate = LocalDate.now()) != null) {
+                    "The study plan could not be regenerated"
+                }
+                settingsStore.setFocusDurationSec(draft.focusDurationMinutes * 60)
+            }.onSuccess {
+                _state.update {
+                    it.copy(
+                        saving = false,
+                        saveDone = true,
+                        hasUnsavedChanges = false,
+                        studyPlace = draft.studyPlace.trim(),
+                    )
+                }
+            }.onFailure {
+                _state.update { it.copy(saving = false, saveFailed = true) }
+            }
         }
+    }
+
+    fun dismissSaveResult() {
+        _state.update { it.copy(saveDone = false, saveFailed = false) }
+    }
+
+    /** Returns true when navigation can proceed immediately. */
+    fun requestBack(): Boolean {
+        if (_state.value.saving) return false
+        if (!_state.value.hasUnsavedChanges) return true
+        _state.update { it.copy(showDiscardDialog = true) }
+        return false
+    }
+
+    fun dismissDiscard() {
+        _state.update { it.copy(showDiscardDialog = false) }
+    }
+
+    fun confirmDiscard() {
+        _state.update { it.copy(showDiscardDialog = false, hasUnsavedChanges = false) }
     }
 
     fun requestClear() {
-        _state.update { it.copy(showClearDialog = true) }
+        if (!_state.value.saving) _state.update { it.copy(showClearDialog = true, clearFailed = false) }
     }
 
     fun dismissClear() {
-        _state.update { it.copy(showClearDialog = false) }
+        if (!_state.value.clearing) _state.update { it.copy(showClearDialog = false) }
+    }
+
+    fun dismissClearError() {
+        _state.update { it.copy(clearFailed = false) }
     }
 
     fun confirmClear(onCleared: () -> Unit) {
+        if (_state.value.clearing) return
+        _state.update { it.copy(clearing = true, clearFailed = false) }
         viewModelScope.launch {
-            attemptRepository.activeAttempt()?.let { attempt ->
-                examPackRepository.clearCustomChapters(attempt.examId)
-                attemptRepository.deleteAttemptAndAllData(attempt.id)
-            }
-            planStore.clear()
-            syllabusStore.clear()
-            focusStore.clear()
-            studySessionStore.clear()
-            dismissClear()
-            onCleared()
-        }
-    }
-
-    fun requestSeed() {
-        _state.update { it.copy(showSeedDialog = true) }
-    }
-
-    fun dismissSeed() {
-        _state.update { it.copy(showSeedDialog = false) }
-    }
-
-    /** Adds sample activity to every currently shipped data source so app screens stay in sync. */
-    fun confirmSeed() {
-        _state.update { it.copy(showSeedDialog = false, seeding = true, seedError = null) }
-        viewModelScope.launch {
-            try {
-                val attempt = attemptRepository.activeAttempt()?.takeIf { it.examId == NEET_EXAM_ID }
-                    ?: throw IllegalStateException("NEET attempt required")
-                val pack = examPackRepository.examPackFor(NEET_EXAM_ID)
-                val today = LocalDate.now()
-                val (sessions, doneLeaves) = generateDemoHistory(
-                    pack = pack,
-                    today = today,
-                )
-                if (sessions.isEmpty()) {
-                    _state.update {
-                        it.copy(seeding = false, seedError = SeedHistoryError.NoTopics)
-                    }
-                    return@launch
+            runCatching {
+                attemptRepository.activeAttempt()?.let { attempt ->
+                    examPackRepository.clearCustomChapters(attempt.examId)
+                    attemptRepository.deleteAttemptAndAllData(attempt.id)
                 }
-                studySessionStore.upsertAll(sessions)
-                val storedSyllabus = syllabusStore.load()
-                syllabusStore.save(storedSyllabus.copy(doneLeaves = storedSyllabus.doneLeaves + doneLeaves))
-                seedRoomSyllabusProgress(attempt.id, doneLeaves)
-                _state.update { it.copy(seeding = false, seedDone = true) }
-            } catch (_: Throwable) {
+                planStore.clear()
+                syllabusStore.clear()
+                focusStore.clear()
+                studySessionStore.clear()
+            }.onSuccess {
+                _state.update { it.copy(clearing = false, showClearDialog = false) }
+                onCleared()
+            }.onFailure {
                 _state.update {
-                    it.copy(seeding = false, seedError = SeedHistoryError.Failed)
+                    it.copy(clearing = false, showClearDialog = false, clearFailed = true)
                 }
             }
         }
     }
 
-    fun dismissSeedDone() {
-        _state.update { it.copy(seedDone = false) }
-    }
-
-    fun dismissSeedError() {
-        _state.update { it.copy(seedError = null) }
-    }
-
-    private fun persistHours() {
-        val current = _state.value
-        viewModelScope.launch {
-            planStore.updateHours(current.weekdayHours, current.weekendHours, current.studyPlace)
-        }
-    }
-
-    private suspend fun seedRoomSyllabusProgress(
-        attemptId: String,
-        doneLeaves: Set<String>,
-    ) {
-        val nowMs = System.currentTimeMillis()
-        val progress = doneLeaves.map { nodeId ->
-            TopicProgress(
-                attemptId = attemptId,
-                nodeId = nodeId,
-                status = TopicProgressStatus.COVERED,
-                coveredAtEpochMs = nowMs,
-                updatedAtEpochMs = nowMs,
+    private fun updateDraft(transform: SettingsDetailUiState.() -> SettingsDetailUiState) {
+        _state.update { current ->
+            if (current.loading || current.saving) current
+            else current.transform().copy(
+                hasUnsavedChanges = true,
+                saveDone = false,
+                saveFailed = false,
             )
         }
-        topicProgressRepository.upsertAll(progress)
     }
 
     class Factory(
@@ -197,19 +217,30 @@ class SettingsDetailViewModel(
         private val studySessionStore: StudySessionStore,
         private val examPackRepository: ExamPackRepository,
         private val attemptRepository: AttemptRepository,
-        private val topicProgressRepository: TopicProgressRepository,
+        private val studyPreferenceRepository: StudyPreferenceRepository,
+        private val rollingPlanRepository: RollingPlanRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             SettingsDetailViewModel(
-                planStore,
-                settingsStore,
-                focusStore,
-                syllabusStore,
-                studySessionStore,
-                examPackRepository,
-                attemptRepository,
-                topicProgressRepository,
+                planStore = planStore,
+                settingsStore = settingsStore,
+                focusStore = focusStore,
+                syllabusStore = syllabusStore,
+                studySessionStore = studySessionStore,
+                examPackRepository = examPackRepository,
+                attemptRepository = attemptRepository,
+                studyPreferenceRepository = studyPreferenceRepository,
+                rollingPlanRepository = rollingPlanRepository,
             ) as T
     }
 }
+
+private data class LoadedSettings(
+    val weekdayHours: Float,
+    val weekendHours: Float,
+    val studyPlace: String,
+    val focusDurationMinutes: Int,
+)
+
+internal fun steppedHours(value: Float): Float = (value * 2).roundToInt() / 2f

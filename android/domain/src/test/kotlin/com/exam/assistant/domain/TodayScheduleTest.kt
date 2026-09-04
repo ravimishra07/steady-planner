@@ -21,10 +21,10 @@ class TodayScheduleTest {
     }
 
     @Test
-    fun `weekAround starts on Sunday`() {
+    fun `weekAround starts on Monday`() {
         val anchor = java.time.LocalDate.of(2026, 8, 26) // Wednesday
         val week = weekAround(anchor)
-        assertEquals(java.time.DayOfWeek.SUNDAY, week.first().dayOfWeek)
+        assertEquals(java.time.DayOfWeek.MONDAY, week.first().dayOfWeek)
         assertEquals(7, week.size)
     }
 }

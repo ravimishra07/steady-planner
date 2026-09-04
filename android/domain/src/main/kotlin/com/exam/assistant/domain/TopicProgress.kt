@@ -85,9 +85,77 @@ fun revisionStateAfterLearn(current: RevisionState?, attemptId: String, nodeId: 
         updatedAtEpochMs = nowMs,
     )
 
+fun revisionStateAfterLearn(
+    current: RevisionState?,
+    attemptId: String,
+    nodeId: String,
+    today: LocalDate,
+    nowMs: Long,
+    outcome: StudyOutcome?,
+): RevisionState {
+    if (current != null) return current
+    val interval = when (outcome) {
+        StudyOutcome.STRUGGLED -> 1
+        StudyOutcome.STRONG -> 7
+        StudyOutcome.OKAY, null -> REVISION_INTERVAL_DAYS
+    }
+    return RevisionState(
+        attemptId = attemptId,
+        nodeId = nodeId,
+        enabled = true,
+        lastReviewedAtEpochMs = null,
+        nextDueDate = today.plusDays(interval.toLong()),
+        revisionCount = 0,
+        intervalDays = interval,
+        updatedAtEpochMs = nowMs,
+    )
+}
+
+/** Recalibrates an already-created revision after the student rates the completed session. */
+fun revisionStateWithOutcome(
+    current: RevisionState,
+    studyDate: LocalDate,
+    outcome: StudyOutcome,
+    nowMs: Long,
+): RevisionState {
+    val currentInterval = current.intervalDays ?: REVISION_INTERVAL_DAYS
+    val interval = when (outcome) {
+        StudyOutcome.STRUGGLED -> maxOf(1, currentInterval / 2)
+        StudyOutcome.OKAY -> currentInterval.coerceAtLeast(REVISION_INTERVAL_DAYS)
+        StudyOutcome.STRONG -> (currentInterval * 2).coerceAtMost(60)
+    }
+    return current.copy(nextDueDate = studyDate.plusDays(interval.toLong()), intervalDays = interval, updatedAtEpochMs = nowMs)
+}
+
 /** After a completed REVISION session on a topic: bump the count and push the next due date out. */
 fun revisionStateAfterReview(current: RevisionState?, attemptId: String, nodeId: String, today: LocalDate, nowMs: Long): RevisionState {
     val interval = (current?.intervalDays ?: REVISION_INTERVAL_DAYS) * 2
+    return RevisionState(
+        attemptId = attemptId,
+        nodeId = nodeId,
+        enabled = true,
+        lastReviewedAtEpochMs = nowMs,
+        nextDueDate = today.plusDays(interval.toLong()),
+        revisionCount = (current?.revisionCount ?: 0) + 1,
+        intervalDays = interval,
+        updatedAtEpochMs = nowMs,
+    )
+}
+
+fun revisionStateAfterReview(
+    current: RevisionState?,
+    attemptId: String,
+    nodeId: String,
+    today: LocalDate,
+    nowMs: Long,
+    outcome: StudyOutcome?,
+): RevisionState {
+    val previous = current?.intervalDays ?: REVISION_INTERVAL_DAYS
+    val interval = when (outcome) {
+        StudyOutcome.STRUGGLED -> 1
+        StudyOutcome.STRONG -> (previous * 3).coerceAtMost(60)
+        StudyOutcome.OKAY, null -> (previous * 2).coerceAtMost(30)
+    }
     return RevisionState(
         attemptId = attemptId,
         nodeId = nodeId,

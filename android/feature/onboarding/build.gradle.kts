@@ -30,5 +30,6 @@ dependencies {
     implementation(libs.compose.material.icons)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.activity.compose)
     testImplementation(libs.junit)
 }

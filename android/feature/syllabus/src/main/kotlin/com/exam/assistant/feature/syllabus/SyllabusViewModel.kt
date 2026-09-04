@@ -7,6 +7,7 @@ import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
+import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.domain.ExamPack
 import com.exam.assistant.domain.SyllabusNode
 import com.exam.assistant.domain.TopicProgressStatus
@@ -15,6 +16,7 @@ import com.exam.assistant.domain.leafIds
 import com.exam.assistant.domain.totalMinutes
 import com.exam.assistant.domain.TargetNodeState
 import com.exam.assistant.domain.isNodeEffectivelyExcluded
+import com.exam.assistant.domain.effectiveTargetLeafIds
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +35,7 @@ class SyllabusViewModel(
     private val topicProgressRepository: TopicProgressRepository,
     private val attemptRepository: AttemptRepository,
     private val targetSyllabusRepository: TargetSyllabusRepository,
+    private val rollingPlanRepository: RollingPlanRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SyllabusUiState())
@@ -92,14 +95,8 @@ class SyllabusViewModel(
         val allDone = leaves.isNotEmpty() && leaves.all { it in coveredNodeIds }
         viewModelScope.launch {
             val nowMs = System.currentTimeMillis()
-            leaves.forEach { leafId ->
-                val current = topicProgressRepository.byNode(id, leafId)
-                val isCovered = current?.status == TopicProgressStatus.COVERED
-                if (allDone == isCovered) {
-                    // Only flip leaves that don't already match the target state.
-                    topicProgressRepository.toggle(id, leafId, nowMs)
-                }
-            }
+            topicProgressRepository.setCovered(id, leaves, covered = !allDone, nowMs = nowMs)
+            rollingPlanRepository.replenish(nowMs = nowMs)
             reloadProgress()
         }
     }
@@ -144,6 +141,9 @@ class SyllabusViewModel(
             }
 
             val allLeaves = subject.leafIds()
+            val includedLeaves = examPack.effectiveTargetLeafIds(targetOverrides).intersect(allLeaves.toSet())
+            val nextLeafId = includedLeaves.firstOrNull { it !in coveredNodeIds }
+            val nextLeaf = nextLeafId?.let(examPack::findNode)
             val doneCount = allLeaves.count { it in coveredNodeIds }
             val percent = if (allLeaves.isNotEmpty()) doneCount * 100 / allLeaves.size else 0
             val doneMinutes = subject.nodes.sumOf { doneMinutesFor(it) }
@@ -159,8 +159,8 @@ class SyllabusViewModel(
                 timeSpentMinutes = doneMinutes,
                 expanded = cardKey in openNodeIds,
                 rows = rows,
-                firstTopicKey = subject.nodes.firstOrNull()?.id,
-                firstTopicTitle = subject.nodes.firstOrNull()?.title.orEmpty(),
+                firstTopicKey = nextLeafId,
+                firstTopicTitle = nextLeaf?.title.orEmpty(),
                 doneChapterCount = subject.nodes.count { node -> node.leafIds().all { it in coveredNodeIds } },
                 totalChapterCount = subject.nodes.size,
                 totalEstimatedMinutes = subject.nodes.sumOf { it.totalMinutes() },
@@ -316,9 +316,10 @@ class SyllabusViewModel(
         private val topicProgressRepository: TopicProgressRepository,
         private val attemptRepository: AttemptRepository,
         private val targetSyllabusRepository: TargetSyllabusRepository,
+        private val rollingPlanRepository: RollingPlanRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            SyllabusViewModel(examPackRepository, topicProgressRepository, attemptRepository, targetSyllabusRepository) as T
+            SyllabusViewModel(examPackRepository, topicProgressRepository, attemptRepository, targetSyllabusRepository, rollingPlanRepository) as T
     }
 }

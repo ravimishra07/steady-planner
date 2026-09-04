@@ -114,8 +114,8 @@ object Size {
     val syllabusRing = 56.dp
     val syllabusRingStroke = 5.dp
     val syllabusPrimaryAction = 56.dp
-    val syllabusRowAction = 32.dp
-    val syllabusStatus = 30.dp
+    val syllabusRowAction = 48.dp
+    val syllabusStatus = 48.dp
     val syllabusSubjectTabHeight = 64.dp
     val syllabusRowMinHeight = 56.dp
     val syllabusBranchIndent = 32.dp

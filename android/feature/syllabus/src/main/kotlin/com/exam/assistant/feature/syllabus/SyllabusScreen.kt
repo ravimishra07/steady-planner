@@ -73,6 +73,7 @@ import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
+import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.AppCard
 import com.exam.assistant.core.design.AppCardTone
@@ -92,11 +93,12 @@ fun SyllabusRoute(
     topicProgressRepository: TopicProgressRepository,
     attemptRepository: AttemptRepository,
     targetSyllabusRepository: TargetSyllabusRepository,
+    rollingPlanRepository: RollingPlanRepository,
     onStartTopic: (PendingSyllabusPick) -> Unit,
     onOrganise: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SyllabusViewModel = viewModel(
-        factory = SyllabusViewModel.Factory(examPackRepository, topicProgressRepository, attemptRepository, targetSyllabusRepository),
+        factory = SyllabusViewModel.Factory(examPackRepository, topicProgressRepository, attemptRepository, targetSyllabusRepository, rollingPlanRepository),
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -545,6 +547,7 @@ private fun SubjectCard(
                 PlayButton(
                     size = Size.syllabusPrimaryAction,
                     filled = true,
+                    description = stringResource(R.string.syllabus_continue_topic, subject.firstTopicTitle),
                     onClick = {
                         val topicKey = subject.firstTopicKey ?: return@PlayButton
                         onStartTopic(
@@ -806,7 +809,12 @@ private fun StatusDot(state: SyllabusTickState, onClick: () -> Unit) {
 }
 
 @Composable
-private fun PlayButton(size: androidx.compose.ui.unit.Dp, filled: Boolean, onClick: () -> Unit) {
+private fun PlayButton(
+    size: androidx.compose.ui.unit.Dp,
+    filled: Boolean,
+    description: String? = null,
+    onClick: () -> Unit,
+) {
     val colors = AppTheme.colors
     Surface(
         onClick = onClick,
@@ -818,7 +826,7 @@ private fun PlayButton(size: androidx.compose.ui.unit.Dp, filled: Boolean, onCli
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = Icons.Filled.PlayArrow,
-                contentDescription = stringResource(R.string.syllabus_start_topic),
+                contentDescription = description ?: stringResource(R.string.syllabus_start_topic),
                 tint = if (filled) colors.onSelectionContainer else colors.primary,
                 modifier = Modifier.size(size * 0.5f),
             )

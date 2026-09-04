@@ -74,6 +74,7 @@ import com.exam.assistant.domain.DayTimelineEntry
 import com.exam.assistant.domain.FixedCommitmentBlock
 import com.exam.assistant.domain.RevisionSuggestion
 import com.exam.assistant.domain.formatGap
+import com.exam.assistant.domain.isActionableStudyGap
 
 private val railWidth = TimelineMetrics.railWidth
 private val lineWidth = Spacing.xxs
@@ -376,6 +377,7 @@ private fun StudyBlockContent(
     isMissed: Boolean,
     remainingLabel: String?,
     expanded: Boolean,
+    canStartNow: Boolean,
     onToggleExpand: () -> Unit,
     onStart: () -> Unit,
     onReschedule: () -> Unit,
@@ -389,12 +391,13 @@ private fun StudyBlockContent(
     val containerColor = if (isRunning) colors.brandContainer else colors.surfaceCard
     val contentPadding = if (isRunning) Spacing.lg else Spacing.md
 
-    val canExpand = block.subtopics.isNotEmpty()
+    val hasSubtopics = block.subtopics.isNotEmpty()
 
     Surface(
         shape = RoundedCornerShape(Radius.lg),
         color = containerColor,
-        modifier = (if (canExpand || block.completed) Modifier.clickable(onClick = onToggleExpand) else Modifier)
+        modifier = Modifier
+            .clickable(onClick = onToggleExpand)
             .animateContentSize(),
     ) {
         Column(
@@ -423,7 +426,7 @@ private fun StudyBlockContent(
                 if (isMissed) {
                     Icon(
                         imageVector = Icons.Filled.WarningAmber,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.home_missed_semantics),
                         tint = colors.warning,
                         modifier = Modifier.size(TimelineMetrics.tinyIcon),
                     )
@@ -452,7 +455,7 @@ private fun StudyBlockContent(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(top = Spacing.xs),
                     ) {
-                        if (expanded && canExpand) {
+                        if (expanded) {
                             Text(
                                 text = stringResource(
                                     R.string.home_time_range,
@@ -472,7 +475,7 @@ private fun StudyBlockContent(
                             )
                             Spacer(Modifier.width(Spacing.xs))
                             Text(
-                                text = if (canExpand) {
+                            text = if (hasSubtopics) {
                                     val topics = if (block.subtopics.size == 1) {
                                         stringResource(R.string.home_topic_count_one)
                                     } else {
@@ -487,15 +490,15 @@ private fun StudyBlockContent(
                                 color = colors.textSecondary,
                             )
                         }
-                        if (canExpand) {
-                            Spacer(Modifier.width(Spacing.xs))
-                            Icon(
-                                imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                                contentDescription = null,
-                                tint = colors.textMuted,
-                                modifier = Modifier.size(Size.compactIcon),
-                            )
-                        }
+                        Spacer(Modifier.width(Spacing.xs))
+                        Icon(
+                            imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                            contentDescription = stringResource(
+                                if (expanded) R.string.home_collapse_details else R.string.home_expand_details,
+                            ),
+                            tint = colors.textMuted,
+                            modifier = Modifier.size(Size.compactIcon),
+                        )
                     }
                     val lastStudiedDaysAgo = block.lastStudiedDaysAgo
                     if (block.isRevision && lastStudiedDaysAgo != null) {
@@ -519,13 +522,13 @@ private fun StudyBlockContent(
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Check,
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.home_completed_semantics),
                             tint = colors.successStrong,
                             modifier = Modifier.size(Spacing.ml),
                         )
                     }
-                    else -> Button(
-                        onClick = if (isMissed) onReschedule else onStart,
+                    canStartNow -> Button(
+                        onClick = onStart,
                         contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.xs),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = colors.brandDeep,
@@ -535,7 +538,7 @@ private fun StudyBlockContent(
                     ) {
                         Text(
                             text = when {
-                                isMissed -> stringResource(R.string.home_reschedule)
+                                isMissed -> stringResource(R.string.home_start_now)
                                 isRunning -> stringResource(R.string.home_continue_short)
                                 else -> stringResource(R.string.home_start_short)
                             },
@@ -552,11 +555,18 @@ private fun StudyBlockContent(
                     modifier = Modifier.padding(top = Spacing.xxs),
                 )
             }
-            if (canExpand && expanded) {
+            if (expanded) {
                 Column(
                     modifier = Modifier.padding(top = Spacing.sm),
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                 ) {
+                    if (block.subtopics.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.home_details_duration, formatDuration(block.durationMinutes)),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.textSecondary,
+                        )
+                    }
                     block.subtopics.forEach { subtopic ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
@@ -570,6 +580,11 @@ private fun StudyBlockContent(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = colors.textSecondary,
                             )
+                        }
+                    }
+                    if (isMissed) {
+                        TextButton(onClick = onReschedule) {
+                            Text(stringResource(R.string.home_choose_another_time))
                         }
                     }
                 }
@@ -619,7 +634,7 @@ private fun CompletedBlockSummary(block: DayBlock, onClick: () -> Unit) {
 }
 
 @Composable
-private fun GapContent(minutes: Int, modifier: Modifier = Modifier) {
+private fun GapContent(minutes: Int, actionable: Boolean, modifier: Modifier = Modifier) {
     val colors = AppTheme.colors
     Surface(
         shape = RoundedCornerShape(Radius.pill),
@@ -631,23 +646,29 @@ private fun GapContent(minutes: Int, modifier: Modifier = Modifier) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = stringResource(R.string.home_gap_free, formatGap(minutes)),
+                text = if (actionable) {
+                    stringResource(R.string.home_gap_free, formatGap(minutes))
+                } else {
+                    stringResource(R.string.home_gap_break, formatGap(minutes))
+                },
                 style = MaterialTheme.typography.labelMedium,
                 color = colors.textMuted,
             )
-            Spacer(Modifier.width(Spacing.sm))
-            Icon(
-                imageVector = Icons.Filled.Add,
-                contentDescription = null,
-                tint = colors.brandSoft,
-                modifier = Modifier.size(TimelineMetrics.tinyIcon),
-            )
-            Spacer(Modifier.width(Spacing.xs))
-            Text(
-                text = stringResource(R.string.home_add_something),
-                style = MaterialTheme.typography.labelMedium,
-                color = colors.brandSoft,
-            )
+            if (actionable) {
+                Spacer(Modifier.width(Spacing.sm))
+                Icon(
+                    imageVector = Icons.Filled.Add,
+                    contentDescription = null,
+                    tint = colors.brandSoft,
+                    modifier = Modifier.size(TimelineMetrics.tinyIcon),
+                )
+                Spacer(Modifier.width(Spacing.xs))
+                Text(
+                    text = stringResource(R.string.home_add_something),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = colors.brandSoft,
+                )
+            }
         }
     }
 }
@@ -660,6 +681,7 @@ private fun GapContent(minutes: Int, modifier: Modifier = Modifier) {
 @Composable
 private fun GapSegment(startMinute: Int, endMinute: Int, onAdd: () -> Unit) {
     val colors = AppTheme.colors
+    val actionable = isActionableStudyGap(endMinute - startMinute)
     val breakpoints = remember(startMinute, endMinute) {
         val points = mutableListOf(startMinute)
         var hour = ((startMinute / 60) + 1) * 60
@@ -671,9 +693,8 @@ private fun GapSegment(startMinute: Int, endMinute: Int, onAdd: () -> Unit) {
         points
     }
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onAdd),
+        modifier = (if (actionable) Modifier.clickable(onClick = onAdd) else Modifier)
+            .fillMaxWidth(),
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             for (i in 0 until breakpoints.size - 1) {
@@ -693,6 +714,7 @@ private fun GapSegment(startMinute: Int, endMinute: Int, onAdd: () -> Unit) {
         }
         GapContent(
             minutes = endMinute - startMinute,
+            actionable = actionable,
             modifier = Modifier.align(Alignment.Center),
         )
     }
@@ -755,6 +777,7 @@ internal fun DayTimelineSection(
     activeSprint: ActiveSprintUi?,
     revisionItems: List<RevisionSuggestion>,
     onStartScheduled: (String) -> Unit,
+    onStartMissed: (String) -> Unit,
     onStartAutoRevision: (RevisionSuggestion) -> Unit,
     onRequestReschedule: (DayBlock) -> Unit,
     onOpenAdd: () -> Unit,
@@ -811,9 +834,12 @@ internal fun DayTimelineSection(
                             isMissed = isMissed,
                             remainingLabel = if (isRunning) formatRemaining(activeSprint?.remainingSec ?: 0) else null,
                             expanded = expandedNow,
+                            canStartNow = nowMinute != null,
                             onToggleExpand = { expandedIds[block.id] = !(expandedIds[block.id] ?: false) },
                             onStart = {
-                                if (block.id.startsWith(AUTO_REVISION_ID_PREFIX)) {
+                                if (isMissed) {
+                                    onStartMissed(block.id)
+                                } else if (block.id.startsWith(AUTO_REVISION_ID_PREFIX)) {
                                     val nodeKey = block.id.removePrefix(AUTO_REVISION_ID_PREFIX)
                                     revisionItems.firstOrNull { it.nodeKey == nodeKey }?.let(onStartAutoRevision)
                                 } else {

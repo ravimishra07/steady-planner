@@ -8,22 +8,30 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.exam.assistant.core.data.PlanStore
-import com.exam.assistant.core.data.StudySessionStore
-import com.exam.assistant.core.data.SyllabusRepository
-import com.exam.assistant.core.data.SyllabusStore
+import com.exam.assistant.core.data.ExamPackRepository
+import com.exam.assistant.core.data.repo.AttemptRepository
+import com.exam.assistant.core.data.repo.AvailabilityRepository
 import com.exam.assistant.core.data.repo.PlanRepository
+import com.exam.assistant.core.data.repo.RevisionRepository
+import com.exam.assistant.core.data.repo.RollingPlanRepository
+import com.exam.assistant.core.data.repo.StudyPreferenceRepository
+import com.exam.assistant.core.data.repo.StudySessionRepository
+import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.domain.PendingSyllabusPick
 import com.exam.assistant.domain.StudySessionRecord
 import kotlinx.coroutines.flow.StateFlow
 
 @Composable
 fun HomeRoute(
-    planStore: PlanStore,
-    syllabusRepository: SyllabusRepository,
-    syllabusStore: SyllabusStore,
-    studySessionStore: StudySessionStore,
+    examPackRepository: ExamPackRepository,
+    attemptRepository: AttemptRepository,
+    availabilityRepository: AvailabilityRepository,
     planRepository: PlanRepository,
+    studySessionRepository: StudySessionRepository,
+    topicProgressRepository: TopicProgressRepository,
+    studyPreferenceRepository: StudyPreferenceRepository,
+    revisionRepository: RevisionRepository,
+    rollingPlanRepository: RollingPlanRepository,
     onSetupPlan: () -> Unit,
     onEditPlan: () -> Unit,
     onStartFocus: suspend (StudySessionRecord) -> Unit,
@@ -32,11 +40,15 @@ fun HomeRoute(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel(
         factory = HomeViewModel.Factory(
-            planStore,
-            syllabusRepository,
-            syllabusStore,
-            studySessionStore,
+            examPackRepository,
+            attemptRepository,
+            availabilityRepository,
             planRepository,
+            studySessionRepository,
+            topicProgressRepository,
+            studyPreferenceRepository,
+            revisionRepository,
+            rollingPlanRepository,
         ),
     ),
 ) {
@@ -73,9 +85,13 @@ fun HomeRoute(
         onPickTopic = viewModel::pickTopic,
         onPickRevision = viewModel::pickRevision,
         onSetDuration = viewModel::setDurationMinutes,
+        onSetActivityType = viewModel::setActivityType,
         onSetScheduledMinute = viewModel::setScheduledEndMinuteOfDay,
         onConfirmStart = viewModel::confirmStartSprint,
+        onConfirmAddToPlan = viewModel::confirmAddToPlan,
         onStartScheduledSession = viewModel::startScheduledSession,
+        onStartMissedSession = viewModel::startMissedSessionNow,
+        onReplanRestOfToday = viewModel::replanRestOfToday,
         onOpenAddInGap = viewModel::openAddStudyInGap,
         onRescheduleToNextSlot = viewModel::rescheduleToNextSlot,
         onRescheduleToTomorrow = viewModel::rescheduleToTomorrowSameTime,
@@ -101,9 +117,13 @@ fun HomeScreen(
     onPickTopic: (String, String, String, String, String) -> Unit,
     onPickRevision: (com.exam.assistant.domain.RevisionSuggestion) -> Unit,
     onSetDuration: (Int) -> Unit,
+    onSetActivityType: (com.exam.assistant.domain.StudyActivityType) -> Unit,
     onSetScheduledMinute: (Int) -> Unit,
     onConfirmStart: () -> Unit,
+    onConfirmAddToPlan: () -> Unit,
     onStartScheduledSession: (String) -> Unit,
+    onStartMissedSession: (String) -> Unit,
+    onReplanRestOfToday: () -> Unit,
     onOpenAddInGap: (Int, Int) -> Unit,
     onRescheduleToNextSlot: (String) -> Unit,
     onRescheduleToTomorrow: (String) -> Unit,
@@ -128,9 +148,13 @@ fun HomeScreen(
                 onPickTopic = onPickTopic,
                 onPickRevision = onPickRevision,
                 onSetDuration = onSetDuration,
+                onSetActivityType = onSetActivityType,
                 onSetScheduledMinute = onSetScheduledMinute,
                 onConfirmStart = onConfirmStart,
+                onConfirmAddToPlan = onConfirmAddToPlan,
                 onStartScheduledSession = onStartScheduledSession,
+                onStartMissedSession = onStartMissedSession,
+                onReplanRestOfToday = onReplanRestOfToday,
                 onOpenAddInGap = onOpenAddInGap,
                 onRescheduleToNextSlot = onRescheduleToNextSlot,
                 onRescheduleToTomorrow = onRescheduleToTomorrow,

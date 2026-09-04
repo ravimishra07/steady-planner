@@ -34,10 +34,14 @@ class FocusStore(
     private val blockIsRevisionKey = booleanPreferencesKey("block_is_revision")
     private val completedTodayKey = intPreferencesKey("completed_today")
 
+    /**
+     * Returns the persisted state unchanged. Expiry is reconciled by the
+     * session lifecycle owner so its history and plan side effects are saved.
+     */
     suspend fun load(): FocusSession = withContext(dispatchers.io) {
         val prefs = context.focusDataStore.data.first()
         val status = FocusStatus.valueOf(prefs[statusKey] ?: FocusStatus.IDLE.name)
-        val session = FocusSession(
+        FocusSession(
             status = status,
             durationSec = prefs[durationKey] ?: com.exam.assistant.domain.DEFAULT_FOCUS_DURATION_SEC,
             remainingSec = prefs[remainingKey] ?: (prefs[durationKey] ?: com.exam.assistant.domain.DEFAULT_FOCUS_DURATION_SEC),
@@ -55,7 +59,6 @@ class FocusStore(
             },
             completedToday = prefs[completedTodayKey] ?: 0,
         )
-        session.withClockNow()
     }
 
     suspend fun save(session: FocusSession) = withContext(dispatchers.io) {

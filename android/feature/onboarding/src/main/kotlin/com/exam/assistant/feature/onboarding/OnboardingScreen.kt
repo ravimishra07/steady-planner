@@ -1,5 +1,6 @@
 package com.exam.assistant.feature.onboarding
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -8,6 +9,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.res.stringResource
@@ -15,12 +19,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.PlanStore
-import com.exam.assistant.core.data.StudySessionStore
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.AvailabilityRepository
 import com.exam.assistant.core.data.repo.PlanRepository
+import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
+import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.common.AppDispatchers
 import com.exam.assistant.core.design.AccentPalette
 import com.exam.assistant.core.design.BackgroundAppearance
@@ -34,8 +39,9 @@ fun OnboardingRoute(
     availabilityRepository: AvailabilityRepository,
     studyPreferenceRepository: StudyPreferenceRepository,
     targetSyllabusRepository: TargetSyllabusRepository,
+    topicProgressRepository: TopicProgressRepository,
     planRepository: PlanRepository,
-    studySessionStore: StudySessionStore,
+    rollingPlanRepository: RollingPlanRepository,
     dispatchers: AppDispatchers,
     background: BackgroundAppearance,
     onBackground: (BackgroundAppearance) -> Unit,
@@ -51,8 +57,9 @@ fun OnboardingRoute(
             availabilityRepository,
             studyPreferenceRepository,
             targetSyllabusRepository,
+            topicProgressRepository,
             planRepository,
-            studySessionStore,
+            rollingPlanRepository,
             dispatchers,
         ),
     ),
@@ -64,6 +71,7 @@ fun OnboardingRoute(
     LaunchedEffect(finished) {
         if (finished) onFinished(openOrganiseAfterFinish)
     }
+    BackHandler(enabled = state.canGoBack, onBack = viewModel::back)
 
     OnboardingScreen(
         state = state,
@@ -76,7 +84,6 @@ fun OnboardingRoute(
         onContinue = viewModel::continueFromCurrent,
         onBackground = onBackground,
         onAccentPalette = onAccentPalette,
-        onSelectExam = viewModel::selectExam,
         onSelectCoaching = viewModel::selectCoaching,
         onAddCommitment = viewModel::addCommitment,
         onRemoveCommitment = viewModel::removeCommitment,
@@ -109,7 +116,6 @@ fun OnboardingScreen(
     onContinue: () -> Unit,
     onBackground: (BackgroundAppearance) -> Unit,
     onAccentPalette: (AccentPalette) -> Unit,
-    onSelectExam: (String) -> Unit,
     onSelectCoaching: (String) -> Unit,
     onAddCommitment: (String) -> Unit,
     onRemoveCommitment: (String) -> Unit,
@@ -128,10 +134,15 @@ fun OnboardingScreen(
     onDismissFinishError: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    if (state.loading) {
+        Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
     val title = stringResource(
         when (state.step) {
             OnboardingStep.Appearance -> R.string.onboarding_appearance_title
-            OnboardingStep.Exam -> R.string.onboarding_exam_title
             OnboardingStep.Coaching -> R.string.onboarding_coaching_title
             OnboardingStep.Commitments -> R.string.onboarding_commitments_title
             OnboardingStep.Date -> R.string.onboarding_date_title
@@ -160,7 +171,6 @@ fun OnboardingScreen(
     ) {
         when (state.step) {
             OnboardingStep.Appearance -> OnboardingAppearanceStep(background, accentPalette, onBackground, onAccentPalette)
-            OnboardingStep.Exam -> OnboardingExamStep(state.examId, onSelectExam)
             OnboardingStep.Coaching -> OnboardingCoachingStep(state.coachingId, onSelectCoaching)
             OnboardingStep.Commitments -> OnboardingCommitmentsStep(
                 state,

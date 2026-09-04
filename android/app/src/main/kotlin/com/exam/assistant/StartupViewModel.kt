@@ -3,7 +3,7 @@ package com.exam.assistant
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.exam.assistant.core.data.PlanStore
+import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.ConfigKeys
 import com.exam.assistant.core.data.RemoteConfig
 import com.exam.assistant.core.data.SettingsStore
@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 
 /** What the first frame needs, and nothing else. */
 data class StartupState(
@@ -33,7 +34,7 @@ data class StartupState(
  */
 class StartupViewModel(
     private val settings: SettingsStore,
-    private val planStore: PlanStore,
+    private val attemptRepository: AttemptRepository,
     private val remoteConfig: RemoteConfig,
 ) : ViewModel() {
 
@@ -42,26 +43,33 @@ class StartupViewModel(
 
     init {
         viewModelScope.launch {
-            coroutineScope {
-                val background = async { settings.backgroundAppearanceOnce() }
-                val palette = async { settings.accentPaletteOnce() }
-                val hasPlan = async { planStore.existsForExam(NEET_EXAM_ID) }
-                _state.value = StartupState(
-                    ready = true,
-                    background = BackgroundAppearance.fromId(
-                        background.await() ?: remoteConfig.string(
-                            ConfigKeys.DEFAULT_BACKGROUND_THEME,
-                            BackgroundAppearance.Default.id,
-                        ),
-                    ),
-                    palette = AccentPalette.fromId(
-                        palette.await() ?: remoteConfig.string(
-                            ConfigKeys.DEFAULT_ACCENT_THEME,
-                            AccentPalette.Default.id,
-                        ),
-                    ),
-                    hasPlan = hasPlan.await(),
-                )
+            _state.value = runCatching {
+                withTimeout(STARTUP_TIMEOUT_MS) {
+                    coroutineScope {
+                        val background = async { settings.backgroundAppearanceOnce() }
+                        val palette = async { settings.accentPaletteOnce() }
+                        val hasPlan = async { attemptRepository.hasAttemptFast() }
+                        StartupState(
+                            ready = true,
+                            background = BackgroundAppearance.fromId(
+                                background.await() ?: remoteConfig.string(
+                                    ConfigKeys.DEFAULT_BACKGROUND_THEME,
+                                    BackgroundAppearance.Default.id,
+                                ),
+                            ),
+                            palette = AccentPalette.fromId(
+                                palette.await() ?: remoteConfig.string(
+                                    ConfigKeys.DEFAULT_ACCENT_THEME,
+                                    AccentPalette.Default.id,
+                                ),
+                            ),
+                            hasPlan = hasPlan.await(),
+                        )
+                    }
+                }
+            }.getOrElse {
+                // A damaged preference file must never trap the student on the splash forever.
+                StartupState(ready = true)
             }
         }
     }
@@ -96,6 +104,10 @@ class StartupViewModel(
     class Factory(private val container: AppContainer) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            StartupViewModel(container.settings, container.planStore, container.remoteConfig) as T
+            StartupViewModel(container.settings, container.attemptRepository, container.remoteConfig) as T
+    }
+
+    private companion object {
+        const val STARTUP_TIMEOUT_MS = 5_000L
     }
 }

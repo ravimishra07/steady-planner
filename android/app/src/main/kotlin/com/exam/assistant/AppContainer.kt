@@ -21,11 +21,13 @@ import com.exam.assistant.core.data.repo.MigrationRepository
 import com.exam.assistant.core.data.repo.MigrationStore
 import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.RevisionRepository
+import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.data.repo.StudySessionRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.domain.PendingSyllabusPick
+import com.exam.assistant.domain.FocusStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -66,26 +68,30 @@ class AppContainer(private val context: Context) {
 
     val installedAppProvider: InstalledAppProvider by lazy { InstalledAppProvider(context, dispatchers) }
 
-    // New domain/data architecture (replaces planStore/studySessionStore/syllabusStore as
-    // the live source of truth once every feature is rewired — see HANDOFF.md).
+    // Canonical Room architecture. Legacy stores remain migration/rollback inputs only.
     val examPackRepository: ExamPackRepository by lazy { ExamPackRepository(context, dispatchers) }
     val attemptRepository: AttemptRepository by lazy { AttemptRepository(context, dispatchers) }
     val planRepository: PlanRepository by lazy { PlanRepository(context, dispatchers) }
     val studySessionRepository: StudySessionRepository by lazy { StudySessionRepository(context, dispatchers) }
     val topicProgressRepository: TopicProgressRepository by lazy { TopicProgressRepository(context, dispatchers) }
     val revisionRepository: RevisionRepository by lazy { RevisionRepository(context, dispatchers) }
+    val rollingPlanRepository: RollingPlanRepository by lazy {
+        RollingPlanRepository(context, dispatchers, examPackRepository)
+    }
     val targetSyllabusRepository: TargetSyllabusRepository by lazy { TargetSyllabusRepository(context, dispatchers) }
     val availabilityRepository: AvailabilityRepository by lazy { AvailabilityRepository(context, dispatchers) }
     val studyPreferenceRepository: StudyPreferenceRepository by lazy { StudyPreferenceRepository(context, dispatchers) }
     private val migrationStore: MigrationStore by lazy { MigrationStore(context, dispatchers) }
     val migrationRepository: MigrationRepository by lazy {
         MigrationRepository(
+            context = context,
             dispatchers = dispatchers,
             planStore = planStore,
             studySessionStore = studySessionStore,
             syllabusStore = syllabusStore,
             migrationStore = migrationStore,
             attemptRepository = attemptRepository,
+            examPackRepository = examPackRepository,
         )
     }
 
@@ -101,6 +107,34 @@ class AppContainer(private val context: Context) {
 
     /** Runs the one-time legacy-store migration off the critical path. Safe to call every launch — no-ops once done. */
     fun runMigrationInBackground() {
-        appScope.launch { migrationRepository.migrateIfNeeded() }
+        appScope.launch {
+            migrationRepository.migrateIfNeeded()
+            reconcileExpiredFocus()
+            rollingPlanRepository.replenish()
+        }
+    }
+
+    /** Cold-start recovery: a timer that expired while the process was dead earns credit exactly once. */
+    private suspend fun reconcileExpiredFocus() {
+        val now = System.currentTimeMillis()
+        val persisted = focusStore.load()
+        if (!persisted.isExpiredAt(now)) return
+        val attempt = attemptRepository.activeAttempt()
+        val active = attempt?.let { studySessionRepository.activeSession(it.id) }
+        if (active != null) {
+            studySessionRepository.completeSession(
+                active.copy(focusedSeconds = persisted.durationSec.coerceAtLeast(active.focusedSeconds)),
+                today = active.studyDate,
+                nowMs = now,
+            )
+        }
+        focusStore.save(
+            persisted.copy(
+                status = FocusStatus.DONE,
+                remainingSec = 0,
+                endsAtMs = null,
+                completedToday = persisted.completedToday + if (active != null) 1 else 0,
+            ),
+        )
     }
 }

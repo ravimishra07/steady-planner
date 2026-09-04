@@ -4,9 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.exam.assistant.core.data.ExamPackRepository
-import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.PlanRepository
+import com.exam.assistant.core.data.repo.RollingPlanRepository
+import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.data.repo.StudySessionRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
@@ -38,13 +39,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class ProgressViewModel(
-    private val planStore: PlanStore,
     private val examPackRepository: ExamPackRepository,
     private val attemptRepository: AttemptRepository,
     private val planRepository: PlanRepository,
     private val studySessionRepository: StudySessionRepository,
     private val topicProgressRepository: TopicProgressRepository,
     private val targetSyllabusRepository: TargetSyllabusRepository,
+    private val rollingPlanRepository: RollingPlanRepository,
+    private val studyPreferenceRepository: StudyPreferenceRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(InsightsUiState())
     val state: StateFlow<InsightsUiState> = _state.asStateFlow()
@@ -60,13 +62,13 @@ class ProgressViewModel(
 
     fun refresh() = viewModelScope.launch {
         try {
-            val saved = planStore.load()
             val attempt = attemptRepository.activeAttempt()
-            if (saved == null || attempt == null) {
+            if (attempt == null) {
                 _state.update { it.copy(loading = false, hasPlan = false, data = null, loadFailed = false) }
                 return@launch
             }
             attemptId = attempt.id
+            val preferences = studyPreferenceRepository.forAttempt(attempt.id)
             pack = examPackRepository.examPackFor(attempt.examId)
             val start = studySessionRepository.earliestStudyDate(attempt.id)?.coerceAtMost(LocalDate.now().minusDays(83))
                 ?: LocalDate.now().minusDays(83)
@@ -83,8 +85,9 @@ class ProgressViewModel(
                 .toSet()
             cachedPlan = InsightPlan(
                 daysUntilTarget = ChronoUnit.DAYS.between(LocalDate.now(), attempt.targetCompletionDate).toInt().coerceAtLeast(0),
-                weekdayHours = saved.weekdayHours,
-                weekendHours = saved.weekendHours,
+                weekdayHours = (preferences?.weekdayTargetMinutes ?: 4 * 60) / 60f,
+                weekendHours = (preferences?.weekendTargetMinutes ?: 7 * 60) / 60f,
+                startedOn = Instant.ofEpochMilli(attempt.createdAtEpochMs).atZone(ZoneId.systemDefault()).toLocalDate(),
             )
             rebuild()
         } catch (_: Throwable) {
@@ -111,6 +114,7 @@ class ProgressViewModel(
             else targetSyllabusRepository.clearOverride(id, node.id)
         }
         excluded = if (shouldExclude) excluded + subject.nodes.map { it.id } else excluded - subject.nodes.map { it.id }.toSet()
+        rollingPlanRepository.replenish()
         rebuild()
     }
 
@@ -173,13 +177,15 @@ class ProgressViewModel(
             id = id,
             date = scheduledDate,
             startMinuteOfDay = startMinuteOfDay,
-            durationMinutes = actual?.focusedSeconds?.div(60)?.coerceAtLeast(1) ?: plannedMinutes,
+            durationMinutes = plannedMinutes,
             nodeKey = nodeId.orEmpty(),
             title = node?.title ?: customTitle.orEmpty(),
             sectionName = subject?.name.orEmpty(),
             subjectId = subjectId.orEmpty(),
             isRevision = activityType == StudyActivityType.REVISION,
             completed = actual?.status == StudySessionStatus.COMPLETED || status == PlanBlockStatus.COMPLETED,
+            planned = true,
+            focusedMinutes = actual?.focusedSeconds?.div(60)?.coerceAtLeast(1),
         )
     }
 
@@ -198,22 +204,26 @@ class ProgressViewModel(
             subjectId = subjectId.orEmpty(),
             isRevision = activityType == StudyActivityType.REVISION,
             completed = status == StudySessionStatus.COMPLETED,
+            planned = false,
+            focusedMinutes = (focusedSeconds / 60).coerceAtLeast(1),
         )
     }
 
     class Factory(
-        private val planStore: PlanStore,
         private val examPackRepository: ExamPackRepository,
         private val attemptRepository: AttemptRepository,
         private val planRepository: PlanRepository,
         private val studySessionRepository: StudySessionRepository,
         private val topicProgressRepository: TopicProgressRepository,
         private val targetSyllabusRepository: TargetSyllabusRepository,
+        private val rollingPlanRepository: RollingPlanRepository,
+        private val studyPreferenceRepository: StudyPreferenceRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T = ProgressViewModel(
-            planStore, examPackRepository, attemptRepository, planRepository, studySessionRepository,
+            examPackRepository, attemptRepository, planRepository, studySessionRepository,
             topicProgressRepository, targetSyllabusRepository,
+            rollingPlanRepository, studyPreferenceRepository,
         ) as T
     }
 }

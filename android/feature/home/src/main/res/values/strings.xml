@@ -18,6 +18,9 @@
     <string name="home_studied_today">%1$d min studied today</string>
     <string name="home_empty_study">Tap + to pick a topic and start studying.</string>
     <string name="home_start_study">Start studying</string>
+    <string name="home_add_study">Add study</string>
+    <string name="home_start_now">Start now</string>
+    <string name="home_add_to_plan">Add to plan</string>
     <string name="home_pick_topic">What are you studying?</string>
     <string name="home_browse_syllabus">Browse full syllabus</string>
     <string name="home_how_long">Set duration</string>
@@ -37,6 +40,7 @@
     <string name="home_revise_sub">Studied 3 days ago · %1$s</string>
     <string name="home_revise_start">Start</string>
     <string name="home_gap_free">%1$s free</string>
+    <string name="home_gap_break">%1$s break</string>
     <plurals name="home_days_to_exam">
         <item quantity="one">%1$d day to exam</item>
         <item quantity="other">%1$d days to exam</item>
@@ -47,6 +51,7 @@
     <string name="home_start_short">Start</string>
     <string name="home_continue_short">Continue</string>
     <string name="home_reschedule">Reschedule</string>
+    <string name="home_choose_another_time">Choose another time</string>
     <string name="home_subject_title">%1$s · %2$s</string>
     <string name="home_time_range">%1$s – %2$s</string>
     <string name="home_reschedule_next_slot">Move to next available slot</string>
@@ -72,6 +77,11 @@
     <string name="home_topic_count_one">1 topic</string>
     <string name="home_completed_summary_topics">%1$s studied · %2$s</string>
     <string name="home_completed_summary">%1$s studied</string>
+    <string name="home_details_duration">%1$s planned</string>
+    <string name="home_expand_details">Show study details</string>
+    <string name="home_collapse_details">Hide study details</string>
+    <string name="home_missed_semantics">Needs a new time</string>
+    <string name="home_completed_semantics">Completed</string>
     <plurals name="home_last_studied_days">
         <item quantity="one">Last studied %1$d day ago</item>
         <item quantity="other">Last studied %1$d days ago</item>
@@ -98,6 +108,33 @@
     <string name="home_fixed_commute">Commute</string>
     <string name="home_fixed_other">Fixed time</string>
 
+    <string name="home_recovery_title">The day changed</string>
+    <plurals name="home_recovery_body">
+        <item quantity="one">%1$d session needs a new time. %2$s is still free today.</item>
+        <item quantity="other">%1$d sessions need a new time. %2$s is still free today.</item>
+    </plurals>
+    <string name="home_recovery_next">Next: %1$s</string>
+    <string name="home_start_next_now">Start next now</string>
+    <string name="home_replan_rest_today">Replan the rest of today</string>
+    <string name="home_recovery_busy_now">You are busy right now. Replan to find the next safe window.</string>
+    <string name="home_error_duration">Choose a duration longer than zero.</string>
+    <string name="home_error_outside_day">Choose a time within your awake hours.</string>
+    <string name="home_error_study_overlap">That time overlaps another study session.</string>
+    <string name="home_error_fixed_overlap">That time overlaps a fixed commitment.</string>
+    <string name="home_error_no_available_time">No safe slot was found in the next seven days.</string>
+
+    <string name="home_accessibility_date_pattern">EEEE, d MMMM yyyy</string>
+    <string name="home_calendar_expand">Show month calendar</string>
+    <string name="home_calendar_collapse">Hide month calendar</string>
+    <string name="home_calendar_state_expanded">%1$s, expanded</string>
+    <string name="home_calendar_state_collapsed">%1$s, collapsed</string>
+    <string name="home_calendar_select_date">Select %1$s</string>
+    <string name="home_calendar_status_done">Study complete</string>
+    <string name="home_calendar_status_partial">Study partly complete</string>
+    <string name="home_calendar_status_today">Today</string>
+    <string name="home_calendar_status_planned">Study planned</string>
+    <string name="home_calendar_status_no_progress">No completed study</string>
+
     <string name="home_subject_physics">Physics</string>
     <string name="home_subject_physics_short">P</string>
     <string name="home_subject_chemistry">Chemistry</string>
@@ -116,4 +153,11 @@
     <string name="home_picker_no_match">No topics match. Try another word.</string>
     <string name="home_picker_back">Back</string>
     <string name="home_picker_close">Close</string>
+    <string name="home_picker_choose">Choose</string>
+    <string name="home_picker_browse_deeper">Browse inside %1$s</string>
+    <string name="home_activity_type">What will you do?</string>
+    <string name="home_activity_learn">Learn</string>
+    <string name="home_activity_practice">Practice</string>
+    <string name="home_activity_revision">Revise</string>
+    <string name="home_activity_mock">Mock</string>
 </resources>

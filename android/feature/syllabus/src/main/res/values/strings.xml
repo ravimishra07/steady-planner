@@ -11,13 +11,14 @@
     <string name="syllabus_see_details">See Details</string>
     <string name="syllabus_hide_details">Hide Details</string>
     <string name="syllabus_start_topic">Start</string>
+    <string name="syllabus_continue_topic">Continue: %1$s</string>
     <string name="syllabus_filter">Filter syllabus</string>
     <string name="syllabus_edit">Edit syllabus</string>
     <string name="syllabus_close_filters">Close filters</string>
     <string name="syllabus_reset_filters">Reset</string>
     <string name="syllabus_filter_all">All (%1$d)</string>
-    <string name="syllabus_filter_due">Due (%1$d)</string>
-    <string name="syllabus_filter_due_compact">Due %1$d</string>
+    <string name="syllabus_filter_due">Not covered (%1$d)</string>
+    <string name="syllabus_filter_due_compact">Not covered %1$d</string>
     <string name="syllabus_class_11">Class 11</string>
     <string name="syllabus_class_12">Class 12</string>
     <string name="syllabus_class_number">Class %1$d</string>
@@ -79,8 +80,7 @@
     <string name="organise_order">Order</string>
     <string name="organise_order_default">Default</string>
     <string name="organise_order_shortest">Shortest first</string>
-    <string name="organise_order_custom">Custom</string>
-    <string name="organise_order_hint">Order changes this preview. Scope changes are applied only after confirmation.</string>
+    <string name="organise_order_hint">Order changes the real seven-day preview. Nothing is applied until you confirm.</string>
     <string name="organise_chapters">Chapters</string>
     <string name="organise_in_play">%1$d in play</string>
     <string name="organise_delete_chapter">Delete chapter</string>

@@ -2,7 +2,6 @@ package com.exam.assistant.feature.onboarding
 
 enum class OnboardingStep {
     Appearance,
-    Exam,
     Coaching,
     Commitments,
     Date,
@@ -13,7 +12,6 @@ enum class OnboardingStep {
 
     val progressIndex: Int? get() = when (this) {
         Appearance -> 0
-        Exam -> null
         Coaching -> 1
         Commitments -> 2
         Date -> 3
@@ -23,7 +21,6 @@ enum class OnboardingStep {
 
     fun next(): OnboardingStep? = when (this) {
         Appearance -> Coaching
-        Exam -> Coaching
         Coaching -> Commitments
         Commitments -> Date
         Date -> Hours
@@ -33,7 +30,7 @@ enum class OnboardingStep {
     }
 
     fun previous(): OnboardingStep? = when (this) {
-        Appearance, Exam -> null
+        Appearance -> null
         Coaching -> Appearance
         Commitments -> Coaching
         Date -> Commitments

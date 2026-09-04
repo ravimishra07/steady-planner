@@ -12,6 +12,7 @@ import com.exam.assistant.domain.StudyActivityType
 import com.exam.assistant.domain.StudySession
 import com.exam.assistant.domain.StudySessionSegment
 import com.exam.assistant.domain.StudySessionStatus
+import com.exam.assistant.domain.StudyOutcome
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
@@ -44,6 +45,7 @@ data class StudySessionEntity(
     val status: String,
     val focusLockUsed: Boolean,
     val interruptionCount: Int,
+    val outcome: String?,
     val customTitle: String?,
     val createdAtEpochMs: Long,
     val updatedAtEpochMs: Long,
@@ -65,6 +67,7 @@ fun StudySessionEntity.toDomain() = StudySession(
     status = StudySessionStatus.valueOf(status),
     focusLockUsed = focusLockUsed,
     interruptionCount = interruptionCount,
+    outcome = outcome?.let(StudyOutcome::valueOf),
     customTitle = customTitle,
     createdAtEpochMs = createdAtEpochMs,
     updatedAtEpochMs = updatedAtEpochMs,
@@ -86,6 +89,7 @@ fun StudySession.toEntity() = StudySessionEntity(
     status = status.name,
     focusLockUsed = focusLockUsed,
     interruptionCount = interruptionCount,
+    outcome = outcome?.name,
     customTitle = customTitle,
     createdAtEpochMs = createdAtEpochMs,
     updatedAtEpochMs = updatedAtEpochMs,
@@ -130,6 +134,7 @@ fun StudySessionSegment.toEntity() = StudySessionSegmentEntity(
 
 data class DaySum(val studyDateEpochDay: Long, val totalSeconds: Int, val sessionCount: Int)
 data class SubjectSum(val subjectId: String?, val totalSeconds: Int)
+data class NodeFocusedSum(val nodeId: String, val totalSeconds: Int)
 
 @Dao
 interface StudySessionDao {
@@ -170,6 +175,13 @@ interface StudySessionDao {
             "AND studyDateEpochDay BETWEEN :startEpochDay AND :endEpochDay GROUP BY subjectId",
     )
     suspend fun subjectSums(attemptId: String, startEpochDay: Long, endEpochDay: Long): List<SubjectSum>
+
+    @Query(
+        "SELECT nodeId, SUM(focusedSeconds) AS totalSeconds FROM study_session " +
+            "WHERE attemptId = :attemptId AND status = 'COMPLETED' AND activityType = 'LEARN' " +
+            "AND nodeId IS NOT NULL GROUP BY nodeId",
+    )
+    suspend fun completedLearnSumsByNode(attemptId: String): List<NodeFocusedSum>
 
     @Query("SELECT MIN(studyDateEpochDay) FROM study_session WHERE attemptId = :attemptId AND status = 'COMPLETED'")
     suspend fun earliestStudyDate(attemptId: String): Long?

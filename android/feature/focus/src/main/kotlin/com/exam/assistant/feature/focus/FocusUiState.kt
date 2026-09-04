@@ -2,6 +2,7 @@ package com.exam.assistant.feature.focus
 
 import com.exam.assistant.domain.BlockTag
 import com.exam.assistant.domain.FocusStatus
+import com.exam.assistant.domain.StudyOutcome
 
 data class FocusQueueItem(
     val id: String,
@@ -22,4 +23,5 @@ data class FocusUiState(
     val hasBlock: Boolean = false,
     val queue: List<FocusQueueItem> = emptyList(),
     val showStopDialog: Boolean = false,
+    val outcome: StudyOutcome? = null,
 )

@@ -5,6 +5,7 @@ import java.time.temporal.ChronoUnit
 
 /** Minutes a scheduled-but-unstarted revision occupies once auto-placed on the timeline. */
 const val AUTO_REVISION_MINUTES = 30
+const val MIN_ACTIONABLE_GAP_MINUTES = 30
 
 const val DAY_TIMELINE_START = 6 * 60
 const val DAY_TIMELINE_END = 23 * 60
@@ -46,6 +47,110 @@ sealed interface DayTimelineEntry {
 }
 
 private data class Slot(val start: Int, val end: Int)
+
+enum class StudyPlacementIssue {
+    INVALID_DURATION,
+    OUTSIDE_DAY,
+    OVERLAPS_STUDY,
+    OVERLAPS_FIXED,
+    NO_AVAILABLE_TIME,
+}
+
+data class SessionPlacement(
+    val sessionId: String,
+    val date: LocalDate,
+    val startMinuteOfDay: Int,
+)
+
+fun isActionableStudyGap(minutes: Int): Boolean = minutes >= MIN_ACTIONABLE_GAP_MINUTES
+
+/** Validates one half-open study interval before it is written to either plan store. */
+fun validateStudyPlacement(
+    sessions: List<StudySessionRecord>,
+    date: LocalDate,
+    startMinuteOfDay: Int,
+    durationMinutes: Int,
+    fixedCommitments: List<FixedCommitmentBlock> = emptyList(),
+    dayStartMinute: Int = DAY_TIMELINE_START,
+    dayEndMinute: Int = DAY_TIMELINE_END,
+    excludingSessionId: String? = null,
+): StudyPlacementIssue? {
+    if (durationMinutes <= 0) return StudyPlacementIssue.INVALID_DURATION
+    val endMinuteOfDay = startMinuteOfDay + durationMinutes
+    if (
+        startMinuteOfDay < 0 ||
+        endMinuteOfDay > 24 * 60 ||
+        startMinuteOfDay < dayStartMinute ||
+        endMinuteOfDay > dayEndMinute
+    ) {
+        return StudyPlacementIssue.OUTSIDE_DAY
+    }
+    fun overlaps(otherStart: Int, otherEnd: Int): Boolean =
+        startMinuteOfDay < otherEnd && endMinuteOfDay > otherStart
+
+    if (sessions.any { session ->
+            session.id != excludingSessionId &&
+                session.date == date &&
+                !session.completed &&
+                overlaps(session.startMinuteOfDay, session.startMinuteOfDay + session.durationMinutes)
+        }
+    ) {
+        return StudyPlacementIssue.OVERLAPS_STUDY
+    }
+    if (fixedCommitments.any { overlaps(it.startMinuteOfDay, it.endMinuteOfDay) }) {
+        return StudyPlacementIssue.OVERLAPS_FIXED
+    }
+    return null
+}
+
+/**
+ * Places today's missed sessions into the earliest safe windows from now onward.
+ * Existing future/manual work stays fixed. Overflow may move to later days within [horizonDays].
+ */
+fun planMissedDayRecovery(
+    sessions: List<StudySessionRecord>,
+    date: LocalDate,
+    nowMinuteOfDay: Int,
+    fixedCommitmentsByDate: Map<LocalDate, List<FixedCommitmentBlock>> = emptyMap(),
+    dayStartMinute: Int = DAY_TIMELINE_START,
+    dayEndMinute: Int = DAY_TIMELINE_END,
+    horizonDays: Int = 7,
+): List<SessionPlacement> {
+    val missed = sessions
+        .filter { session ->
+            session.date == date &&
+                !session.completed &&
+                session.runningEndsAtMs == null &&
+                session.startMinuteOfDay + session.durationMinutes <= nowMinuteOfDay
+        }
+        .sortedBy { it.startMinuteOfDay }
+    if (missed.isEmpty()) return emptyList()
+
+    val missedIds = missed.mapTo(mutableSetOf()) { it.id }
+    val working = sessions.filterNot { it.id in missedIds }.toMutableList()
+    return buildList {
+        missed.forEach { session ->
+            var placement: SessionPlacement? = null
+            for (offset in 0..horizonDays) {
+                val candidateDate = date.plusDays(offset.toLong())
+                val notBefore = if (offset == 0) nowMinuteOfDay else dayStartMinute
+                val start = findNextFreeSlot(
+                    sessions = working,
+                    date = candidateDate,
+                    minMinutes = session.durationMinutes,
+                    notBefore = notBefore,
+                    fixedCommitments = fixedCommitmentsByDate[candidateDate].orEmpty(),
+                    dayStartMinute = dayStartMinute,
+                    dayEndMinute = dayEndMinute,
+                ) ?: continue
+                placement = SessionPlacement(session.id, candidateDate, start)
+                working += session.copy(date = candidateDate, startMinuteOfDay = start)
+                break
+            }
+            placement?.let(::add)
+        }
+    }
+}
 
 private fun subtopicsFor(node: SyllabusTopicNode?, startMinuteOfDay: Int, endMinuteOfDay: Int): List<SubtopicSlot> {
     val children = node?.children.orEmpty()

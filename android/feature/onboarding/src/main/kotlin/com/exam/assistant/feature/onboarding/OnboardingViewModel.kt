@@ -2,41 +2,45 @@ package com.exam.assistant.feature.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewModelScope
 import com.exam.assistant.core.common.AppDispatchers
 import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.SavedPlan
-import com.exam.assistant.core.data.StudySessionStore
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.AvailabilityRepository
 import com.exam.assistant.core.data.repo.PlanRepository
+import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
+import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.domain.ExamAttempt
 import com.exam.assistant.domain.ExamAttemptStatus
 import com.exam.assistant.domain.ExamPack
 import com.exam.assistant.domain.NEET_EXAM_ID
 import com.exam.assistant.domain.StudyPreferences
-import com.exam.assistant.domain.StudySessionRecord
 import com.exam.assistant.domain.TargetNodeState
+import com.exam.assistant.domain.TopicProgressStatus
 import com.exam.assistant.domain.WeeklyAvailability
 import com.exam.assistant.domain.availableHours
 import com.exam.assistant.domain.cushion
-import com.exam.assistant.domain.findNode
-import com.exam.assistant.domain.findSubjectOf
-import com.exam.assistant.domain.generateInitialPlan
 import com.exam.assistant.domain.leafIds
 import com.exam.assistant.domain.totalMinutes
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.net.URLEncoder
+import java.net.URLDecoder
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.UUID
 import kotlin.math.roundToInt
 
@@ -47,9 +51,11 @@ class OnboardingViewModel(
     private val availabilityRepository: AvailabilityRepository,
     private val studyPreferenceRepository: StudyPreferenceRepository,
     private val targetSyllabusRepository: TargetSyllabusRepository,
+    private val topicProgressRepository: TopicProgressRepository,
     private val planRepository: PlanRepository,
-    private val studySessionStore: StudySessionStore,
+    private val rollingPlanRepository: RollingPlanRepository,
     private val dispatchers: AppDispatchers,
+    private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private var currentPack: ExamPack? = null
@@ -61,7 +67,12 @@ class OnboardingViewModel(
     val openOrganiseAfterFinish: StateFlow<Boolean> = _openOrganiseAfterFinish.asStateFlow()
 
     init {
-        loadPackFor(NEET_EXAM_ID)
+        hydrate()
+        viewModelScope.launch {
+            state.drop(1).collect { current ->
+                if (!current.loading && !current.finishing) savedStateHandle[DRAFT_KEY] = encodeDraft(current)
+            }
+        }
     }
 
     fun back() {
@@ -83,7 +94,6 @@ class OnboardingViewModel(
     }
 
     fun canContinue(state: OnboardingUiState = _state.value): Boolean = when (state.step) {
-        OnboardingStep.Exam -> ExamCatalog.contains(state.examId)
         OnboardingStep.Coaching -> state.coachingId.isNotBlank()
         OnboardingStep.Commitments -> commitmentIssues(state).isEmpty()
         OnboardingStep.Hours -> capacityIssues(state).isEmpty()
@@ -263,14 +273,71 @@ class OnboardingViewModel(
                     current
                 } else {
                     current.copy(
+                        loading = false,
                         syllabusSubjects = subjects,
                         selectedChapterIds = if (current.useProvidedSyllabus) {
-                            pack.topLevelNodeIds()
+                            current.selectedChapterIds.ifEmpty { pack.topLevelNodeIds() }
                         } else {
                             emptySet()
                         },
                     )
                 }
+            }
+        }
+    }
+
+    private fun hydrate() {
+        viewModelScope.launch {
+            val pack = examPackRepository.examPackFor(NEET_EXAM_ID)
+            val attempt = attemptRepository.activeAttempt()?.takeIf { it.examId == NEET_EXAM_ID }
+            val saved = planStore.load()?.takeIf { it.examId == NEET_EXAM_ID }
+            val preferences = attempt?.let { studyPreferenceRepository.forAttempt(it.id) }
+            val overrides = attempt?.let { targetSyllabusRepository.overridesFor(it.id) }.orEmpty()
+            val coveredLeafIds = attempt?.let { active ->
+                topicProgressRepository.allOnce(active.id)
+                    .filter { it.status == TopicProgressStatus.COVERED }
+                    .mapTo(mutableSetOf()) { it.nodeId }
+            }.orEmpty()
+            val excludedIds = overrides.filter { it.state == TargetNodeState.EXCLUDED }.mapTo(mutableSetOf()) { it.nodeId }
+            val subjects = pack.subjects.map { subject ->
+                OnboardingSyllabusSubject(
+                    id = subject.id,
+                    name = subject.name,
+                    chapters = subject.nodes.map { node ->
+                        OnboardingSyllabusChapter(
+                            id = node.id,
+                            name = node.title,
+                            classNumber = node.id.split('.').getOrNull(2)?.toIntOrNull(),
+                        )
+                    },
+                )
+            }
+            currentPack = pack
+            _state.update { current ->
+                val hydrated = current.copy(
+                    loading = false,
+                    editMode = attempt != null,
+                    examId = NEET_EXAM_ID,
+                    coachingId = saved?.coachingId?.ifBlank { "self" } ?: "",
+                    commitments = saved?.commitments?.mapNotNull(::decodeCommitment)?.ifEmpty { defaultCommitments() }
+                        ?: defaultCommitments(),
+                    wakeMinute = saved?.wakeMinute ?: current.wakeMinute,
+                    sleepMinute = saved?.sleepMinute ?: current.sleepMinute,
+                    targetDate = attempt?.targetCompletionDate
+                        ?: saved?.targetDateEpochDay?.let(LocalDate::ofEpochDay)
+                        ?: current.targetDate,
+                    workId = saved?.workId ?: current.workId,
+                    weekdayHours = preferences?.weekdayTargetMinutes?.div(60f) ?: saved?.weekdayHours ?: current.weekdayHours,
+                    weekendHours = preferences?.weekendTargetMinutes?.div(60f) ?: saved?.weekendHours ?: current.weekendHours,
+                    studyPlace = preferences?.defaultStudyPlace ?: saved?.studyPlace ?: current.studyPlace,
+                    useProvidedSyllabus = saved?.useProvidedSyllabus ?: true,
+                    selectedChapterIds = pack.topLevelNodeIds() - excludedIds,
+                    coveredChapterIds = pack.subjects.flatMap { it.nodes }
+                        .filter { chapter -> chapter.leafIds().isNotEmpty() && chapter.leafIds().all { it in coveredLeafIds } }
+                        .mapTo(mutableSetOf()) { it.id },
+                    syllabusSubjects = subjects,
+                )
+                savedStateHandle.get<String>(DRAFT_KEY)?.let { decodeDraft(it, hydrated) } ?: hydrated
             }
         }
     }
@@ -315,7 +382,6 @@ class OnboardingViewModel(
             } else {
                 emptyList()
             }
-            val previousCompatibilityPlan = studySessionStore.loadAll().filter { it.id.startsWith("auto_${attemptId}_") }
             val previousAvailability = if (existingAttempt != null) availabilityRepository.weeklyFor(attemptId) else emptyList()
             val previousPreferences = if (existingAttempt != null) studyPreferenceRepository.forAttempt(attemptId) else null
             val previousOverrides = if (existingAttempt != null) targetSyllabusRepository.overridesFor(attemptId) else emptyList()
@@ -334,15 +400,15 @@ class OnboardingViewModel(
                     status = ExamAttemptStatus.ACTIVE,
                 )
 
-                if (existingAttempt == null) {
-                    attemptRepository.upsert(attempt)
-                }
+                attemptRepository.upsert(attempt)
 
                 val availability = freeWindowsFor(attemptId, state)
                 availabilityRepository.replaceWeekly(attemptId, availability)
                 studyPreferenceRepository.upsert(
                     StudyPreferences(
                         attemptId = attemptId,
+                        weekdayTargetMinutes = (state.weekdayHours * 60).roundToInt(),
+                        weekendTargetMinutes = (state.weekendHours * 60).roundToInt(),
                         autoScheduleRevision = true,
                         defaultStudyPlace = state.studyPlace.trim().ifBlank { null },
                     ),
@@ -356,58 +422,6 @@ class OnboardingViewModel(
                     .filter { !state.useProvidedSyllabus || it.id !in state.selectedChapterIds }
                 excludedNodes.forEach { node ->
                     targetSyllabusRepository.setState(attemptId, node.id, TargetNodeState.EXCLUDED, now)
-                }
-                val excludedLeaves = excludedNodes.flatMap { it.leafIds() }.toSet()
-                val initialPlan = if (state.useProvidedSyllabus && state.selectedChapterIds.isNotEmpty()) {
-                    withContext(dispatchers.default) {
-                        generateInitialPlan(
-                            attemptId = attemptId,
-                            pack = pack,
-                            startDate = LocalDate.now(),
-                            days = INITIAL_PLAN_DAYS,
-                            weekdayHours = state.weekdayHours,
-                            weekendHours = state.weekendHours,
-                            weeklyAvailability = availability,
-                            excludedLeafIds = excludedLeaves,
-                            nowMs = now,
-                        )
-                    }
-                } else {
-                    emptyList()
-                }
-                if (existingAttempt == null) {
-                    planRepository.replaceAllForAttempt(attemptId, initialPlan)
-                } else {
-                    planRepository.replaceFutureAuto(attemptId, LocalDate.now(), initialPlan)
-                }
-                val compatibilityPlan = initialPlan.mapNotNull { block ->
-                        val nodeId = block.nodeId ?: return@mapNotNull null
-                        val node = pack.findNode(nodeId) ?: return@mapNotNull null
-                        val subject = pack.findSubjectOf(nodeId) ?: return@mapNotNull null
-                        StudySessionRecord(
-                            id = block.id,
-                            date = block.scheduledDate,
-                            startMinuteOfDay = block.startMinuteOfDay,
-                            durationMinutes = block.plannedMinutes,
-                            nodeKey = nodeId,
-                            title = node.title,
-                            sectionName = subject.name,
-                            subjectId = subject.id,
-                        )
-                    }
-
-                if (existingAttempt == null) {
-                    studySessionStore.replaceGeneratedPlan(attemptId, compatibilityPlan)
-                } else {
-                    studySessionStore.replaceFutureGeneratedPlan(
-                        attemptId,
-                        LocalDate.now(),
-                        compatibilityPlan,
-                    )
-                }
-
-                if (existingAttempt != null) {
-                    attemptRepository.upsert(attempt)
                 }
                 planStore.save(
                     SavedPlan(
@@ -426,12 +440,13 @@ class OnboardingViewModel(
                         commitments = state.commitments.map(::encodeCommitment).toSet(),
                     ),
                 )
+                rollingPlanRepository.replenish(fromDate = LocalDate.now(), nowMs = now)
+                savedStateHandle.remove<String>(DRAFT_KEY)
                 _state.update { it.copy(finishing = false) }
                 _openOrganiseAfterFinish.value = !state.useProvidedSyllabus || state.selectedChapterIds.isEmpty()
                 _finished.value = true
             } catch (_: Exception) {
                 runCatching { planRepository.replaceAllForAttempt(attemptId, previousPlan) }
-                runCatching { studySessionStore.replaceGeneratedPlan(attemptId, previousCompatibilityPlan) }
                 if (existingAttempt == null) {
                     runCatching { attemptRepository.deleteAttemptAndAllData(attemptId) }
                 } else {
@@ -464,22 +479,29 @@ class OnboardingViewModel(
         private val availabilityRepository: AvailabilityRepository,
         private val studyPreferenceRepository: StudyPreferenceRepository,
         private val targetSyllabusRepository: TargetSyllabusRepository,
+        private val topicProgressRepository: TopicProgressRepository,
         private val planRepository: PlanRepository,
-        private val studySessionStore: StudySessionStore,
+        private val rollingPlanRepository: RollingPlanRepository,
         private val dispatchers: AppDispatchers,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T = OnboardingViewModel(
+        override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T = OnboardingViewModel(
             planStore,
             examPackRepository,
             attemptRepository,
             availabilityRepository,
             studyPreferenceRepository,
             targetSyllabusRepository,
+            topicProgressRepository,
             planRepository,
-            studySessionStore,
+            rollingPlanRepository,
             dispatchers,
+            extras.createSavedStateHandle(),
         ) as T
+    }
+
+    private companion object {
+        const val DRAFT_KEY = "onboarding_draft_v1"
     }
 }
 
@@ -596,7 +618,56 @@ private fun encodeCommitment(commitment: OnboardingCommitment): String = listOf(
     URLEncoder.encode(commitment.customLabel.orEmpty(), Charsets.UTF_8.name()),
 ).joinToString("|")
 
+private fun decodeCommitment(encoded: String): OnboardingCommitment? {
+    val parts = encoded.split('|')
+    if (parts.size < 5) return null
+    val kind = parts[1]
+    val label = commitmentPreset(kind)?.labelRes ?: R.string.onboarding_commitment_other
+    val start = parts[2].toIntOrNull() ?: return null
+    val end = parts[3].toIntOrNull() ?: return null
+    val days = parts[4].split(',').mapNotNull(String::toIntOrNull).filter { it in 0..6 }.toSet()
+    val custom = parts.getOrNull(5)?.let { runCatching { URLDecoder.decode(it, Charsets.UTF_8.name()) }.getOrNull() }
+        ?.trim()?.ifBlank { null }
+    return OnboardingCommitment(parts[0], kind, label, start, end, days, custom)
+}
+
 private fun ExamPack?.topLevelNodeIds(): Set<String> =
     this?.subjects?.flatMap { it.nodes }?.map { it.id }?.toSet().orEmpty()
 
-private const val INITIAL_PLAN_DAYS = 7
+private fun encodeDraft(state: OnboardingUiState): String = JSONObject().apply {
+    put("step", state.step.name)
+    put("coaching", state.coachingId)
+    put("wake", state.wakeMinute)
+    put("sleep", state.sleepMinute)
+    put("date", state.targetDate.toEpochDay())
+    put("work", state.workId)
+    put("weekday", state.weekdayHours.toDouble())
+    put("weekend", state.weekendHours.toDouble())
+    put("place", state.studyPlace)
+    put("provided", state.useProvidedSyllabus)
+    put("selected", JSONArray(state.selectedChapterIds.toList()))
+    put("commitments", JSONArray(state.commitments.map(::encodeCommitment)))
+}.toString()
+
+private fun decodeDraft(raw: String, base: OnboardingUiState): OnboardingUiState = runCatching {
+    val json = JSONObject(raw)
+    fun strings(name: String): Set<String> {
+        val array = json.optJSONArray(name) ?: return emptySet()
+        return (0 until array.length()).mapNotNull { array.optString(it).takeIf(String::isNotBlank) }.toSet()
+    }
+    val restoredCommitments = strings("commitments").mapNotNull(::decodeCommitment)
+    base.copy(
+        step = runCatching { OnboardingStep.valueOf(json.optString("step")) }.getOrDefault(base.step),
+        coachingId = json.optString("coaching", base.coachingId),
+        wakeMinute = json.optInt("wake", base.wakeMinute),
+        sleepMinute = json.optInt("sleep", base.sleepMinute),
+        targetDate = LocalDate.ofEpochDay(json.optLong("date", base.targetDate.toEpochDay())),
+        workId = json.optString("work", base.workId),
+        weekdayHours = json.optDouble("weekday", base.weekdayHours.toDouble()).toFloat(),
+        weekendHours = json.optDouble("weekend", base.weekendHours.toDouble()).toFloat(),
+        studyPlace = json.optString("place", base.studyPlace),
+        useProvidedSyllabus = json.optBoolean("provided", base.useProvidedSyllabus),
+        selectedChapterIds = strings("selected").ifEmpty { base.selectedChapterIds },
+        commitments = restoredCommitments.ifEmpty { base.commitments },
+    )
+}.getOrDefault(base)

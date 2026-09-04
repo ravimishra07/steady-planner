@@ -16,6 +16,11 @@ android {
     kotlinOptions { jvmTarget = "17" }
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.incremental", "true")
+}
+
 dependencies {
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(project(":core:common"))

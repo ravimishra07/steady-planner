@@ -38,6 +38,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -51,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -63,11 +65,11 @@ import com.exam.assistant.domain.DayBlock
 import com.exam.assistant.domain.RevisionSuggestion
 import com.exam.assistant.domain.SyllabusSection
 import com.exam.assistant.domain.SyllabusTopicNode
+import com.exam.assistant.domain.StudyPlacementIssue
+import com.exam.assistant.domain.StudyActivityType
 import com.exam.assistant.domain.REVISION_INTERVAL_DAYS
 import com.exam.assistant.domain.currentMinuteOfDay
 import com.exam.assistant.domain.formatMinuteOfDay
-import com.exam.assistant.domain.nodeKey
-import com.exam.assistant.domain.sectionSubjectId
 import com.exam.assistant.domain.topicHours
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -86,9 +88,13 @@ internal fun HomeStudyContent(
     onPickTopic: (nodeKey: String, title: String, sectionName: String, subjectId: String, topicPath: String) -> Unit,
     onPickRevision: (RevisionSuggestion) -> Unit,
     onSetDuration: (Int) -> Unit,
+    onSetActivityType: (StudyActivityType) -> Unit,
     onSetScheduledMinute: (Int) -> Unit,
     onConfirmStart: () -> Unit,
+    onConfirmAddToPlan: () -> Unit,
     onStartScheduledSession: (String) -> Unit,
+    onStartMissedSession: (String) -> Unit,
+    onReplanRestOfToday: () -> Unit,
     onOpenAddInGap: (Int, Int) -> Unit,
     onRescheduleToNextSlot: (String) -> Unit,
     onRescheduleToTomorrow: (String) -> Unit,
@@ -128,11 +134,26 @@ internal fun HomeStudyContent(
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = Spacing.screen),
                 ) {
+                    state.placementIssue?.let { issue ->
+                        PlacementIssueMessage(
+                            issue = issue,
+                            modifier = Modifier.padding(bottom = Spacing.md),
+                        )
+                    }
+                    state.missedDayRecovery?.let { recovery ->
+                        MissedDayRecoveryPanel(
+                            recovery = recovery,
+                            onStartNextNow = { onStartMissedSession(recovery.nextSessionId) },
+                            onReplan = onReplanRestOfToday,
+                            modifier = Modifier.padding(bottom = Spacing.lg),
+                        )
+                    }
                     DayTimelineSection(
                         entries = state.dayTimeline,
                         activeSprint = state.activeSprint,
                         revisionItems = state.revisionItems,
                         onStartScheduled = onStartScheduledSession,
+                        onStartMissed = onStartMissedSession,
                         onStartAutoRevision = onPickRevision,
                         onRequestReschedule = { block -> rescheduleTarget = block },
                         onOpenAdd = onOpenAdd,
@@ -173,7 +194,7 @@ internal fun HomeStudyContent(
                     contentColor = colors.onBrand,
                     shape = CircleShape,
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.home_start_study))
+                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.home_add_study))
                 }
             }
         } else {
@@ -186,8 +207,10 @@ internal fun HomeStudyContent(
                 onOpenSubtopics = onOpenPickerSubtopics,
                 onPickTopic = onPickTopic,
                 onSetDuration = onSetDuration,
+                onSetActivityType = onSetActivityType,
                 onSetScheduledMinute = onSetScheduledMinute,
                 onConfirmStart = onConfirmStart,
+                onConfirmAddToPlan = onConfirmAddToPlan,
             )
         }
     }
@@ -203,6 +226,8 @@ private data class StudyPickerRow(
     val path: List<Int>,
     val topicPath: String,
     val opensSubtopics: Boolean,
+    val nodeId: String,
+    val subjectId: String,
 )
 
 @Composable
@@ -215,8 +240,10 @@ private fun StudyPickerFrame(
     onOpenSubtopics: (List<Int>) -> Unit,
     onPickTopic: (String, String, String, String, String) -> Unit,
     onSetDuration: (Int) -> Unit,
+    onSetActivityType: (StudyActivityType) -> Unit,
     onSetScheduledMinute: (Int) -> Unit,
     onConfirmStart: () -> Unit,
+    onConfirmAddToPlan: () -> Unit,
 ) {
     val colors = AppTheme.colors
     val resources = LocalContext.current.resources
@@ -289,6 +316,7 @@ private fun StudyPickerFrame(
                             rootPath = state.pickerTopicPath,
                             ancestors = listOf(root.name),
                             sectionName = state.sections[sectionIndex].name,
+                            subjectId = state.sections[sectionIndex].id.orEmpty(),
                         )
                     }
                 }
@@ -337,21 +365,25 @@ private fun StudyPickerFrame(
                     }
                 } else {
                     items(rows, key = { it.id }) { row ->
+                        val selectRow = {
+                            onPickTopic(
+                                row.nodeId,
+                                row.title,
+                                state.sections[row.sectionIndex].name,
+                                row.subjectId,
+                                row.topicPath,
+                            )
+                        }
                         StudyPickerRowView(
                             row = row,
-                            onClick = {
-                                if (row.opensSubtopics) {
+                            onSelect = if (row.path.isEmpty()) null else selectRow,
+                            onBrowse = if (row.opensSubtopics) {
+                                {
                                     if (row.path.isEmpty()) onSelectSection(row.sectionIndex)
                                     else onOpenSubtopics(row.path)
-                                } else {
-                                    onPickTopic(
-                                        nodeKey(row.sectionIndex, row.path),
-                                        row.title,
-                                        state.sections[row.sectionIndex].name,
-                                        sectionSubjectId(row.sectionIndex),
-                                        row.topicPath,
-                                    )
                                 }
+                            } else {
+                                null
                             },
                         )
                     }
@@ -377,24 +409,40 @@ private fun StudyPickerFrame(
                             ?: state.pendingTopic?.sectionName.orEmpty(),
                         selectedMinutes = state.selectedDurationMinutes,
                         onSelectMinutes = onSetDuration,
+                        activityType = state.pendingTopic?.activityType ?: StudyActivityType.LEARN,
+                        onSelectActivityType = onSetActivityType,
                         customEndMinuteOfDay = state.customEndMinuteOfDay,
                         onSelectEndMinute = onSetScheduledMinute,
+                        placementIssue = state.placementIssue,
                     )
                 }
             }
-            Button(
-                onClick = onConfirmStart,
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = Spacing.screen, vertical = Spacing.md)
-                    .height(Size.ctaHeight),
-                shape = RoundedCornerShape(Radius.lg),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colors.brandDeep,
-                    contentColor = colors.onBrand,
-                ),
+                    .padding(horizontal = Spacing.screen, vertical = Spacing.md),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                Text(stringResource(R.string.home_start_study))
+                if (state.selectedIsToday) {
+                    Button(
+                        onClick = onConfirmStart,
+                        modifier = Modifier.fillMaxWidth().height(Size.ctaHeight),
+                        shape = RoundedCornerShape(Radius.lg),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colors.brandDeep,
+                            contentColor = colors.onBrand,
+                        ),
+                    ) {
+                        Text(stringResource(R.string.home_start_now))
+                    }
+                }
+                OutlinedButton(
+                    onClick = onConfirmAddToPlan,
+                    modifier = Modifier.fillMaxWidth().height(Size.ctaHeight),
+                    shape = RoundedCornerShape(Radius.lg),
+                ) {
+                    Text(stringResource(R.string.home_add_to_plan))
+                }
             }
         }
     }
@@ -439,11 +487,11 @@ private fun StudyPickerTopBar(
 @Composable
 private fun StudyPickerRowView(
     row: StudyPickerRow,
-    onClick: () -> Unit,
+    onSelect: (() -> Unit)?,
+    onBrowse: (() -> Unit)?,
 ) {
     val colors = AppTheme.colors
     Surface(
-        onClick = onClick,
         shape = RoundedCornerShape(Radius.lg),
         color = colors.surface,
         modifier = Modifier.fillMaxWidth(),
@@ -451,10 +499,15 @@ private fun StudyPickerRowView(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                .padding(start = Spacing.lg, end = Spacing.sm, top = Spacing.sm, bottom = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = onBrowse ?: onSelect ?: {})
+                    .padding(vertical = Spacing.sm),
+            ) {
                 Text(
                     text = row.title,
                     style = MaterialTheme.typography.bodyLarge,
@@ -470,12 +523,19 @@ private fun StudyPickerRowView(
                     )
                 }
             }
-            if (row.opensSubtopics) {
-                Icon(
-                    imageVector = Icons.Filled.ChevronRight,
-                    contentDescription = null,
-                    tint = colors.textMuted,
-                )
+            if (onSelect != null && onBrowse != null) {
+                TextButton(onClick = onSelect) {
+                    Text(stringResource(R.string.home_picker_choose))
+                }
+            }
+            if (onBrowse != null) {
+                IconButton(onClick = onBrowse, modifier = Modifier.size(Size.touchTarget)) {
+                    Icon(
+                        imageVector = Icons.Filled.ChevronRight,
+                        contentDescription = stringResource(R.string.home_picker_browse_deeper, row.title),
+                        tint = colors.textMuted,
+                    )
+                }
             }
         }
     }
@@ -496,6 +556,8 @@ private fun subjectRows(resources: Resources, sections: List<SyllabusSection>): 
             path = emptyList(),
             topicPath = section.name,
             opensSubtopics = true,
+            nodeId = section.topics.firstOrNull()?.id.orEmpty(),
+            subjectId = section.id.orEmpty(),
         )
     }
 
@@ -519,6 +581,8 @@ private fun topicRows(resources: Resources, sections: List<SyllabusSection>, sec
             path = listOf(index),
             topicPath = topic.name,
             opensSubtopics = topic.children.isNotEmpty(),
+            nodeId = topic.id.orEmpty(),
+            subjectId = section.id.orEmpty(),
         )
     }
 }
@@ -533,6 +597,7 @@ private fun searchRows(resources: Resources, sections: List<SyllabusSection>, qu
                 rootPath = listOf(topicIndex),
                 ancestors = listOf(topic.name),
                 sectionName = section.name,
+                subjectId = section.id.orEmpty(),
             )
         }
     }.filter { row ->
@@ -546,6 +611,7 @@ private fun leafRows(
     rootPath: List<Int>,
     ancestors: List<String>,
     sectionName: String,
+    subjectId: String,
 ): List<StudyPickerRow> {
     if (node.children.isEmpty()) {
         val topicPath = pathOf(resources, ancestors)
@@ -558,6 +624,8 @@ private fun leafRows(
                 path = rootPath,
                 topicPath = resources.getString(R.string.home_picker_path, sectionName, topicPath),
                 opensSubtopics = false,
+                nodeId = node.id.orEmpty(),
+                subjectId = subjectId,
             ),
         )
     }
@@ -569,6 +637,7 @@ private fun leafRows(
             rootPath = rootPath + index,
             ancestors = ancestors + child.name,
             sectionName = sectionName,
+            subjectId = subjectId,
         )
     }
 }
@@ -583,14 +652,18 @@ private fun DurationPickerContent(
     topicPath: String,
     selectedMinutes: Int,
     onSelectMinutes: (Int) -> Unit,
+    activityType: StudyActivityType,
+    onSelectActivityType: (StudyActivityType) -> Unit,
     customEndMinuteOfDay: Int?,
     onSelectEndMinute: (Int) -> Unit,
+    placementIssue: StudyPlacementIssue?,
 ) {
     val colors = AppTheme.colors
     val options = listOf(15, 30, 45)
     var showTimePicker by remember { mutableStateOf(false) }
 
-    val liveEndMinute = customEndMinuteOfDay ?: (currentMinuteOfDay() + selectedMinutes)
+    val liveEndMinute = (customEndMinuteOfDay ?: (currentMinuteOfDay() + selectedMinutes))
+        .coerceIn(0, 24 * 60 - 1)
     val revisionDue = remember {
         java.time.LocalDate.now().plusDays(REVISION_INTERVAL_DAYS.toLong())
     }
@@ -619,6 +692,22 @@ private fun DurationPickerContent(
                         modifier = Modifier.padding(top = Spacing.xs),
                     )
                 }
+            }
+        }
+
+        Text(stringResource(R.string.home_activity_type), style = MaterialTheme.typography.bodyLarge, color = colors.text)
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            listOf(
+                StudyActivityType.LEARN to R.string.home_activity_learn,
+                StudyActivityType.PRACTICE to R.string.home_activity_practice,
+                StudyActivityType.REVISION to R.string.home_activity_revision,
+                StudyActivityType.MOCK_TEST to R.string.home_activity_mock,
+            ).forEach { (type, label) ->
+                FilterChip(
+                    selected = activityType == type,
+                    onClick = { onSelectActivityType(type) },
+                    label = { Text(stringResource(label)) },
+                )
             }
         }
 
@@ -686,6 +775,8 @@ private fun DurationPickerContent(
             }
         }
 
+        placementIssue?.let { issue -> PlacementIssueMessage(issue) }
+
     }
 
     if (showTimePicker) {
@@ -723,6 +814,90 @@ private fun DurationPickerContent(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlacementIssueMessage(
+    issue: StudyPlacementIssue,
+    modifier: Modifier = Modifier,
+) {
+    val message = when (issue) {
+        StudyPlacementIssue.INVALID_DURATION -> R.string.home_error_duration
+        StudyPlacementIssue.OUTSIDE_DAY -> R.string.home_error_outside_day
+        StudyPlacementIssue.OVERLAPS_STUDY -> R.string.home_error_study_overlap
+        StudyPlacementIssue.OVERLAPS_FIXED -> R.string.home_error_fixed_overlap
+        StudyPlacementIssue.NO_AVAILABLE_TIME -> R.string.home_error_no_available_time
+    }
+    Text(
+        text = stringResource(message),
+        style = MaterialTheme.typography.bodyMedium,
+        color = AppTheme.colors.warning,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun MissedDayRecoveryPanel(
+    recovery: MissedDayRecoveryUi,
+    onStartNextNow: () -> Unit,
+    onReplan: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = AppTheme.colors
+    Surface(
+        shape = RoundedCornerShape(Radius.lg),
+        color = colors.elevated,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Text(
+                text = stringResource(R.string.home_recovery_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = colors.text,
+            )
+            Text(
+                text = pluralStringResource(
+                    R.plurals.home_recovery_body,
+                    recovery.missedCount,
+                    recovery.missedCount,
+                    formatDuration(recovery.availableTodayMinutes),
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.textSecondary,
+            )
+            Text(
+                text = stringResource(R.string.home_recovery_next, recovery.nextSessionTitle),
+                style = MaterialTheme.typography.labelLarge,
+                color = colors.text,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Button(
+                onClick = onStartNextNow,
+                enabled = recovery.canStartNow,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colors.brandDeep,
+                    contentColor = colors.onBrand,
+                ),
+                shape = RoundedCornerShape(Radius.pill),
+            ) {
+                Text(stringResource(R.string.home_start_next_now))
+            }
+            TextButton(onClick = onReplan) {
+                Text(stringResource(R.string.home_replan_rest_today))
+            }
+            if (!recovery.canStartNow) {
+                Text(
+                    text = stringResource(R.string.home_recovery_busy_now),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.textMuted,
+                )
             }
         }
     }

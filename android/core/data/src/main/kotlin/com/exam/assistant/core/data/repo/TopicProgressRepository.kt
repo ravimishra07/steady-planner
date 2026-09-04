@@ -1,6 +1,7 @@
 package com.exam.assistant.core.data.repo
 
 import android.content.Context
+import androidx.room.withTransaction
 import com.exam.assistant.core.common.AppDispatchers
 import com.exam.assistant.core.data.db.PrepTrackerDatabase
 import com.exam.assistant.core.data.db.toDomain
@@ -16,7 +17,8 @@ class TopicProgressRepository(
     context: Context,
     private val dispatchers: AppDispatchers,
 ) {
-    private val dao = PrepTrackerDatabase.get(context).topicProgressDao()
+    private val db = PrepTrackerDatabase.get(context)
+    private val dao = db.topicProgressDao()
 
     fun observeAll(attemptId: String): Flow<List<TopicProgress>> =
         dao.observeAll(attemptId).map { list -> list.map { it.toDomain() } }
@@ -45,4 +47,23 @@ class TopicProgressRepository(
         dao.upsert(updated.toEntity())
         updated
     }
+
+    /** One atomic parent/bulk action; partial writes can never leave a misleading tri-state. */
+    suspend fun setCovered(attemptId: String, nodeIds: Collection<String>, covered: Boolean, nowMs: Long) =
+        withContext(dispatchers.io) {
+            db.withTransaction {
+                dao.upsertAll(
+                    nodeIds.distinct().map { nodeId ->
+                        TopicProgress(
+                            attemptId = attemptId,
+                            nodeId = nodeId,
+                            status = if (covered) com.exam.assistant.domain.TopicProgressStatus.COVERED
+                            else com.exam.assistant.domain.TopicProgressStatus.NOT_STARTED,
+                            coveredAtEpochMs = nowMs.takeIf { covered },
+                            updatedAtEpochMs = nowMs,
+                        ).toEntity()
+                    },
+                )
+            }
+        }
 }

@@ -11,6 +11,11 @@ import java.time.DayOfWeek
 data class StudyPreferences(
     val attemptId: String,
 
+    /** Canonical daily study targets. Minutes preserve half-hour choices exactly. */
+    val weekdayTargetMinutes: Int = 4 * 60,
+    val weekendTargetMinutes: Int = 7 * 60,
+    val planningOrder: PlanningOrder = PlanningOrder.DEFAULT,
+
     val preferredSessionMinutes: Int? = null,
     val shortBreakMinutes: Int? = null,
     val longBreakMinutes: Int? = null,

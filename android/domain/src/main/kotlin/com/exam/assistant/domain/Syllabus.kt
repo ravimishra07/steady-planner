@@ -12,6 +12,8 @@ data class SyllabusSection(
     val name: String,
     val questions: Int,
     val topics: List<SyllabusTopicNode>,
+    /** Stable ExamPack subject id; null only for pre-migration legacy fixtures. */
+    val id: String? = null,
 )
 
 data class SyllabusSectionProgress(

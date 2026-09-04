@@ -16,9 +16,14 @@ data class StudySessionRecord(
     val subjectId: String,
     val isRevision: Boolean = false,
     val completed: Boolean = false,
+    /** Planned intent stays separate from actual focused effort for truthful analytics. */
+    val planned: Boolean = true,
+    val focusedMinutes: Int? = null,
     /** Wall-clock end for an in-progress sprint. */
     val runningEndsAtMs: Long? = null,
 )
+
+fun StudySessionRecord.actualMinutes(): Int = focusedMinutes ?: durationMinutes
 
 fun formatMinuteOfDay(minuteOfDay: Int): String {
     val h = minuteOfDay / 60
@@ -135,6 +140,19 @@ fun weekStatusForDay(
     if (completedMinutes <= 0) return WeekDayStatus.REST
     if (budgetMins > 0 && completedMinutes >= budgetMins) return WeekDayStatus.DONE
     return WeekDayStatus.PARTIAL
+}
+
+fun weekStatusForDayMinutes(
+    date: LocalDate,
+    today: LocalDate,
+    completedMinutes: Int,
+    budgetMinutes: Int,
+): WeekDayStatus {
+    val offset = java.time.temporal.ChronoUnit.DAYS.between(today, date).toInt()
+    if (offset == 0) return WeekDayStatus.TODAY
+    if (offset > 0) return if (offset == 1) WeekDayStatus.PLANNED else WeekDayStatus.REST
+    if (completedMinutes <= 0) return WeekDayStatus.REST
+    return if (budgetMinutes > 0 && completedMinutes >= budgetMinutes) WeekDayStatus.DONE else WeekDayStatus.PARTIAL
 }
 
 fun parseStoreDate(value: String): LocalDate? =

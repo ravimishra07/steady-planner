@@ -6,6 +6,8 @@ import com.exam.assistant.domain.NEET_EXAM_ID
 import java.time.LocalDate
 
 data class OnboardingUiState(
+    val loading: Boolean = true,
+    val editMode: Boolean = false,
     val step: OnboardingStep = OnboardingStep.Appearance,
     val examId: String = NEET_EXAM_ID,
     val coachingId: String = "",
@@ -19,6 +21,7 @@ data class OnboardingUiState(
     val studyPlace: String = "",
     val useProvidedSyllabus: Boolean = true,
     val selectedChapterIds: Set<String> = emptySet(),
+    val coveredChapterIds: Set<String> = emptySet(),
     val syllabusSubjects: List<OnboardingSyllabusSubject> = emptyList(),
     val cushion: Cushion? = null,
     val finishing: Boolean = false,
@@ -27,6 +30,12 @@ data class OnboardingUiState(
     val canGoBack: Boolean get() = step != OnboardingStep.Appearance
     val daysUntilTarget: Int
         get() = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), targetDate).toInt().coerceAtLeast(1)
+}
+
+enum class CoverageBaseline {
+    STARTING_FRESH,
+    PARTLY_COVERED,
+    MOSTLY_REVISION,
 }
 
 data class OnboardingCommitment(

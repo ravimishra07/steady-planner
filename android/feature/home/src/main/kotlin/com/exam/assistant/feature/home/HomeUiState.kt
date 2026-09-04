@@ -3,6 +3,8 @@ package com.exam.assistant.feature.home
 import com.exam.assistant.domain.DayTimelineEntry
 import com.exam.assistant.domain.RevisionSuggestion
 import com.exam.assistant.domain.SyllabusSection
+import com.exam.assistant.domain.StudyPlacementIssue
+import com.exam.assistant.domain.StudyActivityType
 import com.exam.assistant.domain.WeekDayStatus
 import java.time.LocalDate
 
@@ -31,14 +33,24 @@ data class PendingTopic(
     val sectionName: String,
     val subjectId: String,
     val topicPath: String = "",
-    val isRevision: Boolean = false,
+    val activityType: StudyActivityType = StudyActivityType.LEARN,
 )
+
+val PendingTopic.isRevision: Boolean get() = activityType == StudyActivityType.REVISION
 
 data class ActiveSprintUi(
     val sessionId: String,
     val title: String,
     val remainingSec: Int,
     val durationMinutes: Int,
+)
+
+data class MissedDayRecoveryUi(
+    val missedCount: Int,
+    val availableTodayMinutes: Int,
+    val nextSessionId: String,
+    val nextSessionTitle: String,
+    val canStartNow: Boolean,
 )
 
 data class HomeUiState(
@@ -51,7 +63,7 @@ data class HomeUiState(
     val calendarExpanded: Boolean = false,
     val selectedIsToday: Boolean = true,
     val selectedDayLabel: String = "",
-    val dayBudgetHours: Int = 0,
+    val dayBudgetMinutes: Int = 0,
     val completionPercent: Int = 0,
     val dayTimeline: List<DayTimelineEntry> = emptyList(),
     val revisionItems: List<RevisionSuggestion> = emptyList(),
@@ -67,6 +79,8 @@ data class HomeUiState(
     val activeSprint: ActiveSprintUi? = null,
     val completedTodayMinutes: Int = 0,
     val plannedTodayMinutes: Int = 0,
+    val missedDayRecovery: MissedDayRecoveryUi? = null,
+    val placementIssue: StudyPlacementIssue? = null,
     val daysUntilExam: Int = 0,
     val syllabusPercent: Int = 0,
 )

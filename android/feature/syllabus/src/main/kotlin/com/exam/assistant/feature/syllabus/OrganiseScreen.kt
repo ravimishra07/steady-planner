@@ -56,13 +56,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.exam.assistant.core.data.ExamPackRepository
-import com.exam.assistant.core.data.PlanStore
-import com.exam.assistant.core.data.StudySessionStore
 import com.exam.assistant.core.data.repo.AttemptRepository
-import com.exam.assistant.core.data.repo.AvailabilityRepository
 import com.exam.assistant.core.data.repo.PlanRepository
+import com.exam.assistant.core.data.repo.RollingPlanRepository
+import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
-import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.design.AppCard
 import com.exam.assistant.core.design.AppCardTone
 import com.exam.assistant.core.design.AppTheme
@@ -71,29 +69,27 @@ import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.core.design.Stroke
+import com.exam.assistant.domain.PlanningOrder
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private enum class OrganiseView { PLAN, SYLLABUS }
-private enum class OrganiseOrder { DEFAULT, SHORTEST, CUSTOM }
 
 @Composable
 fun OrganiseRoute(
     examPackRepository: ExamPackRepository,
     attemptRepository: AttemptRepository,
     targetSyllabusRepository: TargetSyllabusRepository,
-    topicProgressRepository: TopicProgressRepository,
-    availabilityRepository: AvailabilityRepository,
     planRepository: PlanRepository,
-    planStore: PlanStore,
-    studySessionStore: StudySessionStore,
+    studyPreferenceRepository: StudyPreferenceRepository,
+    rollingPlanRepository: RollingPlanRepository,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: OrganiseViewModel = viewModel(
         factory = OrganiseViewModel.Factory(
-            examPackRepository, attemptRepository, targetSyllabusRepository, topicProgressRepository,
-            availabilityRepository, planRepository, planStore, studySessionStore,
+            examPackRepository, attemptRepository, targetSyllabusRepository, planRepository,
+            studyPreferenceRepository, rollingPlanRepository,
         ),
     ),
 ) {
@@ -111,6 +107,7 @@ fun OrganiseRoute(
         onToggleIncluded = viewModel::toggleIncluded,
         onAddChapter = viewModel::addChapter,
         onRemoveChapter = viewModel::removeChapter,
+        onOrder = viewModel::setOrder,
         onDiscard = viewModel::discard,
         onApply = viewModel::apply,
         modifier = modifier,
@@ -125,12 +122,12 @@ fun OrganiseScreen(
     onToggleIncluded: (String) -> Unit,
     onAddChapter: (String, Float, String) -> Unit,
     onRemoveChapter: (String) -> Unit,
+    onOrder: (PlanningOrder) -> Unit,
     onDiscard: () -> Unit,
     onApply: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var view by remember { mutableStateOf(OrganiseView.PLAN) }
-    var order by remember { mutableStateOf(OrganiseOrder.DEFAULT) }
     var addOpen by remember { mutableStateOf(false) }
     var previewOpen by remember { mutableStateOf(false) }
     var newTitle by remember { mutableStateOf("") }
@@ -151,7 +148,7 @@ fun OrganiseScreen(
                 }
                 Text(stringResource(R.string.organise_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                 if (state.dirty) {
-                    val changes = kotlin.math.abs(state.includedCount - state.beforeIncludedCount) + 1
+                    val changes = state.exactChangeCount
                     Text(
                         pluralStringResource(R.plurals.organise_changes, changes, changes),
                         style = MaterialTheme.typography.labelMedium,
@@ -206,8 +203,8 @@ fun OrganiseScreen(
                 } else {
                     SyllabusDraft(
                         state = state,
-                        order = order,
-                        onOrder = { order = it },
+                        order = state.planningOrder,
+                        onOrder = onOrder,
                         onSelectSubject = onSelectSubject,
                         onToggleIncluded = onToggleIncluded,
                         onAdd = { addOpen = true },
@@ -425,8 +422,8 @@ private fun PlanPreview(state: OrganiseUiState) {
 @Composable
 private fun SyllabusDraft(
     state: OrganiseUiState,
-    order: OrganiseOrder,
-    onOrder: (OrganiseOrder) -> Unit,
+    order: PlanningOrder,
+    onOrder: (PlanningOrder) -> Unit,
     onSelectSubject: (String) -> Unit,
     onToggleIncluded: (String) -> Unit,
     onAdd: () -> Unit,
@@ -435,8 +432,8 @@ private fun SyllabusDraft(
     val colors = AppTheme.colors
     val selectedRows = state.chapters.filter { it.subjectId == state.selectedSubjectId }.let { rows ->
         when (order) {
-            OrganiseOrder.DEFAULT, OrganiseOrder.CUSTOM -> rows
-            OrganiseOrder.SHORTEST -> rows.sortedBy { it.estimatedMinutes }
+            PlanningOrder.DEFAULT -> rows
+            PlanningOrder.SHORTEST_FIRST -> rows.sortedBy { it.estimatedMinutes }
         }
     }
     LazyColumn(
@@ -457,9 +454,8 @@ private fun SyllabusDraft(
         item {
             Text(stringResource(R.string.organise_order), style = MaterialTheme.typography.titleMedium)
             LazyRow(Modifier.padding(top = Spacing.sm), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                item { FilterChip(order == OrganiseOrder.DEFAULT, { onOrder(OrganiseOrder.DEFAULT) }, { Text(stringResource(R.string.organise_order_default)) }) }
-                item { FilterChip(order == OrganiseOrder.SHORTEST, { onOrder(OrganiseOrder.SHORTEST) }, { Text(stringResource(R.string.organise_order_shortest)) }) }
-                item { FilterChip(order == OrganiseOrder.CUSTOM, { onOrder(OrganiseOrder.CUSTOM) }, { Text(stringResource(R.string.organise_order_custom)) }) }
+                item { FilterChip(order == PlanningOrder.DEFAULT, { onOrder(PlanningOrder.DEFAULT) }, { Text(stringResource(R.string.organise_order_default)) }) }
+                item { FilterChip(order == PlanningOrder.SHORTEST_FIRST, { onOrder(PlanningOrder.SHORTEST_FIRST) }, { Text(stringResource(R.string.organise_order_shortest)) }) }
             }
             Text(stringResource(R.string.organise_order_hint), style = MaterialTheme.typography.bodySmall, color = colors.textSecondary, modifier = Modifier.padding(top = Spacing.sm))
         }

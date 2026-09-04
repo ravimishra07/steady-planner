@@ -19,6 +19,7 @@ data class InsightPlan(
     val daysUntilTarget: Int,
     val weekdayHours: Float,
     val weekendHours: Float,
+    val startedOn: LocalDate? = null,
 )
 
 data class StudyDayInsight(
@@ -57,6 +58,10 @@ data class ForecastInsight(
     val requiredMinutesPerDay: Int?,
     val extraMinutesPerDay: Int?,
     val hasReliablePace: Boolean,
+    val forecastEarliestDate: LocalDate? = null,
+    val forecastLatestDate: LocalDate? = null,
+    val evidenceActiveDays: Int = 0,
+    val evidenceWindowDays: Int = 14,
 )
 
 data class InsightsData(
@@ -72,6 +77,8 @@ data class InsightsData(
     val averagePerActiveDayMinutes: Int?,
     val bestDay: StudyDayInsight?,
     val plannedMinutes: Int,
+    val completedPlannedMinutes: Int,
+    val extraStudyMinutes: Int,
     val actualMinutes: Int,
     val planPercent: Int?,
     val planDeltaMinutes: Int,
@@ -122,12 +129,14 @@ fun computeInsights(
         dayInsight(date, sessions)
     }
 
-    val totalMinutes = completedPeriod.sumOf { it.durationMinutes }
+    val totalMinutes = completedPeriod.sumOf { it.actualMinutes() }
     val activeDays = periodDays.filter { it.minutes > 0 }
     val bestDay = activeDays.maxByOrNull { it.minutes }
     val plannedMinutes = periodDays.sumOf { it.plannedMinutes }
+    val completedPlannedMinutes = completedPeriod.filter { it.planned }.sumOf { it.actualMinutes() }
+    val extraStudyMinutes = completedPeriod.filterNot { it.planned }.sumOf { it.actualMinutes() }
     val planPercent = plannedMinutes.takeIf { it > 0 }?.let {
-        ((totalMinutes.toDouble() / it) * 100).roundToInt().coerceAtMost(100)
+        ((completedPlannedMinutes.toDouble() / it) * 100).roundToInt().coerceAtMost(100)
     }
 
     val targetSections = sections.mapIndexedNotNull { index, section ->
@@ -148,9 +157,14 @@ fun computeInsights(
         val leaves = sectionLeafKeys(index, section)
         val done = leaves.count { it in doneLeaves }
         val percent = if (leaves.isEmpty()) 0 else done * 100 / leaves.size
+        val targetDate = today.plusDays(plan.daysUntilTarget.coerceAtLeast(0).toLong())
+        val startedOn = plan.startedOn ?: today
+        val totalPlanDays = ChronoUnit.DAYS.between(startedOn, targetDate).toInt().coerceAtLeast(1)
+        val elapsedPlanDays = ChronoUnit.DAYS.between(startedOn, today).toInt().coerceIn(0, totalPlanDays)
+        val requiredCoveragePercent = elapsedPlanDays * 100 / totalPlanDays
         val status = when {
-            percent >= completedPercent + 8 -> SubjectStatus.AHEAD
-            percent <= completedPercent - 8 -> SubjectStatus.BEHIND
+            percent >= requiredCoveragePercent + 5 -> SubjectStatus.AHEAD
+            percent <= requiredCoveragePercent - 5 -> SubjectStatus.BEHIND
             else -> SubjectStatus.ON_TRACK
         }
         SubjectInsight(
@@ -190,9 +204,11 @@ fun computeInsights(
         averagePerActiveDayMinutes = activeDays.takeIf { it.isNotEmpty() }?.let { totalMinutes / it.size },
         bestDay = bestDay,
         plannedMinutes = plannedMinutes,
+        completedPlannedMinutes = completedPlannedMinutes,
+        extraStudyMinutes = extraStudyMinutes,
         actualMinutes = totalMinutes,
         planPercent = planPercent,
-        planDeltaMinutes = totalMinutes - plannedMinutes,
+        planDeltaMinutes = completedPlannedMinutes - plannedMinutes,
         syllabusTotalTopics = totalTopics,
         syllabusCompletedTopics = completedTopics,
         syllabusRemainingTopics = totalTopics - completedTopics,
@@ -204,8 +220,8 @@ fun computeInsights(
         subjects = subjects,
         forecast = forecast,
         revision = revision,
-        averageSessionMinutes = behaviorSessions.takeIf { it.isNotEmpty() }?.let { behaviorSessions.sumOf(StudySessionRecord::durationMinutes) / it.size },
-        longestSessionMinutes = behaviorSessions.maxOfOrNull(StudySessionRecord::durationMinutes),
+        averageSessionMinutes = behaviorSessions.takeIf { it.isNotEmpty() }?.let { behaviorSessions.sumOf { session -> session.actualMinutes() } / it.size },
+        longestSessionMinutes = behaviorSessions.maxOfOrNull { it.actualMinutes() },
         averageBreakMinutes = averageBreak,
         studyDaysInPeriod = activeDays.size,
         currentStreak = currentStreak(completed.map { it.date }.toSet(), today),
@@ -235,9 +251,9 @@ private fun dayInsight(date: LocalDate, sessions: List<StudySessionRecord>): Stu
     val daySessions = sessions.filter { it.date == date }
     return StudyDayInsight(
         date = date,
-        minutes = daySessions.filter { it.completed }.sumOf { it.durationMinutes },
+        minutes = daySessions.filter { it.completed }.sumOf { it.actualMinutes() },
         sessions = daySessions.count { it.completed },
-        plannedMinutes = daySessions.sumOf { it.durationMinutes },
+        plannedMinutes = daySessions.filter { it.planned }.sumOf { it.durationMinutes },
     )
 }
 
@@ -256,7 +272,7 @@ private fun forecastInsight(
     val recentStart = today.minusDays(13)
     val recent = completed.filter { it.date in recentStart..today }
     val activeRecentDays = recent.map { it.date }.distinct().size
-    val recentAverage = recent.sumOf { it.durationMinutes }.takeIf { activeRecentDays >= 3 }?.div(14)
+    val recentAverage = recent.sumOf { it.actualMinutes() }.takeIf { activeRecentDays >= MIN_FORECAST_ACTIVE_DAYS }?.div(FORECAST_WINDOW_DAYS)
     val remainingMinutes = if (targetTopics == 0) 0 else {
         (targetHours * 60 * (remainingTopics.toDouble() / targetTopics)).roundToInt()
     }
@@ -264,6 +280,14 @@ private fun forecastInsight(
     val required = if (remainingMinutes > 0) ceil(remainingMinutes.toDouble() / targetDays).toInt() else 0
     val forecastDate = recentAverage?.takeIf { it > 0 }?.let { pace ->
         today.plusDays(ceil(remainingMinutes.toDouble() / pace).toLong().coerceAtLeast(0))
+    }
+    val earliest = recentAverage?.takeIf { it > 0 }?.let { pace ->
+        val optimisticPace = (pace * 1.15).coerceAtLeast(1.0)
+        today.plusDays(ceil(remainingMinutes / optimisticPace).toLong().coerceAtLeast(0))
+    }
+    val latest = recentAverage?.takeIf { it > 0 }?.let { pace ->
+        val cautiousPace = (pace * 0.85).coerceAtLeast(1.0)
+        today.plusDays(ceil(remainingMinutes / cautiousPace).toLong().coerceAtLeast(0))
     }
     return ForecastInsight(
         targetDate = targetDate,
@@ -273,8 +297,15 @@ private fun forecastInsight(
         requiredMinutesPerDay = required.takeIf { remainingMinutes > 0 },
         extraMinutesPerDay = if (recentAverage != null && required > recentAverage) required - recentAverage else 0,
         hasReliablePace = recentAverage != null,
+        forecastEarliestDate = earliest,
+        forecastLatestDate = latest,
+        evidenceActiveDays = activeRecentDays,
+        evidenceWindowDays = FORECAST_WINDOW_DAYS,
     )
 }
+
+private const val MIN_FORECAST_ACTIVE_DAYS = 7
+private const val FORECAST_WINDOW_DAYS = 14
 
 private fun revisionInsight(sessions: List<StudySessionRecord>, today: LocalDate): RevisionInsight {
     val dueDays = (0..6).map { today.plusDays(it.toLong()) }
