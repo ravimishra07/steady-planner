@@ -62,7 +62,6 @@ import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.domain.DayBlock
-import com.exam.assistant.domain.RevisionSuggestion
 import com.exam.assistant.domain.SyllabusSection
 import com.exam.assistant.domain.SyllabusTopicNode
 import com.exam.assistant.domain.StudyPlacementIssue
@@ -86,7 +85,6 @@ internal fun HomeStudyContent(
     onOpenPickerSubtopics: (List<Int>) -> Unit,
     onSetPickerQuery: (String) -> Unit,
     onPickTopic: (nodeKey: String, title: String, sectionName: String, subjectId: String, topicPath: String) -> Unit,
-    onPickRevision: (RevisionSuggestion) -> Unit,
     onSetDuration: (Int) -> Unit,
     onSetActivityType: (StudyActivityType) -> Unit,
     onSetScheduledMinute: (Int) -> Unit,
@@ -151,10 +149,8 @@ internal fun HomeStudyContent(
                     DayTimelineSection(
                         entries = state.dayTimeline,
                         activeSprint = state.activeSprint,
-                        revisionItems = state.revisionItems,
                         onStartScheduled = onStartScheduledSession,
                         onStartMissed = onStartMissedSession,
-                        onStartAutoRevision = onPickRevision,
                         onRequestReschedule = { block -> rescheduleTarget = block },
                         onOpenAdd = onOpenAdd,
                         onOpenAddInGap = onOpenAddInGap,

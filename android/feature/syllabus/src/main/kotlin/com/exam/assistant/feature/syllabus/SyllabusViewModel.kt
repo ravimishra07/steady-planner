@@ -8,7 +8,9 @@ import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
+import com.exam.assistant.domain.ChapterPriority
 import com.exam.assistant.domain.ExamPack
+import com.exam.assistant.domain.PyqPriorityTable
 import com.exam.assistant.domain.SyllabusNode
 import com.exam.assistant.domain.SyllabusMetrics
 import com.exam.assistant.domain.TopicProgress
@@ -53,6 +55,8 @@ class SyllabusViewModel(
     private var targetOverrides: Map<String, TargetNodeState> = emptyMap()
     private var classGroupLeafIds: Map<String, List<String>> = emptyMap()
     private var defaultExpansionSeeded = false
+    private var priorityTable: PyqPriorityTable = PyqPriorityTable.EMPTY
+    private var priorityLoaded = false
 
     init {
         refresh()
@@ -67,6 +71,12 @@ class SyllabusViewModel(
                 targetStates(targetSyllabusRepository.overridesFor(active.id))
             }.orEmpty()
             reloadProgress()
+            if (!priorityLoaded) {
+                // Off the first-paint path: the tree shows first, the yield labels fill in after.
+                priorityTable = examPackRepository.pyqPriorities()
+                priorityLoaded = true
+                rebuild()
+            }
         }
     }
 
@@ -184,6 +194,8 @@ class SyllabusViewModel(
                 allCount = subjects.size,
                 dueCount = subjects.count { it.percent < 100 },
                 completedPercent = canonical.overall.percent,
+                pyqFirstYear = priorityTable.firstYear,
+                pyqLastYear = priorityTable.lastYear,
             )
         }
     }
@@ -280,6 +292,7 @@ class SyllabusViewModel(
             topicPath = sectionName,
             classNumber = node.id.split('.').getOrNull(2)?.toIntOrNull(),
             excluded = isNodeEffectivelyExcluded(node.id, ancestorIds, targetOverrides),
+            priority = if (ancestorIds.isEmpty() && priorityLoaded) priorityTable.forChapter(node.id) else null,
         )
         if (node.children.isEmpty() || node.id !in openNodeIds) {
             return listOf(row)

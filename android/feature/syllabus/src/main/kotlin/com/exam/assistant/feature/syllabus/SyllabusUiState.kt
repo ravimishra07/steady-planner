@@ -1,5 +1,6 @@
 package com.exam.assistant.feature.syllabus
 
+import com.exam.assistant.domain.ChapterPriority
 import com.exam.assistant.domain.SyllabusTickState
 
 data class SyllabusTreeRow(
@@ -23,6 +24,8 @@ data class SyllabusTreeRow(
     val classNumber: Int? = null,
     val isClassGroup: Boolean = false,
     val excluded: Boolean = false,
+    /** Set on chapter rows once the PYQ table has loaded. Never zero for "no data": see [ChapterPriority]. */
+    val priority: ChapterPriority? = null,
 )
 
 data class SyllabusChapterStat(
@@ -55,4 +58,7 @@ data class SyllabusUiState(
     val dueCount: Int = 0,
     val completedPercent: Int = 0,
     val isEmpty: Boolean = false,
+    /** Years the PYQ counts cover, for the "(2021–25)" label. Zero until loaded. */
+    val pyqFirstYear: Int = 0,
+    val pyqLastYear: Int = 0,
 )

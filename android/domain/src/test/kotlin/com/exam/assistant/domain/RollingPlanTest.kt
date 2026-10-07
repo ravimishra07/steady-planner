@@ -21,8 +21,13 @@ class RollingPlanTest {
         )
 
         assertEquals(start.plusDays(20), result.blocks.maxOf { it.scheduledDate })
-        assertEquals(2_100, result.blocks.sumOf { it.plannedMinutes })
-        assertEquals(900, result.unscheduledMinutes)
+        // 21 days of 100 minutes, plus 10: leaf-a is finished on day 15, and its 90 minute
+        // practice block (25% of 1,500, capped) leaves a 20 minute window for leaf-b.
+        assertEquals(2_110, result.blocks.sumOf { it.plannedMinutes })
+        assertEquals(90, result.minutes(StudyActivityType.PRACTICE))
+        // Learn leftovers never include work that was already placed.
+        assertEquals(3_000 - result.minutes(StudyActivityType.LEARN), result.unscheduledMinutes)
+        assertEquals(980, result.unscheduledMinutes)
     }
 
     @Test
@@ -53,8 +58,9 @@ class RollingPlanTest {
             nowMs = 1,
         )
 
-        assertEquals(0, result.blocks.filter { it.nodeId == "leaf-a" }.sumOf { it.plannedMinutes })
-        assertEquals(100, result.blocks.filter { it.nodeId == "leaf-b" }.sumOf { it.plannedMinutes })
+        val learn = result.blocks.filter { it.activityType == StudyActivityType.LEARN }
+        assertEquals(0, learn.filter { it.nodeId == "leaf-a" }.sumOf { it.plannedMinutes })
+        assertEquals(100, learn.filter { it.nodeId == "leaf-b" }.sumOf { it.plannedMinutes })
     }
 
     @Test

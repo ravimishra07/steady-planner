@@ -16,7 +16,6 @@ class DayTimelineAvailabilityTest {
         val entries = buildDayTimeline(
             sessions = emptyList(),
             sections = emptyList(),
-            pendingRevisions = emptyList(),
             date = today.plusDays(1),
             today = today,
             nowMinuteOfDay = 12 * 60,
@@ -49,13 +48,10 @@ class DayTimelineAvailabilityTest {
     }
 
     @Test
-    fun `auto revision uses a free window around fixed commitments`() {
+    fun `the timeline never invents revision entries - due revisions are real plan blocks`() {
         val entries = buildDayTimeline(
             sessions = emptyList(),
             sections = emptyList(),
-            pendingRevisions = listOf(
-                RevisionSuggestion("node", "Topic", "Quant", "quant", today.minusDays(3)),
-            ),
             date = today,
             today = today,
             nowMinuteOfDay = 17 * 60,
@@ -64,8 +60,7 @@ class DayTimelineAvailabilityTest {
             dayEndMinute = 23 * 60,
         )
 
-        val revision = entries.filterIsInstance<DayTimelineEntry.Study>().single().block
-        assertEquals(19 * 60, revision.startMinuteOfDay)
+        assertTrue(entries.filterIsInstance<DayTimelineEntry.Study>().isEmpty())
     }
 
     @Test

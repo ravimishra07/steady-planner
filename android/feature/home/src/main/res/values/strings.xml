@@ -64,11 +64,6 @@
     <string name="home_collapse_details">Hide study details</string>
     <string name="home_missed_semantics">Needs a new time</string>
     <string name="home_completed_semantics">Completed</string>
-    <plurals name="home_last_studied_days">
-        <item quantity="one">Last studied %1$d day ago</item>
-        <item quantity="other">Last studied %1$d days ago</item>
-    </plurals>
-    <string name="home_last_studied_day_one">Last studied 1 day ago</string>
     <string name="home_empty_today_title">Nothing planned yet</string>
     <string name="home_plan_my_day">Plan my day</string>
     <string name="home_studying_now">Studying · %1$s left</string>

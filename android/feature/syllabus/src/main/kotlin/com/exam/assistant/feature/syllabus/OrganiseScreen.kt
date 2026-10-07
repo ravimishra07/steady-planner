@@ -71,6 +71,8 @@ import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.core.design.Stroke
 import com.exam.assistant.domain.PlanningOrder
+import com.exam.assistant.domain.PriorityBand
+import com.exam.assistant.domain.yieldRank
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -436,10 +438,19 @@ private fun SyllabusDraft(
     onRemove: (String) -> Unit,
 ) {
     val colors = AppTheme.colors
+    val pyqFirstYear = state.pyqFirstYear
+    val pyqLastYear = state.pyqLastYear
+    var priorityDetail by remember { mutableStateOf<PriorityDetail?>(null) }
+    priorityDetail?.let { detail ->
+        PriorityDetailDialog(detail, pyqFirstYear, pyqLastYear, onDismiss = { priorityDetail = null })
+    }
     val selectedRows = state.chapters.filter { it.subjectId == state.selectedSubjectId }.let { rows ->
         when (order) {
             PlanningOrder.DEFAULT -> rows
             PlanningOrder.SHORTEST_FIRST -> rows.sortedBy { it.estimatedMinutes }
+            PlanningOrder.HIGH_YIELD_FIRST -> rows.sortedWith(
+                compareBy({ (it.priority?.band ?: PriorityBand.NO_DATA).yieldRank() }, { -(it.priority?.meanQuestionsPerYear ?: 0.0) }),
+            )
         }
     }
     LazyColumn(
@@ -461,6 +472,7 @@ private fun SyllabusDraft(
             Text(stringResource(R.string.organise_order), style = MaterialTheme.typography.titleMedium)
             LazyRow(Modifier.padding(top = Spacing.sm), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 item { FilterChip(order == PlanningOrder.DEFAULT, { onOrder(PlanningOrder.DEFAULT) }, { Text(stringResource(R.string.organise_order_default)) }) }
+                item { FilterChip(order == PlanningOrder.HIGH_YIELD_FIRST, { onOrder(PlanningOrder.HIGH_YIELD_FIRST) }, { Text(stringResource(R.string.organise_order_high_yield)) }) }
                 item { FilterChip(order == PlanningOrder.SHORTEST_FIRST, { onOrder(PlanningOrder.SHORTEST_FIRST) }, { Text(stringResource(R.string.organise_order_shortest)) }) }
             }
             Text(stringResource(R.string.organise_order_hint), style = MaterialTheme.typography.bodySmall, color = colors.textSecondary, modifier = Modifier.padding(top = Spacing.sm))
@@ -491,6 +503,14 @@ private fun SyllabusDraft(
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.textSecondary,
                         )
+                        row.priority?.let { priority ->
+                            PriorityLabel(
+                                priority = priority,
+                                firstYear = pyqFirstYear,
+                                lastYear = pyqLastYear,
+                                onClick = { priorityDetail = PriorityDetail(row.title, priority) },
+                            )
+                        }
                     }
                     if (row.custom) IconButton(onClick = { onRemove(row.id) }) {
                         Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.organise_delete_chapter), tint = colors.error)

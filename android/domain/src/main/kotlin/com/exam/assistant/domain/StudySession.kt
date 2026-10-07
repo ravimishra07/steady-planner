@@ -50,15 +50,6 @@ fun sessionsToTimeline(sessions: List<StudySessionRecord>): List<TimelineItem> {
     return buildTimeline(blocks)
 }
 
-/** A revision that is due. [studiedOn] is the last time the student studied this topic, used for "Last studied N days ago". */
-data class RevisionSuggestion(
-    val nodeKey: String,
-    val title: String,
-    val sectionName: String,
-    val subjectId: String,
-    val studiedOn: LocalDate,
-)
-
 fun nodeKey(sectionIndex: Int, pathIndices: List<Int>, tierPrefix: String = "t1"): String {
     val tail = pathIndices.joinToString("_")
     return "${tierPrefix}_${sectionIndex}_$tail"

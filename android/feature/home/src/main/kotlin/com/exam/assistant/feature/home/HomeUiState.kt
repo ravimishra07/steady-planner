@@ -1,7 +1,6 @@
 package com.exam.assistant.feature.home
 
 import com.exam.assistant.domain.DayTimelineEntry
-import com.exam.assistant.domain.RevisionSuggestion
 import com.exam.assistant.domain.SyllabusSection
 import com.exam.assistant.domain.StudyPlacementIssue
 import com.exam.assistant.domain.StudyActivityType
@@ -66,7 +65,6 @@ data class HomeUiState(
     val dayBudgetMinutes: Int = 0,
     val completionPercent: Int = 0,
     val dayTimeline: List<DayTimelineEntry> = emptyList(),
-    val revisionItems: List<RevisionSuggestion> = emptyList(),
     val sections: List<SyllabusSection> = emptyList(),
     val sheet: HomeSheet = HomeSheet.None,
     val pickerLevel: StudyPickerLevel = StudyPickerLevel.Subjects,

@@ -141,6 +141,7 @@ fun StudySessionSegment.toEntity() = StudySessionSegmentEntity(
 data class DaySum(val studyDateEpochDay: Long, val totalSeconds: Int, val sessionCount: Int)
 data class SubjectSum(val subjectId: String?, val totalSeconds: Int)
 data class NodeFocusedSum(val nodeId: String, val totalSeconds: Int)
+data class NodeCount(val nodeId: String, val total: Int)
 
 @Dao
 interface StudySessionDao {
@@ -188,6 +189,20 @@ interface StudySessionDao {
             "AND nodeId IS NOT NULL GROUP BY nodeId",
     )
     suspend fun completedLearnSumsByNode(attemptId: String): List<NodeFocusedSum>
+
+    /** How many completed sessions on each node the student rated STRUGGLED. Drives revision-phase weakness. */
+    @Query(
+        "SELECT nodeId, COUNT(*) AS total FROM study_session " +
+            "WHERE attemptId = :attemptId AND status = 'COMPLETED' AND outcome = 'STRUGGLED' " +
+            "AND nodeId IS NOT NULL GROUP BY nodeId",
+    )
+    suspend fun struggledCountsByNode(attemptId: String): List<NodeCount>
+
+    @Query(
+        "SELECT DISTINCT nodeId FROM study_session WHERE attemptId = :attemptId AND status = 'COMPLETED' " +
+            "AND activityType = :activityType AND focusedSeconds > 0 AND nodeId IS NOT NULL",
+    )
+    suspend fun completedNodeIdsOfType(attemptId: String, activityType: String): List<String>
 
     @Query("SELECT MIN(studyDateEpochDay) FROM study_session WHERE attemptId = :attemptId AND status = 'COMPLETED'")
     suspend fun earliestStudyDate(attemptId: String): Long?

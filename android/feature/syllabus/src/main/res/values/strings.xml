@@ -32,6 +32,16 @@
     <string name="syllabus_empty_body">Add at least one chapter before the app creates study work.</string>
     <string name="syllabus_add_first_chapter">Add a chapter</string>
     <string name="syllabus_parked">Parked</string>
+    <string name="syllabus_yield_high">High yield</string>
+    <string name="syllabus_yield_medium">Med yield</string>
+    <string name="syllabus_yield_low">Low yield</string>
+    <string name="syllabus_yield_no_data">No PYQ data</string>
+    <string name="syllabus_yield_with_rate">%1$s · ~%2$s Qs/yr (%3$s)</string>
+    <string name="syllabus_yield_close">Close</string>
+    <string name="syllabus_yield_no_data_body">Fewer than two years of question counts were found for this chapter, so it has no yield label.</string>
+    <string name="syllabus_yield_rate_detail">About %1$s questions a year in NEET %2$s, averaged over %3$d years.</string>
+    <string name="syllabus_yield_sources">Counts from: %1$s</string>
+    <string name="syllabus_yield_method">For each year, the median across sources that listed this chapter; the figure is the average over the years. A guide from past papers, not a prediction.</string>
     <string name="organise_back">Back</string>
     <string name="organise_title">Organise</string>
     <plurals name="organise_changes">
@@ -73,6 +83,7 @@
     <string name="organise_order">Order</string>
     <string name="organise_order_default">Default</string>
     <string name="organise_order_shortest">Shortest first</string>
+    <string name="organise_order_high_yield">High-yield first</string>
     <string name="organise_order_hint">Order changes the real seven-day preview. Nothing is applied until you confirm.</string>
     <string name="organise_chapters">Chapters</string>
     <string name="organise_in_play">%1$d in play</string>

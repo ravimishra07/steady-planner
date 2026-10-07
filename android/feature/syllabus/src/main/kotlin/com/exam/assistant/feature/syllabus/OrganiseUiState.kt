@@ -1,6 +1,7 @@
 package com.exam.assistant.feature.syllabus
 
 import java.time.LocalDate
+import com.exam.assistant.domain.ChapterPriority
 import com.exam.assistant.domain.PlanningOrder
 
 data class OrganiseChapterRow(
@@ -11,6 +12,7 @@ data class OrganiseChapterRow(
     val estimatedMinutes: Int,
     val excluded: Boolean,
     val custom: Boolean,
+    val priority: ChapterPriority? = null,
 )
 
 data class OrganiseDaySummary(
@@ -46,6 +48,8 @@ data class OrganiseUiState(
     val orderChanged: Boolean = false,
     val dirty: Boolean = false,
     val saved: Boolean = false,
+    val pyqFirstYear: Int = 0,
+    val pyqLastYear: Int = 0,
 ) {
     val includedCount: Int get() = chapters.count { !it.excluded }
     val excludedCount: Int get() = chapters.count { it.excluded }

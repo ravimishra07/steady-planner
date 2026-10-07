@@ -13,6 +13,7 @@ import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.domain.ExamPack
 import com.exam.assistant.domain.PlanningOrder
+import com.exam.assistant.domain.PyqPriorityTable
 import com.exam.assistant.domain.StudyActivityType
 import com.exam.assistant.domain.TargetNodeState
 import com.exam.assistant.domain.TopicProgress
@@ -49,6 +50,8 @@ class OrganiseViewModel(
     private var originalRows = emptyList<OrganiseChapterRow>()
     private var progress = emptyList<TopicProgress>()
     private var originalRemainingMinutes = 0
+    private var priorityTable: PyqPriorityTable = PyqPriorityTable.EMPTY
+    private var calibrationFactor = 1.0
 
     init { refresh() }
 
@@ -68,6 +71,8 @@ class OrganiseViewModel(
         draftOrder = originalOrder
         originalRows = rowsFor(pack!!)
         progress = topicProgressRepository.allOnce(attempt.id)
+        priorityTable = examPackRepository.pyqPriorities()
+        calibrationFactor = rollingPlanRepository.calibration().factor
         originalRemainingMinutes = remainingMinutesFor(pack!!, originalExcluded)
         refreshPreview()
     }
@@ -191,7 +196,7 @@ class OrganiseViewModel(
 
     /** Uncovered work in the chapters that are in play, through the same metric every other screen uses. */
     private fun remainingMinutesFor(currentPack: ExamPack, excluded: Set<String>): Int =
-        syllabusMetrics(currentPack, excluded.associateWith { TargetNodeState.EXCLUDED }, progress).remainingMinutes
+        syllabusMetrics(currentPack, excluded.associateWith { TargetNodeState.EXCLUDED }, progress, calibrationFactor).remainingMinutes
 
     private fun rowsFor(currentPack: ExamPack): List<OrganiseChapterRow> {
         val customIds = draftCustom.mapTo(mutableSetOf()) { it.id }
@@ -205,6 +210,7 @@ class OrganiseViewModel(
                     estimatedMinutes = node.totalMinutes(),
                     excluded = node.id in draftExcluded,
                     custom = node.id in customIds,
+                    priority = priorityTable.forChapter(node.id),
                 )
             }
         }
@@ -243,6 +249,8 @@ class OrganiseViewModel(
             planningOrder = draftOrder,
             orderChanged = draftOrder != originalOrder,
             dirty = draftExcluded != originalExcluded || draftCustom != originalCustom || draftOrder != originalOrder,
+            pyqFirstYear = priorityTable.firstYear,
+            pyqLastYear = priorityTable.lastYear,
         )
     }
 

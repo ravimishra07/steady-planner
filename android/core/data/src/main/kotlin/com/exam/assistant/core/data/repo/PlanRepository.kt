@@ -49,7 +49,7 @@ class PlanRepository(
     /** Replans only future automatic intent; completed, skipped, rescheduled and manual history remains immutable. */
     suspend fun replaceFutureAuto(attemptId: String, start: LocalDate, blocks: List<StudyPlanBlock>) = withContext(dispatchers.io) {
         db.withTransaction {
-            dao.deleteFutureAuto(attemptId, start.toEpochDay())
+            dao.deleteReplaceable(attemptId, start.toEpochDay(), 0)
             dao.upsertAll(blocks.map { it.toEntity() })
         }
     }

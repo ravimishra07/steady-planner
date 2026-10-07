@@ -128,6 +128,7 @@ fun SyllabusScreen(
 ) {
     var filters by remember { mutableStateOf<Set<SyllabusFilter>>(emptySet()) }
     var filtersOpen by remember { mutableStateOf(false) }
+    var priorityDetail by remember { mutableStateOf<PriorityDetail?>(null) }
     var selectedSubjectKey by remember(state.subjects) {
         mutableStateOf(state.subjects.firstOrNull()?.key)
     }
@@ -206,11 +207,23 @@ fun SyllabusScreen(
                                 onToggleTick = onToggleTick,
                                 onStartTopic = onStartTopic,
                                 filters = filters,
+                                pyqFirstYear = state.pyqFirstYear,
+                                pyqLastYear = state.pyqLastYear,
+                                onPriorityClick = { priorityDetail = it },
                             )
                         }
                     }
                 }
             }
+        }
+
+        priorityDetail?.let { detail ->
+            PriorityDetailDialog(
+                detail = detail,
+                firstYear = state.pyqFirstYear,
+                lastYear = state.pyqLastYear,
+                onDismiss = { priorityDetail = null },
+            )
         }
 
         if (filtersOpen && selectedSubject != null) {
@@ -497,6 +510,9 @@ private fun SubjectCard(
     onToggleTick: (String) -> Unit,
     onStartTopic: (PendingSyllabusPick) -> Unit,
     filters: Set<SyllabusFilter>,
+    pyqFirstYear: Int,
+    pyqLastYear: Int,
+    onPriorityClick: (PriorityDetail) -> Unit,
 ) {
     val colors = AppTheme.colors
     AppCard(
@@ -597,6 +613,9 @@ private fun SubjectCard(
                             onToggleExpand = onToggleExpand,
                             onToggleTick = onToggleTick,
                             onStartTopic = onStartTopic,
+                            pyqFirstYear = pyqFirstYear,
+                            pyqLastYear = pyqLastYear,
+                            onPriorityClick = onPriorityClick,
                         )
                     }
                 }
@@ -620,6 +639,9 @@ private fun SyllabusRowView(
     onToggleExpand: (String) -> Unit,
     onToggleTick: (String) -> Unit,
     onStartTopic: (PendingSyllabusPick) -> Unit,
+    pyqFirstYear: Int,
+    pyqLastYear: Int,
+    onPriorityClick: (PriorityDetail) -> Unit,
 ) {
     val colors = AppTheme.colors
     val muted = row.tickState == SyllabusTickState.ALL || row.excluded
@@ -670,6 +692,14 @@ private fun SyllabusRowView(
                     text = stringResource(R.string.syllabus_parked),
                     style = MaterialTheme.typography.labelMedium,
                     color = colors.textMuted,
+                )
+            }
+            row.priority?.let { priority ->
+                PriorityLabel(
+                    priority = priority,
+                    firstYear = pyqFirstYear,
+                    lastYear = pyqLastYear,
+                    onClick = { onPriorityClick(PriorityDetail(rowName, priority)) },
                 )
             }
             if (row.depth <= 1) {

@@ -36,7 +36,6 @@ import com.exam.assistant.domain.StudyPlacementIssue
 import com.exam.assistant.domain.buildDayTimeline
 import com.exam.assistant.domain.daysToExam
 import com.exam.assistant.domain.nextRevisionDueIfCompleted
-import com.exam.assistant.domain.revisionsDueNow
 import com.exam.assistant.domain.studiedMinutesByDate
 import com.exam.assistant.domain.syllabusMetrics
 import com.exam.assistant.domain.targetStates
@@ -88,7 +87,6 @@ class HomeViewModel(
     private var attemptId: String? = null
     private var planBlocks: List<StudyPlanBlock> = emptyList()
     private var history: List<StudySession> = emptyList()
-    private var dueRevisions: List<com.exam.assistant.domain.RevisionSuggestion> = emptyList()
     private var revisionStates: Map<String, RevisionState> = emptyMap()
     /** Focused minutes per day, from StudySession: the only source for "studied". */
     private var studiedByDate: Map<LocalDate, Int> = emptyMap()
@@ -129,17 +127,6 @@ class HomeViewModel(
             val today = LocalDate.now()
             if (attempt != null) reloadCanonical(attempt.id)
             revisionStates = attempt?.let { revisionRepository.allFor(it.id) }.orEmpty().associateBy { it.nodeId }
-            dueRevisions = revisionsDueNow(revisionStates.values, today).mapNotNull { revision ->
-                val node = pack?.findNode(revision.nodeId) ?: return@mapNotNull null
-                val subject = pack?.findSubjectOf(revision.nodeId) ?: return@mapNotNull null
-                com.exam.assistant.domain.RevisionSuggestion(
-                    nodeKey = revision.nodeId,
-                    title = node.title,
-                    sectionName = subject.name,
-                    subjectId = subject.id,
-                    studiedOn = lastStudiedOn(revision, today),
-                )
-            }
             val syllabus = if (attempt != null && pack != null) {
                 syllabusMetrics(
                     pack = pack!!,
@@ -173,18 +160,6 @@ class HomeViewModel(
             }
         }
     }
-
-    /**
-     * The last day the student actually studied this topic, from session history, so a first
-     * revision reads "studied 3 days ago" rather than "today". Falls back to the date implied
-     * by the schedule when no session is on record (legacy data).
-     */
-    private fun lastStudiedOn(revision: RevisionState, today: LocalDate): LocalDate =
-        history.asSequence()
-            .filter { it.nodeId == revision.nodeId && it.status == StudySessionStatus.COMPLETED }
-            .maxOfOrNull { it.studyDate }
-            ?: revision.nextDueDate?.minusDays((revision.intervalDays ?: 0).toLong())?.coerceAtMost(today)
-            ?: today
 
     private suspend fun reloadCanonical(id: String) {
         val today = LocalDate.now()
@@ -339,17 +314,6 @@ class HomeViewModel(
                 placementIssue = null,
             )
         }
-    }
-
-    fun pickRevision(suggestion: com.exam.assistant.domain.RevisionSuggestion) {
-        pickTopic(
-            nodeKey = suggestion.nodeKey,
-            title = suggestion.title,
-            sectionName = suggestion.sectionName,
-            subjectId = suggestion.subjectId,
-            topicPath = suggestion.sectionName,
-            isRevision = true,
-        )
     }
 
     private fun nextRevisionDue(nodeKey: String, type: StudyActivityType): LocalDate? =
@@ -728,7 +692,6 @@ class HomeViewModel(
                 monthDays = emptyList(),
                 monthTitle = "",
                 dayTimeline = emptyList(),
-                revisionItems = emptyList(),
                 completedTodayMinutes = 0,
                 plannedTodayMinutes = 0,
                 completionPercent = 0,
@@ -756,15 +719,9 @@ class HomeViewModel(
         } else {
             emptyList()
         }
-        val revisions = if (selectedIsToday && missedSessions.isEmpty()) {
-            dueRevisions
-        } else {
-            emptyList()
-        }
         val builtTimeline = buildDayTimeline(
             sessions = daySessions,
             sections = sections,
-            pendingRevisions = revisions,
             date = selectedDate,
             today = today,
             nowMinuteOfDay = nowMinute,
@@ -826,7 +783,6 @@ class HomeViewModel(
             dayBudgetMinutes = budgetMinutes,
             completionPercent = percent,
             dayTimeline = builtTimeline,
-            revisionItems = revisions,
             completedTodayMinutes = doneMins,
             plannedTodayMinutes = plannedMinutes,
             missedDayRecovery = recovery,

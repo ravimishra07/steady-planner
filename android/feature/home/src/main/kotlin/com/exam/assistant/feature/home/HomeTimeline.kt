@@ -72,7 +72,6 @@ import com.exam.assistant.domain.DayBlock
 import com.exam.assistant.domain.DAY_TIMELINE_START
 import com.exam.assistant.domain.DayTimelineEntry
 import com.exam.assistant.domain.FixedCommitmentBlock
-import com.exam.assistant.domain.RevisionSuggestion
 import com.exam.assistant.domain.formatGap
 import com.exam.assistant.domain.isActionableStudyGap
 
@@ -454,19 +453,6 @@ private fun StudyBlockContent(
                             modifier = Modifier.size(Size.compactIcon),
                         )
                     }
-                    val lastStudiedDaysAgo = block.lastStudiedDaysAgo
-                    if (block.isRevision && lastStudiedDaysAgo != null) {
-                        Text(
-                            text = if (lastStudiedDaysAgo == 1) {
-                                stringResource(R.string.home_last_studied_day_one)
-                            } else {
-                                pluralStringResource(R.plurals.home_last_studied_days, lastStudiedDaysAgo, lastStudiedDaysAgo)
-                            },
-                            style = MaterialTheme.typography.labelMedium,
-                            color = colors.textSecondary,
-                            modifier = Modifier.padding(top = Spacing.xxs),
-                        )
-                    }
                 }
                 Spacer(Modifier.width(Spacing.sm))
                 when {
@@ -729,10 +715,8 @@ private fun EmptyDayTimeline(onPlanMyDay: () -> Unit, modifier: Modifier = Modif
 internal fun DayTimelineSection(
     entries: List<DayTimelineEntry>,
     activeSprint: ActiveSprintUi?,
-    revisionItems: List<RevisionSuggestion>,
     onStartScheduled: (String) -> Unit,
     onStartMissed: (String) -> Unit,
-    onStartAutoRevision: (RevisionSuggestion) -> Unit,
     onRequestReschedule: (DayBlock) -> Unit,
     onOpenAdd: () -> Unit,
     onOpenAddInGap: (Int, Int) -> Unit,
@@ -793,9 +777,6 @@ internal fun DayTimelineSection(
                             onStart = {
                                 if (isMissed) {
                                     onStartMissed(block.id)
-                                } else if (block.id.startsWith(AUTO_REVISION_ID_PREFIX)) {
-                                    val nodeKey = block.id.removePrefix(AUTO_REVISION_ID_PREFIX)
-                                    revisionItems.firstOrNull { it.nodeKey == nodeKey }?.let(onStartAutoRevision)
                                 } else {
                                     onStartScheduled(block.id)
                                 }
@@ -887,4 +868,3 @@ private fun fixedCommitmentLabel(kind: String): String = stringResource(
     },
 )
 
-private const val AUTO_REVISION_ID_PREFIX = "auto-revision-"
