@@ -98,4 +98,8 @@
     <string name="policy_terms_body">NEET Planner is a study planning tool. Hours and coverage are estimates, not guarantees. Use your own judgment for exam prep.</string>
     <string name="policy_about_title">About NEET Planner</string>
     <string name="policy_about_body">NEET Planner helps you plan NEET preparation day by day. Version %1$s. Built offline-first for serious students.</string>
+    <string name="more_backlog_split">Live / backlog split</string>
+    <string name="more_backlog_split_value">%1$d/%2$d</string>
+    <string name="more_backlog_split_body">Share of each study day for today\'s classes and DPPs (live) versus coaching backlog. The plan updates from today.</string>
+    <string name="more_backlog_split_save">Save</string>
 </resources>

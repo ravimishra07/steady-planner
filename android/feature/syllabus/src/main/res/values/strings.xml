@@ -109,4 +109,13 @@
     <string name="syllabus_chapter_park">Park chapter</string>
     <string name="syllabus_chapter_unpark">Unpark</string>
     <string name="syllabus_chapter_coaching">Coaching lectures &amp; DPPs</string>
+    <string name="coaching_lectures">Lectures</string>
+    <string name="coaching_dpps">DPPs</string>
+    <string name="coaching_fewer_lectures">One lecture fewer</string>
+    <string name="coaching_more_lectures">One lecture more</string>
+    <string name="coaching_fewer_dpps">One DPP fewer</string>
+    <string name="coaching_more_dpps">One DPP more</string>
+    <string name="coaching_lectures_done_up_to">Done up to lecture %1$d of %2$d</string>
+    <string name="coaching_dpps_done_up_to">Done up to DPP %1$d of %2$d</string>
+    <string name="coaching_row_summary">Lectures %1$d/%2$d · DPPs %3$d/%4$d</string>
 </resources>

@@ -1,5 +1,6 @@
 package com.exam.assistant.feature.syllabus
 
+import com.exam.assistant.domain.ChapterCoaching
 import com.exam.assistant.domain.ChapterPriority
 import com.exam.assistant.domain.ChapterStage
 import com.exam.assistant.domain.StageLabels
@@ -30,6 +31,8 @@ data class SyllabusTreeRow(
     val priority: ChapterPriority? = null,
     /** A top-level chapter row: carries the chapter menu (rename, park, coaching). */
     val isChapter: Boolean = false,
+    /** Coaching lecture/DPP counts (§5.4), when the student entered any. */
+    val coaching: ChapterCoaching? = null,
     /** The student renamed this chapter; [originalName] is the bundled title. */
     val renamed: Boolean = false,
     val originalName: String = "",

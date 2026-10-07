@@ -79,6 +79,8 @@ internal fun HomeStudyContent(
     onAdjustPlan: () -> Unit,
     onRebalanceMissed: () -> Unit,
     onDismissMissed: () -> Unit,
+    onLogClass: (String, Int) -> Unit,
+    onNextLecture: () -> Unit,
     onEditPlan: () -> Unit,
     onSelectDate: (java.time.LocalDate) -> Unit,
     onToggleCalendarExpanded: () -> Unit,
@@ -155,6 +157,18 @@ internal fun HomeStudyContent(
                             PlanFitBanner(
                                 fit = fit,
                                 onAdjust = onAdjustPlan,
+                                modifier = Modifier.padding(bottom = Spacing.lg),
+                            )
+                        }
+                        state.coaching?.let { coaching ->
+                            TaughtTodayCard(
+                                coaching = coaching,
+                                onNextLecture = onNextLecture,
+                                onLogClass = onLogClass,
+                                modifier = Modifier.padding(bottom = Spacing.lg),
+                            )
+                            CoachingBacklogCard(
+                                coaching = coaching,
                                 modifier = Modifier.padding(bottom = Spacing.lg),
                             )
                         }

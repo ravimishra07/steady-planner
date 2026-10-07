@@ -29,10 +29,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -50,6 +52,7 @@ import com.exam.assistant.core.design.BackgroundAppearance
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.core.design.Radius
+import kotlin.math.roundToInt
 
 @Composable
 fun MoreScreen(
@@ -71,9 +74,12 @@ fun MoreScreen(
     onRedoOnboarding: () -> Unit,
     onOpenPolicy: (String) -> Unit,
     modifier: Modifier = Modifier,
+    liveBacklogSplit: Int? = null,
+    onLiveBacklogSplit: (Int) -> Unit = {},
 ) {
     val colors = AppTheme.colors
     var showRedoDialog by remember { mutableStateOf(false) }
+    var showSplitDialog by remember { mutableStateOf(false) }
     if (loading) {
         SettingsStatusScreen(
             title = stringResource(R.string.more_title),
@@ -156,6 +162,15 @@ fun MoreScreen(
                 value = pluralStringResource(R.plurals.more_blocks, fixedBlockCount, fixedBlockCount),
                 onClick = { showRedoDialog = true },
             )
+            if (liveBacklogSplit != null) {
+                AppListDivider()
+                SettingsValueRow(
+                    icon = Icons.Outlined.School,
+                    title = stringResource(R.string.more_backlog_split),
+                    value = stringResource(R.string.more_backlog_split_value, liveBacklogSplit, 100 - liveBacklogSplit),
+                    onClick = { showSplitDialog = true },
+                )
+            }
         }
         SectionLabel(stringResource(R.string.more_section_app_short))
         ProfileGroup {
@@ -192,6 +207,13 @@ fun MoreScreen(
             style = MaterialTheme.typography.bodySmall,
             color = colors.textMuted,
             modifier = Modifier.padding(vertical = Spacing.xl),
+        )
+    }
+    if (showSplitDialog && liveBacklogSplit != null) {
+        BacklogSplitDialog(
+            initial = liveBacklogSplit,
+            onSave = onLiveBacklogSplit,
+            onDismiss = { showSplitDialog = false },
         )
     }
     if (showRedoDialog) {
@@ -415,3 +437,45 @@ private fun SettingsStatusScreen(
         }
     }
 }
+
+/** Live vs backlog share of each day (§5.4), in steps of 5. */
+@Composable
+private fun BacklogSplitDialog(
+    initial: Int,
+    onSave: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var live by remember { mutableIntStateOf(initial) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.more_backlog_split)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(
+                    text = stringResource(R.string.more_backlog_split_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                )
+                Text(
+                    text = stringResource(R.string.more_backlog_split_value, live, 100 - live),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = AppTheme.colors.text,
+                )
+                Slider(
+                    value = live.toFloat(),
+                    onValueChange = { live = ((it / SPLIT_STEP).roundToInt() * SPLIT_STEP).coerceIn(0, 100) },
+                    valueRange = 0f..100f,
+                    steps = 100 / SPLIT_STEP - 1,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(live); onDismiss() }) { Text(stringResource(R.string.more_backlog_split_save)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.more_redo_confirm_no)) }
+        },
+    )
+}
+
+private const val SPLIT_STEP = 5

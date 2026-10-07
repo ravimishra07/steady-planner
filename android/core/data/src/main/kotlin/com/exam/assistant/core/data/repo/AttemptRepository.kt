@@ -64,6 +64,8 @@ class AttemptRepository(
             db.revisionStateDao().deleteForAttempt(attemptId)
             db.chapterStageDao().deleteForAttempt(attemptId)
             db.chapterOverrideDao().deleteForAttempt(attemptId)
+            db.coachingDao().deleteForAttempt(attemptId)
+            db.coachingDao().deletePositionForAttempt(attemptId)
             db.targetNodeOverrideDao().deleteForAttempt(attemptId)
             db.availabilityDao().deleteWeeklyForAttempt(attemptId)
             db.availabilityDao().deleteOverridesForAttempt(attemptId)

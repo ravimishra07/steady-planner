@@ -263,6 +263,8 @@ class FocusViewModel(
     /** Only a completed Learn session on a chapter that is not yet fully covered earns the prompt. */
     private suspend fun learnPromptFor(session: StudySession?): LearnPrompt? {
         if (session == null || session.activityType != StudyActivityType.LEARN) return null
+        // A titled session on a chapter is a coaching backlog lecture (§5.4), not Learn on the chapter.
+        if (session.customTitle != null) return null
         val nodeId = session.nodeId ?: return null
         val attempt = attemptRepository.activeAttempt() ?: return null
         val chapter = examPackRepository.examPackFor(attempt.examId, attempt.id).chapterOf(nodeId) ?: return null
@@ -415,7 +417,7 @@ class FocusViewModel(
         val node = block.nodeId?.let { pack?.findNode(it) }
         val subject = block.nodeId?.let { pack?.findSubjectOf(it) }
         return block.toFocusBlock(
-            title = node?.title ?: block.customTitle ?: "Study session",
+            title = block.customTitle ?: node?.title ?: "Study session",
             subtitle = subject?.name.orEmpty(),
         )
     }
@@ -451,7 +453,7 @@ class FocusViewModel(
             status = if (focus.status == FocusStatus.PAUSED) StudySessionStatus.PAUSED else StudySessionStatus.RUNNING,
             focusLockUsed = false,
             interruptionCount = 0,
-            customTitle = if (planBlock?.nodeId == null) block?.title ?: "Focus session" else null,
+            customTitle = if (planBlock?.nodeId == null) block?.title ?: "Focus session" else planBlock.customTitle,
             createdAtEpochMs = nowMs,
             updatedAtEpochMs = nowMs,
         )

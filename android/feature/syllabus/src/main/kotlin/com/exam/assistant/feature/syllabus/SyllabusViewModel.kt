@@ -10,6 +10,7 @@ import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
+import com.exam.assistant.domain.ChapterCoaching
 import com.exam.assistant.domain.ChapterPriority
 import com.exam.assistant.domain.ChapterStage
 import com.exam.assistant.domain.ChapterStageMark
@@ -74,6 +75,7 @@ class SyllabusViewModel(
     private var stageMarks: Map<String, Map<ChapterStage, ChapterStageMark>> = emptyMap()
     private var revisionStates: Map<String, RevisionState> = emptyMap()
     private var stageLabels = StageLabels()
+    private var coaching: Map<String, ChapterCoaching> = emptyMap()
 
     init {
         refresh()
@@ -106,6 +108,7 @@ class SyllabusViewModel(
             .groupBy { it.chapterId }
             .mapValues { (_, marks) -> marks.associateBy { it.stage } }
         revisionStates = chapterStageRepository.revisionStatesFor(id)
+        coaching = chapterStageRepository.coachingFor(id).associateBy { it.chapterId }
         stageLabels = stageLabelStore.load()
         rebuild()
     }
@@ -176,6 +179,8 @@ class SyllabusViewModel(
             chapterTitles = examPackRepository.chapterTitles(id)
             pack = basePack?.withChapterTitles(chapterTitles)
             rebuild()
+            // Backlog blocks carry the chapter's name; replan so they pick up the new one.
+            rollingPlanRepository.replenish()
         }
     }
 
@@ -192,6 +197,16 @@ class SyllabusViewModel(
             targetOverrides = targetStates(targetSyllabusRepository.overridesFor(id))
             rollingPlanRepository.replenish(nowMs = nowMs)
             rebuild()
+        }
+    }
+
+    /** Saves a chapter's coaching lecture/DPP counts (§5.4); the backlog share of the plan follows. */
+    fun saveCoaching(counts: ChapterCoaching) {
+        val id = attemptId ?: return
+        viewModelScope.launch {
+            chapterStageRepository.saveCoaching(id, counts)
+            rollingPlanRepository.replenish()
+            reloadProgress()
         }
     }
 
@@ -397,6 +412,7 @@ class SyllabusViewModel(
             excluded = isNodeEffectivelyExcluded(node.id, ancestorIds, targetOverrides),
             priority = if (ancestorIds.isEmpty() && priorityLoaded) priorityTable.forChapter(node.id) else null,
             isChapter = ancestorIds.isEmpty(),
+            coaching = if (ancestorIds.isEmpty()) coaching[node.id] else null,
             renamed = ancestorIds.isEmpty() && node.id in chapterTitles,
             originalName = if (ancestorIds.isEmpty() && node.id in chapterTitles) {
                 basePack?.findNode(node.id)?.title.orEmpty()

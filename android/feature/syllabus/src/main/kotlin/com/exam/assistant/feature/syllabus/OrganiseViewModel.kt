@@ -124,6 +124,7 @@ class OrganiseViewModel(
         pack = basePack?.withChapterTitles(chapterTitles)
         originalRows = originalRows.map { row -> row.copy(title = chapterTitles[row.id] ?: row.originalTitle) }
         refreshPreview()
+        rollingPlanRepository.replenish()
     }
 
     fun discard() {
@@ -203,7 +204,7 @@ class OrganiseViewModel(
             .map { block ->
                 OrganisePlanRow(
                     id = block.id,
-                    title = block.nodeId?.let(currentPack::findNode)?.title ?: block.customTitle.orEmpty(),
+                    title = block.customTitle ?: block.nodeId?.let(currentPack::findNode)?.title.orEmpty(),
                     startMinuteOfDay = block.startMinuteOfDay,
                     durationMinutes = block.plannedMinutes,
                     isRevision = block.activityType == StudyActivityType.REVISION,

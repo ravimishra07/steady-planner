@@ -122,6 +122,7 @@ fun SteadylineNavHost(
                     revisionRepository = container.revisionRepository,
                     rollingPlanRepository = container.rollingPlanRepository,
                     targetSyllabusRepository = container.targetSyllabusRepository,
+                    chapterStageRepository = container.chapterStageRepository,
                     onSetupPlan = { navController.navigate(Route.Onboarding.path) },
                     onAdjustPlan = {
                         container.onboardingStartAtPlan.value = true
@@ -238,6 +239,8 @@ fun SteadylineNavHost(
                     attemptRepository = container.attemptRepository,
                     topicProgressRepository = container.topicProgressRepository,
                     targetSyllabusRepository = container.targetSyllabusRepository,
+                    rollingPlanRepository = container.rollingPlanRepository,
+                    chapterStageRepository = container.chapterStageRepository,
                     examDateOfficial = container.remoteConfig.neetExamDateOfficial(),
                     appVersion = BuildConfig.VERSION_NAME,
                     background = background,

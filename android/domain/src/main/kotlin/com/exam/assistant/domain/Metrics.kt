@@ -422,3 +422,60 @@ fun revisionOnTime(
     val stillOverdue = revisionsOverdue(states, today).count { it.nextDueDate!! in from..to }
     return RevisionOnTime(onTime = onTime, due = completed.size + stillOverdue)
 }
+
+// ---------------------------------------------------------------------------
+// Coaching backlog (§5.4)
+// ---------------------------------------------------------------------------
+
+/**
+ * The day the coaching backlog is cleared when [liveSplitPct] percent of each day of
+ * [dailyMinutes] goes to live work and the rest to backlog. Null when there is no backlog, or
+ * when no minutes go to backlog (it never clears). Today counts as the first day.
+ */
+fun backlogClearDate(
+    backlog: CoachingBacklog,
+    dailyMinutes: Int,
+    liveSplitPct: Int,
+    today: LocalDate,
+    lectureMin: Int = BACKLOG_LECTURE_MINUTES,
+    dppMin: Int = BACKLOG_DPP_MINUTES,
+): LocalDate? {
+    val need = backlogMinutes(backlog, lectureMin, dppMin)
+    if (need <= 0) return null
+    val perDay = backlogDailyMinutes(dailyMinutes, liveSplitPct)
+    if (perDay <= 0) return null
+    val days = (need + perDay - 1) / perDay
+    return today.plusDays((days - 1).toLong())
+}
+
+/** A week's average study minutes per day from the weekday and weekend targets. */
+fun averageDailyMinutes(weekdayTargetMinutes: Int, weekendTargetMinutes: Int): Int =
+    (weekdayTargetMinutes.coerceAtLeast(0) * 5 + weekendTargetMinutes.coerceAtLeast(0) * 2) / 7
+
+/** Everything Today shows about the coaching backlog, from one input. */
+data class CoachingBacklogMetrics(
+    /** Subject id → lectures and DPPs behind; subjects with nothing behind are left out. */
+    val bySubject: Map<String, CoachingBacklog>,
+    val total: CoachingBacklog,
+    val clearDate: LocalDate?,
+)
+
+/** The canonical coaching backlog: per subject, in total, and the clear date at the current split. */
+fun coachingBacklogMetrics(
+    coaching: Collection<ChapterCoaching>,
+    position: BatchPosition?,
+    pack: ExamPack,
+    dailyMinutes: Int,
+    liveSplitPct: Int,
+    today: LocalDate,
+): CoachingBacklogMetrics {
+    val order = pack.chapters().map { it.id }
+    val subjectOf = pack.subjects.flatMap { subject -> subject.nodes.map { it.id to subject.id } }.toMap()
+    val bySubject = coachingBacklogBySubject(coaching, position, order, subjectOf)
+    val total = bySubject.values.fold(CoachingBacklog.NONE) { sum, part -> sum + part }
+    return CoachingBacklogMetrics(
+        bySubject = bySubject,
+        total = total,
+        clearDate = backlogClearDate(total, dailyMinutes, liveSplitPct, today),
+    )
+}

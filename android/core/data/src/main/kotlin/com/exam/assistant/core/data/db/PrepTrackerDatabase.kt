@@ -26,8 +26,10 @@ import java.time.LocalDate
         SubjectPreferredWindowEntity::class,
         ChapterStageEntity::class,
         ChapterOverrideEntity::class,
+        ChapterCoachingEntity::class,
+        BatchPositionEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -42,6 +44,7 @@ abstract class PrepTrackerDatabase : RoomDatabase() {
     abstract fun studyPreferenceDao(): StudyPreferenceDao
     abstract fun chapterStageDao(): ChapterStageDao
     abstract fun chapterOverrideDao(): ChapterOverrideDao
+    abstract fun coachingDao(): CoachingDao
 
     companion object {
         @Volatile
@@ -53,7 +56,7 @@ abstract class PrepTrackerDatabase : RoomDatabase() {
                     context.applicationContext,
                     PrepTrackerDatabase::class.java,
                     "prep_tracker.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                     .build()
                     .also { instance = it }
             }
@@ -142,6 +145,24 @@ abstract class PrepTrackerDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE TABLE IF NOT EXISTS `chapter_override` (`attemptId` TEXT NOT NULL, `chapterId` TEXT NOT NULL, " +
                         "`customTitle` TEXT, PRIMARY KEY(`attemptId`, `chapterId`))",
+                )
+            }
+        }
+
+        /**
+         * Coaching backlog tracker (PRODUCTION_V1_PLAN §5.4). Additive only: a student with no
+         * rows here has no coaching backlog and the planner behaves exactly as before.
+         */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `chapter_coaching` (`attemptId` TEXT NOT NULL, `chapterId` TEXT NOT NULL, " +
+                        "`lectures` INTEGER NOT NULL, `dpps` INTEGER NOT NULL, `lecturesDone` INTEGER NOT NULL, " +
+                        "`dppsDone` INTEGER NOT NULL, PRIMARY KEY(`attemptId`, `chapterId`))",
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `batch_position` (`attemptId` TEXT NOT NULL, `chapterId` TEXT NOT NULL, " +
+                        "`lecture` INTEGER NOT NULL, `updatedAtEpochMs` INTEGER NOT NULL, PRIMARY KEY(`attemptId`))",
                 )
             }
         }

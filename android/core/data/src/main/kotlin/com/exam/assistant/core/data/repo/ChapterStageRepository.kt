@@ -3,16 +3,24 @@ package com.exam.assistant.core.data.repo
 import android.content.Context
 import androidx.room.withTransaction
 import com.exam.assistant.core.common.AppDispatchers
+import com.exam.assistant.core.data.db.BatchPositionEntity
+import com.exam.assistant.core.data.db.ChapterCoachingEntity
 import com.exam.assistant.core.data.db.ChapterStageEntity
 import com.exam.assistant.core.data.db.PrepTrackerDatabase
 import com.exam.assistant.core.data.db.toDomain
 import com.exam.assistant.core.data.db.toDomainOrNull
+import com.exam.assistant.domain.BatchPosition
+import com.exam.assistant.domain.ChapterCoaching
 import com.exam.assistant.domain.ChapterStage
+import com.exam.assistant.domain.MAX_COACHING_COUNT
 import com.exam.assistant.domain.ChapterStageMark
 import com.exam.assistant.domain.RevisionState
 import kotlinx.coroutines.withContext
 
 /**
+ * Per-chapter tracking beyond Learned: depth stages (§5.1) and coaching lecture/DPP counts
+ * with the batch position (§5.4).
+ *
  * Depth stages per chapter (§5.1). Learned is not handled here: it goes through
  * [TopicProgressRepository.setCovered] so coverage keeps one source.
  */
@@ -53,6 +61,42 @@ class ChapterStageRepository(
                     dao.delete(attemptId, chapterId, stage.name)
                 } else {
                     dao.upsert(ChapterStageEntity(attemptId, chapterId, stage.name, next, nowMs))
+                }
+            }
+        }
+
+    suspend fun coachingFor(attemptId: String): List<ChapterCoaching> =
+        withContext(dispatchers.io) { db.coachingDao().allOnce(attemptId).map { it.toDomain() } }
+
+    suspend fun batchPosition(attemptId: String): BatchPosition? =
+        withContext(dispatchers.io) { db.coachingDao().positionFor(attemptId)?.toDomain() }
+
+    /** Saves one chapter's counts, kept in range. All-zero counts remove the row. */
+    suspend fun saveCoaching(attemptId: String, coaching: ChapterCoaching) = withContext(dispatchers.io) {
+        val clean = coaching.normalized()
+        if (clean.isEmpty) {
+            db.coachingDao().delete(attemptId, clean.chapterId)
+        } else {
+            db.coachingDao().upsert(
+                ChapterCoachingEntity(attemptId, clean.chapterId, clean.lectures, clean.dpps, clean.lecturesDone, clean.dppsDone),
+            )
+        }
+    }
+
+    /**
+     * "Taught in class today": the batch is at [chapterId], lecture [lecture]. A chapter whose
+     * lecture count is below that grows to match, since the batch has plainly added a lecture.
+     */
+    suspend fun setBatchPosition(attemptId: String, chapterId: String, lecture: Int, nowMs: Long) =
+        withContext(dispatchers.io) {
+            val at = lecture.coerceIn(1, MAX_COACHING_COUNT)
+            db.withTransaction {
+                db.coachingDao().upsertPosition(BatchPositionEntity(attemptId, chapterId, at, nowMs))
+                val existing = db.coachingDao().allOnce(attemptId).firstOrNull { it.chapterId == chapterId }
+                if (existing == null) {
+                    db.coachingDao().upsert(ChapterCoachingEntity(attemptId, chapterId, at, 0, 0, 0))
+                } else if (existing.lectures < at) {
+                    db.coachingDao().upsert(existing.copy(lectures = at))
                 }
             }
         }

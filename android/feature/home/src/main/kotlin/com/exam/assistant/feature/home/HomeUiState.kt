@@ -65,6 +65,32 @@ data class MissedBlocksUi(
     val since: LocalDate,
 )
 
+/** One chapter the student can say their batch taught today. */
+data class CoachingChapterOption(
+    val chapterId: String,
+    val title: String,
+    val subjectId: String,
+    val subjectName: String,
+)
+
+/** "Physics: 23 lectures, 41 DPPs behind". Numbers from Metrics.coachingBacklogMetrics. */
+data class CoachingBacklogRowUi(
+    val subjectName: String,
+    val lectures: Int,
+    val dpps: Int,
+)
+
+/** Coaching on Today (§4.5, §5.4). Null when the student has no counts and no batch position. */
+data class CoachingTodayUi(
+    val batchChapterId: String?,
+    val batchChapterTitle: String?,
+    val batchLecture: Int,
+    val chapters: List<CoachingChapterOption>,
+    val backlog: List<CoachingBacklogRowUi>,
+    val clearDate: LocalDate?,
+    val liveSplit: Int,
+)
+
 data class HomeUiState(
     val loading: Boolean = true,
     val hasPlan: Boolean = false,
@@ -98,4 +124,5 @@ data class HomeUiState(
     val syllabusPercent: Int = 0,
     val planFit: PlanFitUi? = null,
     val missedBlocks: MissedBlocksUi? = null,
+    val coaching: CoachingTodayUi? = null,
 )

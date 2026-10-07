@@ -56,6 +56,16 @@ data class PlannerConfig(
     val revisionPassMinutes: Int = REVISION_PASS_MINUTES,
     val mockMinutes: Int = MOCK_TEST_MINUTES,
     val minBlockMinutes: Int = MIN_AUTO_BLOCK_MINUTES,
+    /**
+     * Coaching backlog (§5.4): percent of each day for live work (0–100). The rest goes to
+     * backlog lectures and DPPs, when the student has any. No backlog, no change.
+     */
+    val liveBacklogSplit: Int = DEFAULT_LIVE_BACKLOG_SPLIT,
+    val backlogLectureMinutes: Int = BACKLOG_LECTURE_MINUTES,
+    val backlogDppMinutes: Int = BACKLOG_DPP_MINUTES,
+    /** Block titles: `%1$s` is the chapter's display title, `%2$d` the lecture or DPP number. */
+    val backlogLectureTitle: String = "Backlog: %1${'$'}s lecture %2${'$'}d",
+    val backlogDppTitle: String = "Backlog: %1${'$'}s DPP %2${'$'}d",
 )
 
 data class RemainingWork(
@@ -126,6 +136,8 @@ data class PlanInputs(
     val practicedChapterIds: Set<String> = emptySet(),
     /** Mock tests done before [startDate]; they count towards density. */
     val recentMockDates: Collection<LocalDate> = emptyList(),
+    /** Coaching lectures and DPPs behind the batch, oldest first (§5.4). Empty: planner unchanged. */
+    val coachingBacklog: List<BacklogItem> = emptyList(),
     val zone: ZoneId = ZoneId.systemDefault(),
     val config: PlannerConfig = PlannerConfig(),
 )
@@ -246,6 +258,8 @@ private fun PlanInputs.buildWork(nowMs: Long): WorkModel {
     val clock = clockAt(nowMs)
     val plannedMinutesByNode = preservedBlocks
         .filter { it.status == PlanBlockStatus.PLANNED && !it.endedUnrun(clock) }
+        // A titled block on a chapter is coaching backlog, not Learn work on that chapter.
+        .filter { it.customTitle == null }
         .mapNotNull { block -> block.nodeId?.let { it to block.plannedMinutes } }
         .groupingBy { it.first }
         .fold(0) { total, entry -> total + entry.second }
@@ -412,6 +426,16 @@ fun PlanInputs.plan(horizonDays: Int, nowMs: Long, simulateToEnd: Boolean = fals
         .filter { it.activityType == StudyActivityType.MOCK_TEST && it.status !in CLOSED_PLAN_STATUSES }
         .map { it.scheduledDate }).toMutableList()
 
+    // Coaching backlog: a lecture or DPP already on the plan (kept, moved or done) is not placed again.
+    val chapterTitles = pack.chapters().associate { it.id to it.title }
+    fun backlogTitle(item: BacklogItem): String = String.format(
+        if (item.kind == BacklogKind.LECTURE) config.backlogLectureTitle else config.backlogDppTitle,
+        chapterTitles[item.chapterId].orEmpty(),
+        item.number,
+    )
+    val keptTitles = preservedBlocks.filter { it.status !in CLOSED_PLAN_STATUSES }.mapNotNullTo(HashSet()) { it.customTitle }
+    val backlogQueue = ArrayDeque(coachingBacklog.filter { backlogTitle(it) !in keptTitles })
+
     val blocks = mutableListOf<StudyPlanBlock>()
     var subjectCursor = 0
     var passCursor = 0
@@ -488,6 +512,7 @@ fun PlanInputs.plan(horizonDays: Int, nowMs: Long, simulateToEnd: Boolean = fals
             start: Int,
             minutes: Int,
             source: PlanBlockSource,
+            title: String? = null,
         ) {
             if (!emit) return
             val prefix = if (source == PlanBlockSource.REVISION_ENGINE) ENGINE_REVISION_ID_PREFIX else "auto_"
@@ -496,7 +521,7 @@ fun PlanInputs.plan(horizonDays: Int, nowMs: Long, simulateToEnd: Boolean = fals
                 attemptId = attemptId,
                 nodeId = nodeId,
                 subjectId = subjectId,
-                customTitle = null,
+                customTitle = title,
                 activityType = type,
                 scheduledDate = today,
                 startMinuteOfDay = start,
@@ -539,6 +564,35 @@ fun PlanInputs.plan(horizonDays: Int, nowMs: Long, simulateToEnd: Boolean = fals
             blockIndex++
             budget -= placed.second
             revisionBudget -= placed.second
+        }
+
+        // 2b. Coaching backlog: its share of the day goes to whole lecture and DPP blocks, before
+        // Learn fills the live share. A day that can hold one backlog item gets at least one, so a
+        // small share still moves the backlog.
+        if (!inRevisionPhase && backlogQueue.isNotEmpty()) {
+            var backlogBudget = minOf(budget, backlogDailyMinutes(dailyTarget, config.liveBacklogSplit))
+            var placedToday = 0
+            while (backlogQueue.isNotEmpty() && budget > 0) {
+                val item = backlogQueue.first()
+                val want = if (item.kind == BacklogKind.LECTURE) config.backlogLectureMinutes else config.backlogDppMinutes
+                if (want <= 0) {
+                    backlogQueue.removeFirst()
+                    continue
+                }
+                val withinShare = want <= backlogBudget
+                if (!withinShare && (placedToday > 0 || backlogBudget <= 0 || want > budget)) break
+                val placed = placer.place(want, want) ?: break
+                backlogQueue.removeFirst()
+                add(
+                    if (item.kind == BacklogKind.LECTURE) StudyActivityType.LEARN else StudyActivityType.PRACTICE,
+                    item.chapterId, item.subjectId, placed.first, placed.second, PlanBlockSource.AUTO,
+                    title = backlogTitle(item),
+                )
+                blockIndex++
+                placedToday++
+                budget -= placed.second
+                backlogBudget -= placed.second
+            }
         }
 
         // 3. The phase's own work: Learn then Practice, or revision passes in the revision phase.

@@ -136,6 +136,8 @@ object Size {
     val themePreview = 72.dp
     val appearanceModeSwatch = 36.dp
     val appearanceRow = 64.dp
+    /** Tallest a scrolling chapter list may grow inside a dialog. */
+    val dialogListMaxHeight = 280.dp
 }
 
 /** Measured from the Angular mobile Today calendar. */

@@ -11,6 +11,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.AvailabilityRepository
+import com.exam.assistant.core.data.repo.ChapterStageRepository
 import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.RevisionRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
@@ -34,6 +35,7 @@ fun HomeRoute(
     revisionRepository: RevisionRepository,
     rollingPlanRepository: RollingPlanRepository,
     targetSyllabusRepository: TargetSyllabusRepository,
+    chapterStageRepository: ChapterStageRepository,
     onSetupPlan: () -> Unit,
     onAdjustPlan: () -> Unit,
     onEditPlan: () -> Unit,
@@ -53,6 +55,7 @@ fun HomeRoute(
             revisionRepository,
             rollingPlanRepository,
             targetSyllabusRepository,
+            chapterStageRepository,
         ),
     ),
 ) {
@@ -80,6 +83,8 @@ fun HomeRoute(
         onAdjustPlan = onAdjustPlan,
         onRebalanceMissed = viewModel::rebalanceMissed,
         onDismissMissed = viewModel::dismissMissedBlocks,
+        onLogClass = viewModel::logClassToday,
+        onNextLecture = viewModel::nextLectureToday,
         onEditPlan = onEditPlan,
         onSelectDate = viewModel::selectDate,
         onToggleCalendarExpanded = viewModel::toggleCalendarExpanded,
@@ -114,6 +119,8 @@ fun HomeScreen(
     onAdjustPlan: () -> Unit,
     onRebalanceMissed: () -> Unit,
     onDismissMissed: () -> Unit,
+    onLogClass: (String, Int) -> Unit,
+    onNextLecture: () -> Unit,
     onEditPlan: () -> Unit,
     onSelectDate: (java.time.LocalDate) -> Unit,
     onToggleCalendarExpanded: () -> Unit,
@@ -147,6 +154,8 @@ fun HomeScreen(
                 onAdjustPlan = onAdjustPlan,
                 onRebalanceMissed = onRebalanceMissed,
                 onDismissMissed = onDismissMissed,
+                onLogClass = onLogClass,
+                onNextLecture = onNextLecture,
                 onEditPlan = onEditPlan,
                 onSelectDate = onSelectDate,
                 onToggleCalendarExpanded = onToggleCalendarExpanded,

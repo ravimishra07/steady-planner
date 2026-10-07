@@ -147,4 +147,20 @@
     <string name="home_activity_practice">Practice</string>
     <string name="home_activity_revision">Revise</string>
     <string name="home_activity_mock">Mock</string>
+    <string name="home_coaching_taught_title">Taught in class today</string>
+    <string name="home_coaching_batch_at">Batch at %1$s, lecture %2$d</string>
+    <string name="home_coaching_batch_unset">Tell us where your batch is to track backlog.</string>
+    <string name="home_coaching_next_lecture">+1 lecture (%1$d)</string>
+    <string name="home_coaching_other_chapter">Different chapter</string>
+    <string name="home_coaching_pick_chapter">Pick chapter</string>
+    <string name="home_coaching_lecture_number">Lecture</string>
+    <string name="home_coaching_lecture_earlier">One lecture earlier</string>
+    <string name="home_coaching_lecture_later">One lecture later</string>
+    <string name="home_coaching_save">Save</string>
+    <string name="home_coaching_cancel">Cancel</string>
+    <string name="home_coaching_backlog_title">Coaching backlog</string>
+    <string name="home_coaching_backlog_none">Level with your batch.</string>
+    <string name="home_coaching_backlog_row">%1$s: %2$d lectures, %3$d DPPs behind</string>
+    <string name="home_coaching_clear_by">Clear by %1$s at %2$d/%3$d live/backlog</string>
+    <string name="home_coaching_no_clear_date">No backlog time in the plan. Change the split in Settings → Plan.</string>
 </resources>

@@ -86,6 +86,7 @@ import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.core.design.Stroke
+import com.exam.assistant.domain.ChapterCoaching
 import com.exam.assistant.domain.ChapterStage
 import com.exam.assistant.domain.PendingSyllabusPick
 import com.exam.assistant.domain.StageLabels
@@ -128,6 +129,7 @@ fun SyllabusRoute(
         onSaveStageLabels = viewModel::saveStageLabels,
         onRenameChapter = viewModel::renameChapter,
         onToggleParked = viewModel::toggleParked,
+        onSaveCoaching = viewModel::saveCoaching,
         onStartTopic = onStartTopic,
         onOrganise = onOrganise,
         modifier = modifier,
@@ -147,10 +149,12 @@ fun SyllabusScreen(
     onSaveStageLabels: (StageLabels) -> Unit,
     onRenameChapter: (String, String?) -> Unit,
     onToggleParked: (String) -> Unit,
+    onSaveCoaching: (ChapterCoaching) -> Unit,
     onStartTopic: (PendingSyllabusPick) -> Unit,
     onOrganise: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var coachingRow by remember { mutableStateOf<SyllabusTreeRow?>(null) }
     var stageLabelsOpen by remember { mutableStateOf(false) }
     var renameRow by remember { mutableStateOf<SyllabusTreeRow?>(null) }
     val onChapterAction: (SyllabusTreeRow, ChapterAction) -> Unit = { row, action ->
@@ -158,7 +162,7 @@ fun SyllabusScreen(
             ChapterAction.RENAME -> renameRow = row
             ChapterAction.RESET_NAME -> onRenameChapter(row.key, null)
             ChapterAction.PARK -> onToggleParked(row.key)
-            ChapterAction.COACHING -> Unit
+            ChapterAction.COACHING -> coachingRow = row
         }
     }
     var filters by remember { mutableStateOf<Set<SyllabusFilter>>(emptySet()) }
@@ -268,6 +272,16 @@ fun SyllabusScreen(
                 firstYear = state.pyqFirstYear,
                 lastYear = state.pyqLastYear,
                 onDismiss = { priorityDetail = null },
+            )
+        }
+
+        coachingRow?.let { row ->
+            CoachingDialog(
+                chapterId = row.key,
+                chapterName = row.name,
+                initial = row.coaching,
+                onSave = onSaveCoaching,
+                onDismiss = { coachingRow = null },
             )
         }
 
@@ -805,6 +819,17 @@ private fun SyllabusRowView(
                     )
                 }
             }
+            row.coaching?.let { counts ->
+                Text(
+                    text = stringResource(
+                        R.string.coaching_row_summary,
+                        counts.lecturesDone, counts.lectures, counts.dppsDone, counts.dpps,
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = colors.textSecondary,
+                    modifier = Modifier.padding(top = Spacing.xs),
+                )
+            }
             if (row.stageChips.isNotEmpty() && !row.excluded) {
                 StageChipRow(
                     chapterId = row.key,
@@ -824,6 +849,7 @@ private fun SyllabusRowView(
             ChapterMenuButton(
                 renamed = row.renamed,
                 parked = row.excluded,
+                showCoaching = true,
                 onAction = { action -> onChapterAction(row, action) },
             )
         }

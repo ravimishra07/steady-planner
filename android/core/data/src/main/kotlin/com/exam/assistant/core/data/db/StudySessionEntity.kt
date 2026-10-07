@@ -183,10 +183,11 @@ interface StudySessionDao {
     )
     suspend fun subjectSums(attemptId: String, startEpochDay: Long, endEpochDay: Long): List<SubjectSum>
 
+    /** Learn minutes per node. Titled sessions on a node are coaching backlog lectures (§5.4) and stay out. */
     @Query(
         "SELECT nodeId, SUM(focusedSeconds) AS totalSeconds FROM study_session " +
             "WHERE attemptId = :attemptId AND status = 'COMPLETED' AND activityType = 'LEARN' " +
-            "AND nodeId IS NOT NULL GROUP BY nodeId",
+            "AND nodeId IS NOT NULL AND customTitle IS NULL GROUP BY nodeId",
     )
     suspend fun completedLearnSumsByNode(attemptId: String): List<NodeFocusedSum>
 

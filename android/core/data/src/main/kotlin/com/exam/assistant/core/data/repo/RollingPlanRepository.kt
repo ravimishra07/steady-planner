@@ -2,6 +2,7 @@ package com.exam.assistant.core.data.repo
 
 import android.content.Context
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.withTransaction
@@ -10,7 +11,13 @@ import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.db.PrepTrackerDatabase
 import com.exam.assistant.core.data.db.toDomain
 import com.exam.assistant.core.data.db.toEntity
+import com.exam.assistant.core.data.R
+import com.exam.assistant.domain.BacklogItem
 import com.exam.assistant.domain.Calibration
+import com.exam.assistant.domain.DEFAULT_LIVE_BACKLOG_SPLIT
+import com.exam.assistant.domain.PlannerConfig
+import com.exam.assistant.domain.chapters
+import com.exam.assistant.domain.coachingBacklogItems
 import com.exam.assistant.domain.DEFAULT_PLANNING_HORIZON_DAYS
 import com.exam.assistant.domain.ExamAttempt
 import com.exam.assistant.domain.ExamAttemptStatus
@@ -46,6 +53,7 @@ import kotlinx.coroutines.withContext
 private val Context.planPromptDataStore by preferencesDataStore(name = "plan_prompts")
 private val missedResolvedThroughKey = longPreferencesKey("missed_resolved_through")
 private val missedDismissedOnKey = longPreferencesKey("missed_dismissed_on")
+private val liveBacklogSplitKey = intPreferencesKey("live_backlog_split")
 
 /** "You missed N blocks. Rebalance the next days?" Blocks are counted from [since] up to yesterday. */
 data class MissedPrompt(val count: Int, val since: LocalDate)
@@ -79,7 +87,7 @@ class RollingPlanRepository(
         nowMs: Long = System.currentTimeMillis(),
     ): RollingPlanResult? {
         val attempt = withContext(dispatchers.io) { db.examAttemptDao().activeOnce()?.toDomain() } ?: return null
-        val pack = examPackRepository.examPackFor(attempt.examId)
+        val pack = examPackRepository.examPackFor(attempt.examId, attempt.id)
         val priorities = examPackRepository.pyqPriorities().chapters
         return withContext(dispatchers.io) {
             db.withTransaction {
@@ -91,6 +99,16 @@ class RollingPlanRepository(
                 result
             }
         }
+    }
+
+    /** Percent of each day for live coaching work (§5.4); the rest goes to backlog. */
+    suspend fun liveBacklogSplit(): Int =
+        appContext.planPromptDataStore.data.first()[liveBacklogSplitKey]?.coerceIn(0, 100) ?: DEFAULT_LIVE_BACKLOG_SPLIT
+
+    /** Saves the live/backlog split and replans from today so the change shows at once. */
+    suspend fun setLiveBacklogSplit(percent: Int) {
+        appContext.planPromptDataStore.edit { it[liveBacklogSplitKey] = percent.coerceIn(0, 100) }
+        replenish()
     }
 
     /** The daily top-up back to the planning horizon, once per calendar day per process. No WorkManager yet. */
@@ -123,7 +141,7 @@ class RollingPlanRepository(
     suspend fun planFit(nowMs: Long = System.currentTimeMillis(), withOptions: Boolean = true): PlanFit? {
         val attempt = withContext(dispatchers.io) { db.examAttemptDao().activeOnce()?.toDomain() } ?: return null
         if (attempt.planMode != PlanMode.DEADLINE) return null
-        val pack = examPackRepository.examPackFor(attempt.examId)
+        val pack = examPackRepository.examPackFor(attempt.examId, attempt.id)
         val priorities = examPackRepository.pyqPriorities().chapters
         val inputs = withContext(dispatchers.io) {
             loadInputs(attempt, pack, priorities, LocalDate.now(), 1, nowMs)
@@ -155,7 +173,7 @@ class RollingPlanRepository(
     /** The projected finish for the saved plan (steady mode), from the same planner as [replenish]. */
     suspend fun projectedFinish(nowMs: Long = System.currentTimeMillis()): LocalDate? {
         val attempt = withContext(dispatchers.io) { db.examAttemptDao().activeOnce()?.toDomain() } ?: return null
-        val pack = examPackRepository.examPackFor(attempt.examId)
+        val pack = examPackRepository.examPackFor(attempt.examId, attempt.id)
         val priorities = examPackRepository.pyqPriorities().chapters
         val inputs = withContext(dispatchers.io) { loadInputs(attempt, pack, priorities, LocalDate.now(), 1, nowMs) }
         return withContext(dispatchers.default) { inputs.projectedFinish(nowMs) }
@@ -206,7 +224,7 @@ class RollingPlanRepository(
     /** The student's pace against the estimates, from completed Learn sessions. [Calibration.NONE] with no plan. */
     suspend fun calibration(): Calibration {
         val attempt = withContext(dispatchers.io) { db.examAttemptDao().activeOnce()?.toDomain() } ?: return Calibration.NONE
-        val pack = examPackRepository.examPackFor(attempt.examId)
+        val pack = examPackRepository.examPackFor(attempt.examId, attempt.id)
         return withContext(dispatchers.io) { calibrationFor(attempt, pack) }
     }
 
@@ -335,7 +353,22 @@ class RollingPlanRepository(
             weakNodeCounts = db.studySessionDao().struggledCountsByNode(attempt.id).associate { it.nodeId to it.total },
             practicedChapterIds = practicedChapters,
             recentMockDates = recentMocks,
+            coachingBacklog = coachingBacklogFor(attempt, pack),
+            config = PlannerConfig(
+                liveBacklogSplit = liveBacklogSplit(),
+                backlogLectureTitle = appContext.getString(R.string.plan_backlog_lecture_title),
+                backlogDppTitle = appContext.getString(R.string.plan_backlog_dpp_title),
+            ),
         )
+    }
+
+    /** Coaching lectures and DPPs behind the batch, in syllabus order. Empty for a student who does not use coaching. */
+    private suspend fun coachingBacklogFor(attempt: ExamAttempt, pack: ExamPack): List<BacklogItem> {
+        val coaching = db.coachingDao().allOnce(attempt.id).map { it.toDomain() }
+        if (coaching.isEmpty()) return emptyList()
+        val position = db.coachingDao().positionFor(attempt.id)?.toDomain()
+        val subjectOf = pack.subjects.flatMap { subject -> subject.nodes.map { it.id to subject.id } }.toMap()
+        return coachingBacklogItems(coaching, position, pack.chapters().map { it.id }, subjectOf)
     }
 
     /** The minute of day a replan from [fromDate] starts at: now when that is today, else the start of the day. */

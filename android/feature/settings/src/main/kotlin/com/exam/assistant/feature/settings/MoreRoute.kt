@@ -15,6 +15,8 @@ import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.SavedPlan
 import com.exam.assistant.core.data.decodedCommitments
 import com.exam.assistant.core.data.repo.AttemptRepository
+import com.exam.assistant.core.data.repo.ChapterStageRepository
+import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.design.BackgroundAppearance
@@ -37,6 +39,8 @@ data class MoreUiState(
     val coveragePercent: Int? = null,
     val examDate: LocalDate? = null,
     val finishByDate: LocalDate? = null,
+    /** Live share of the day for coaching students (§5.4); null hides the row for everyone else. */
+    val liveBacklogSplit: Int? = null,
 )
 
 class MoreViewModel(
@@ -45,9 +49,19 @@ class MoreViewModel(
     private val attemptRepository: AttemptRepository,
     private val topicProgressRepository: TopicProgressRepository,
     private val targetSyllabusRepository: TargetSyllabusRepository,
+    private val rollingPlanRepository: RollingPlanRepository,
+    private val chapterStageRepository: ChapterStageRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(MoreUiState())
     val state: StateFlow<MoreUiState> = _state.asStateFlow()
+
+    private var split: Int? = null
+
+    /** Settings → Plan: live/backlog split. Saving replans from today. */
+    fun setLiveBacklogSplit(percent: Int) {
+        _state.update { it.copy(liveBacklogSplit = percent) }
+        viewModelScope.launch { rollingPlanRepository.setLiveBacklogSplit(percent) }
+    }
 
     fun refresh() {
         _state.update { it.copy(loading = true, loadFailed = false) }
@@ -65,6 +79,11 @@ class MoreViewModel(
                 } else {
                     null
                 }
+                val usesCoaching = attempt != null && (
+                    chapterStageRepository.coachingFor(attempt.id).isNotEmpty() ||
+                        chapterStageRepository.batchPosition(attempt.id) != null
+                    )
+                split = if (usesCoaching) rollingPlanRepository.liveBacklogSplit() else null
                 Triple(plan, coverage, attempt)
             }.onSuccess { (plan, coverage, attempt) ->
                 _state.update {
@@ -75,6 +94,7 @@ class MoreViewModel(
                         coveragePercent = coverage,
                         examDate = attempt?.examDate,
                         finishByDate = attempt?.targetCompletionDate,
+                        liveBacklogSplit = split,
                     )
                 }
             }.onFailure {
@@ -89,6 +109,8 @@ class MoreViewModel(
         private val attemptRepository: AttemptRepository,
         private val topicProgressRepository: TopicProgressRepository,
         private val targetSyllabusRepository: TargetSyllabusRepository,
+        private val rollingPlanRepository: RollingPlanRepository,
+        private val chapterStageRepository: ChapterStageRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T = MoreViewModel(
@@ -97,6 +119,8 @@ class MoreViewModel(
             attemptRepository = attemptRepository,
             topicProgressRepository = topicProgressRepository,
             targetSyllabusRepository = targetSyllabusRepository,
+            rollingPlanRepository = rollingPlanRepository,
+            chapterStageRepository = chapterStageRepository,
         ) as T
     }
 }
@@ -108,6 +132,8 @@ fun MoreRoute(
     attemptRepository: AttemptRepository,
     topicProgressRepository: TopicProgressRepository,
     targetSyllabusRepository: TargetSyllabusRepository,
+    rollingPlanRepository: RollingPlanRepository,
+    chapterStageRepository: ChapterStageRepository,
     examDateOfficial: Boolean,
     appVersion: String,
     background: BackgroundAppearance,
@@ -123,6 +149,8 @@ fun MoreRoute(
             attemptRepository = attemptRepository,
             topicProgressRepository = topicProgressRepository,
             targetSyllabusRepository = targetSyllabusRepository,
+            rollingPlanRepository = rollingPlanRepository,
+            chapterStageRepository = chapterStageRepository,
         ),
     ),
 ) {
@@ -146,6 +174,8 @@ fun MoreRoute(
         weekendHours = plan?.weekendHours,
         fixedBlockCount = plan?.decodedCommitments()?.size ?: 0,
         coveragePercent = state.coveragePercent,
+        liveBacklogSplit = state.liveBacklogSplit,
+        onLiveBacklogSplit = viewModel::setLiveBacklogSplit,
         appVersion = appVersion,
         background = background,
         onRetry = viewModel::refresh,

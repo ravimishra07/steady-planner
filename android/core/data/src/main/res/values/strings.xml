@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Coaching backlog plan blocks (§5.4). %1$s = chapter name, %2$d = lecture or DPP number. -->
+    <string name="plan_backlog_lecture_title">Backlog: %1$s lecture %2$d</string>
+    <string name="plan_backlog_dpp_title">Backlog: %1$s DPP %2$d</string>
+</resources>
