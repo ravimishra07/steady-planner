@@ -70,6 +70,7 @@ class OnboardingViewModel(
     private val savedStateHandle: SavedStateHandle,
     examDate: LocalDate,
     examDateOfficial: Boolean,
+    private val startAtPlan: Boolean,
 ) : ViewModel() {
 
     private var currentPack: ExamPack? = null
@@ -366,6 +367,11 @@ class OnboardingViewModel(
                 )
                 savedStateHandle.get<String>(DRAFT_KEY)?.let { decodeDraft(it, hydrated) } ?: hydrated
             }
+            // "Adjust plan" from Today lands on the plan, where the fit and its choices are.
+            if (startAtPlan && attempt != null && savedStateHandle.get<String>(DRAFT_KEY) == null) {
+                _state.update { it.copy(step = OnboardingStep.Plan, fit = null) }
+                refreshFit()
+            }
         }
     }
 
@@ -558,6 +564,7 @@ class OnboardingViewModel(
         private val dispatchers: AppDispatchers,
         private val examDate: LocalDate,
         private val examDateOfficial: Boolean,
+        private val startAtPlan: Boolean = false,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T = OnboardingViewModel(
@@ -574,6 +581,7 @@ class OnboardingViewModel(
             extras.createSavedStateHandle(),
             examDate,
             examDateOfficial,
+            startAtPlan,
         ) as T
     }
 

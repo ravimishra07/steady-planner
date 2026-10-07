@@ -33,6 +33,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import kotlin.math.roundToInt
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -549,6 +550,7 @@ private fun ForecastCard(data: InsightsData) {
     val forecast = data.forecast
     Surface(shape = RoundedCornerShape(Radius.lg), color = colors.warningRow) {
         Column(modifier = Modifier.padding(Spacing.lg)) {
+            PlanFitLines(data)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 MetricPair(stringResource(R.string.insights_target_date), formatInsightDate(forecast.targetDate))
                 val earliest = forecast.forecastEarliestDate
@@ -602,6 +604,44 @@ private fun ForecastCard(data: InsightsData) {
                 Text(stringResource(R.string.insights_forecast_note), style = MaterialTheme.typography.labelSmall, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.md))
             }
         }
+    }
+}
+
+/**
+ * What the plan says about finish-by (deadline mode only, never in steady mode), and how the hours are
+ * measured: the student's own pace once it is known, otherwise a plain "estimate" note.
+ */
+@Composable
+private fun PlanFitLines(data: InsightsData) {
+    val colors = AppTheme.colors
+    val fit = data.fit
+    Column(modifier = Modifier.padding(bottom = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        if (fit != null) {
+            val hours = ((fit.shortByMinutes / 60.0).roundToInt()).coerceAtLeast(1)
+            Text(
+                text = if (fit.fits) {
+                    stringResource(R.string.insights_fit_ok, formatInsightDate(fit.finishBy))
+                } else {
+                    stringResource(
+                        if (fit.calibrated) R.string.insights_fit_short_calibrated else R.string.insights_fit_short,
+                        hours,
+                        formatInsightDate(fit.finishBy),
+                    )
+                },
+                style = MaterialTheme.typography.titleSmall,
+                color = if (fit.fits) colors.success else colors.warning,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        Text(
+            text = if (data.calibration.active) {
+                stringResource(R.string.insights_calibration_pace, String.format(java.util.Locale.getDefault(), "%.1f", data.calibration.rounded))
+            } else {
+                stringResource(R.string.insights_estimate_note)
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.textSecondary,
+        )
     }
 }
 

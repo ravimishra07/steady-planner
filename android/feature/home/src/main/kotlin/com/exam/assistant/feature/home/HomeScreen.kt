@@ -35,6 +35,7 @@ fun HomeRoute(
     rollingPlanRepository: RollingPlanRepository,
     targetSyllabusRepository: TargetSyllabusRepository,
     onSetupPlan: () -> Unit,
+    onAdjustPlan: () -> Unit,
     onEditPlan: () -> Unit,
     onStartFocus: suspend (StudySessionRecord) -> Unit,
     pendingSyllabusPick: StateFlow<PendingSyllabusPick?>,
@@ -76,6 +77,9 @@ fun HomeRoute(
     HomeScreen(
         state = state,
         onSetupPlan = onSetupPlan,
+        onAdjustPlan = onAdjustPlan,
+        onRebalanceMissed = viewModel::rebalanceMissed,
+        onDismissMissed = viewModel::dismissMissedBlocks,
         onEditPlan = onEditPlan,
         onSelectDate = viewModel::selectDate,
         onToggleCalendarExpanded = viewModel::toggleCalendarExpanded,
@@ -107,6 +111,9 @@ fun HomeRoute(
 fun HomeScreen(
     state: HomeUiState,
     onSetupPlan: () -> Unit,
+    onAdjustPlan: () -> Unit,
+    onRebalanceMissed: () -> Unit,
+    onDismissMissed: () -> Unit,
     onEditPlan: () -> Unit,
     onSelectDate: (java.time.LocalDate) -> Unit,
     onToggleCalendarExpanded: () -> Unit,
@@ -137,6 +144,9 @@ fun HomeScreen(
             state.loading -> Unit
             state.hasPlan -> HomeStudyContent(
                 state = state,
+                onAdjustPlan = onAdjustPlan,
+                onRebalanceMissed = onRebalanceMissed,
+                onDismissMissed = onDismissMissed,
                 onEditPlan = onEditPlan,
                 onSelectDate = onSelectDate,
                 onToggleCalendarExpanded = onToggleCalendarExpanded,

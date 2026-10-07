@@ -125,7 +125,12 @@ class HomeViewModel(
             wakeMinute = weeklyAvailability.minOfOrNull { it.startMinuteOfDay } ?: DAY_TIMELINE_START
             sleepMinute = weeklyAvailability.maxOfOrNull { it.endMinuteOfDay } ?: com.exam.assistant.domain.DAY_TIMELINE_END
             val today = LocalDate.now()
+            // Daily top-up back to the 21 day horizon, before the day is read.
+            if (attempt != null) runCatching { rollingPlanRepository.topUpIfNewDay(today) }
             if (attempt != null) reloadCanonical(attempt.id)
+            val fit = attempt?.let { runCatching { rollingPlanRepository.planFit(withOptions = false) }.getOrNull() }
+                ?.takeIf { !it.fits }
+            val missed = attempt?.let { runCatching { rollingPlanRepository.missedPrompt(today) }.getOrNull() }
             revisionStates = attempt?.let { revisionRepository.allFor(it.id) }.orEmpty().associateBy { it.nodeId }
             val syllabus = if (attempt != null && pack != null) {
                 syllabusMetrics(
@@ -146,6 +151,8 @@ class HomeViewModel(
                     sections = sections,
                     daysUntilExam = attempt?.let { daysToExam(it, today) } ?: 0,
                     syllabusPercent = syllabus?.overall?.percent ?: 0,
+                    planFit = fit?.let { PlanFitUi(it.shortByMinutes, it.finishBy, it.calibrated) },
+                    missedBlocks = missed?.let { MissedBlocksUi(it.count, it.since) },
                     activeSprint = running?.let { session ->
                         val endsAt = session.runningEndsAtMs ?: return@let null
                         val left = ((endsAt - System.currentTimeMillis()) / 1000).toInt()
@@ -189,6 +196,26 @@ class HomeViewModel(
                         ?.let { it.startedAtEpochMs + block.plannedMinutes * 60_000L },
                 )
             }
+    }
+
+    /** "Yes": skip the missed blocks, put their work back in the queue and plan the next days again. */
+    fun rebalanceMissed() {
+        val prompt = _state.value.missedBlocks ?: return
+        _state.update { it.copy(missedBlocks = null) }
+        viewModelScope.launch {
+            rollingPlanRepository.rebalanceMissed(since = prompt.since)
+            attemptId?.let { reloadCanonical(it) }
+            val fit = rollingPlanRepository.planFit(withOptions = false)?.takeIf { !it.fits }
+            _state.update {
+                it.copy(planFit = fit?.let { f -> PlanFitUi(f.shortByMinutes, f.finishBy, f.calibrated) }).rebuild()
+            }
+        }
+    }
+
+    /** "Not now": hidden for the rest of today. */
+    fun dismissMissedBlocks() {
+        _state.update { it.copy(missedBlocks = null) }
+        viewModelScope.launch { rollingPlanRepository.dismissMissedPrompt() }
     }
 
     fun selectDate(date: LocalDate) {

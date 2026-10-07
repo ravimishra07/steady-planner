@@ -67,6 +67,7 @@ import com.exam.assistant.domain.SyllabusTopicNode
 import com.exam.assistant.domain.StudyPlacementIssue
 import com.exam.assistant.domain.StudyActivityType
 import com.exam.assistant.domain.currentMinuteOfDay
+import com.exam.assistant.domain.formatInsightDate
 import com.exam.assistant.domain.formatMinuteOfDay
 import com.exam.assistant.domain.topicHours
 import kotlin.math.roundToInt
@@ -75,6 +76,9 @@ import kotlin.math.roundToInt
 @Composable
 internal fun HomeStudyContent(
     state: HomeUiState,
+    onAdjustPlan: () -> Unit,
+    onRebalanceMissed: () -> Unit,
+    onDismissMissed: () -> Unit,
     onEditPlan: () -> Unit,
     onSelectDate: (java.time.LocalDate) -> Unit,
     onToggleCalendarExpanded: () -> Unit,
@@ -137,6 +141,23 @@ internal fun HomeStudyContent(
                             issue = issue,
                             modifier = Modifier.padding(bottom = Spacing.md),
                         )
+                    }
+                    if (state.selectedIsToday) {
+                        state.missedBlocks?.let { missed ->
+                            MissedBlocksPrompt(
+                                missed = missed,
+                                onRebalance = onRebalanceMissed,
+                                onNotNow = onDismissMissed,
+                                modifier = Modifier.padding(bottom = Spacing.lg),
+                            )
+                        }
+                        state.planFit?.let { fit ->
+                            PlanFitBanner(
+                                fit = fit,
+                                onAdjust = onAdjustPlan,
+                                modifier = Modifier.padding(bottom = Spacing.lg),
+                            )
+                        }
                     }
                     state.missedDayRecovery?.let { recovery ->
                         MissedDayRecoveryPanel(
@@ -834,6 +855,68 @@ private fun PlacementIssueMessage(
         color = AppTheme.colors.warning,
         modifier = modifier,
     )
+}
+
+@Composable
+private fun MissedBlocksPrompt(
+    missed: MissedBlocksUi,
+    onRebalance: () -> Unit,
+    onNotNow: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = AppTheme.colors
+    Surface(shape = RoundedCornerShape(Radius.lg), color = colors.elevated, modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text(
+                text = pluralStringResource(R.plurals.home_missed_blocks_title, missed.count, missed.count),
+                style = MaterialTheme.typography.titleMedium,
+                color = colors.text,
+            )
+            Text(
+                text = stringResource(R.string.home_missed_blocks_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.textSecondary,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Button(
+                    onClick = onRebalance,
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.brandDeep, contentColor = colors.onBrand),
+                    shape = RoundedCornerShape(Radius.pill),
+                ) { Text(stringResource(R.string.home_missed_blocks_yes)) }
+                TextButton(onClick = onNotNow) { Text(stringResource(R.string.home_missed_blocks_not_now)) }
+            }
+        }
+    }
+}
+
+/** Deadline mode only: part of the remaining work cannot be placed before finish-by. */
+@Composable
+private fun PlanFitBanner(
+    fit: PlanFitUi,
+    onAdjust: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = AppTheme.colors
+    val hours = ((fit.shortByMinutes / 60.0).roundToInt()).coerceAtLeast(1)
+    Surface(shape = RoundedCornerShape(Radius.lg), color = colors.elevated, modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            Text(
+                text = stringResource(
+                    if (fit.calibrated) R.string.home_fit_banner_calibrated else R.string.home_fit_banner,
+                    hours,
+                    formatInsightDate(fit.finishBy),
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.text,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onAdjust) { Text(stringResource(R.string.home_fit_adjust)) }
+        }
+    }
 }
 
 @Composable

@@ -107,4 +107,29 @@ class CrossScreenConsistencyTest {
             MetricsFixture.plan, InsightPeriod.ALL, today, nowMinute,
         ).planPercent)
     }
+
+    @Test
+    fun calibrationScalesRemainingWorkTheSameEverywhereAndInsightsCarriesTheFit() {
+        val calibration = Calibration(factor = 1.5, chapters = 4)
+        val progress = MetricsFixture.topicProgress
+        val organiseCalibrated = syllabusMetrics(pack, overrides, progress, calibration.factor)
+        val insightsCalibrated = syllabusMetrics(pack, overrides, progress, calibration.factor)
+        val fit = PlanFit(
+            finishBy = today.plusDays(30), learnMinutes = 600, practiceMinutes = 150,
+            shortByMinutes = 120, revisionWindowDays = 90, calibrated = true,
+        )
+        val data = computeInsights(
+            pack, insightsCalibrated, MetricsFixture.sessions, MetricsFixture.planBlocks,
+            MetricsFixture.revisionStates, MetricsFixture.plan, InsightPeriod.ALL, today, nowMinute,
+            calibration = calibration, fit = fit,
+        )
+
+        assertEquals(315, organiseCalibrated.remainingMinutes)
+        assertEquals(organiseCalibrated.remainingMinutes, data.remainingMinutes)
+        assertEquals(calibration, data.calibration)
+        assertEquals(fit, data.fit)
+        assertEquals(fit.requiredMinutes - fit.shortByMinutes, fit.scheduledMinutes)
+        // Percentages are counts of chapters, so calibration never moves them.
+        assertEquals(syllabusScreen.overall.percent, data.syllabusPercent)
+    }
 }

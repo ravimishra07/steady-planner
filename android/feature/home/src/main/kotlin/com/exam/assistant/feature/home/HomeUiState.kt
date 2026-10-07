@@ -52,6 +52,19 @@ data class MissedDayRecoveryUi(
     val canStartNow: Boolean,
 )
 
+/** Deadline mode: part of the remaining work cannot be scheduled before finish-by. Estimate, until calibrated. */
+data class PlanFitUi(
+    val shortByMinutes: Int,
+    val finishBy: LocalDate,
+    val calibrated: Boolean,
+)
+
+/** "You missed N blocks. Rebalance the next days?" */
+data class MissedBlocksUi(
+    val count: Int,
+    val since: LocalDate,
+)
+
 data class HomeUiState(
     val loading: Boolean = true,
     val hasPlan: Boolean = false,
@@ -83,4 +96,6 @@ data class HomeUiState(
     val placementIssue: StudyPlacementIssue? = null,
     val daysUntilExam: Int = 0,
     val syllabusPercent: Int = 0,
+    val planFit: PlanFitUi? = null,
+    val missedBlocks: MissedBlocksUi? = null,
 )

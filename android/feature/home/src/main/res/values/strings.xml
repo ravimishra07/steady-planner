@@ -47,8 +47,8 @@
         <item quantity="other">%1$d topics</item>
     </plurals>
     <plurals name="home_picker_subject_summary">
-        <item quantity="one">%1$d topic · %2$dh</item>
-        <item quantity="other">%1$d topics · %2$dh</item>
+        <item quantity="one">%1$d topic · %2$dh est.</item>
+        <item quantity="other">%1$d topics · %2$dh est.</item>
     </plurals>
     <plurals name="home_picker_subtopic_summary">
         <item quantity="one">%1$d subtopic · %2$s</item>
@@ -64,6 +64,16 @@
     <string name="home_collapse_details">Hide study details</string>
     <string name="home_missed_semantics">Needs a new time</string>
     <string name="home_completed_semantics">Completed</string>
+    <plurals name="home_missed_blocks_title">
+        <item quantity="one">You missed %1$d block. Rebalance the next days?</item>
+        <item quantity="other">You missed %1$d blocks. Rebalance the next days?</item>
+    </plurals>
+    <string name="home_missed_blocks_body">Missed blocks are dropped from the past and their work goes back into the next days.</string>
+    <string name="home_missed_blocks_yes">Yes</string>
+    <string name="home_missed_blocks_not_now">Not now</string>
+    <string name="home_fit_banner">About %1$d h (estimate) doesn\'t fit before %2$s.</string>
+    <string name="home_fit_banner_calibrated">About %1$d h at your pace doesn\'t fit before %2$s.</string>
+    <string name="home_fit_adjust">Adjust plan</string>
     <string name="home_empty_today_title">Nothing planned yet</string>
     <string name="home_plan_my_day">Plan my day</string>
     <string name="home_studying_now">Studying · %1$s left</string>

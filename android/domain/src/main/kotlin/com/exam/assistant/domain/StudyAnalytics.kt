@@ -108,6 +108,10 @@ data class InsightsData(
     val studyDaysInPeriod: Int,
     val currentStreak: Int,
     val longestStreak: Int,
+    /** The student's pace against the estimates. Shown only when [Calibration.active]. */
+    val calibration: Calibration = Calibration.NONE,
+    /** Deadline mode: does the remaining work fit before finish-by? Null in steady mode. */
+    val fit: PlanFit? = null,
 )
 
 const val HEATMAP_DAYS = 84
@@ -127,6 +131,8 @@ fun computeInsights(
     period: InsightPeriod,
     today: LocalDate,
     nowMinuteOfDay: Int,
+    calibration: Calibration = Calibration.NONE,
+    fit: PlanFit? = null,
 ): InsightsData {
     val counted = sessions.filter { it.countsAsStudy() }
     val periodStart = period.days?.let { today.minusDays(it - 1) }
@@ -213,6 +219,8 @@ fun computeInsights(
         studyDaysInPeriod = activeDays.size,
         currentStreak = currentStreak(dates, today),
         longestStreak = longestStreak(dates),
+        calibration = calibration,
+        fit = fit,
     )
 }
 

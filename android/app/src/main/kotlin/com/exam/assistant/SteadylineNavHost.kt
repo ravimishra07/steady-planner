@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -81,6 +83,8 @@ fun SteadylineNavHost(
             exitTransition = { ExitTransition.None },
         ) {
             composable(Route.Onboarding.path) {
+                val startAtPlan = remember { container.onboardingStartAtPlan.value }
+                LaunchedEffect(Unit) { container.onboardingStartAtPlan.value = false }
                 OnboardingRoute(
                     planStore = container.planStore,
                     examPackRepository = container.examPackRepository,
@@ -94,6 +98,7 @@ fun SteadylineNavHost(
                     dispatchers = container.dispatchers,
                     examDate = container.remoteConfig.neetExamDate(),
                     examDateOfficial = container.remoteConfig.neetExamDateOfficial(),
+                    startAtPlan = startAtPlan,
                     background = background,
                     onBackground = onBackground,
                     accentPalette = accentPalette,
@@ -118,6 +123,10 @@ fun SteadylineNavHost(
                     rollingPlanRepository = container.rollingPlanRepository,
                     targetSyllabusRepository = container.targetSyllabusRepository,
                     onSetupPlan = { navController.navigate(Route.Onboarding.path) },
+                    onAdjustPlan = {
+                        container.onboardingStartAtPlan.value = true
+                        navController.navigate(Route.Onboarding.path)
+                    },
                     onEditPlan = { navController.navigate(Route.Organise.path) },
                     onStartFocus = { session ->
                         val current = container.focusStore.load()

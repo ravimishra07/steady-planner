@@ -1,6 +1,9 @@
 package com.exam.assistant.core.data.repo
 
 import android.content.Context
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.withTransaction
 import com.exam.assistant.core.common.AppDispatchers
 import com.exam.assistant.core.data.ExamPackRepository
@@ -34,7 +37,15 @@ import com.exam.assistant.domain.skipMissedBlocks
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+
+private val Context.planPromptDataStore by preferencesDataStore(name = "plan_prompts")
+private val missedResolvedThroughKey = longPreferencesKey("missed_resolved_through")
+private val missedDismissedOnKey = longPreferencesKey("missed_dismissed_on")
+
+/** "You missed N blocks. Rebalance the next days?" Blocks are counted from [since] up to yesterday. */
+data class MissedPrompt(val count: Int, val since: LocalDate)
 
 /**
  * Owns the rolling-plan transaction. All automatic future intent is derived
@@ -47,7 +58,12 @@ class RollingPlanRepository(
     private val dispatchers: AppDispatchers,
     private val examPackRepository: ExamPackRepository,
 ) {
+    private val appContext = context.applicationContext
     private val db = PrepTrackerDatabase.get(context)
+
+    /** The day the horizon was last topped up in this process, so reopening the app the same day does not replan again. */
+    @Volatile
+    private var lastTopUpDate: LocalDate? = null
 
     /**
      * Regenerates future planner-made blocks from [fromDate] (never before now today) out to
@@ -68,9 +84,16 @@ class RollingPlanRepository(
                 val result = inputs.plan(horizonDays, nowMs)
                 db.studyPlanBlockDao().deleteReplaceable(attempt.id, fromDate.toEpochDay(), fromMinuteFor(fromDate, nowMs))
                 db.studyPlanBlockDao().upsertAll(result.blocks.map { it.toEntity() })
+                if (fromDate == LocalDate.now()) lastTopUpDate = fromDate
                 result
             }
         }
+    }
+
+    /** The daily top-up back to the planning horizon, once per calendar day per process. No WorkManager yet. */
+    suspend fun topUpIfNewDay(today: LocalDate = LocalDate.now()) {
+        if (lastTopUpDate == today) return
+        replenish(fromDate = today)
     }
 
     /** Calculates a real draft without mutating Room, used by Organise before confirmation. */
@@ -94,7 +117,7 @@ class RollingPlanRepository(
      * Whether the remaining work fits before finish-by, with the ways to fix it when it does not.
      * Null in steady mode and with no plan. The same planner as [replenish], so it cannot disagree.
      */
-    suspend fun planFit(nowMs: Long = System.currentTimeMillis()): PlanFit? {
+    suspend fun planFit(nowMs: Long = System.currentTimeMillis(), withOptions: Boolean = true): PlanFit? {
         val attempt = withContext(dispatchers.io) { db.examAttemptDao().activeOnce()?.toDomain() } ?: return null
         if (attempt.planMode != PlanMode.DEADLINE) return null
         val pack = examPackRepository.examPackFor(attempt.examId)
@@ -102,7 +125,7 @@ class RollingPlanRepository(
         val inputs = withContext(dispatchers.io) {
             loadInputs(attempt, pack, priorities, LocalDate.now(), 1, nowMs)
         }
-        return withContext(dispatchers.default) { inputs.planFit(nowMs) }
+        return withContext(dispatchers.default) { inputs.planFit(nowMs, withOptions) }
     }
 
     /**
@@ -156,6 +179,24 @@ class RollingPlanRepository(
         }
 
     /**
+     * The "whole day missed" prompt: set when at least one planner-made block from an earlier day was
+     * never done, since the last time the student answered, and not dismissed for today.
+     */
+    suspend fun missedPrompt(today: LocalDate = LocalDate.now()): MissedPrompt? {
+        val prefs = appContext.planPromptDataStore.data.first()
+        if (prefs[missedDismissedOnKey] == today.toEpochDay()) return null
+        val resolved = prefs[missedResolvedThroughKey]?.let(LocalDate::ofEpochDay)
+        val since = maxOf(resolved ?: today.minusDays(MISSED_LOOKBACK_DAYS), today.minusDays(MISSED_LOOKBACK_DAYS))
+        val count = missedBlocks(since, today).size
+        return if (count > 0) MissedPrompt(count, since) else null
+    }
+
+    /** "Not now": hide the prompt for the rest of [today]. It comes back tomorrow if blocks are still missed. */
+    suspend fun dismissMissedPrompt(today: LocalDate = LocalDate.now()) {
+        appContext.planPromptDataStore.edit { it[missedDismissedOnKey] = today.toEpochDay() }
+    }
+
+    /**
      * "Rebalance the next days": the missed blocks become SKIPPED and the plan is regenerated from today,
      * which puts their unfinished work back in the queue.
      */
@@ -168,6 +209,7 @@ class RollingPlanRepository(
         withContext(dispatchers.io) {
             val skipped = skipMissedBlocks(missed, nowMs)
             if (skipped.isNotEmpty()) db.studyPlanBlockDao().markSkipped(skipped.map { it.id }, nowMs)
+            appContext.planPromptDataStore.edit { it[missedResolvedThroughKey] = today.toEpochDay() }
         }
         return replenish(fromDate = today, nowMs = nowMs)
     }
@@ -264,6 +306,7 @@ class RollingPlanRepository(
 
     private companion object {
         const val MOCK_LOOKBACK_DAYS = 14L
+        const val MISSED_LOOKBACK_DAYS = 14L
         const val DRAFT_ATTEMPT_ID = "draft"
     }
 }

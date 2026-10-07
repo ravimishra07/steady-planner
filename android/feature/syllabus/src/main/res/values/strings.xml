@@ -3,8 +3,8 @@
     <string name="organise_change_value">%1$s → %2$s</string>
     <string name="syllabus_title">Syllabus</string>
     <string name="syllabus_percent_value">%1$d%%</string>
-    <string name="syllabus_hours_minutes">%1$dh %2$02dm</string>
-    <string name="syllabus_hours_short">%1$dh</string>
+    <string name="syllabus_hours_minutes">%1$dh %2$02dm est.</string>
+    <string name="syllabus_hours_short">%1$dh est.</string>
     <string name="syllabus_expand">Expand</string>
     <string name="syllabus_collapse">Collapse</string>
     <string name="syllabus_mark_done">Mark done</string>
@@ -25,8 +25,8 @@
         <item quantity="other">Show %1$d chapters</item>
     </plurals>
     <plurals name="syllabus_subject_summary">
-        <item quantity="one">%1$d/%2$d chapter · %3$dh · %4$d Q</item>
-        <item quantity="other">%1$d/%2$d chapters · %3$dh · %4$d Q</item>
+        <item quantity="one">%1$d/%2$d chapter · %3$dh est. · %4$d Q</item>
+        <item quantity="other">%1$d/%2$d chapters · %3$dh est. · %4$d Q</item>
     </plurals>
     <string name="syllabus_empty_title">Your syllabus is empty</string>
     <string name="syllabus_empty_body">Add at least one chapter before the app creates study work.</string>
@@ -62,7 +62,7 @@
     <string name="organise_cancel">Cancel</string>
     <string name="organise_what_changes">What this changes</string>
     <string name="organise_chapters_in_play">Chapters in play</string>
-    <string name="organise_hours_left">Hours of syllabus left</string>
+    <string name="organise_hours_left">Hours of syllabus left (estimate)</string>
     <string name="organise_apply">Apply changes</string>
     <string name="organise_keep_editing">Keep editing</string>
     <string name="organise_save_failed">The changes could not be saved. Your previous plan is still available.</string>
@@ -75,9 +75,10 @@
     <string name="organise_no_sessions_today">Nothing is planned for today.</string>
     <string name="organise_next_seven">Estimated next 7 days</string>
     <string name="organise_hours_short">%1$.1fh</string>
+    <string name="organise_hours_estimate">%1$.1fh est.</string>
     <plurals name="organise_timeline_body">
-        <item quantity="one">%1$d chapter in play · about %2$.1f hours of syllabus work</item>
-        <item quantity="other">%1$d chapters in play · about %2$.1f hours of syllabus work</item>
+        <item quantity="one">%1$d chapter in play · about %2$.1f hours of syllabus work (estimate)</item>
+        <item quantity="other">%1$d chapters in play · about %2$.1f hours of syllabus work (estimate)</item>
     </plurals>
     <string name="organise_projection_note">The plan is rebuilt from your real free windows after you approve these changes.</string>
     <string name="organise_order">Order</string>

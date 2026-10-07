@@ -93,6 +93,9 @@ class AppContainer(private val context: Context) {
 
     val pendingSyllabusPick = MutableStateFlow<PendingSyllabusPick?>(null)
 
+    /** One-shot: Today's "adjust plan" opens the setup flow on its Plan step. */
+    val onboardingStartAtPlan = MutableStateFlow(false)
+
     /** Runs the one-time legacy-store migration off the critical path. Safe to call every launch — no-ops once done. */
     fun runMigrationInBackground() {
         appScope.launch {

@@ -72,6 +72,11 @@
         <item quantity="one">Target syllabus: %1$d of %2$d official section</item>
         <item quantity="other">Target syllabus: %1$d of %2$d official sections</item>
     </plurals>
+    <string name="insights_fit_ok">The work you have left fits before %1$s.</string>
+    <string name="insights_fit_short">About %1$d h (estimate) doesn\'t fit before %2$s.</string>
+    <string name="insights_fit_short_calibrated">About %1$d h at your pace doesn\'t fit before %2$s.</string>
+    <string name="insights_calibration_pace">Your pace: chapters take about %1$s× the estimate.</string>
+    <string name="insights_estimate_note">Hours are estimates until you finish a few chapters. Then they follow your own pace.</string>
     <string name="insights_target_date">Target date</string>
     <string name="insights_at_current_pace">At current pace</string>
     <string name="insights_not_enough_history">Not enough history</string>

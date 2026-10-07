@@ -233,7 +233,7 @@ fun OrganiseScreen(
                     )
                     AppValueStepper(
                         label = stringResource(R.string.organise_estimated_hours),
-                        value = stringResource(R.string.organise_hours_short, newHours),
+                        value = stringResource(R.string.organise_hours_estimate, newHours),
                         decreaseContentDescription = stringResource(R.string.organise_decrease_hours),
                         increaseContentDescription = stringResource(R.string.organise_increase_hours),
                         onDecrease = { newHours = (newHours - .5f).coerceAtLeast(.5f) },
@@ -268,8 +268,8 @@ fun OrganiseScreen(
                     DeltaRow(stringResource(R.string.organise_chapters_in_play), state.beforeIncludedCount.toString(), state.includedCount.toString())
                     DeltaRow(
                         stringResource(R.string.organise_hours_left),
-                        stringResource(R.string.organise_hours_short, state.beforeRemainingMinutes / 60f),
-                        stringResource(R.string.organise_hours_short, state.remainingMinutes / 60f),
+                        stringResource(R.string.organise_hours_estimate, state.beforeRemainingMinutes / 60f),
+                        stringResource(R.string.organise_hours_estimate, state.remainingMinutes / 60f),
                     )
                     if (state.saveFailed) Text(stringResource(R.string.organise_save_failed), color = colors.error)
                 }
@@ -499,7 +499,7 @@ private fun SyllabusDraft(
                     Column(Modifier.weight(1f).padding(horizontal = Spacing.md)) {
                         Text(row.title, style = MaterialTheme.typography.bodyLarge, color = if (row.excluded) colors.textMuted else colors.text)
                         Text(
-                            if (row.excluded) stringResource(R.string.syllabus_parked) else stringResource(R.string.organise_hours_short, row.estimatedMinutes / 60f),
+                            if (row.excluded) stringResource(R.string.syllabus_parked) else stringResource(R.string.organise_hours_estimate, row.estimatedMinutes / 60f),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.textSecondary,
                         )

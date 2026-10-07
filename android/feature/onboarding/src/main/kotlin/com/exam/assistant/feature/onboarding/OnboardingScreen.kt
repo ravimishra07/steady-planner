@@ -62,6 +62,7 @@ fun OnboardingRoute(
     dispatchers: AppDispatchers,
     examDate: LocalDate,
     examDateOfficial: Boolean,
+    startAtPlan: Boolean,
     background: BackgroundAppearance,
     onBackground: (BackgroundAppearance) -> Unit,
     accentPalette: AccentPalette,
@@ -82,6 +83,7 @@ fun OnboardingRoute(
             dispatchers,
             examDate,
             examDateOfficial,
+            startAtPlan,
         ),
     ),
 ) {

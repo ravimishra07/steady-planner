@@ -13,7 +13,9 @@ import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.data.repo.StudySessionRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
+import com.exam.assistant.domain.Calibration
 import com.exam.assistant.domain.ExamPack
+import com.exam.assistant.domain.PlanFit
 import com.exam.assistant.domain.InsightPeriod
 import com.exam.assistant.domain.InsightPlan
 import com.exam.assistant.domain.RevisionState
@@ -61,6 +63,8 @@ class ProgressViewModel(
     private var revisionStates = emptyList<RevisionState>()
     private var progress = emptyList<TopicProgress>()
     private var targetOverrides = emptyMap<String, TargetNodeState>()
+    private var calibration = Calibration.NONE
+    private var fit: PlanFit? = null
 
     init { refresh() }
 
@@ -81,6 +85,8 @@ class ProgressViewModel(
             revisionStates = revisionRepository.allFor(attempt.id)
             progress = topicProgressRepository.allOnce(attempt.id)
             targetOverrides = targetStates(targetSyllabusRepository.overridesFor(attempt.id))
+            calibration = rollingPlanRepository.calibration()
+            fit = rollingPlanRepository.planFit(withOptions = false)
             cachedPlan = InsightPlan(
                 startedOn = Instant.ofEpochMilli(attempt.createdAtEpochMs).atZone(ZoneId.systemDefault()).toLocalDate(),
                 targetDate = attempt.targetCompletionDate,
@@ -127,7 +133,7 @@ class ProgressViewModel(
         val currentPack = pack ?: return
         val data = computeInsights(
             pack = currentPack,
-            syllabus = syllabusMetrics(currentPack, targetOverrides, progress),
+            syllabus = syllabusMetrics(currentPack, targetOverrides, progress, calibration.factor),
             sessions = sessions,
             planBlocks = planBlocks,
             revisionStates = revisionStates,
@@ -135,6 +141,8 @@ class ProgressViewModel(
             period = _state.value.period,
             today = LocalDate.now(),
             nowMinuteOfDay = currentMinuteOfDay(),
+            calibration = calibration,
+            fit = fit,
         )
         _state.update {
             it.copy(
