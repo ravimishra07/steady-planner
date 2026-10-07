@@ -590,6 +590,15 @@ connection is available (§11.3). Verify by testing in airplane mode.
 
 ## 11. Business and release
 
+### Decisions locked (Ravi, 2026-10-07)
+
+- **Application ID:** keep `com.exam.assistant`.
+- **Analytics:** Firebase Analytics + Crashlytics. Not PostHog.
+- **Pricing:** Pro = **₹59 lifetime**, a one-time non-consumable.
+  - No subscription, so no trial. The free tier is the trial.
+  - This supersedes the price hypothesis in §11.2.
+- **Git:** commit locally only. Ravi pushes.
+
 ### P0-11.1 Identity
 
 - **Product name:** decide. It must not be "Steadyline". Candidates must pass
@@ -816,3 +825,7 @@ and don't move them afterwards.
 - Claim only what the build and tests prove.
 - One phase per branch.
 - Update the checkboxes in this file with commit hashes as items land.
+
+## Progress log
+
+- 2026-10-07 · Phase A2 · §9 Metrics.kt + consistency test, §6.2 time accounting, §7.1 revision unify · 01653b0
