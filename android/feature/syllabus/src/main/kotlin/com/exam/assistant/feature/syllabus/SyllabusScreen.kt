@@ -84,6 +84,7 @@ import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.core.design.Stroke
 import com.exam.assistant.domain.PendingSyllabusPick
+import com.exam.assistant.domain.minutesToHours
 import com.exam.assistant.domain.SyllabusTickState
 import kotlinx.coroutines.launch
 
@@ -535,7 +536,7 @@ private fun SubjectCard(
                             subject.totalChapterCount,
                             subject.doneChapterCount,
                             subject.totalChapterCount,
-                            subject.totalEstimatedMinutes / 60,
+                            minutesToHours(subject.totalEstimatedMinutes),
                             subject.questions,
                         ),
                         style = MaterialTheme.typography.bodyMedium,

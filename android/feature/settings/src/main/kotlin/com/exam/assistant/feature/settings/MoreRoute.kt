@@ -19,13 +19,11 @@ import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.design.BackgroundAppearance
 import com.exam.assistant.domain.NEET_EXAM_ID
-import com.exam.assistant.domain.TopicProgress
-import com.exam.assistant.domain.TopicProgressStatus
-import com.exam.assistant.domain.effectiveTargetLeafIds
+import com.exam.assistant.domain.syllabusMetrics
+import com.exam.assistant.domain.targetStates
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -57,12 +55,11 @@ class MoreViewModel(
                 val attempt = attemptRepository.activeAttempt()?.takeIf { it.examId == NEET_EXAM_ID }
                 val coverage = if (plan?.examId == NEET_EXAM_ID && attempt != null) {
                     val pack = examPackRepository.examPackFor(NEET_EXAM_ID)
-                    val overrides = targetSyllabusRepository.overridesFor(attempt.id)
-                        .associate { it.nodeId to it.state }
-                    coveredPercent(
-                        pack.effectiveTargetLeafIds(overrides).toList(),
-                        topicProgressRepository.allOnce(attempt.id),
-                    )
+                    syllabusMetrics(
+                        pack = pack,
+                        overrides = targetStates(targetSyllabusRepository.overridesFor(attempt.id)),
+                        progress = topicProgressRepository.allOnce(attempt.id),
+                    ).overall.takeIf { it.total > 0 }?.percent
                 } else {
                     null
                 }
@@ -98,20 +95,6 @@ class MoreViewModel(
             targetSyllabusRepository = targetSyllabusRepository,
         ) as T
     }
-}
-
-internal fun coveredPercent(
-    leafIds: List<String>,
-    progress: List<TopicProgress>,
-): Int? {
-    val leaves = leafIds.toSet()
-    if (leaves.isEmpty()) return null
-    val covered = progress.asSequence()
-        .filter { it.status == TopicProgressStatus.COVERED && it.nodeId in leaves }
-        .map { it.nodeId }
-        .distinct()
-        .count()
-    return ((covered.toDouble() / leaves.size) * 100).roundToInt().coerceIn(0, 100)
 }
 
 @Composable

@@ -23,7 +23,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         SubjectStudyPreferenceEntity::class,
         SubjectPreferredWindowEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -47,7 +47,7 @@ abstract class PrepTrackerDatabase : RoomDatabase() {
                     context.applicationContext,
                     PrepTrackerDatabase::class.java,
                     "prep_tracker.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                     .also { instance = it }
             }
@@ -72,6 +72,14 @@ abstract class PrepTrackerDatabase : RoomDatabase() {
         val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE study_preferences ADD COLUMN planningOrder TEXT NOT NULL DEFAULT 'DEFAULT'")
+            }
+        }
+
+        /** Revision on-time tracking and rating-replaces-schedule: both nullable, so existing rows stay valid. */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE study_session ADD COLUMN dueDateAtCompletionEpochDay INTEGER")
+                db.execSQL("ALTER TABLE study_session ADD COLUMN priorIntervalDays INTEGER")
             }
         }
     }

@@ -35,7 +35,6 @@ data class SyllabusSubjectCard(
     val name: String,
     val subjectId: String,
     val percent: Int,
-    val timeSpentMinutes: Int,
     val expanded: Boolean,
     val rows: List<SyllabusTreeRow>,
     /** The subject's first topic — what "play" on the card itself jumps into. */
@@ -55,6 +54,5 @@ data class SyllabusUiState(
     val allCount: Int = 0,
     val dueCount: Int = 0,
     val completedPercent: Int = 0,
-    val timeSpentMinutes: Int = 0,
     val isEmpty: Boolean = false,
 )

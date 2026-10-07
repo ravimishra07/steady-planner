@@ -58,6 +58,7 @@ import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.SettingsStore
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.PlanRepository
+import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.data.repo.StudySessionRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.core.design.AppTheme
@@ -81,6 +82,7 @@ fun FocusRoute(
     planRepository: PlanRepository,
     studySessionRepository: StudySessionRepository,
     rollingPlanRepository: RollingPlanRepository,
+    studyPreferenceRepository: StudyPreferenceRepository,
     appScope: CoroutineScope,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
@@ -93,6 +95,7 @@ fun FocusRoute(
             planRepository,
             studySessionRepository,
             rollingPlanRepository,
+            studyPreferenceRepository,
             appScope,
         ),
     ),

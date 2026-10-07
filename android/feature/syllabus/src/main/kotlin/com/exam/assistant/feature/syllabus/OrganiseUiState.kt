@@ -38,7 +38,9 @@ data class OrganiseUiState(
     val week: List<OrganiseDaySummary> = emptyList(),
     val todaySessions: List<OrganisePlanRow> = emptyList(),
     val beforeIncludedCount: Int = 0,
-    val beforeTotalMinutes: Int = 0,
+    /** Uncovered minutes in the chapters in play, before and after the draft. */
+    val beforeRemainingMinutes: Int = 0,
+    val remainingMinutes: Int = 0,
     val changedChapterCount: Int = 0,
     val planningOrder: PlanningOrder = PlanningOrder.DEFAULT,
     val orderChanged: Boolean = false,
@@ -47,6 +49,5 @@ data class OrganiseUiState(
 ) {
     val includedCount: Int get() = chapters.count { !it.excluded }
     val excludedCount: Int get() = chapters.count { it.excluded }
-    val totalMinutes: Int get() = chapters.filterNot { it.excluded }.sumOf { it.estimatedMinutes }
     val exactChangeCount: Int get() = changedChapterCount + if (orderChanged) 1 else 0
 }

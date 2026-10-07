@@ -3,7 +3,7 @@
     <string name="progress_empty_banner_title">Your progress starts with a Focus session</string>
     <string name="progress_empty_banner_body">Complete one study session to build pace, revision, time, and consistency here.</string>
     <string name="progress_start_next">Start next session</string>
-    <string name="progress_chapters_done">Chapters done</string>
+    <string name="progress_sections_covered">Sections covered</string>
     <string name="progress_fraction">%1$d of %2$d</string>
     <string name="progress_days_studied">Days studied</string>
     <string name="insights_title">Insights</string>
@@ -11,9 +11,13 @@
     <string name="insights_loading">Loading your preparation story…</string>
     <string name="insights_load_failed">Insights could not be loaded.</string>
     <string name="insights_no_plan">Finish onboarding to see your Insights.</string>
-    <string name="insights_this_week">This week</string>
+    <string name="insights_section_day">Today</string>
+    <string name="insights_section_week">Last 7 days</string>
+    <string name="insights_section_month">Last 30 days</string>
+    <string name="insights_section_three_months">Last 3 months</string>
+    <string name="insights_section_all">All time</string>
     <string name="insights_consistency">Study consistency</string>
-    <string name="insights_consistency_subtitle">A steady rhythm matters more than a perfect day.</string>
+    <string name="insights_consistency_subtitle">Last 12 weeks. A steady rhythm matters more than a perfect day.</string>
     <string name="insights_study_time">Study time</string>
     <string name="insights_study_time_subtitle">Hours logged each day</string>
     <string name="insights_plan_actual">Plan vs actual</string>
@@ -43,7 +47,7 @@
     <string name="insights_less">Less</string>
     <string name="insights_more">More</string>
     <string name="insights_current_streak">Current streak</string>
-    <string name="insights_active_this_period">Active days</string>
+    <string name="insights_active_this_period">Active days in period</string>
     <string name="insights_planned">Planned</string>
     <string name="insights_completed_planned">Completed from plan</string>
     <string name="insights_extra_study">Plus %1$s of extra study</string>
@@ -55,8 +59,8 @@
     <string name="insights_total_period">%1$s studied in this period</string>
     <string name="insights_start_studying">Your study time will appear here.</string>
     <plurals name="insights_topics_fraction">
-        <item quantity="one">%1$d / %2$d topic</item>
-        <item quantity="other">%1$d / %2$d topics</item>
+        <item quantity="one">%1$d / %2$d section</item>
+        <item quantity="other">%1$d / %2$d sections</item>
     </plurals>
     <string name="insights_covered">%1$d%% covered</string>
     <plurals name="insights_remaining_count">
@@ -65,8 +69,8 @@
     </plurals>
     <string name="insights_manage_target">Manage target</string>
     <plurals name="insights_target_of_official">
-        <item quantity="one">Target syllabus: %1$d of %2$d official topic</item>
-        <item quantity="other">Target syllabus: %1$d of %2$d official topics</item>
+        <item quantity="one">Target syllabus: %1$d of %2$d official section</item>
+        <item quantity="other">Target syllabus: %1$d of %2$d official sections</item>
     </plurals>
     <string name="insights_target_date">Target date</string>
     <string name="insights_at_current_pace">At current pace</string>
@@ -117,18 +121,22 @@
     <string name="insights_on_track_label">On track</string>
     <string name="insights_behind_label">Behind</string>
     <plurals name="insights_subject_detail">
-        <item quantity="one">%1$d of %2$d target topic covered</item>
-        <item quantity="other">%1$d of %2$d target topics covered</item>
+        <item quantity="one">%1$d of %2$d target section covered</item>
+        <item quantity="other">%1$d of %2$d target sections covered</item>
     </plurals>
     <plurals name="insights_topics_left">
-        <item quantity="one">%1$d topic left</item>
-        <item quantity="other">%1$d topics left</item>
+        <item quantity="one">%1$d section left</item>
+        <item quantity="other">%1$d sections left</item>
     </plurals>
     <plurals name="insights_left">
         <item quantity="one">%1$d left</item>
         <item quantity="other">%1$d left</item>
     </plurals>
     <string name="insights_due_now">Due now</string>
+    <plurals name="insights_revision_overdue">
+        <item quantity="one">%1$d of these is overdue</item>
+        <item quantity="other">%1$d of these are overdue</item>
+    </plurals>
     <string name="insights_due_week">Due this week</string>
     <string name="insights_completed_week">Completed this week</string>
     <string name="insights_no_revision_history">Revision data will appear after you complete a few study sessions.</string>

@@ -61,6 +61,7 @@ import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
+import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.design.AppCard
 import com.exam.assistant.core.design.AppCardTone
 import com.exam.assistant.core.design.AppTheme
@@ -84,12 +85,13 @@ fun OrganiseRoute(
     planRepository: PlanRepository,
     studyPreferenceRepository: StudyPreferenceRepository,
     rollingPlanRepository: RollingPlanRepository,
+    topicProgressRepository: TopicProgressRepository,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: OrganiseViewModel = viewModel(
         factory = OrganiseViewModel.Factory(
             examPackRepository, attemptRepository, targetSyllabusRepository, planRepository,
-            studyPreferenceRepository, rollingPlanRepository,
+            studyPreferenceRepository, rollingPlanRepository, topicProgressRepository,
         ),
     ),
 ) {
@@ -262,7 +264,11 @@ fun OrganiseScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     DeltaRow(stringResource(R.string.organise_chapters_in_play), state.beforeIncludedCount.toString(), state.includedCount.toString())
-                    DeltaRow(stringResource(R.string.organise_hours_left), "—", stringResource(R.string.organise_hours_short, state.totalMinutes / 60f))
+                    DeltaRow(
+                        stringResource(R.string.organise_hours_left),
+                        stringResource(R.string.organise_hours_short, state.beforeRemainingMinutes / 60f),
+                        stringResource(R.string.organise_hours_short, state.remainingMinutes / 60f),
+                    )
                     if (state.saveFailed) Text(stringResource(R.string.organise_save_failed), color = colors.error)
                 }
             },
@@ -405,7 +411,7 @@ private fun PlanPreview(state: OrganiseUiState) {
                             R.plurals.organise_timeline_body,
                             state.includedCount,
                             state.includedCount,
-                            state.totalMinutes / 60f,
+                            state.remainingMinutes / 60f,
                         ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.textSecondary,

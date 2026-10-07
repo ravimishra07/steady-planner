@@ -16,6 +16,7 @@ import com.exam.assistant.core.data.repo.RevisionRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.data.repo.StudySessionRepository
+import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.domain.PendingSyllabusPick
 import com.exam.assistant.domain.StudySessionRecord
@@ -32,6 +33,7 @@ fun HomeRoute(
     studyPreferenceRepository: StudyPreferenceRepository,
     revisionRepository: RevisionRepository,
     rollingPlanRepository: RollingPlanRepository,
+    targetSyllabusRepository: TargetSyllabusRepository,
     onSetupPlan: () -> Unit,
     onEditPlan: () -> Unit,
     onStartFocus: suspend (StudySessionRecord) -> Unit,
@@ -49,6 +51,7 @@ fun HomeRoute(
             studyPreferenceRepository,
             revisionRepository,
             rollingPlanRepository,
+            targetSyllabusRepository,
         ),
     ),
 ) {

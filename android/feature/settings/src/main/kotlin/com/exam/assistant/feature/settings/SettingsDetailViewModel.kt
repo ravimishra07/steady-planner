@@ -126,7 +126,6 @@ class SettingsDetailViewModel(
                 check(rollingPlanRepository.replenish(fromDate = LocalDate.now()) != null) {
                     "The study plan could not be regenerated"
                 }
-                settingsStore.setFocusDurationSec(draft.focusDurationMinutes * 60)
             }.onSuccess {
                 _state.update {
                     it.copy(

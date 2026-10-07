@@ -8,6 +8,7 @@ import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.SettingsStore
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.PlanRepository
+import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.data.repo.StudySessionRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.domain.BlockTag
@@ -19,6 +20,7 @@ import com.exam.assistant.domain.StudySession
 import com.exam.assistant.domain.StudySessionSegment
 import com.exam.assistant.domain.StudySessionStatus
 import com.exam.assistant.domain.StudyOutcome
+import com.exam.assistant.domain.StudyPreferences
 import com.exam.assistant.domain.StudyPlanBlock
 import com.exam.assistant.domain.PlanBlockStatus
 import com.exam.assistant.domain.findNode
@@ -47,6 +49,7 @@ class FocusViewModel(
     private val planRepository: PlanRepository,
     private val studySessionRepository: StudySessionRepository,
     private val rollingPlanRepository: RollingPlanRepository,
+    private val studyPreferenceRepository: StudyPreferenceRepository,
     private val appScope: CoroutineScope,
 ) : ViewModel() {
 
@@ -73,7 +76,15 @@ class FocusViewModel(
                 completeExpiredSession(now)
                 return@launch
             }
-            val session = stored.withClockAt(now)
+            var session = stored.withClockAt(now)
+            if (session.status == FocusStatus.IDLE) {
+                // The idle timer shows the one stored session length, even if Settings changed it since.
+                val preferred = preferredSessionSec()
+                if (session.durationSec != preferred) {
+                    session = session.copy(durationSec = preferred, remainingSec = preferred)
+                    focusStore.save(session)
+                }
+            }
             applySession(session)
             if (session.status == FocusStatus.RUNNING || session.status == FocusStatus.PAUSED) {
                 syncNormalizedSession(session, now)
@@ -89,7 +100,7 @@ class FocusViewModel(
                 ?.let { id -> planRepository.byId(id) }
                 ?.plannedMinutes
                 ?.times(60)
-                ?: settingsStore.focusDurationSec()
+                ?: preferredSessionSec()
             selectedBlock = null
             val session = FocusSession(
                 status = FocusStatus.RUNNING,
@@ -146,7 +157,7 @@ class FocusViewModel(
     fun setDuration(minutes: Int) {
         if (minutes !in setOf(25, 50, 90)) return
         viewModelScope.launch {
-            settingsStore.setFocusDurationSec(minutes * 60)
+            savePreferredSessionMinutes(minutes)
             val current = focusStore.load()
             if (current.status == FocusStatus.IDLE) {
                 val updated = current.copy(durationSec = minutes * 60, remainingSec = minutes * 60)
@@ -154,6 +165,26 @@ class FocusViewModel(
                 applySession(updated)
             }
         }
+    }
+
+    /**
+     * Session length has one home: [StudyPreferences.preferredSessionMinutes], which is also what
+     * Settings edits and the planner reads. [SettingsStore] is only the fallback before any plan exists.
+     */
+    private suspend fun preferredSessionSec(): Int {
+        val minutes = attemptRepository.activeAttempt()
+            ?.let { studyPreferenceRepository.forAttempt(it.id)?.preferredSessionMinutes }
+        return minutes?.times(60) ?: settingsStore.focusDurationSec()
+    }
+
+    private suspend fun savePreferredSessionMinutes(minutes: Int) {
+        val attempt = attemptRepository.activeAttempt()
+        if (attempt == null) {
+            settingsStore.setFocusDurationSec(minutes * 60)
+            return
+        }
+        val current = studyPreferenceRepository.forAttempt(attempt.id) ?: StudyPreferences(attemptId = attempt.id)
+        studyPreferenceRepository.upsert(current.copy(preferredSessionMinutes = minutes))
     }
 
     fun selectQueueItem(id: String) {
@@ -530,8 +561,9 @@ class FocusViewModel(
         private val planRepository: PlanRepository,
         private val studySessionRepository: StudySessionRepository,
         private val rollingPlanRepository: RollingPlanRepository,
+        private val studyPreferenceRepository: StudyPreferenceRepository,
         private val appScope: CoroutineScope,
-            ) : ViewModelProvider.Factory {
+    ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             FocusViewModel(
@@ -542,6 +574,7 @@ class FocusViewModel(
                 planRepository,
                 studySessionRepository,
                 rollingPlanRepository,
+                studyPreferenceRepository,
                 appScope,
             ) as T
     }

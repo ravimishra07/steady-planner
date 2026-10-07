@@ -10,13 +10,16 @@ import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.domain.ExamPack
 import com.exam.assistant.domain.SyllabusNode
-import com.exam.assistant.domain.TopicProgressStatus
+import com.exam.assistant.domain.SyllabusMetrics
+import com.exam.assistant.domain.TopicProgress
+import com.exam.assistant.domain.coverage
+import com.exam.assistant.domain.syllabusMetrics
+import com.exam.assistant.domain.targetStates
 import com.exam.assistant.domain.findNode
 import com.exam.assistant.domain.leafIds
 import com.exam.assistant.domain.totalMinutes
 import com.exam.assistant.domain.TargetNodeState
 import com.exam.assistant.domain.isNodeEffectivelyExcluded
-import com.exam.assistant.domain.effectiveTargetLeafIds
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,7 +46,9 @@ class SyllabusViewModel(
 
     private var pack: ExamPack? = null
     private var attemptId: String? = null
-    private var coveredNodeIds: Set<String> = emptySet()
+    private var progress: List<TopicProgress> = emptyList()
+    private var metrics: SyllabusMetrics? = null
+    private val coveredNodeIds: Set<String> get() = metrics?.coveredIds.orEmpty()
     private var openNodeIds: Set<String> = emptySet()
     private var targetOverrides: Map<String, TargetNodeState> = emptyMap()
     private var classGroupLeafIds: Map<String, List<String>> = emptyMap()
@@ -59,7 +64,7 @@ class SyllabusViewModel(
             attemptId = attempt?.id
             pack = attempt?.let { examPackRepository.examPackFor(it.examId) }
             targetOverrides = attempt?.let { active ->
-                targetSyllabusRepository.overridesFor(active.id).associate { it.nodeId to it.state }
+                targetStates(targetSyllabusRepository.overridesFor(active.id))
             }.orEmpty()
             reloadProgress()
         }
@@ -67,10 +72,7 @@ class SyllabusViewModel(
 
     private suspend fun reloadProgress() {
         val id = attemptId ?: run { rebuild(); return }
-        coveredNodeIds = topicProgressRepository.allOnce(id)
-            .filter { it.status == TopicProgressStatus.COVERED }
-            .map { it.nodeId }
-            .toSet()
+        progress = topicProgressRepository.allOnce(id)
         rebuild()
     }
 
@@ -103,6 +105,8 @@ class SyllabusViewModel(
 
     private fun rebuild() {
         val examPack = pack ?: return
+        val canonical = syllabusMetrics(examPack, targetOverrides, progress)
+        metrics = canonical
         if (!defaultExpansionSeeded) {
             examPack.subjects.firstOrNull()?.let { subject ->
                 openNodeIds = openNodeIds + subjectCardKey(subject.id)
@@ -141,12 +145,10 @@ class SyllabusViewModel(
             }
 
             val allLeaves = subject.leafIds()
-            val includedLeaves = examPack.effectiveTargetLeafIds(targetOverrides).intersect(allLeaves.toSet())
+            val includedLeaves = canonical.targetLeafIds.intersect(allLeaves.toSet())
             val nextLeafId = includedLeaves.firstOrNull { it !in coveredNodeIds }
             val nextLeaf = nextLeafId?.let(examPack::findNode)
-            val doneCount = allLeaves.count { it in coveredNodeIds }
-            val percent = if (allLeaves.isNotEmpty()) doneCount * 100 / allLeaves.size else 0
-            val doneMinutes = subject.nodes.sumOf { doneMinutesFor(it) }
+            val percent = canonical.bySubject[subject.id]?.percent ?: 0
             val excludedCount = subject.nodes.count { node ->
                 isNodeEffectivelyExcluded(node.id, emptyList(), targetOverrides)
             }
@@ -156,7 +158,6 @@ class SyllabusViewModel(
                 name = subject.name,
                 subjectId = subject.id,
                 percent = percent,
-                timeSpentMinutes = doneMinutes,
                 expanded = cardKey in openNodeIds,
                 rows = rows,
                 firstTopicKey = nextLeafId,
@@ -176,19 +177,13 @@ class SyllabusViewModel(
         }
         classGroupLeafIds = rebuiltClassGroups
 
-        val allLeavesGlobal = examPack.leafIds()
-        val doneGlobal = allLeavesGlobal.count { it in coveredNodeIds }
-        val percentGlobal = if (allLeavesGlobal.isNotEmpty()) doneGlobal * 100 / allLeavesGlobal.size else 0
-        val totalDoneMinutesGlobal = examPack.subjects.sumOf { subject -> subject.nodes.sumOf { doneMinutesFor(it) } }
-
         _state.update {
             SyllabusUiState(
                 loading = false,
                 subjects = subjects,
                 allCount = subjects.size,
                 dueCount = subjects.count { it.percent < 100 },
-                completedPercent = percentGlobal,
-                timeSpentMinutes = totalDoneMinutesGlobal,
+                completedPercent = canonical.overall.percent,
             )
         }
     }
@@ -216,7 +211,7 @@ class SyllabusViewModel(
             hasChildren = chapters.isNotEmpty(),
             expanded = key in openNodeIds,
             tickState = tickState,
-            percent = if (leaves.isEmpty()) 0 else doneCount * 100 / leaves.size,
+            percent = coverage(leaves.toSet(), coveredNodeIds).percent,
             doneLeafCount = doneCount,
             totalLeafCount = leaves.size,
             ancestorContinues = emptyList(),
@@ -250,14 +245,6 @@ class SyllabusViewModel(
     private fun classNumberFor(node: SyllabusNode): Int? =
         node.id.split('.').getOrNull(2)?.toIntOrNull()
 
-    /** Minutes credited proportionally to how much of this node's leaf set is covered. */
-    private fun doneMinutesFor(node: SyllabusNode): Int {
-        val leaves = node.leafIds()
-        if (leaves.isEmpty()) return 0
-        val done = leaves.count { it in coveredNodeIds }
-        return (node.totalMinutes() * done) / leaves.size
-    }
-
     private fun buildRows(
         node: SyllabusNode,
         ancestorContinues: List<Boolean>,
@@ -268,7 +255,7 @@ class SyllabusViewModel(
     ): List<SyllabusTreeRow> {
         val leaves = node.leafIds()
         val doneCount = leaves.count { it in coveredNodeIds }
-        val percent = if (leaves.isEmpty()) 0 else doneCount * 100 / leaves.size
+        val percent = coverage(leaves.toSet(), coveredNodeIds).percent
         val tickState = when {
             leaves.isEmpty() -> com.exam.assistant.domain.SyllabusTickState.NONE
             doneCount == 0 -> com.exam.assistant.domain.SyllabusTickState.NONE

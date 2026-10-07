@@ -67,10 +67,10 @@ import com.exam.assistant.domain.SyllabusSection
 import com.exam.assistant.domain.SyllabusTopicNode
 import com.exam.assistant.domain.StudyPlacementIssue
 import com.exam.assistant.domain.StudyActivityType
-import com.exam.assistant.domain.REVISION_INTERVAL_DAYS
 import com.exam.assistant.domain.currentMinuteOfDay
 import com.exam.assistant.domain.formatMinuteOfDay
 import com.exam.assistant.domain.topicHours
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -414,6 +414,7 @@ private fun StudyPickerFrame(
                         customEndMinuteOfDay = state.customEndMinuteOfDay,
                         onSelectEndMinute = onSetScheduledMinute,
                         placementIssue = state.placementIssue,
+                        revisionDue = state.pendingRevisionDue,
                     )
                 }
             }
@@ -550,7 +551,7 @@ private fun subjectRows(resources: Resources, sections: List<SyllabusSection>): 
                 R.plurals.home_picker_subject_summary,
                 section.topics.size,
                 section.topics.size,
-                section.topics.sumOf { topicHours(it).toInt() },
+                section.topics.sumOf { topicHours(it) }.roundToInt(),
             ),
             sectionIndex = index,
             path = emptyList(),
@@ -657,6 +658,7 @@ private fun DurationPickerContent(
     customEndMinuteOfDay: Int?,
     onSelectEndMinute: (Int) -> Unit,
     placementIssue: StudyPlacementIssue?,
+    revisionDue: java.time.LocalDate?,
 ) {
     val colors = AppTheme.colors
     val options = listOf(15, 30, 45)
@@ -664,9 +666,6 @@ private fun DurationPickerContent(
 
     val liveEndMinute = (customEndMinuteOfDay ?: (currentMinuteOfDay() + selectedMinutes))
         .coerceIn(0, 24 * 60 - 1)
-    val revisionDue = remember {
-        java.time.LocalDate.now().plusDays(REVISION_INTERVAL_DAYS.toLong())
-    }
     val revisionPattern = stringResource(R.string.home_revision_date_pattern)
     val revisionFormatter = remember(revisionPattern) {
         java.time.format.DateTimeFormatter.ofPattern(revisionPattern, java.util.Locale.getDefault())
@@ -753,24 +752,26 @@ private fun DurationPickerContent(
                         color = colors.text,
                     )
                 }
-                HorizontalDivider(color = colors.textMuted.copy(alpha = 0.14f))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(Spacing.lg),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = stringResource(R.string.home_revision_due),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = colors.textMuted,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(
-                        text = revisionDue.format(revisionFormatter),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = colors.text,
-                    )
+                if (revisionDue != null) {
+                    HorizontalDivider(color = colors.textMuted.copy(alpha = 0.14f))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Spacing.lg),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.home_revision_due),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = colors.textMuted,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(
+                            text = revisionDue.format(revisionFormatter),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = colors.text,
+                        )
+                    }
                 }
             }
         }
@@ -908,5 +909,5 @@ private fun pathOf(resources: Resources, parts: List<String>): String =
 
 private fun formatTopicHours(resources: Resources, node: SyllabusTopicNode): String {
     val hours = topicHours(node)
-    return if (hours > 0) resources.getString(R.string.home_estimated_hours, hours.toInt()) else ""
+    return if (hours > 0) resources.getString(R.string.home_estimated_hours, hours.roundToInt().coerceAtLeast(1)) else ""
 }

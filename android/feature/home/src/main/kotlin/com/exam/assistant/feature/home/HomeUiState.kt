@@ -74,6 +74,8 @@ data class HomeUiState(
     val pickerTopicPath: List<Int> = emptyList(),
     val pickerQuery: String = "",
     val pendingTopic: PendingTopic? = null,
+    /** When this topic's next revision falls due if the pending session is completed unrated; null for a custom topic. */
+    val pendingRevisionDue: LocalDate? = null,
     val selectedDurationMinutes: Int = 30,
     val customEndMinuteOfDay: Int? = null,
     val activeSprint: ActiveSprintUi? = null,

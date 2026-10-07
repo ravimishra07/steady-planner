@@ -52,6 +52,8 @@ import com.exam.assistant.core.data.StudySessionStore
 import com.exam.assistant.core.data.SyllabusStore
 import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
+import com.exam.assistant.core.data.repo.AvailabilityRepository
+import com.exam.assistant.core.data.repo.RevisionRepository
 import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.StudySessionRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
@@ -83,6 +85,8 @@ fun ProgressRoute(
     targetSyllabusRepository: TargetSyllabusRepository,
     rollingPlanRepository: RollingPlanRepository,
     studyPreferenceRepository: StudyPreferenceRepository,
+    revisionRepository: RevisionRepository,
+    availabilityRepository: AvailabilityRepository,
     modifier: Modifier = Modifier,
     onOpenSettings: () -> Unit = {},
     onGoToday: () -> Unit = {},
@@ -91,6 +95,7 @@ fun ProgressRoute(
             examPackRepository, attemptRepository, planRepository, studySessionRepository,
             topicProgressRepository, targetSyllabusRepository,
             rollingPlanRepository, studyPreferenceRepository,
+            revisionRepository, availabilityRepository,
         ),
     ),
 ) {
@@ -164,7 +169,7 @@ fun ProgressScreen(
         }
         PeriodSelector(selected = state.period, onSelect = onPeriodSelected)
 
-        InsightsSection(title = stringResource(R.string.insights_this_week), subtitle = periodSubtitle(state.period)) {
+        InsightsSection(title = stringResource(periodTitle(state.period)), subtitle = periodSubtitle(state.period)) {
             QuickStats(data)
         }
         InsightsSection(
@@ -189,7 +194,7 @@ fun ProgressScreen(
             SubjectsCard(data.subjects)
         }
         InsightsSection(title = stringResource(R.string.insights_remaining), subtitle = stringResource(R.string.insights_remaining_subtitle)) {
-            RemainingCard(data.subjects, data.syllabusRemainingTopics)
+            RemainingCard(data.subjects, data.syllabusRemainingSections)
         }
         InsightsSection(title = stringResource(R.string.insights_revision), subtitle = stringResource(R.string.insights_revision_subtitle)) {
             RevisionCard(data)
@@ -244,8 +249,8 @@ private fun EmptyProgressScreen(data: InsightsData, onGoToday: () -> Unit, modif
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             ProgressFact(
-                stringResource(R.string.progress_chapters_done),
-                stringResource(R.string.progress_fraction, data.syllabusCompletedTopics, data.syllabusTotalTopics),
+                stringResource(R.string.progress_sections_covered),
+                stringResource(R.string.progress_fraction, data.syllabusCompletedSections, data.syllabusTotalSections),
             )
             ProgressFact(stringResource(R.string.progress_days_studied), data.studyDaysInPeriod.toString())
             Button(onClick = onGoToday, modifier = Modifier.fillMaxWidth().height(Size.ctaHeight)) {
@@ -525,15 +530,15 @@ private fun SyllabusCard(data: InsightsData, onManageTarget: () -> Unit) {
     AppCard {
         Column(modifier = Modifier.padding(Spacing.lg)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-                Text(pluralStringResource(R.plurals.insights_topics_fraction, data.syllabusTotalTopics, data.syllabusCompletedTopics, data.syllabusTotalTopics), style = MaterialTheme.typography.headlineSmall, color = colors.text, fontWeight = FontWeight.Bold)
+                Text(pluralStringResource(R.plurals.insights_topics_fraction, data.syllabusTotalSections, data.syllabusCompletedSections, data.syllabusTotalSections), style = MaterialTheme.typography.headlineSmall, color = colors.text, fontWeight = FontWeight.Bold)
                 Text(stringResource(R.string.insights_covered, data.syllabusPercent), style = MaterialTheme.typography.titleMedium, color = colors.brandSoft, fontWeight = FontWeight.SemiBold)
             }
             Row(modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(pluralStringResource(R.plurals.insights_remaining_count, data.syllabusRemainingTopics, data.syllabusRemainingTopics), style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
+                Text(pluralStringResource(R.plurals.insights_remaining_count, data.syllabusRemainingSections, data.syllabusRemainingSections), style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
                 TextButton(onClick = onManageTarget, contentPadding = androidx.compose.foundation.layout.PaddingValues(Spacing.none)) { Text(stringResource(R.string.insights_manage_target), color = colors.brandSoft) }
             }
             ProgressBar(data.syllabusPercent, colors.brand, Modifier.padding(top = Spacing.xs))
-            if (data.excludedTopicCount > 0) Text(pluralStringResource(R.plurals.insights_target_of_official, data.officialTopicCount, data.syllabusTotalTopics, data.officialTopicCount), style = MaterialTheme.typography.labelSmall, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.sm))
+            if (data.excludedSectionCount > 0) Text(pluralStringResource(R.plurals.insights_target_of_official, data.officialSectionCount, data.syllabusTotalSections, data.officialSectionCount), style = MaterialTheme.typography.labelSmall, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.sm))
         }
     }
 }
@@ -622,11 +627,13 @@ private fun SubjectRow(subject: SubjectInsight) {
             Text(subject.name, style = MaterialTheme.typography.titleSmall, color = colors.text, fontWeight = FontWeight.SemiBold)
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text(stringResource(R.string.insights_percent_value, subject.percent), style = MaterialTheme.typography.bodySmall, color = colors.textSecondary)
-                Text(subjectStatusLabel(subject.status), style = MaterialTheme.typography.bodySmall, color = subjectStatusColor(subject.status), fontWeight = FontWeight.SemiBold)
+                subject.status?.let { status ->
+                    Text(subjectStatusLabel(status), style = MaterialTheme.typography.bodySmall, color = subjectStatusColor(status), fontWeight = FontWeight.SemiBold)
+                }
             }
         }
-        ProgressBar(subject.percent, subjectStatusColor(subject.status), Modifier.padding(top = Spacing.sm))
-        if (expanded) Text(pluralStringResource(R.plurals.insights_subject_detail, subject.totalTopics, subject.completedTopics, subject.totalTopics), style = MaterialTheme.typography.labelSmall, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.sm))
+        ProgressBar(subject.percent, subject.status?.let { subjectStatusColor(it) } ?: colors.brandSoft, Modifier.padding(top = Spacing.sm))
+        if (expanded) Text(pluralStringResource(R.plurals.insights_subject_detail, subject.totalSections, subject.completedSections, subject.totalSections), style = MaterialTheme.typography.labelSmall, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.sm))
     }
 }
 
@@ -639,7 +646,7 @@ private fun RemainingCard(subjects: List<SubjectInsight>, totalRemaining: Int) {
             subjects.forEach { subject ->
                 Row(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.md), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(subject.name, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
-                    Text(pluralStringResource(R.plurals.insights_left, subject.remainingTopics, subject.remainingTopics), style = MaterialTheme.typography.bodyMedium, color = colors.text, fontWeight = FontWeight.SemiBold)
+                    Text(pluralStringResource(R.plurals.insights_left, subject.remainingSections, subject.remainingSections), style = MaterialTheme.typography.bodyMedium, color = colors.text, fontWeight = FontWeight.SemiBold)
                 }
                 if (subject != subjects.last()) HorizontalDivider(color = colors.borderSubtle)
             }
@@ -657,6 +664,14 @@ private fun RevisionCard(data: InsightsData) {
                 RevisionMetric(stringResource(R.string.insights_due_now), data.revision.dueNow, Modifier.weight(1f))
                 RevisionMetric(stringResource(R.string.insights_due_week), data.revision.dueThisWeek, Modifier.weight(1f))
                 RevisionMetric(stringResource(R.string.insights_completed_week), data.revision.completedThisWeek, Modifier.weight(1f))
+            }
+            if (data.revision.overdue > 0) {
+                Text(
+                    text = pluralStringResource(R.plurals.insights_revision_overdue, data.revision.overdue, data.revision.overdue),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.warning,
+                    modifier = Modifier.padding(top = Spacing.sm),
+                )
             }
             if (data.revision.onTimePercent == null) {
                 EmptyData(text = stringResource(R.string.insights_no_revision_history))
@@ -746,6 +761,14 @@ private fun TargetManagerDialog(sections: List<TargetSectionUi>, onToggle: (Stri
         confirmButton = { Button(onClick = onDismiss) { Text(stringResource(R.string.insights_done)) } },
         containerColor = colors.surface,
     )
+}
+
+private fun periodTitle(period: InsightPeriod): Int = when (period) {
+    InsightPeriod.DAY -> R.string.insights_section_day
+    InsightPeriod.WEEK -> R.string.insights_section_week
+    InsightPeriod.MONTH -> R.string.insights_section_month
+    InsightPeriod.THREE_MONTHS -> R.string.insights_section_three_months
+    InsightPeriod.ALL -> R.string.insights_section_all
 }
 
 @Composable

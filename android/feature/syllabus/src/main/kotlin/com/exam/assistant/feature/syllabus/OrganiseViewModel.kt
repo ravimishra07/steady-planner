@@ -10,10 +10,13 @@ import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
+import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.domain.ExamPack
 import com.exam.assistant.domain.PlanningOrder
 import com.exam.assistant.domain.StudyActivityType
 import com.exam.assistant.domain.TargetNodeState
+import com.exam.assistant.domain.TopicProgress
+import com.exam.assistant.domain.syllabusMetrics
 import com.exam.assistant.domain.findNode
 import com.exam.assistant.domain.totalMinutes
 import java.time.LocalDate
@@ -31,6 +34,7 @@ class OrganiseViewModel(
     private val planRepository: PlanRepository,
     private val studyPreferenceRepository: StudyPreferenceRepository,
     private val rollingPlanRepository: RollingPlanRepository,
+    private val topicProgressRepository: TopicProgressRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(OrganiseUiState())
     val state: StateFlow<OrganiseUiState> = _state.asStateFlow()
@@ -43,6 +47,8 @@ class OrganiseViewModel(
     private var originalOrder = PlanningOrder.DEFAULT
     private var draftOrder = PlanningOrder.DEFAULT
     private var originalRows = emptyList<OrganiseChapterRow>()
+    private var progress = emptyList<TopicProgress>()
+    private var originalRemainingMinutes = 0
 
     init { refresh() }
 
@@ -61,6 +67,8 @@ class OrganiseViewModel(
         originalOrder = studyPreferenceRepository.forAttempt(attempt.id)?.planningOrder ?: PlanningOrder.DEFAULT
         draftOrder = originalOrder
         originalRows = rowsFor(pack!!)
+        progress = topicProgressRepository.allOnce(attempt.id)
+        originalRemainingMinutes = remainingMinutesFor(pack!!, originalExcluded)
         refreshPreview()
     }
 
@@ -124,6 +132,7 @@ class OrganiseViewModel(
             originalExcluded = draftExcluded
             originalOrder = draftOrder
             originalRows = rowsFor(pack ?: return@onSuccess)
+            originalRemainingMinutes = remainingMinutesFor(pack ?: return@onSuccess, originalExcluded)
             _state.update { it.copy(saving = false, saved = true) }
         }.onFailure {
             runCatching { examPackRepository.saveCustomChapters(attempt.examId, originalCustom) }
@@ -180,6 +189,10 @@ class OrganiseViewModel(
         rebuild(attempt.examId, week, todayRows)
     }
 
+    /** Uncovered work in the chapters that are in play, through the same metric every other screen uses. */
+    private fun remainingMinutesFor(currentPack: ExamPack, excluded: Set<String>): Int =
+        syllabusMetrics(currentPack, excluded.associateWith { TargetNodeState.EXCLUDED }, progress).remainingMinutes
+
     private fun rowsFor(currentPack: ExamPack): List<OrganiseChapterRow> {
         val customIds = draftCustom.mapTo(mutableSetOf()) { it.id }
         return currentPack.subjects.flatMap { subject ->
@@ -224,7 +237,8 @@ class OrganiseViewModel(
             week = week,
             todaySessions = todaySessions,
             beforeIncludedCount = originalRows.count { !it.excluded },
-            beforeTotalMinutes = originalRows.filterNot { it.excluded }.sumOf { it.estimatedMinutes },
+            remainingMinutes = remainingMinutesFor(currentPack, draftExcluded),
+            beforeRemainingMinutes = originalRemainingMinutes,
             changedChapterCount = changedChapters,
             planningOrder = draftOrder,
             orderChanged = draftOrder != originalOrder,
@@ -239,6 +253,7 @@ class OrganiseViewModel(
         private val planRepository: PlanRepository,
         private val studyPreferenceRepository: StudyPreferenceRepository,
         private val rollingPlanRepository: RollingPlanRepository,
+        private val topicProgressRepository: TopicProgressRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T = OrganiseViewModel(
@@ -248,6 +263,7 @@ class OrganiseViewModel(
             planRepository,
             studyPreferenceRepository,
             rollingPlanRepository,
+            topicProgressRepository,
         ) as T
     }
 }

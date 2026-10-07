@@ -7,15 +7,13 @@ import com.exam.assistant.core.data.db.PrepTrackerDatabase
 import com.exam.assistant.core.data.db.toDomain
 import com.exam.assistant.core.data.db.toEntity
 import com.exam.assistant.domain.PlanBlockStatus
-import com.exam.assistant.domain.StudyActivityType
 import com.exam.assistant.domain.StudySession
 import com.exam.assistant.domain.StudySessionSegment
 import com.exam.assistant.domain.StudySessionStatus
-import com.exam.assistant.domain.revisionStateAfterLearn
-import com.exam.assistant.domain.revisionStateAfterReview
+import com.exam.assistant.domain.completeStudySession
+import com.exam.assistant.domain.recordStudyOutcome
 import com.exam.assistant.domain.topicProgressAfterStudy
 import com.exam.assistant.domain.StudyOutcome
-import com.exam.assistant.domain.revisionStateWithOutcome
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
@@ -113,34 +111,30 @@ class StudySessionRepository(
         today: LocalDate,
         nowMs: Long,
     ): StudySession = withContext(dispatchers.io) {
-        val completed = session.copy(status = StudySessionStatus.COMPLETED, endedAtEpochMs = nowMs, updatedAtEpochMs = nowMs)
+        val nodeId = session.nodeId
+        lateinit var stored: StudySession
         db.withTransaction {
-            sessionDao.upsert(completed.toEntity())
+            val revisionDao = db.revisionStateDao()
+            val currentRevision = nodeId?.let { revisionDao.byNode(session.attemptId, it)?.toDomain() }
+            val result = completeStudySession(session, currentRevision, today, nowMs)
+            stored = result.session
+            sessionDao.upsert(stored.toEntity())
             sessionDao.openSegment(session.id)?.let { open ->
-                sessionDao.upsertSegment(open.copy(endedAtEpochMs = nowMs, focusedSeconds = completed.focusedSeconds))
+                sessionDao.upsertSegment(open.copy(endedAtEpochMs = nowMs, focusedSeconds = stored.focusedSeconds))
             }
             session.planBlockId?.let { planBlockId ->
                 db.studyPlanBlockDao().byId(planBlockId)?.let { block ->
                     db.studyPlanBlockDao().upsert(block.copy(status = PlanBlockStatus.COMPLETED.name, updatedAtEpochMs = nowMs))
                 }
             }
-            val nodeId = session.nodeId
             if (nodeId != null) {
                 val progressDao = db.topicProgressDao()
                 val current = progressDao.byNode(session.attemptId, nodeId)?.toDomain()
                 progressDao.upsert(topicProgressAfterStudy(current, session.attemptId, nodeId, nowMs).toEntity())
-
-                val revisionDao = db.revisionStateDao()
-                val currentRevision = revisionDao.byNode(session.attemptId, nodeId)?.toDomain()
-                val updatedRevision = if (session.activityType == StudyActivityType.REVISION) {
-                    revisionStateAfterReview(currentRevision, session.attemptId, nodeId, today, nowMs, session.outcome)
-                } else {
-                    revisionStateAfterLearn(currentRevision, session.attemptId, nodeId, today, nowMs, session.outcome)
-                }
-                revisionDao.upsert(updatedRevision.toEntity())
+                result.revision?.let { revisionDao.upsert(it.toEntity()) }
             }
         }
-        completed
+        stored
     }
 
     /**
@@ -189,14 +183,19 @@ class StudySessionRepository(
         }
     }
 
+    /**
+     * Stores the student's rating. The revision schedule is recomputed from the
+     * interval recorded when the session completed, so the rating replaces the
+     * provisional schedule instead of being applied on top of it.
+     */
     suspend fun recordOutcome(sessionId: String, outcome: StudyOutcome, nowMs: Long) = withContext(dispatchers.io) {
         db.withTransaction {
             val session = sessionDao.byId(sessionId)?.toDomain() ?: return@withTransaction
-            sessionDao.upsert(session.copy(outcome = outcome, updatedAtEpochMs = nowMs).toEntity())
-            val nodeId = session.nodeId ?: return@withTransaction
             val revisionDao = db.revisionStateDao()
-            val current = revisionDao.byNode(session.attemptId, nodeId)?.toDomain() ?: return@withTransaction
-            revisionDao.upsert(revisionStateWithOutcome(current, session.studyDate, outcome, nowMs).toEntity())
+            val current = session.nodeId?.let { revisionDao.byNode(session.attemptId, it)?.toDomain() }
+            val result = recordStudyOutcome(session, current, outcome, nowMs)
+            sessionDao.upsert(result.session.toEntity())
+            result.revision?.let { revisionDao.upsert(it.toEntity()) }
         }
     }
 }

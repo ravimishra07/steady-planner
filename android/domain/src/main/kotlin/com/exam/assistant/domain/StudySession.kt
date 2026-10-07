@@ -3,8 +3,6 @@ package com.exam.assistant.domain
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-const val REVISION_INTERVAL_DAYS = 3
-
 data class StudySessionRecord(
     val id: String,
     val date: LocalDate,
@@ -18,12 +16,9 @@ data class StudySessionRecord(
     val completed: Boolean = false,
     /** Planned intent stays separate from actual focused effort for truthful analytics. */
     val planned: Boolean = true,
-    val focusedMinutes: Int? = null,
     /** Wall-clock end for an in-progress sprint. */
     val runningEndsAtMs: Long? = null,
 )
-
-fun StudySessionRecord.actualMinutes(): Int = focusedMinutes ?: durationMinutes
 
 fun formatMinuteOfDay(minuteOfDay: Int): String {
     val h = minuteOfDay / 60
@@ -55,6 +50,7 @@ fun sessionsToTimeline(sessions: List<StudySessionRecord>): List<TimelineItem> {
     return buildTimeline(blocks)
 }
 
+/** A revision that is due. [studiedOn] is the last time the student studied this topic, used for "Last studied N days ago". */
 data class RevisionSuggestion(
     val nodeKey: String,
     val title: String,
@@ -62,44 +58,6 @@ data class RevisionSuggestion(
     val subjectId: String,
     val studiedOn: LocalDate,
 )
-
-fun revisionSuggestions(
-    allSessions: List<StudySessionRecord>,
-    today: LocalDate = LocalDate.now(),
-    intervalDays: Int = REVISION_INTERVAL_DAYS,
-): List<RevisionSuggestion> {
-    val studiedOn = today.minusDays(intervalDays.toLong())
-    val todaySessions = allSessions.filter { it.date == today }
-    val alreadyRevisedToday = todaySessions
-        .filter { it.isRevision }
-        .map { it.nodeKey }
-        .toSet()
-    return allSessions
-        .filter { session ->
-            session.date == studiedOn &&
-                session.completed &&
-                !session.isRevision &&
-                session.nodeKey !in alreadyRevisedToday
-        }
-        .distinctBy { it.nodeKey }
-        .map { session ->
-            RevisionSuggestion(
-                nodeKey = session.nodeKey,
-                title = session.title,
-                sectionName = session.sectionName,
-                subjectId = session.subjectId,
-                studiedOn = studiedOn,
-            )
-        }
-}
-
-fun sectionSubjectId(sectionIndex: Int): String = when (sectionIndex) {
-    0 -> "quant"
-    1 -> "reasoning"
-    2 -> "ga"
-    3 -> "english"
-    else -> "quant"
-}
 
 fun nodeKey(sectionIndex: Int, pathIndices: List<Int>, tierPrefix: String = "t1"): String {
     val tail = pathIndices.joinToString("_")

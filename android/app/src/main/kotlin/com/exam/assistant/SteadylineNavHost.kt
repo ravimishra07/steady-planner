@@ -112,6 +112,7 @@ fun SteadylineNavHost(
                     studyPreferenceRepository = container.studyPreferenceRepository,
                     revisionRepository = container.revisionRepository,
                     rollingPlanRepository = container.rollingPlanRepository,
+                    targetSyllabusRepository = container.targetSyllabusRepository,
                     onSetupPlan = { navController.navigate(Route.Onboarding.path) },
                     onEditPlan = { navController.navigate(Route.Organise.path) },
                     onStartFocus = { session ->
@@ -172,6 +173,7 @@ fun SteadylineNavHost(
                     planRepository = container.planRepository,
                     studyPreferenceRepository = container.studyPreferenceRepository,
                     rollingPlanRepository = container.rollingPlanRepository,
+                    topicProgressRepository = container.topicProgressRepository,
                     onBack = { navController.popBackStack() },
                     modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                 )
@@ -185,6 +187,7 @@ fun SteadylineNavHost(
                     planRepository = container.planRepository,
                     studySessionRepository = container.studySessionRepository,
                     rollingPlanRepository = container.rollingPlanRepository,
+                    studyPreferenceRepository = container.studyPreferenceRepository,
                     appScope = container.appScope,
                     onClose = {
                         navController.navigate(Route.Home.path) {
@@ -205,6 +208,8 @@ fun SteadylineNavHost(
                     targetSyllabusRepository = container.targetSyllabusRepository,
                     rollingPlanRepository = container.rollingPlanRepository,
                     studyPreferenceRepository = container.studyPreferenceRepository,
+                    revisionRepository = container.revisionRepository,
+                    availabilityRepository = container.availabilityRepository,
                     onOpenSettings = { navController.navigate(Route.Settings.path) },
                     onGoToday = { navController.navigate(Route.Home.path) { launchSingleTop = true } },
                     modifier = Modifier.padding(padding).consumeWindowInsets(padding),
