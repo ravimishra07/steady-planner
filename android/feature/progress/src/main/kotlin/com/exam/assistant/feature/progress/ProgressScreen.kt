@@ -49,7 +49,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.exam.assistant.core.data.StudySessionStore
-import com.exam.assistant.core.data.SyllabusRepository
 import com.exam.assistant.core.data.SyllabusStore
 import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.repo.AttemptRepository

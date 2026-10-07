@@ -16,8 +16,6 @@
     <string name="syllabus_edit">Edit syllabus</string>
     <string name="syllabus_close_filters">Close filters</string>
     <string name="syllabus_reset_filters">Reset</string>
-    <string name="syllabus_filter_all">All (%1$d)</string>
-    <string name="syllabus_filter_due">Not covered (%1$d)</string>
     <string name="syllabus_filter_due_compact">Not covered %1$d</string>
     <string name="syllabus_class_11">Class 11</string>
     <string name="syllabus_class_12">Class 12</string>
@@ -30,9 +28,6 @@
         <item quantity="one">%1$d/%2$d chapter · %3$dh · %4$d Q</item>
         <item quantity="other">%1$d/%2$d chapters · %3$dh · %4$d Q</item>
     </plurals>
-    <string name="syllabus_completed">Completed</string>
-    <string name="syllabus_time_spent">Time Spent</string>
-    <string name="syllabus_organise">Organise</string>
     <string name="syllabus_empty_title">Your syllabus is empty</string>
     <string name="syllabus_empty_body">Add at least one chapter before the app creates study work.</string>
     <string name="syllabus_add_first_chapter">Add a chapter</string>
@@ -50,7 +45,6 @@
     <string name="organise_add_chapter">Add chapter</string>
     <string name="organise_chapter_name">Chapter name</string>
     <string name="organise_estimated_hours">Estimated hours</string>
-    <string name="organise_estimated_hours_value">Estimated hours: %1$.1f</string>
     <string name="organise_decrease_hours">Decrease estimated study time</string>
     <string name="organise_increase_hours">Increase estimated study time</string>
     <string name="organise_hours_hint">Hours are your planning estimate, not exam data.</string>
@@ -71,7 +65,6 @@
     <string name="organise_no_sessions_today">Nothing is planned for today.</string>
     <string name="organise_next_seven">Estimated next 7 days</string>
     <string name="organise_hours_short">%1$.1fh</string>
-    <string name="organise_timeline_title">Where the current plan is likely to land</string>
     <plurals name="organise_timeline_body">
         <item quantity="one">%1$d chapter in play · about %2$.1f hours of syllabus work</item>
         <item quantity="other">%1$d chapters in play · about %2$.1f hours of syllabus work</item>

@@ -246,52 +246,6 @@ private fun SummaryFact(icon: androidx.compose.ui.graphics.vector.ImageVector, l
 }
 
 @Composable
-internal fun DaySummaryHeader(
-    plannedMinutes: Int,
-    completedMinutes: Int,
-    daysUntilExam: Int,
-    syllabusPercent: Int,
-    modifier: Modifier = Modifier,
-) {
-    val colors = AppTheme.colors
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Column {
-            if (plannedMinutes > 0) {
-                Text(
-                    text = formatDuration(plannedMinutes),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colors.text,
-                )
-                Text(
-                    text = stringResource(R.string.home_completed_caption, formatDuration(completedMinutes)),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = colors.textSecondary,
-                    modifier = Modifier.padding(top = TimelineMetrics.microOffset),
-                )
-            }
-        }
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                text = pluralStringResource(R.plurals.home_days_to_exam, daysUntilExam, daysUntilExam),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium,
-                color = colors.textSecondary,
-            )
-            Text(
-                text = stringResource(R.string.home_syllabus_progress, syllabusPercent),
-                style = MaterialTheme.typography.labelMedium,
-                color = colors.textMuted,
-                modifier = Modifier.padding(top = TimelineMetrics.microOffset),
-            )
-        }
-    }
-}
-
-@Composable
 private fun DashedVerticalLine(color: Color, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val dash = TimelineMetrics.dash.toPx()

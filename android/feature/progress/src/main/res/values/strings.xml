@@ -1,33 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="progress_no_plan">Finish onboarding to see your Insights.</string>
     <string name="progress_empty_banner_title">Your progress starts with a Focus session</string>
     <string name="progress_empty_banner_body">Complete one study session to build pace, revision, time, and consistency here.</string>
     <string name="progress_start_next">Start next session</string>
-    <string name="progress_covered">covered</string>
     <string name="progress_chapters_done">Chapters done</string>
     <string name="progress_fraction">%1$d of %2$d</string>
-    <string name="progress_hours_logged">Hours logged</string>
-    <string name="progress_zero_hours">0h</string>
     <string name="progress_days_studied">Days studied</string>
-    <string name="progress_not_enough_pace">Not enough history to judge pace</string>
-    <string name="progress_not_enough_pace_body">Log a few days of study and this fills in.</string>
-    <string name="progress_due_to_revise">Due to revise</string>
-    <string name="progress_period_7d">7d</string>
-    <string name="progress_period_30d">30d</string>
-    <string name="progress_period_90d">90d</string>
-    <string name="progress_zero">0</string>
-    <string name="progress_nothing_due">Nothing due — everything is on its schedule.</string>
-    <string name="progress_time">Time</string>
-    <string name="progress_zero_streak">0 day streak</string>
-    <string name="progress_time_empty">0h a day, last 14 days</string>
-    <string name="progress_target_hours">4h target</string>
-    <string name="progress_day_due">due</string>
-    <string name="progress_day_w">W</string>
-    <string name="progress_day_t">T</string>
-    <string name="progress_day_f">F</string>
-    <string name="progress_day_s">S</string>
-    <string name="progress_day_m">M</string>
     <string name="insights_title">Insights</string>
     <string name="insights_settings">Open settings</string>
     <string name="insights_loading">Loading your preparation story…</string>
@@ -67,7 +45,6 @@
     <string name="insights_current_streak">Current streak</string>
     <string name="insights_active_this_period">Active days</string>
     <string name="insights_planned">Planned</string>
-    <string name="insights_studied">Studied</string>
     <string name="insights_completed_planned">Completed from plan</string>
     <string name="insights_extra_study">Plus %1$s of extra study</string>
     <string name="insights_plan_percent">%1$d%% of plan completed</string>

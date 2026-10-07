@@ -9,12 +9,10 @@
     <string name="focus_logged_minutes">%1$d min logged</string>
     <string name="focus_done">Done</string>
     <string name="focus_start_session">Start %1$d-minute session</string>
-    <string name="focus_stop">Stop</string>
     <string name="focus_pause">Pause</string>
     <string name="focus_resume">Resume</string>
     <string name="focus_add_five">+5 min</string>
     <string name="focus_end">End</string>
-    <string name="focus_length_minutes">%1$d min</string>
     <string name="focus_start_another">Start another</string>
     <string name="focus_outcome_prompt">How did this topic feel?</string>
     <string name="focus_outcome_struggled">Struggled</string>
@@ -28,7 +26,6 @@
     <string name="focus_stop_save">Save &amp; end</string>
     <string name="focus_stop_discard">Discard session</string>
     <string name="focus_stop_keep_going">Keep studying</string>
-    <string name="focus_tag_read">Read</string>
     <string name="focus_tag_learn">Learn</string>
     <string name="focus_tag_practice">Practice</string>
     <string name="focus_tag_revise">Revise</string>

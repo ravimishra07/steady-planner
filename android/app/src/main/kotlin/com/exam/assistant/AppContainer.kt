@@ -10,7 +10,6 @@ import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.RemoteConfig
 import com.exam.assistant.core.data.SettingsStore
 import com.exam.assistant.core.data.StudySessionStore
-import com.exam.assistant.core.data.SyllabusRepository
 import com.exam.assistant.core.data.SyllabusStore
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.AvailabilityRepository
@@ -48,8 +47,6 @@ class AppContainer(private val context: Context) {
     val settings: SettingsStore by lazy { SettingsStore(context, dispatchers) }
 
     val planStore: PlanStore by lazy { PlanStore(context, dispatchers) }
-
-    val syllabusRepository: SyllabusRepository by lazy { SyllabusRepository(context, dispatchers) }
 
     val syllabusStore: SyllabusStore by lazy { SyllabusStore(context, dispatchers) }
 
