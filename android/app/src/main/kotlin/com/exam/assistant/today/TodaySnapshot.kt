@@ -15,6 +15,7 @@ import kotlinx.coroutines.withContext
 /** One planned block of today, named the way Today names it. */
 data class TodayBlock(
     val id: String,
+    val nodeId: String,
     /** Blank when the block has no chapter; callers fall back to a generic label. */
     val title: String,
     val subjectName: String,
@@ -64,6 +65,7 @@ suspend fun AppContainer.loadTodaySnapshot(today: LocalDate = LocalDate.now()): 
                     val chapter = if (isRevision) block.nodeId?.let { pack.chapterOf(it) } else null
                     TodayBlock(
                         id = block.id,
+                        nodeId = block.nodeId.orEmpty(),
                         title = block.customTitle ?: chapter?.title ?: node?.title.orEmpty(),
                         subjectName = block.nodeId?.let { pack.findSubjectOf(it) }?.name.orEmpty(),
                         startMinuteOfDay = block.startMinuteOfDay,

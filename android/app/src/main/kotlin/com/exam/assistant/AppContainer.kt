@@ -31,7 +31,21 @@ import com.exam.assistant.focus.AppFocusEffects
 import com.exam.assistant.focus.FocusAlarm
 import com.exam.assistant.focus.FocusNotifier
 import com.exam.assistant.reminder.DailyReminder
+import com.exam.assistant.domain.BlockTag
+import com.exam.assistant.domain.FocusBlockRef
+import com.exam.assistant.domain.FocusSession
+import com.exam.assistant.domain.FocusStatus
+import com.exam.assistant.today.loadTodaySnapshot
+import com.exam.assistant.widget.AppWidgets
+import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -130,6 +144,68 @@ class AppContainer(private val context: Context) {
             migrationRepository.migrateIfNeeded()
             reconcileExpiredFocus()
             rollingPlanRepository.replenish()
+            refreshWidgetsOnChange()
+        }
+    }
+
+    /**
+     * Widgets follow today's plan and coverage: any write to either (a replan, a
+     * finished session, a ticked chapter) redraws them, debounced. Lives as long
+     * as the process; with no widget placed each emission is a cheap no-op.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
+    private suspend fun refreshWidgetsOnChange() {
+        attemptRepository.observeActiveAttempt()
+            .flatMapLatest { attempt ->
+                if (attempt == null) {
+                    flowOf(Unit)
+                } else {
+                    merge(
+                        planRepository.observePlanForDate(attempt.id, LocalDate.now()).map { },
+                        topicProgressRepository.observeAll(attempt.id).map { },
+                    )
+                }
+            }
+            .debounce(WIDGET_REFRESH_DEBOUNCE_MS)
+            .collect { runCatching { AppWidgets.updateAll(context) } }
+    }
+
+    /**
+     * The medium widget's Start: begin today's planned [blockId] in Focus, the
+     * way Today's Start does, then open Focus. A session already running or
+     * paused is never replaced — Focus just opens on it.
+     */
+    fun startPlannedBlock(blockId: String) {
+        appScope.launch {
+            runCatching {
+                val current = focusController.load()
+                if (current.status == FocusStatus.RUNNING || current.status == FocusStatus.PAUSED) return@runCatching
+                val block = loadTodaySnapshot().blocks.firstOrNull { it.id == blockId } ?: return@runCatching
+                val seconds = block.plannedMinutes * 60
+                focusController.start(
+                    FocusSession(
+                        status = FocusStatus.RUNNING,
+                        durationSec = seconds,
+                        remainingSec = seconds,
+                        endsAtMs = System.currentTimeMillis() + seconds * 1000L,
+                        completedToday = current.completedToday,
+                        block = FocusBlockRef(
+                            id = block.id,
+                            title = block.title.ifBlank { context.getString(R.string.focus_notif_default_title) },
+                            subtitle = if (block.isRevision) {
+                                context.getString(R.string.focus_revision_title, block.subjectName)
+                            } else {
+                                block.subjectName
+                            },
+                            tag = if (block.isRevision) BlockTag.REVISE else BlockTag.READ,
+                            sessionId = block.id,
+                            nodeKey = block.nodeId,
+                            isRevision = block.isRevision,
+                        ),
+                    ),
+                )
+            }
+            openFocusRequest.value = true
         }
     }
 
@@ -149,5 +225,9 @@ class AppContainer(private val context: Context) {
     /** Arms or cancels the daily "Today's plan" reminder from the saved setting. Boot, update and every settings change. */
     suspend fun rearmDailyReminder() {
         runCatching { dailyReminder.apply(settings.dailyReminderOnce()) }
+    }
+
+    private companion object {
+        const val WIDGET_REFRESH_DEBOUNCE_MS = 1_000L
     }
 }

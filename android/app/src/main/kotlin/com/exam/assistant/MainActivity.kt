@@ -71,11 +71,15 @@ class MainActivity : ComponentActivity() {
         handleOpenRequest(intent)
     }
 
-    /** A Focus notification or daily reminder tap lands here; the nav host does the navigation. */
+    /** A Focus notification, daily reminder or widget tap lands here; the nav host does the navigation. */
     private fun handleOpenRequest(intent: Intent?) {
         val container = (application as SteadylineApp).container
         when (intent?.getStringExtra(EXTRA_OPEN)) {
-            OPEN_FOCUS -> container.openFocusRequest.value = true
+            OPEN_FOCUS -> {
+                val blockId = intent.getStringExtra(EXTRA_BLOCK_ID)
+                if (blockId.isNullOrBlank()) container.openFocusRequest.value = true
+                else container.startPlannedBlock(blockId)
+            }
             OPEN_TODAY -> container.openTodayRequest.value = true
         }
     }
@@ -84,5 +88,7 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_OPEN = "com.exam.assistant.extra.OPEN"
         const val OPEN_FOCUS = "focus"
         const val OPEN_TODAY = "today"
+        /** With [OPEN_FOCUS]: today's planned block to start (the medium widget's Start). */
+        const val EXTRA_BLOCK_ID = "com.exam.assistant.extra.BLOCK_ID"
     }
 }

@@ -32,4 +32,20 @@
         <item quantity="other">%1$d blocks · first: %2$s</item>
     </plurals>
     <string name="reminder_body_no_plan">Nothing planned yet. Open Today to see your day.</string>
+
+    <string name="widget_status_label">Exam countdown</string>
+    <string name="widget_status_description">Days to your exam and how much of the syllabus you have covered.</string>
+    <string name="widget_next_label">Next block</string>
+    <string name="widget_next_description">Your next planned block today, with a Start button that opens Focus.</string>
+    <string name="widget_days_to_exam">days to exam</string>
+    <string name="widget_coverage">%1$d%% covered</string>
+    <string name="widget_no_value">–</string>
+    <string name="widget_no_plan">Set up your plan in the app.</string>
+    <string name="widget_nothing_left">Nothing left on today\'s plan.</string>
+    <string name="widget_next_at">Next · %1$s</string>
+    <string name="widget_start">Start</string>
+    <string name="widget_preview_days">214 days to exam</string>
+    <string name="widget_preview_coverage" formatted="false">38% covered</string>
+    <string name="widget_preview_next">Next · 4:30 PM</string>
+    <string name="widget_preview_chapter">Chemical Bonding</string>
 </resources>

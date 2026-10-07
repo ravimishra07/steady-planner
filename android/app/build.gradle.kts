@@ -60,6 +60,9 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.navigation.compose)
     implementation(libs.coroutines.android)
+    implementation(libs.glance.appwidget)
+    // Glance runs on WorkManager; a direct dependency only to initialise it on demand (see SteadylineApp).
+    implementation(libs.work.runtime)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

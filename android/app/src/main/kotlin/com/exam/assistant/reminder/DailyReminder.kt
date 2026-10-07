@@ -20,6 +20,7 @@ import com.exam.assistant.SteadylineApp
 import com.exam.assistant.core.data.DailyReminderSetting
 import com.exam.assistant.today.TodaySnapshot
 import com.exam.assistant.today.loadTodaySnapshot
+import com.exam.assistant.widget.AppWidgets
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -130,7 +131,7 @@ class DailyReminder(private val context: Context) {
     }
 }
 
-/** Fires once a day: post the reminder, arm tomorrow. Not exported. */
+/** Fires once a day: post the reminder, arm tomorrow, refresh the widgets. Not exported. */
 class DailyReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_FIRE) return
@@ -144,6 +145,7 @@ class DailyReminderReceiver : BroadcastReceiver() {
                     container.dailyReminder.show(container.loadTodaySnapshot(), now.hour * 60 + now.minute)
                 }
                 container.dailyReminder.apply(setting)
+                AppWidgets.updateAll(context)
             } finally {
                 pending.finish()
             }
