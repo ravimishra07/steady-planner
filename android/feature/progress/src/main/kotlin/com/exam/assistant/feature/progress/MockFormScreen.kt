@@ -46,6 +46,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.exam.assistant.core.data.ExamPackRepository
+import com.exam.assistant.core.data.ProRepository
+import com.exam.assistant.core.design.ProLockCard
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.MockTestRepository
 import com.exam.assistant.core.design.AppCard
@@ -64,11 +66,13 @@ fun MockFormRoute(
     examPackRepository: ExamPackRepository,
     attemptRepository: AttemptRepository,
     mockTestRepository: MockTestRepository,
+    proRepository: ProRepository,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenPaywall: () -> Unit = {},
     viewModel: MockFormViewModel = viewModel(
         key = "mock-form-${mockId ?: "new"}",
-        factory = MockFormViewModel.Factory(mockId, examPackRepository, attemptRepository, mockTestRepository),
+        factory = MockFormViewModel.Factory(mockId, examPackRepository, attemptRepository, mockTestRepository, proRepository),
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -91,6 +95,7 @@ fun MockFormRoute(
             onRemoveMistake = viewModel::removeMistake,
             onSave = viewModel::save,
             onDelete = viewModel::delete,
+            onOpenPaywall = onOpenPaywall,
         ),
         modifier = modifier,
     )
@@ -113,6 +118,7 @@ data class MockFormActions(
     val onRemoveMistake: (String) -> Unit,
     val onSave: () -> Unit,
     val onDelete: () -> Unit,
+    val onOpenPaywall: () -> Unit = {},
 )
 
 @Composable
@@ -240,7 +246,18 @@ private fun MockFormFields(state: MockFormUiState, actions: MockFormActions) {
                 NumberField(state.wrongText, actions.onWrong, stringResource(R.string.mock_form_wrong), modifier = Modifier.weight(1f))
             }
         }
-        MistakeLog(state, actions)
+        if (state.proUnlocked) {
+            MistakeLog(state, actions)
+        } else {
+            // Mistakes tagged while Pro stay in state, so saving never drops them.
+            ProLockCard(
+                title = stringResource(R.string.pro_lock_mistakes_title),
+                body = stringResource(R.string.pro_lock_mistakes_body),
+                actionLabel = stringResource(R.string.pro_lock_action),
+                onUnlock = actions.onOpenPaywall,
+                modifier = Modifier.padding(top = Spacing.md),
+            )
+        }
         if (state.saveFailed) {
             Text(stringResource(R.string.log_session_save_failed), style = MaterialTheme.typography.bodySmall, color = colors.danger)
         }
@@ -256,7 +273,7 @@ private fun MockFormFields(state: MockFormUiState, actions: MockFormActions) {
     if (pickDate) SessionDatePicker(state.date, onDate = { actions.onDate(it); pickDate = false }, onDismiss = { pickDate = false })
 }
 
-// PRO: mistake log — entry point a later billing phase gates.
+// Pro: shown only when unlocked (MockFormFields).
 @Composable
 internal fun MistakeLog(state: MockFormUiState, actions: MockFormActions) {
     val colors = AppTheme.colors

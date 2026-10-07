@@ -78,6 +78,12 @@ object AppWidgets {
             .putExtra(MainActivity.EXTRA_OPEN, MainActivity.OPEN_TODAY)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
 
+    fun openPaywallIntent(context: Context): Intent =
+        Intent(context, MainActivity::class.java)
+            .setAction(ACTION_OPEN_PAYWALL)
+            .putExtra(MainActivity.EXTRA_OPEN, MainActivity.OPEN_PAYWALL)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+
     private fun tickIntent(context: Context): PendingIntent = PendingIntent.getBroadcast(
         context,
         REQUEST_TICK,
@@ -88,6 +94,7 @@ object AppWidgets {
     private const val REQUEST_TICK = 4400
     private const val ACTION_START_BLOCK = "com.exam.assistant.widget.START_BLOCK"
     private const val ACTION_OPEN_TODAY = "com.exam.assistant.widget.OPEN_TODAY"
+    private const val ACTION_OPEN_PAYWALL = "com.exam.assistant.widget.OPEN_PAYWALL"
 }
 
 /**

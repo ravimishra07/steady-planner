@@ -49,10 +49,12 @@ class StatusWidget : GlanceAppWidget() {
 /** Medium widget: the next planned block today and a Start button that opens Focus running it. */
 class NextBlockWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val snapshot = (context.applicationContext as SteadylineApp).container.loadTodaySnapshot()
+        val container = (context.applicationContext as SteadylineApp).container
+        val unlocked = runCatching { container.proRepository.unlockedOnce() }.getOrDefault(false)
+        val snapshot = container.loadTodaySnapshot()
         val now = LocalTime.now()
         val next = snapshot.nextBlock(now.hour * 60 + now.minute)
-        provideContent { GlanceTheme { NextBlockContent(snapshot.hasPlan, next) } }
+        provideContent { GlanceTheme { if (unlocked) NextBlockContent(snapshot.hasPlan, next) else NextBlockLocked() } }
     }
 }
 
@@ -137,10 +139,33 @@ private fun StatusContent(snapshot: TodaySnapshot) {
     }
 }
 
+/** Free tier: the medium widget is Pro (§11.2). Tapping opens the app on the paywall. */
+@Composable
+private fun NextBlockLocked() {
+    val context = LocalContext.current
+    Column(
+        modifier = GlanceModifier
+            .fillMaxSize()
+            .background(GlanceTheme.colors.widgetBackground)
+            .cornerRadius(Radius.large)
+            .padding(Spacing.md)
+            .clickable(actionStartActivity(AppWidgets.openPaywallIntent(context))),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = context.getString(R.string.widget_unlock_pro),
+            style = TextStyle(fontSize = FontSize.lg, fontWeight = FontWeight.Bold, color = GlanceTheme.colors.onSurface),
+        )
+        Text(
+            text = context.getString(R.string.widget_unlock_pro_detail),
+            style = TextStyle(fontSize = FontSize.sm, color = GlanceTheme.colors.onSurfaceVariant),
+            maxLines = 2,
+        )
+    }
+}
+
 @Composable
 private fun NextBlockContent(hasPlan: Boolean, next: TodayBlock?) {
-    // PRO: the medium widget is a Pro feature (PRODUCTION_V1_PLAN §11.2). Once billing lands,
-    // free users see an "Unlock with Pro" state here instead of the next block and Start.
     val context = LocalContext.current
     WidgetSurface(onClickToday = next == null) {
         when {

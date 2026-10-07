@@ -3,6 +3,7 @@ package com.exam.assistant.feature.progress
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.exam.assistant.core.data.ProRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.MockTestRepository
 import com.exam.assistant.domain.MockSubject
@@ -24,14 +25,21 @@ data class TestsUiState(
     val trend: List<MockTrendPoint> = emptyList(),
     /** Subject lines drawn on the trend chart next to the total. */
     val visibleSubjects: Set<MockSubject> = emptySet(),
+    /** Pro, or the paywall switched off remotely. Gates the trend chart. */
+    val proUnlocked: Boolean = false,
 )
 
 class TestsViewModel(
     private val attemptRepository: AttemptRepository,
     private val mockTestRepository: MockTestRepository,
+    private val proRepository: ProRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(TestsUiState())
     val state: StateFlow<TestsUiState> = _state.asStateFlow()
+
+    init {
+        viewModelScope.launch { proRepository.unlocked.collect { unlocked -> _state.update { it.copy(proUnlocked = unlocked) } } }
+    }
 
     fun refresh() = viewModelScope.launch {
         try {
@@ -56,9 +64,10 @@ class TestsViewModel(
     class Factory(
         private val attemptRepository: AttemptRepository,
         private val mockTestRepository: MockTestRepository,
+        private val proRepository: ProRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            TestsViewModel(attemptRepository, mockTestRepository) as T
+            TestsViewModel(attemptRepository, mockTestRepository, proRepository) as T
     }
 }

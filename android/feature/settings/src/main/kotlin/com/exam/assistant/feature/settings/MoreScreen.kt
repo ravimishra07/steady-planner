@@ -23,6 +23,13 @@ import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.Restore
+import androidx.compose.material.icons.outlined.WorkspacePremium
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.Switch
+import androidx.compose.ui.semantics.Role
+import com.exam.assistant.core.data.ProStatus
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -76,6 +83,11 @@ fun MoreScreen(
     modifier: Modifier = Modifier,
     liveBacklogSplit: Int? = null,
     onLiveBacklogSplit: (Int) -> Unit = {},
+    pro: ProRowState = ProRowState(),
+    onOpenPaywall: () -> Unit = {},
+    onRestorePurchase: () -> Unit = {},
+    onDismissProStatus: () -> Unit = {},
+    onDebugForcePro: (Boolean) -> Unit = {},
 ) {
     val colors = AppTheme.colors
     var showRedoDialog by remember { mutableStateOf(false) }
@@ -172,6 +184,10 @@ fun MoreScreen(
                 )
             }
         }
+        SectionLabel(stringResource(R.string.more_section_pro))
+        ProfileGroup {
+            ProSection(pro, onOpenPaywall, onRestorePurchase, onDismissProStatus, onDebugForcePro)
+        }
         SectionLabel(stringResource(R.string.more_section_app_short))
         ProfileGroup {
             SettingsValueRow(
@@ -237,6 +253,63 @@ fun MoreScreen(
                 }
             },
         )
+    }
+}
+
+/** Settings → Pro: status or buy, restore, and in debug builds a switch that forces Pro. */
+@Composable
+private fun ProSection(
+    pro: ProRowState,
+    onOpenPaywall: () -> Unit,
+    onRestorePurchase: () -> Unit,
+    onDismissProStatus: () -> Unit,
+    onDebugForcePro: (Boolean) -> Unit,
+) {
+    AppListRow(
+        icon = Icons.Outlined.WorkspacePremium,
+        title = stringResource(R.string.more_pro),
+        subtitle = when {
+            !pro.paywallEnabled -> stringResource(R.string.more_pro_unlocked_free)
+            pro.isPro -> stringResource(R.string.more_pro_active)
+            else -> stringResource(R.string.more_pro_buy, pro.price ?: stringResource(R.string.paywall_price_fallback))
+        },
+        onClick = onOpenPaywall,
+    )
+    AppListDivider()
+    AppListRow(
+        icon = Icons.Outlined.Restore,
+        title = stringResource(R.string.more_restore),
+        subtitle = stringResource(R.string.more_restore_sub),
+        onClick = onRestorePurchase,
+        trailing = if (pro.status == ProStatus.BUSY) {
+            { CircularProgressIndicator(modifier = Modifier.size(Size.standardIcon)) }
+        } else {
+            null
+        },
+    )
+    statusMessage(pro.status)?.let { message ->
+        TextButton(onClick = onDismissProStatus, modifier = Modifier.fillMaxWidth()) {
+            Text(message, style = MaterialTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
+        }
+    }
+    if (pro.showDebugToggle) {
+        AppListDivider()
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = Size.touchTarget)
+                .toggleable(value = pro.debugForcePro, role = Role.Switch, onValueChange = onDebugForcePro)
+                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        ) {
+            Text(
+                stringResource(R.string.more_debug_force_pro),
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppTheme.colors.text,
+                modifier = Modifier.weight(1f),
+            )
+            Switch(checked = pro.debugForcePro, onCheckedChange = null)
+        }
     }
 }
 

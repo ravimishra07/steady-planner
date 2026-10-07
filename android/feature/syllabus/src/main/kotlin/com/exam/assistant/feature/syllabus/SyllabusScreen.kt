@@ -71,6 +71,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.exam.assistant.core.data.ExamPackRepository
+import com.exam.assistant.core.data.ProRepository
 import com.exam.assistant.core.data.StageLabelStore
 import com.exam.assistant.core.data.repo.ChapterStageRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
@@ -103,9 +104,11 @@ fun SyllabusRoute(
     rollingPlanRepository: RollingPlanRepository,
     chapterStageRepository: ChapterStageRepository,
     stageLabelStore: StageLabelStore,
+    proRepository: ProRepository,
     onStartTopic: (PendingSyllabusPick) -> Unit,
     onOrganise: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenPaywall: () -> Unit = {},
     viewModel: SyllabusViewModel = viewModel(
         factory = SyllabusViewModel.Factory(
             examPackRepository,
@@ -115,6 +118,7 @@ fun SyllabusRoute(
             rollingPlanRepository,
             chapterStageRepository,
             stageLabelStore,
+            proRepository,
         ),
     ),
 ) {
@@ -132,6 +136,7 @@ fun SyllabusRoute(
         onSaveCoaching = viewModel::saveCoaching,
         onStartTopic = onStartTopic,
         onOrganise = onOrganise,
+        onOpenPaywall = onOpenPaywall,
         modifier = modifier,
     )
 }
@@ -153,6 +158,7 @@ fun SyllabusScreen(
     onStartTopic: (PendingSyllabusPick) -> Unit,
     onOrganise: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenPaywall: () -> Unit = {},
 ) {
     var coachingRow by remember { mutableStateOf<SyllabusTreeRow?>(null) }
     var stageLabelsOpen by remember { mutableStateOf(false) }
@@ -297,6 +303,11 @@ fun SyllabusScreen(
         if (stageLabelsOpen) {
             StageLabelsDialog(
                 labels = state.stageLabels,
+                customLocked = !state.proUnlocked && state.stageLabels.customLabel == null,
+                onUnlockCustom = {
+                    stageLabelsOpen = false
+                    onOpenPaywall()
+                },
                 onSave = onSaveStageLabels,
                 onDismiss = { stageLabelsOpen = false },
             )

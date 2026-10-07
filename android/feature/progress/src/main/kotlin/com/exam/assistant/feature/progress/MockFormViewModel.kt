@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.exam.assistant.core.data.ExamPackRepository
+import com.exam.assistant.core.data.ProRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.MockTestRepository
 import com.exam.assistant.domain.MistakeType
@@ -40,6 +41,8 @@ data class MockFormUiState(
     val saving: Boolean = false,
     val saveFailed: Boolean = false,
     val finished: Boolean = false,
+    /** Pro, or the paywall switched off remotely. Gates tagging lost-marks chapters (§8.2). */
+    val proUnlocked: Boolean = false,
 ) {
     /** True once any subject score is typed: the total is then their sum and not editable. */
     val totalIsAuto: Boolean get() = MockSubject.entries.any { subjectScores[it].toScore() != null }
@@ -62,13 +65,17 @@ class MockFormViewModel(
     private val examPackRepository: ExamPackRepository,
     private val attemptRepository: AttemptRepository,
     private val mockTestRepository: MockTestRepository,
+    private val proRepository: ProRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(MockFormUiState(isEdit = mockId != null))
     val state: StateFlow<MockFormUiState> = _state.asStateFlow()
 
     private var attemptId: String? = null
 
-    init { load() }
+    init {
+        load()
+        viewModelScope.launch { proRepository.unlocked.collect { unlocked -> _state.update { it.copy(proUnlocked = unlocked) } } }
+    }
 
     private fun load() = viewModelScope.launch {
         try {
@@ -189,10 +196,11 @@ class MockFormViewModel(
         private val examPackRepository: ExamPackRepository,
         private val attemptRepository: AttemptRepository,
         private val mockTestRepository: MockTestRepository,
+        private val proRepository: ProRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            MockFormViewModel(mockId, examPackRepository, attemptRepository, mockTestRepository) as T
+            MockFormViewModel(mockId, examPackRepository, attemptRepository, mockTestRepository, proRepository) as T
     }
 
     private companion object {

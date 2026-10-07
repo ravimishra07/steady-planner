@@ -12,6 +12,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel as composeViewModel
 import androidx.lifecycle.viewModelScope
 import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.PlanStore
+import com.exam.assistant.core.data.ProRepository
+import com.exam.assistant.core.data.ProStatus
 import com.exam.assistant.core.data.SavedPlan
 import com.exam.assistant.core.data.decodedCommitments
 import com.exam.assistant.core.data.repo.AttemptRepository
@@ -29,6 +31,7 @@ import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -41,6 +44,17 @@ data class MoreUiState(
     val finishByDate: LocalDate? = null,
     /** Live share of the day for coaching students (§5.4); null hides the row for everyone else. */
     val liveBacklogSplit: Int? = null,
+    val pro: ProRowState = ProRowState(),
+)
+
+/** Settings → Pro: status, buy, restore, and the debug-only override. */
+data class ProRowState(
+    val isPro: Boolean = false,
+    val paywallEnabled: Boolean = true,
+    val price: String? = null,
+    val status: ProStatus = ProStatus.IDLE,
+    val debugForcePro: Boolean = false,
+    val showDebugToggle: Boolean = false,
 )
 
 class MoreViewModel(
@@ -51,9 +65,39 @@ class MoreViewModel(
     private val targetSyllabusRepository: TargetSyllabusRepository,
     private val rollingPlanRepository: RollingPlanRepository,
     private val chapterStageRepository: ChapterStageRepository,
+    private val proRepository: ProRepository? = null,
+    private val isDebugBuild: Boolean = false,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(MoreUiState())
+    private val _state = MutableStateFlow(
+        MoreUiState(pro = ProRowState(paywallEnabled = proRepository?.paywallEnabled ?: true, showDebugToggle = isDebugBuild)),
+    )
     val state: StateFlow<MoreUiState> = _state.asStateFlow()
+
+    init {
+        proRepository?.let { pro ->
+            viewModelScope.launch {
+                combine(pro.isPro, pro.formattedPrice, pro.status, pro.debugForcePro) { isPro, price, status, force ->
+                    _state.value.pro.copy(isPro = isPro, price = price, status = status, debugForcePro = force)
+                }.collect { row -> _state.update { it.copy(pro = row) } }
+            }
+            viewModelScope.launch { pro.loadProduct() }
+        }
+    }
+
+    /** Settings → Restore purchase. */
+    fun restorePurchase() {
+        val pro = proRepository ?: return
+        viewModelScope.launch { pro.refreshPurchases(userInitiated = true) }
+    }
+
+    fun setDebugForcePro(enabled: Boolean) {
+        val pro = proRepository ?: return
+        viewModelScope.launch { pro.setDebugForcePro(enabled) }
+    }
+
+    fun clearProStatus() {
+        proRepository?.clearStatus()
+    }
 
     private var split: Int? = null
 
@@ -111,6 +155,8 @@ class MoreViewModel(
         private val targetSyllabusRepository: TargetSyllabusRepository,
         private val rollingPlanRepository: RollingPlanRepository,
         private val chapterStageRepository: ChapterStageRepository,
+        private val proRepository: ProRepository? = null,
+        private val isDebugBuild: Boolean = false,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T = MoreViewModel(
@@ -121,6 +167,8 @@ class MoreViewModel(
             targetSyllabusRepository = targetSyllabusRepository,
             rollingPlanRepository = rollingPlanRepository,
             chapterStageRepository = chapterStageRepository,
+            proRepository = proRepository,
+            isDebugBuild = isDebugBuild,
         ) as T
     }
 }
@@ -142,6 +190,9 @@ fun MoreRoute(
     onRedoOnboarding: () -> Unit,
     onOpenPolicy: (String) -> Unit,
     modifier: Modifier = Modifier,
+    proRepository: ProRepository? = null,
+    isDebugBuild: Boolean = false,
+    onOpenPaywall: () -> Unit = {},
     viewModel: MoreViewModel = composeViewModel(
         factory = MoreViewModel.Factory(
             planStore = planStore,
@@ -151,6 +202,8 @@ fun MoreRoute(
             targetSyllabusRepository = targetSyllabusRepository,
             rollingPlanRepository = rollingPlanRepository,
             chapterStageRepository = chapterStageRepository,
+            proRepository = proRepository,
+            isDebugBuild = isDebugBuild,
         ),
     ),
 ) {
@@ -183,6 +236,11 @@ fun MoreRoute(
         onOpenSettings = onOpenSettings,
         onRedoOnboarding = onRedoOnboarding,
         onOpenPolicy = onOpenPolicy,
+        pro = state.pro,
+        onOpenPaywall = onOpenPaywall,
+        onRestorePurchase = viewModel::restorePurchase,
+        onDismissProStatus = viewModel::clearProStatus,
+        onDebugForcePro = viewModel::setDebugForcePro,
         modifier = modifier,
     )
 }

@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.exam.assistant.core.data.ExamPackRepository
+import com.exam.assistant.core.data.ProRepository
+import com.exam.assistant.domain.countsAsStudy
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.AvailabilityRepository
 import com.exam.assistant.core.data.repo.ChapterStageRepository
@@ -59,6 +61,7 @@ class ProgressViewModel(
     private val availabilityRepository: AvailabilityRepository,
     private val chapterStageRepository: ChapterStageRepository,
     private val mockTestRepository: MockTestRepository,
+    private val proRepository: ProRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(InsightsUiState())
     val state: StateFlow<InsightsUiState> = _state.asStateFlow()
@@ -76,7 +79,18 @@ class ProgressViewModel(
     private var coaching = emptyList<ChapterCoaching>()
     private var mistakes = emptyList<MockMistake>()
 
-    init { refresh() }
+    init {
+        refresh()
+        viewModelScope.launch {
+            proRepository.unlocked.collect { unlocked ->
+                val period = _state.value.period
+                // Pro went away (refund, revoke): fall back to the free week rather than show a locked range.
+                val keep = unlocked || !period.isProPeriod
+                _state.update { it.copy(proUnlocked = unlocked, period = if (keep) period else InsightPeriod.WEEK) }
+                if (!keep) rebuild()
+            }
+        }
+    }
 
     fun refresh() = viewModelScope.launch {
         try {
@@ -109,13 +123,26 @@ class ProgressViewModel(
                 planMode = attempt.planMode,
             )
             rebuild()
+            maybeSoftPrompt()
         } catch (_: Throwable) {
             _state.update { it.copy(loading = false, loadFailed = true) }
         }
     }
 
+    /** The one soft Pro prompt (§11.2), on Insights only. Marked shown before it is shown, so it never repeats. */
+    private suspend fun maybeSoftPrompt() {
+        val activeDays = sessions.filter { it.countsAsStudy() }.map { it.studyDate }.distinct().size
+        if (runCatching { proRepository.shouldShowSoftPrompt(activeDays) }.getOrDefault(false)) {
+            proRepository.markSoftPromptShown()
+            _state.update { it.copy(showSoftPrompt = true) }
+        }
+    }
+
+    fun onSoftPromptShown() = _state.update { it.copy(showSoftPrompt = false) }
+
     fun selectPeriod(period: InsightPeriod) {
         if (period == _state.value.period) return
+        if (period.isProPeriod && !_state.value.proUnlocked) return
         _state.update { it.copy(period = period) }
         viewModelScope.launch { rebuild() }
     }
@@ -195,6 +222,7 @@ class ProgressViewModel(
         private val availabilityRepository: AvailabilityRepository,
         private val chapterStageRepository: ChapterStageRepository,
         private val mockTestRepository: MockTestRepository,
+        private val proRepository: ProRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T = ProgressViewModel(
@@ -202,6 +230,7 @@ class ProgressViewModel(
             topicProgressRepository, targetSyllabusRepository,
             rollingPlanRepository, studyPreferenceRepository,
             revisionRepository, availabilityRepository, chapterStageRepository, mockTestRepository,
+            proRepository,
         ) as T
     }
 }

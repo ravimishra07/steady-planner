@@ -52,6 +52,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.exam.assistant.core.data.StudySessionStore
 import com.exam.assistant.core.data.SyllabusStore
 import com.exam.assistant.core.data.ExamPackRepository
+import com.exam.assistant.core.data.ProRepository
+import com.exam.assistant.core.design.ProLockCard
+import com.exam.assistant.core.design.ProLockIcon
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.AvailabilityRepository
 import com.exam.assistant.core.data.repo.ChapterStageRepository
@@ -93,7 +96,9 @@ fun ProgressRoute(
     availabilityRepository: AvailabilityRepository,
     chapterStageRepository: ChapterStageRepository,
     mockTestRepository: MockTestRepository,
+    proRepository: ProRepository,
     modifier: Modifier = Modifier,
+    onOpenPaywall: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     onGoToday: () -> Unit = {},
     onOpenDay: (java.time.LocalDate) -> Unit = {},
@@ -105,14 +110,22 @@ fun ProgressRoute(
             topicProgressRepository, targetSyllabusRepository,
             rollingPlanRepository, studyPreferenceRepository,
             revisionRepository, availabilityRepository, chapterStageRepository, mockTestRepository,
+            proRepository,
         ),
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.refresh() }
+    androidx.compose.runtime.LaunchedEffect(state.showSoftPrompt) {
+        if (state.showSoftPrompt) {
+            viewModel.onSoftPromptShown()
+            onOpenPaywall()
+        }
+    }
     ProgressScreen(
         state = state,
         onPeriodSelected = viewModel::selectPeriod,
+        onOpenPaywall = onOpenPaywall,
         onOpenSettings = onOpenSettings,
         onGoToday = onGoToday,
         onOpenDay = onOpenDay,
@@ -130,6 +143,7 @@ fun ProgressScreen(
     state: InsightsUiState,
     modifier: Modifier = Modifier,
     onPeriodSelected: (InsightPeriod) -> Unit = {},
+    onOpenPaywall: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     onGoToday: () -> Unit = {},
     onOpenDay: (java.time.LocalDate) -> Unit = {},
@@ -197,10 +211,14 @@ fun ProgressScreen(
             RevisionCard(data)
         }
         InsightsSection(title = stringResource(R.string.tests_title), subtitle = stringResource(R.string.insights_tests_subtitle)) {
-            TestsCard(state.mostLost, onOpenTests)
+            TestsCard(state.mostLost, state.proUnlocked, onOpenTests, onOpenPaywall)
         }
 
-        PeriodSelector(selected = state.period, onSelect = onPeriodSelected)
+        PeriodSelector(
+            selected = state.period,
+            unlocked = state.proUnlocked,
+            onSelect = { period -> if (period.isProPeriod && !state.proUnlocked) onOpenPaywall() else onPeriodSelected(period) },
+        )
         InsightsSection(title = stringResource(periodTitle(state.period)), subtitle = periodSubtitle(state.period)) {
             QuickStats(data)
         }
@@ -220,7 +238,16 @@ fun ProgressScreen(
             title = stringResource(if (data.forecast.hasTarget) R.string.insights_forecast else R.string.insights_forecast_steady),
             subtitle = stringResource(if (data.forecast.hasTarget) R.string.insights_forecast_subtitle else R.string.insights_forecast_steady_subtitle),
         ) {
-            ForecastCard(data)
+            if (state.proUnlocked) {
+                ForecastCard(data)
+            } else {
+                ProLockCard(
+                    title = stringResource(R.string.pro_lock_forecast_title),
+                    body = stringResource(R.string.pro_lock_forecast_body),
+                    actionLabel = stringResource(R.string.pro_lock_action),
+                    onUnlock = onOpenPaywall,
+                )
+            }
         }
         InsightsSection(title = stringResource(R.string.insights_remaining), subtitle = stringResource(R.string.insights_remaining_subtitle)) {
             RemainingCard(data.subjects, data.syllabusRemainingSections)
@@ -306,7 +333,7 @@ private fun ProgressFact(label: String, value: String) {
 }
 
 @Composable
-private fun PeriodSelector(selected: InsightPeriod, onSelect: (InsightPeriod) -> Unit) {
+private fun PeriodSelector(selected: InsightPeriod, unlocked: Boolean, onSelect: (InsightPeriod) -> Unit) {
     val colors = AppTheme.colors
     Surface(shape = RoundedCornerShape(Radius.md), color = colors.surfaceControl) {
         Row(modifier = Modifier.fillMaxWidth().padding(Spacing.xs)) {
@@ -319,7 +346,12 @@ private fun PeriodSelector(selected: InsightPeriod, onSelect: (InsightPeriod) ->
                         containerColor = if (period == selected) colors.selectionContainer else Color.Transparent,
                         contentColor = if (period == selected) colors.onSelectionContainer else colors.textMuted,
                     ),
-                ) { Text(periodLabel(period), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold) }
+                ) {
+                    if (period.isProPeriod && !unlocked) {
+                        ProLockIcon(Modifier.padding(end = Spacing.xs))
+                    }
+                    Text(periodLabel(period), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                }
             }
         }
     }
@@ -804,10 +836,14 @@ private fun RevisionCard(data: InsightsData) {
 }
 
 @Composable
-private fun TestsCard(mostLost: List<LostChapterUi>, onOpenTests: () -> Unit) {
+private fun TestsCard(mostLost: List<LostChapterUi>, unlocked: Boolean, onOpenTests: () -> Unit, onOpenPaywall: () -> Unit) {
     AppCard {
         Column(modifier = Modifier.padding(Spacing.lg)) {
-            MostLostChapters(mostLost)
+            if (unlocked) {
+                MostLostChapters(mostLost)
+            } else {
+                MostLostLocked(onOpenPaywall)
+            }
             OutlinedButton(onClick = onOpenTests, modifier = Modifier.fillMaxWidth().padding(top = Spacing.md)) {
                 Text(stringResource(R.string.tests_open))
             }
@@ -815,7 +851,24 @@ private fun TestsCard(mostLost: List<LostChapterUi>, onOpenTests: () -> Unit) {
     }
 }
 
-// PRO: most-lost chapters list — entry point a later billing phase gates.
+/** Free tier: what "most-lost chapters" is, and the way to unlock it. */
+@Composable
+private fun MostLostLocked(onOpenPaywall: () -> Unit) {
+    val colors = AppTheme.colors
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        ProLockIcon()
+        Text(stringResource(R.string.insights_most_lost), style = MaterialTheme.typography.titleSmall, color = colors.text, fontWeight = FontWeight.SemiBold)
+    }
+    Text(
+        stringResource(R.string.pro_lock_most_lost_body),
+        style = MaterialTheme.typography.bodySmall,
+        color = colors.textMuted,
+        modifier = Modifier.padding(top = Spacing.xs),
+    )
+    TextButton(onClick = onOpenPaywall) { Text(stringResource(R.string.pro_lock_action)) }
+}
+
+// Pro: shown only when unlocked (TestsCard).
 @Composable
 private fun MostLostChapters(mostLost: List<LostChapterUi>) {
     val colors = AppTheme.colors

@@ -118,4 +118,5 @@
     <string name="coaching_lectures_done_up_to">Done up to lecture %1$d of %2$d</string>
     <string name="coaching_dpps_done_up_to">Done up to DPP %1$d of %2$d</string>
     <string name="coaching_row_summary">Lectures %1$d/%2$d · DPPs %3$d/%4$d</string>
+    <string name="syllabus_stage_custom_pro">Add your own stage · Pro</string>
 </resources>

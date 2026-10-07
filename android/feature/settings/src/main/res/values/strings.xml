@@ -123,4 +123,34 @@
     <string name="more_backlog_split_value">%1$d/%2$d</string>
     <string name="more_backlog_split_body">Share of each study day for today\'s classes and DPPs (live) versus coaching backlog. The plan updates from today.</string>
     <string name="more_backlog_split_save">Save</string>
+
+    <!-- Pro (PRODUCTION_V1_PLAN §11.2) -->
+    <string name="paywall_title">Unlock Pro</string>
+    <string name="paywall_title_owned">You have Pro</string>
+    <string name="paywall_subtitle">One payment. Yours for good, on every phone signed in to the same Google account.</string>
+    <string name="paywall_feature_tests">Mock score trend chart</string>
+    <string name="paywall_feature_mistakes">Mistake log and most-lost chapters</string>
+    <string name="paywall_feature_insights">Insights for 30 days, 3 months and all time, plus the finish forecast</string>
+    <string name="paywall_feature_widget">Next-block home-screen widget with Start</string>
+    <string name="paywall_feature_stage">Your own custom chapter stage</string>
+    <string name="paywall_free_note">Your plan, syllabus, Focus, revision and backup stay free forever.</string>
+    <string name="paywall_buy">Buy Pro · %1$s</string>
+    <string name="paywall_price_fallback">₹59 one-time</string>
+    <string name="paywall_restore">Restore purchase</string>
+    <string name="paywall_working">Talking to Google Play…</string>
+    <string name="paywall_close">Close</string>
+    <string name="pro_status_pending">Payment pending. Pro unlocks as soon as Google Play confirms it.</string>
+    <string name="pro_status_purchased">Thanks! Pro is unlocked.</string>
+    <string name="pro_status_restored">Pro restored.</string>
+    <string name="pro_status_nothing">No Pro purchase found for this Google account.</string>
+    <string name="pro_status_unavailable">Google Play is not available right now. Check your connection and try again.</string>
+    <string name="pro_status_error">Something went wrong with Google Play. Nothing was charged.</string>
+    <string name="more_section_pro">Pro</string>
+    <string name="more_pro">Pro</string>
+    <string name="more_pro_active">Unlocked</string>
+    <string name="more_pro_unlocked_free">Everything is unlocked</string>
+    <string name="more_pro_buy">Unlock · %1$s</string>
+    <string name="more_restore">Restore purchase</string>
+    <string name="more_restore_sub">Already bought Pro on another phone</string>
+    <string name="more_debug_force_pro">Force Pro (debug build only)</string>
 </resources>

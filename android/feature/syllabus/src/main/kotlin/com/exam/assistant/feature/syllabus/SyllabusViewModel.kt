@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.exam.assistant.core.data.ExamPackRepository
+import com.exam.assistant.core.data.ProRepository
 import com.exam.assistant.core.data.StageLabelStore
 import com.exam.assistant.core.data.repo.ChapterStageRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
@@ -53,6 +54,7 @@ class SyllabusViewModel(
     private val rollingPlanRepository: RollingPlanRepository,
     private val chapterStageRepository: ChapterStageRepository,
     private val stageLabelStore: StageLabelStore,
+    private val proRepository: ProRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SyllabusUiState())
@@ -79,6 +81,7 @@ class SyllabusViewModel(
 
     init {
         refresh()
+        viewModelScope.launch { proRepository.unlocked.collect { unlocked -> _state.update { it.copy(proUnlocked = unlocked) } } }
     }
 
     fun refresh() {
@@ -212,7 +215,9 @@ class SyllabusViewModel(
 
     fun saveStageLabels(labels: StageLabels) {
         viewModelScope.launch {
-            stageLabelStore.save(labels)
+            // Renaming and hiding are free; adding the custom stage is Pro. One added while Pro stays editable.
+            val allowed = if (stageLabels.customLabel == null && !proRepository.unlockedOnce()) labels.copy(customLabel = null) else labels
+            stageLabelStore.save(allowed)
             stageLabels = stageLabelStore.load()
             rebuild()
         }
@@ -450,6 +455,7 @@ class SyllabusViewModel(
         private val rollingPlanRepository: RollingPlanRepository,
         private val chapterStageRepository: ChapterStageRepository,
         private val stageLabelStore: StageLabelStore,
+        private val proRepository: ProRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
@@ -461,6 +467,7 @@ class SyllabusViewModel(
                 rollingPlanRepository,
                 chapterStageRepository,
                 stageLabelStore,
+                proRepository,
             ) as T
     }
 }

@@ -12,6 +12,7 @@ import com.exam.assistant.core.data.FocusController
 import com.exam.assistant.core.data.FocusStore
 import com.exam.assistant.core.data.LocalRemoteConfig
 import com.exam.assistant.core.data.PlanStore
+import com.exam.assistant.core.data.ProRepository
 import com.exam.assistant.core.data.RemoteConfig
 import com.exam.assistant.core.data.SettingsStore
 import com.exam.assistant.core.data.StageLabelStore
@@ -46,6 +47,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -80,6 +82,19 @@ class AppContainer(private val context: Context) {
     val studySessionStore: StudySessionStore by lazy { StudySessionStore(context, dispatchers) }
 
     val remoteConfig: RemoteConfig by lazy { LocalRemoteConfig() }
+
+    /** Pro entitlement (Play Billing, cached). The billing client is built on first use, never at startup. */
+    val proRepository: ProRepository by lazy {
+        ProRepository(context, dispatchers, remoteConfig, appScope, isDebugBuild = BuildConfig.DEBUG)
+    }
+
+    /** One-shot: something asked for the paywall. The nav host drops it during onboarding and Focus. */
+    val paywallRequest = MutableStateFlow(false)
+
+    /** Opens the paywall, unless the paywall is switched off remotely (then nothing is locked). */
+    fun openPaywall() {
+        if (proRepository.paywallEnabled) paywallRequest.value = true
+    }
 
     /** The one path for Focus session changes: screen, notification actions, end alarm, boot, cold start. */
     val focusController: FocusController by lazy {
@@ -149,6 +164,14 @@ class AppContainer(private val context: Context) {
             reconcileExpiredFocus()
             rollingPlanRepository.replenish()
             refreshWidgetsOnChange()
+        }
+        appScope.launch {
+            // Restore on launch: picks up a purchase from another device, or a refund.
+            runCatching { proRepository.refreshPurchases() }
+        }
+        appScope.launch {
+            // The medium widget locks and unlocks with Pro.
+            proRepository.unlocked.drop(1).collect { runCatching { AppWidgets.updateAll(context) } }
         }
     }
 

@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import com.exam.assistant.core.design.AppTheme
+import com.exam.assistant.core.design.ProLockIcon
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
@@ -138,6 +139,9 @@ internal fun StageLabelsDialog(
     labels: StageLabels,
     onSave: (StageLabels) -> Unit,
     onDismiss: () -> Unit,
+    /** Free tier with no custom stage yet: the custom row becomes a Pro lock. */
+    customLocked: Boolean = false,
+    onUnlockCustom: () -> Unit = {},
 ) {
     val names = remember {
         mutableStateMapOf<ChapterStage, String>().apply {
@@ -161,6 +165,13 @@ internal fun StageLabelsDialog(
                     color = AppTheme.colors.textSecondary,
                 )
                 ChapterStage.entries.forEach { stage ->
+                    if (stage == ChapterStage.CUSTOM && customLocked) {
+                        TextButton(onClick = onUnlockCustom, modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm)) {
+                            ProLockIcon(Modifier.padding(end = Spacing.sm))
+                            Text(stringResource(R.string.syllabus_stage_custom_pro), modifier = Modifier.weight(1f))
+                        }
+                        return@forEach
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
                         verticalAlignment = Alignment.CenterVertically,
@@ -189,7 +200,7 @@ internal fun StageLabelsDialog(
                             renamed = names.filterKeys { it != ChapterStage.CUSTOM }
                                 .filterValues { it.isNotBlank() },
                             hidden = shown.filterValues { !it }.keys,
-                            customLabel = names[ChapterStage.CUSTOM]?.takeIf { it.isNotBlank() },
+                            customLabel = names[ChapterStage.CUSTOM]?.takeIf { it.isNotBlank() && !customLocked },
                         ),
                     )
                     onDismiss()

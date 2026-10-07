@@ -44,6 +44,7 @@ import com.exam.assistant.feature.settings.PolicyScreen
 import com.exam.assistant.feature.settings.SettingsDetailRoute
 import com.exam.assistant.feature.syllabus.SyllabusRoute
 import com.exam.assistant.feature.syllabus.OrganiseRoute
+import com.exam.assistant.paywall.PaywallHost
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -84,6 +85,16 @@ fun SteadylineNavHost(
                 }
             }
         }
+    }
+
+    // Never over onboarding or a Focus session (§11.2): a request there is dropped, not queued.
+    val paywallRequested by container.paywallRequest.collectAsStateWithLifecycle()
+    val paywallBlocked = currentPath == null || currentPath == Route.Onboarding.path || currentPath == Route.Focus.path
+    LaunchedEffect(paywallRequested, paywallBlocked) {
+        if (paywallRequested && paywallBlocked && currentPath != null) container.paywallRequest.value = false
+    }
+    if (paywallRequested && !paywallBlocked) {
+        PaywallHost(proRepository = container.proRepository, onDismiss = { container.paywallRequest.value = false })
     }
 
     Scaffold(
@@ -200,6 +211,8 @@ fun SteadylineNavHost(
                     rollingPlanRepository = container.rollingPlanRepository,
                     chapterStageRepository = container.chapterStageRepository,
                     stageLabelStore = container.stageLabelStore,
+                    proRepository = container.proRepository,
+                    onOpenPaywall = container::openPaywall,
                     onStartTopic = { pick ->
                         container.pendingSyllabusPick.value = pick
                         navController.navigate(Route.Home.path) {
@@ -258,6 +271,8 @@ fun SteadylineNavHost(
                     availabilityRepository = container.availabilityRepository,
                     chapterStageRepository = container.chapterStageRepository,
                     mockTestRepository = container.mockTestRepository,
+                    proRepository = container.proRepository,
+                    onOpenPaywall = container::openPaywall,
                     onOpenSettings = { navController.navigate(Route.Settings.path) },
                     onGoToday = { navController.navigate(Route.Home.path) { launchSingleTop = true } },
                     onOpenDay = { date -> navController.navigate(Route.DayLog.pathFor(date)) },
@@ -282,6 +297,9 @@ fun SteadylineNavHost(
                     onOpenSettings = { navController.navigate(Route.SettingsDetail.path) },
                     onRedoOnboarding = { navController.navigate(Route.Onboarding.path) },
                     onOpenPolicy = { id -> navController.navigate("policy/$id") },
+                    proRepository = container.proRepository,
+                    isDebugBuild = BuildConfig.DEBUG,
+                    onOpenPaywall = container::openPaywall,
                     modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                 )
             }
@@ -342,6 +360,8 @@ fun SteadylineNavHost(
                 TestsRoute(
                     attemptRepository = container.attemptRepository,
                     mockTestRepository = container.mockTestRepository,
+                    proRepository = container.proRepository,
+                    onOpenPaywall = container::openPaywall,
                     onBack = { navController.popBackStack() },
                     onAddMock = { navController.navigate(Route.MockForm.new) },
                     onEditMock = { id -> navController.navigate(Route.MockForm.edit(id)) },
@@ -357,6 +377,8 @@ fun SteadylineNavHost(
                     examPackRepository = container.examPackRepository,
                     attemptRepository = container.attemptRepository,
                     mockTestRepository = container.mockTestRepository,
+                    proRepository = container.proRepository,
+                    onOpenPaywall = container::openPaywall,
                     onDone = { navController.popBackStack() },
                     modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                 )

@@ -44,6 +44,8 @@
     <string name="widget_nothing_left">Nothing left on today\'s plan.</string>
     <string name="widget_next_at">Next · %1$s</string>
     <string name="widget_start">Start</string>
+    <string name="widget_unlock_pro">Unlock with Pro</string>
+    <string name="widget_unlock_pro_detail">Your next block and a Start button, right here. Tap to see Pro.</string>
     <string name="widget_preview_days">214 days to exam</string>
     <string name="widget_preview_coverage" formatted="false">38% covered</string>
     <string name="widget_preview_next">Next · 4:30 PM</string>

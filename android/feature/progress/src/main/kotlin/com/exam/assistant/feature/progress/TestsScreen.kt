@@ -40,7 +40,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.exam.assistant.core.data.ProRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
+import com.exam.assistant.core.design.ProLockCard
 import com.exam.assistant.core.data.repo.MockTestRepository
 import com.exam.assistant.core.design.AppCard
 import com.exam.assistant.core.design.AppTheme
@@ -58,11 +60,13 @@ import com.exam.assistant.domain.formatInsightDate
 fun TestsRoute(
     attemptRepository: AttemptRepository,
     mockTestRepository: MockTestRepository,
+    proRepository: ProRepository,
     onBack: () -> Unit,
     onAddMock: () -> Unit,
     onEditMock: (String) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: TestsViewModel = viewModel(factory = TestsViewModel.Factory(attemptRepository, mockTestRepository)),
+    onOpenPaywall: () -> Unit = {},
+    viewModel: TestsViewModel = viewModel(factory = TestsViewModel.Factory(attemptRepository, mockTestRepository, proRepository)),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     // Back from the form: re-read the log.
@@ -73,6 +77,7 @@ fun TestsRoute(
         onAddMock = onAddMock,
         onEditMock = onEditMock,
         onToggleSubject = viewModel::toggleSubject,
+        onOpenPaywall = onOpenPaywall,
         modifier = modifier,
     )
 }
@@ -85,6 +90,7 @@ fun TestsScreen(
     onEditMock: (String) -> Unit,
     onToggleSubject: (MockSubject) -> Unit,
     modifier: Modifier = Modifier,
+    onOpenPaywall: () -> Unit = {},
 ) {
     val colors = AppTheme.colors
     Column(modifier = modifier.fillMaxSize()) {
@@ -127,7 +133,16 @@ fun TestsScreen(
                     )
                 } else {
                     SectionHeading(stringResource(R.string.tests_trend), stringResource(R.string.tests_trend_subtitle))
-                    MockTrendCard(state.trend, state.visibleSubjects, onToggleSubject)
+                    if (state.proUnlocked) {
+                        MockTrendCard(state.trend, state.visibleSubjects, onToggleSubject)
+                    } else {
+                        ProLockCard(
+                            title = stringResource(R.string.pro_lock_trend_title),
+                            body = stringResource(R.string.pro_lock_trend_body),
+                            actionLabel = stringResource(R.string.pro_lock_action),
+                            onUnlock = onOpenPaywall,
+                        )
+                    }
                     SectionHeading(stringResource(R.string.tests_history), stringResource(R.string.tests_history_subtitle))
                     MockList(state.mocks, onEditMock)
                 }
@@ -137,7 +152,7 @@ fun TestsScreen(
     }
 }
 
-// PRO: mock trend chart — entry point a later billing phase gates.
+// Pro: shown only when unlocked (TestsScreen).
 @Composable
 internal fun MockTrendCard(
     points: List<MockTrendPoint>,

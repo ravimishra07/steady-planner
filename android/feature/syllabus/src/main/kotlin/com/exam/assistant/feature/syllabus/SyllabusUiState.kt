@@ -81,4 +81,6 @@ data class SyllabusUiState(
     val pyqFirstYear: Int = 0,
     val pyqLastYear: Int = 0,
     val stageLabels: StageLabels = StageLabels(),
+    /** Pro, or the paywall switched off remotely. Adding the custom stage needs it. */
+    val proUnlocked: Boolean = false,
 )

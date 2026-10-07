@@ -81,6 +81,7 @@ class MainActivity : ComponentActivity() {
                 else container.startPlannedBlock(blockId)
             }
             OPEN_TODAY -> container.openTodayRequest.value = true
+            OPEN_PAYWALL -> container.openPaywall()
         }
     }
 
@@ -88,6 +89,8 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_OPEN = "com.exam.assistant.extra.OPEN"
         const val OPEN_FOCUS = "focus"
         const val OPEN_TODAY = "today"
+        /** The medium widget's "Unlock with Pro". */
+        const val OPEN_PAYWALL = "paywall"
         /** With [OPEN_FOCUS]: today's planned block to start (the medium widget's Start). */
         const val EXTRA_BLOCK_ID = "com.exam.assistant.extra.BLOCK_ID"
     }

@@ -252,4 +252,13 @@
         <item quantity="one">%1$d test</item>
         <item quantity="other">%1$d tests</item>
     </plurals>
+    <!-- Pro locks (PRODUCTION_V1_PLAN §11.2) -->
+    <string name="pro_lock_action">Unlock with Pro</string>
+    <string name="pro_lock_forecast_title">Finish forecast</string>
+    <string name="pro_lock_forecast_body">See the date range you\'ll finish at your real pace, and how much more a day closes the gap.</string>
+    <string name="pro_lock_most_lost_body">Tag chapters you lose marks in after each mock; Pro ranks the ones costing you most.</string>
+    <string name="pro_lock_trend_title">Score trend</string>
+    <string name="pro_lock_trend_body">Your mock scores over time, total and by subject, on one chart.</string>
+    <string name="pro_lock_mistakes_title">Mistake log</string>
+    <string name="pro_lock_mistakes_body">Tag the chapters you lost marks in and why: concept, silly, time or guess.</string>
 </resources>
