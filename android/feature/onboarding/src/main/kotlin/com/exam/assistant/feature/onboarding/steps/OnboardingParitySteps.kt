@@ -2,6 +2,11 @@
 
 package com.exam.assistant.feature.onboarding.steps
 
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.DatePickerDefaults
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -503,7 +508,8 @@ private fun MinutePickerDialog(initialMinute: Int, onDismiss: () -> Unit, onConf
     )
 }
 
-/** "Do you have a date you want to finish the syllabus by?" Yes is deadline mode (preselected), Not yet is steady mode. */
+/** "Finish the syllabus by": Pick a date is deadline mode (preselected), Not sure yet is steady mode. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun OnboardingModeStep(
     state: OnboardingUiState,
@@ -511,38 +517,36 @@ internal fun OnboardingModeStep(
     onDate: (LocalDate) -> Unit,
     onExamDate: (LocalDate) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxl)) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            OnboardingSelectableCard(
-                title = stringResource(R.string.onboarding_mode_yes),
-                selected = state.planMode == PlanMode.DEADLINE,
-                onClick = { onMode(PlanMode.DEADLINE) },
-                showUnselectedIndicator = true,
-                trailing = {
-                    Text(
-                        stringResource(R.string.onboarding_mode_yes_detail),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AppTheme.colors.textSecondary,
-                    )
-                },
-            )
-            OnboardingSelectableCard(
-                title = stringResource(R.string.onboarding_mode_not_yet),
-                selected = state.planMode == PlanMode.STEADY,
-                onClick = { onMode(PlanMode.STEADY) },
-                showUnselectedIndicator = true,
-                trailing = {
-                    Text(
-                        stringResource(R.string.onboarding_mode_not_yet_detail),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AppTheme.colors.textSecondary,
-                    )
-                },
-            )
+    val colors = AppTheme.colors
+    Column {
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            listOf(
+                PlanMode.DEADLINE to R.string.onboarding_mode_yes,
+                PlanMode.STEADY to R.string.onboarding_mode_not_yet,
+            ).forEachIndexed { index, (mode, label) ->
+                SegmentedButton(
+                    selected = state.planMode == mode,
+                    onClick = { onMode(mode) },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = 2),
+                    colors = SegmentedButtonDefaults.colors(
+                        activeContainerColor = colors.brandDeep,
+                        activeContentColor = colors.onBrand,
+                        activeBorderColor = colors.brandDeep,
+                        inactiveContainerColor = Color.Transparent,
+                        inactiveContentColor = colors.text,
+                        inactiveBorderColor = colors.outline,
+                    ),
+                    modifier = Modifier.height(Size.touchTarget),
+                ) {
+                    Text(stringResource(label), style = MaterialTheme.typography.labelLarge)
+                }
+            }
         }
         if (state.planMode == PlanMode.DEADLINE) {
+            Spacer(Modifier.height(Spacing.xxxl))
             OnboardingTargetDateStep(state.targetDate, state.examDate, state.examDateOfficial, state.examDateIsConfigured, onDate, onExamDate)
         } else {
+            Spacer(Modifier.height(Spacing.lg))
             ExamDateRow(state.examDate, state.examDateOfficial, state.examDateIsConfigured, onExamDate)
         }
     }
@@ -559,7 +563,7 @@ internal fun OnboardingTargetDateStep(
     onExamDate: (LocalDate) -> Unit,
 ) {
     val today = LocalDate.now()
-    val formatter = remember { DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(Locale.getDefault()) }
+    val formatter = remember { DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()) }
     val days = ChronoUnit.DAYS.between(today, targetDate).toInt().coerceAtLeast(1)
     val minMillis = today.plusDays(7).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
     val maxMillis = maxOf(examDate, today.plusDays(7)).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
@@ -575,26 +579,31 @@ internal fun OnboardingTargetDateStep(
             if (selected != targetDate) onDate(selected)
         }
     }
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxl)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(targetDate.format(formatter), style = MaterialTheme.typography.titleLarge)
-                Text(stringResource(R.string.onboarding_date_personal_target), style = MaterialTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
-            }
-            Text(pluralStringResource(R.plurals.onboarding_date_days_chip, days, days), style = MaterialTheme.typography.titleMedium, color = AppTheme.colors.text)
-        }
-        ExamDateRow(examDate, examDateOfficial, examDateIsConfigured, onExamDate)
+    Column {
+        Text(targetDate.format(formatter), style = MaterialTheme.typography.titleLarge, color = AppTheme.colors.text)
+        Text(
+            pluralStringResource(R.plurals.onboarding_date_days_to_go, days, days),
+            style = MaterialTheme.typography.bodyMedium,
+            color = AppTheme.colors.textSecondary,
+            modifier = Modifier.padding(top = Spacing.xs),
+        )
+        Spacer(Modifier.height(Spacing.lg))
         DatePicker(
             state = datePickerState,
             showModeToggle = false,
             title = null,
             headline = null,
+            colors = DatePickerDefaults.colors(containerColor = Color.Transparent),
             modifier = Modifier.fillMaxWidth(),
         )
+        Spacer(Modifier.height(Spacing.sm))
+        HorizontalDivider(color = AppTheme.colors.border)
+        Spacer(Modifier.height(Spacing.sm))
+        ExamDateRow(examDate, examDateOfficial, examDateIsConfigured, onExamDate)
     }
 }
 
-/** The exam date with its honesty label ("expected, not yet announced" until it is official or the student's own), and a way to change it. */
+/** The exam date with its honesty label ("expected" until it is official or the student's own), and a way to change it. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ExamDateRow(
@@ -603,9 +612,14 @@ private fun ExamDateRow(
     isConfigured: Boolean,
     onExamDate: (LocalDate) -> Unit,
 ) {
-    val formatter = remember { DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(Locale.getDefault()) }
+    val formatter = remember { DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()) }
     var editing by remember { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = Size.ctaHeight),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+    ) {
+        Icon(Icons.Filled.CalendarToday, null, tint = AppTheme.colors.textSecondary)
         Text(
             text = stringResource(
                 if (official || !isConfigured) R.string.onboarding_date_exam_official else R.string.onboarding_date_exam_expected,

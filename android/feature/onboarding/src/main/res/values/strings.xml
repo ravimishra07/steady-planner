@@ -76,17 +76,17 @@
     <string name="onboarding_day_friday_full">Friday</string>
     <string name="onboarding_day_saturday_full">Saturday</string>
 
-    <string name="onboarding_date_title">Finish-by date?</string>
-    <string name="onboarding_mode_yes">Yes, I have a date</string>
+    <string name="onboarding_date_title">Finish the syllabus by</string>
+    <string name="onboarding_mode_yes">Pick a date</string>
     <string name="onboarding_mode_yes_detail">Plan to a date</string>
-    <string name="onboarding_mode_not_yet">Not yet</string>
+    <string name="onboarding_mode_not_yet">Not sure yet</string>
     <string name="onboarding_mode_not_yet_detail">Plan from daily hours</string>
     <string name="onboarding_exam_date_change">Change exam date</string>
     <string name="onboarding_ok">OK</string>
     <string name="onboarding_cancel">Cancel</string>
     <string name="onboarding_date_personal_target">Finish-by date</string>
-    <string name="onboarding_date_exam_official">NEET exam: %1$s</string>
-    <string name="onboarding_date_exam_expected">NEET: %1$s (expected)</string>
+    <string name="onboarding_date_exam_official">NEET %1$s</string>
+    <string name="onboarding_date_exam_expected">NEET %1$s (expected)</string>
     <plurals name="onboarding_date_days_chip">
         <item quantity="one">%1$d day</item>
         <item quantity="other">%1$d days</item>
@@ -194,4 +194,8 @@
     <string name="onboarding_dismiss">Dismiss</string>
     <string name="onboarding_usage_data_note">Anonymous usage data on. Change in Settings.</string>
     <string name="onboarding_skip">Skip</string>
+    <plurals name="onboarding_date_days_to_go">
+        <item quantity="one">%1$d day to go</item>
+        <item quantity="other">%1$d days to go</item>
+    </plurals>
 </resources>
