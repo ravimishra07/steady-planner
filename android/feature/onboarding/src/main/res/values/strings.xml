@@ -79,7 +79,8 @@
 
     <string name="onboarding_date_title">When should this plan finish?</string>
     <string name="onboarding_date_personal_target">Finish-by date</string>
-    <string name="onboarding_date_exam_meaning">Finish-by date</string>
+    <string name="onboarding_date_exam_official">NEET exam: %1$s</string>
+    <string name="onboarding_date_exam_expected">NEET exam: expected %1$s (not yet announced)</string>
     <plurals name="onboarding_date_days_chip">
         <item quantity="one">%1$d day</item>
         <item quantity="other">%1$d days</item>

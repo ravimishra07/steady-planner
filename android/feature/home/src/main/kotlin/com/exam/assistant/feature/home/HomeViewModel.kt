@@ -34,7 +34,7 @@ import com.exam.assistant.domain.findNode
 import com.exam.assistant.domain.findSubjectOf
 import com.exam.assistant.domain.StudyPlacementIssue
 import com.exam.assistant.domain.buildDayTimeline
-import com.exam.assistant.domain.daysToTarget
+import com.exam.assistant.domain.daysToExam
 import com.exam.assistant.domain.nextRevisionDueIfCompleted
 import com.exam.assistant.domain.revisionsDueNow
 import com.exam.assistant.domain.studiedMinutesByDate
@@ -157,7 +157,7 @@ class HomeViewModel(
                     loading = false,
                     hasPlan = attempt != null,
                     sections = sections,
-                    daysUntilExam = attempt?.let { daysToTarget(it.targetCompletionDate, today) } ?: 0,
+                    daysUntilExam = attempt?.let { daysToExam(it, today) } ?: 0,
                     syllabusPercent = syllabus?.overall?.percent ?: 0,
                     activeSprint = running?.let { session ->
                         val endsAt = session.runningEndsAtMs ?: return@let null

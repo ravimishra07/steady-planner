@@ -57,6 +57,8 @@ fun MoreScreen(
     loadFailed: Boolean,
     planExamLabel: String?,
     examDateLabel: String?,
+    examDateOfficial: Boolean,
+    finishByLabel: String?,
     weekdayHours: Float?,
     weekendHours: Float?,
     fixedBlockCount: Int,
@@ -105,10 +107,10 @@ fun MoreScreen(
         )
         AccountCard(
             title = planExamLabel ?: stringResource(R.string.more_your_plan),
-            subtitle = if (examDateLabel != null && weekdayHours != null) {
+            subtitle = if (finishByLabel != null && weekdayHours != null) {
                 stringResource(
                     R.string.more_plan_card_subtitle,
-                    examDateLabel,
+                    finishByLabel,
                     compactHours(weekdayHours),
                 )
             } else {
@@ -121,8 +123,17 @@ fun MoreScreen(
         ProfileGroup {
             SettingsValueRow(
                 icon = Icons.Outlined.Event,
+                title = stringResource(R.string.more_finish_by_date),
+                value = finishByLabel.orEmpty(),
+                onClick = { showRedoDialog = true },
+            )
+            AppListDivider()
+            SettingsValueRow(
+                icon = Icons.Outlined.Event,
                 title = stringResource(R.string.more_exam_date),
-                value = examDateLabel.orEmpty(),
+                value = examDateLabel?.let { date ->
+                    if (examDateOfficial) date else stringResource(R.string.more_exam_date_expected, date)
+                }.orEmpty(),
                 onClick = { showRedoDialog = true },
             )
             AppListDivider()

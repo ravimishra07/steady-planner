@@ -27,6 +27,8 @@ import com.exam.assistant.domain.FocusBlockRef
 import com.exam.assistant.domain.FocusSession
 import com.exam.assistant.domain.FocusStatus
 import com.exam.assistant.feature.focus.FocusRoute
+import com.exam.assistant.core.data.neetExamDate
+import com.exam.assistant.core.data.neetExamDateOfficial
 import com.exam.assistant.feature.home.HomeRoute
 import com.exam.assistant.feature.onboarding.OnboardingRoute
 import com.exam.assistant.feature.progress.ProgressRoute
@@ -90,6 +92,8 @@ fun SteadylineNavHost(
                     planRepository = container.planRepository,
                     rollingPlanRepository = container.rollingPlanRepository,
                     dispatchers = container.dispatchers,
+                    examDate = container.remoteConfig.neetExamDate(),
+                    examDateOfficial = container.remoteConfig.neetExamDateOfficial(),
                     background = background,
                     onBackground = onBackground,
                     accentPalette = accentPalette,
@@ -222,6 +226,7 @@ fun SteadylineNavHost(
                     attemptRepository = container.attemptRepository,
                     topicProgressRepository = container.topicProgressRepository,
                     targetSyllabusRepository = container.targetSyllabusRepository,
+                    examDateOfficial = container.remoteConfig.neetExamDateOfficial(),
                     appVersion = BuildConfig.VERSION_NAME,
                     background = background,
                     onOpenAppearance = { navController.navigate(Route.Appearance.path) },

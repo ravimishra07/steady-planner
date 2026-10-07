@@ -3,7 +3,7 @@
     <string name="more_title">Settings</string>
     <string name="more_your_plan">Your plan</string>
     <string name="more_no_plan">No plan yet</string>
-    <string name="more_plan_card_subtitle">Exam %1$s · %2$sh on weekdays</string>
+    <string name="more_plan_card_subtitle">Finish by %1$s · %2$sh on weekdays</string>
     <string name="more_coverage_percent">%1$d%%</string>
     <string name="more_covered">covered</string>
     <string name="more_section_plan_short">Plan</string>
@@ -14,7 +14,9 @@
         <item quantity="other">%1$d blocks</item>
     </plurals>
     <string name="more_appearance">Appearance</string>
-    <string name="more_exam_date">Exam &amp; date</string>
+    <string name="more_exam_date">NEET exam date</string>
+    <string name="more_exam_date_expected">%1$s (expected, not yet announced)</string>
+    <string name="more_finish_by_date">Finish syllabus by</string>
     <string name="more_hours_breaks">Hours &amp; focus</string>
     <string name="more_fixed_hours">Fixed hours</string>
     <string name="more_redo_confirm_title">Review your setup again?</string>

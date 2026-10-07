@@ -7,6 +7,8 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.exam.assistant.domain.DEFAULT_NEET_EXAM_DATE
+import java.time.LocalDate
 
 @Database(
     entities = [
@@ -23,7 +25,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         SubjectStudyPreferenceEntity::class,
         SubjectPreferredWindowEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -47,7 +49,7 @@ abstract class PrepTrackerDatabase : RoomDatabase() {
                     context.applicationContext,
                     PrepTrackerDatabase::class.java,
                     "prep_tracker.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .build()
                     .also { instance = it }
             }
@@ -82,5 +84,28 @@ abstract class PrepTrackerDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE study_session ADD COLUMN priorIntervalDays INTEGER")
             }
         }
+
+        /**
+         * Plan modes and the exam date split (PRODUCTION_V1_PLAN §3.1, §3.2). Non-destructive:
+         * both new columns have defaults, so every existing row stays valid and every existing
+         * student stays in deadline mode. Before this version the exam date was a copy of the
+         * finish-by date, so a row where the two match gets the expected NEET date, never an
+         * earlier one than the finish-by date it was copied from.
+         */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE exam_attempt ADD COLUMN planMode TEXT NOT NULL DEFAULT 'DEADLINE'")
+                db.execSQL("ALTER TABLE study_preferences ADD COLUMN allowLearnInRevisionPhase INTEGER NOT NULL DEFAULT 0")
+                db.execSQL(
+                    "UPDATE exam_attempt SET examDateEpochDay = " +
+                        "CASE WHEN targetCompletionDateEpochDay > $EXPECTED_NEET_2027_EPOCH_DAY " +
+                        "THEN targetCompletionDateEpochDay ELSE $EXPECTED_NEET_2027_EPOCH_DAY END " +
+                        "WHERE examDateEpochDay IS NULL OR examDateEpochDay = targetCompletionDateEpochDay",
+                )
+            }
+        }
+
+        /** The compile-time default exam date as an epoch day. */
+        private val EXPECTED_NEET_2027_EPOCH_DAY: Long = LocalDate.parse(DEFAULT_NEET_EXAM_DATE).toEpochDay()
     }
 }

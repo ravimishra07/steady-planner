@@ -8,6 +8,7 @@ import androidx.room.TypeConverters
 import androidx.room.Upsert
 import com.exam.assistant.domain.ExamAttempt
 import com.exam.assistant.domain.ExamAttemptStatus
+import com.exam.assistant.domain.PlanMode
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
@@ -22,6 +23,7 @@ data class ExamAttemptEntity(
     val createdAtEpochMs: Long,
     val updatedAtEpochMs: Long,
     val status: String,
+    val planMode: String,
 )
 
 fun ExamAttemptEntity.toDomain() = ExamAttempt(
@@ -33,6 +35,7 @@ fun ExamAttemptEntity.toDomain() = ExamAttempt(
     createdAtEpochMs = createdAtEpochMs,
     updatedAtEpochMs = updatedAtEpochMs,
     status = ExamAttemptStatus.valueOf(status),
+    planMode = runCatching { PlanMode.valueOf(planMode) }.getOrDefault(PlanMode.DEADLINE),
 )
 
 fun ExamAttempt.toEntity() = ExamAttemptEntity(
@@ -44,6 +47,7 @@ fun ExamAttempt.toEntity() = ExamAttemptEntity(
     createdAtEpochMs = createdAtEpochMs,
     updatedAtEpochMs = updatedAtEpochMs,
     status = status.name,
+    planMode = planMode.name,
 )
 
 @Dao

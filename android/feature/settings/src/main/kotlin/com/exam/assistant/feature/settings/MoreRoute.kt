@@ -35,6 +35,8 @@ data class MoreUiState(
     val loadFailed: Boolean = false,
     val plan: SavedPlan? = null,
     val coveragePercent: Int? = null,
+    val examDate: LocalDate? = null,
+    val finishByDate: LocalDate? = null,
 )
 
 class MoreViewModel(
@@ -63,14 +65,16 @@ class MoreViewModel(
                 } else {
                     null
                 }
-                plan to coverage
-            }.onSuccess { (plan, coverage) ->
+                Triple(plan, coverage, attempt)
+            }.onSuccess { (plan, coverage, attempt) ->
                 _state.update {
                     it.copy(
                         loading = false,
                         loadFailed = false,
                         plan = plan,
                         coveragePercent = coverage,
+                        examDate = attempt?.examDate,
+                        finishByDate = attempt?.targetCompletionDate,
                     )
                 }
             }.onFailure {
@@ -104,6 +108,7 @@ fun MoreRoute(
     attemptRepository: AttemptRepository,
     topicProgressRepository: TopicProgressRepository,
     targetSyllabusRepository: TargetSyllabusRepository,
+    examDateOfficial: Boolean,
     appVersion: String,
     background: BackgroundAppearance,
     onOpenAppearance: () -> Unit,
@@ -130,10 +135,12 @@ fun MoreRoute(
         planExamLabel = plan?.takeIf { it.examId == NEET_EXAM_ID }?.let {
             stringResource(R.string.settings_exam_neet)
         },
-        examDateLabel = plan?.targetDateEpochDay?.let { epochDay ->
-            LocalDate.ofEpochDay(epochDay).format(
-                DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()),
-            )
+        examDateLabel = state.examDate?.let { date ->
+            date.format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()))
+        },
+        examDateOfficial = examDateOfficial,
+        finishByLabel = (state.finishByDate ?: plan?.targetDateEpochDay?.let(LocalDate::ofEpochDay))?.let { date ->
+            date.format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()))
         },
         weekdayHours = plan?.weekdayHours,
         weekendHours = plan?.weekendHours,

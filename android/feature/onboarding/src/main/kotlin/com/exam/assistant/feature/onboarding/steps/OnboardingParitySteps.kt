@@ -497,12 +497,17 @@ private fun MinutePickerDialog(initialMinute: Int, onDismiss: () -> Unit, onConf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun OnboardingTargetDateStep(targetDate: LocalDate, isExamDate: Boolean, onDate: (LocalDate) -> Unit) {
+internal fun OnboardingTargetDateStep(
+    targetDate: LocalDate,
+    examDate: LocalDate,
+    examDateOfficial: Boolean,
+    onDate: (LocalDate) -> Unit,
+) {
     val today = LocalDate.now()
     val formatter = remember { DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(Locale.getDefault()) }
     val days = ChronoUnit.DAYS.between(today, targetDate).toInt().coerceAtLeast(1)
     val minMillis = today.plusDays(7).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-    val maxMillis = today.plusDays(730).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+    val maxMillis = maxOf(examDate, today.plusDays(7)).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = targetDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
         selectableDates = object : SelectableDates {
@@ -519,7 +524,15 @@ internal fun OnboardingTargetDateStep(targetDate: LocalDate, isExamDate: Boolean
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(targetDate.format(formatter), style = MaterialTheme.typography.titleLarge)
-                Text(stringResource(if (isExamDate) R.string.onboarding_date_exam_meaning else R.string.onboarding_date_personal_target), style = MaterialTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+                Text(stringResource(R.string.onboarding_date_personal_target), style = MaterialTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+                Text(
+                    text = stringResource(
+                        if (examDateOfficial) R.string.onboarding_date_exam_official else R.string.onboarding_date_exam_expected,
+                        examDate.format(formatter),
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AppTheme.colors.textMuted,
+                )
             }
             Surface(shape = CircleShape, color = AppTheme.colors.selectionContainer) {
                 Text(pluralStringResource(R.plurals.onboarding_date_days_chip, days, days), modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm), style = MaterialTheme.typography.labelLarge)
@@ -834,7 +847,7 @@ internal fun OnboardingPlanStep(
                 value = targetLabel,
                 editing = editing,
             ) {
-                OnboardingTargetDateStep(state.targetDate, state.examId == "neet", onDate)
+                OnboardingTargetDateStep(state.targetDate, state.examDate, state.examDateOfficial, onDate)
             }
         }
         OutlinedButton(

@@ -26,6 +26,8 @@ import com.exam.assistant.domain.TargetNodeState
 import com.exam.assistant.domain.TopicProgressStatus
 import com.exam.assistant.domain.WeeklyAvailability
 import com.exam.assistant.domain.availableHours
+import com.exam.assistant.domain.coerceFinishBy
+import com.exam.assistant.domain.defaultFinishByDate
 import com.exam.assistant.domain.cushion
 import com.exam.assistant.domain.leafIds
 import com.exam.assistant.domain.totalMinutes
@@ -65,10 +67,18 @@ class OnboardingViewModel(
     private val rollingPlanRepository: RollingPlanRepository,
     private val dispatchers: AppDispatchers,
     private val savedStateHandle: SavedStateHandle,
+    examDate: LocalDate,
+    examDateOfficial: Boolean,
 ) : ViewModel() {
 
     private var currentPack: ExamPack? = null
-    private val _state = MutableStateFlow(OnboardingUiState())
+    private val _state = MutableStateFlow(
+        OnboardingUiState(
+            examDate = examDate,
+            examDateOfficial = examDateOfficial,
+            targetDate = defaultFinishByDate(examDate, LocalDate.now()),
+        ),
+    )
     val state: StateFlow<OnboardingUiState> = _state.asStateFlow()
     private val _finished = MutableStateFlow(false)
     val finished: StateFlow<Boolean> = _finished.asStateFlow()
@@ -137,7 +147,7 @@ class OnboardingViewModel(
     fun setTargetDate(date: LocalDate) {
         val today = LocalDate.now()
         _state.update {
-            it.copy(targetDate = date.coerceIn(today.plusDays(7), today.plusDays(730))).refreshCushionIfNeeded()
+            it.copy(targetDate = coerceFinishBy(date, it.examDate, today)).refreshCushionIfNeeded()
         }
     }
 
@@ -332,9 +342,14 @@ class OnboardingViewModel(
                         ?: defaultCommitments(),
                     wakeMinute = saved?.wakeMinute ?: current.wakeMinute,
                     sleepMinute = saved?.sleepMinute ?: current.sleepMinute,
-                    targetDate = attempt?.targetCompletionDate
-                        ?: saved?.targetDateEpochDay?.let(LocalDate::ofEpochDay)
-                        ?: current.targetDate,
+                    planMode = attempt?.planMode ?: current.planMode,
+                    targetDate = coerceFinishBy(
+                        attempt?.targetCompletionDate
+                            ?: saved?.targetDateEpochDay?.let(LocalDate::ofEpochDay)
+                            ?: current.targetDate,
+                        current.examDate,
+                        LocalDate.now(),
+                    ),
                     workId = saved?.workId ?: current.workId,
                     weekdayHours = preferences?.weekdayTargetMinutes?.div(60f) ?: saved?.weekdayHours ?: current.weekdayHours,
                     weekendHours = preferences?.weekendTargetMinutes?.div(60f) ?: saved?.weekendHours ?: current.weekendHours,
@@ -402,11 +417,12 @@ class OnboardingViewModel(
                     id = attemptId,
                     examId = state.examId,
                     syllabusVersion = pack.syllabusVersion,
-                    examDate = state.targetDate,
+                    examDate = state.examDate,
                     targetCompletionDate = state.targetDate,
                     createdAtEpochMs = existingAttempt?.createdAtEpochMs ?: now,
                     updatedAtEpochMs = now,
                     status = ExamAttemptStatus.ACTIVE,
+                    planMode = state.planMode,
                 )
 
                 attemptRepository.upsert(attempt)
@@ -414,8 +430,7 @@ class OnboardingViewModel(
                 val availability = freeWindowsFor(attemptId, state)
                 availabilityRepository.replaceWeekly(attemptId, availability)
                 studyPreferenceRepository.upsert(
-                    StudyPreferences(
-                        attemptId = attemptId,
+                    (previousPreferences ?: StudyPreferences(attemptId = attemptId)).copy(
                         weekdayTargetMinutes = (state.weekdayHours * 60).roundToInt(),
                         weekendTargetMinutes = (state.weekendHours * 60).roundToInt(),
                         autoScheduleRevision = true,
@@ -492,6 +507,8 @@ class OnboardingViewModel(
         private val planRepository: PlanRepository,
         private val rollingPlanRepository: RollingPlanRepository,
         private val dispatchers: AppDispatchers,
+        private val examDate: LocalDate,
+        private val examDateOfficial: Boolean,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T = OnboardingViewModel(
@@ -506,6 +523,8 @@ class OnboardingViewModel(
             rollingPlanRepository,
             dispatchers,
             extras.createSavedStateHandle(),
+            examDate,
+            examDateOfficial,
         ) as T
     }
 

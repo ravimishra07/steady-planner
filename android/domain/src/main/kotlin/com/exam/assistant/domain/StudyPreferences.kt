@@ -24,6 +24,9 @@ data class StudyPreferences(
     val autoRescheduleMissed: Boolean = false,
     val autoScheduleRevision: Boolean = true,
 
+    /** Deadline mode: allow new Learn blocks between finish-by and the exam. Off by default. */
+    val allowLearnInRevisionPhase: Boolean = false,
+
     val defaultStudyPlace: String? = null,
 )
 

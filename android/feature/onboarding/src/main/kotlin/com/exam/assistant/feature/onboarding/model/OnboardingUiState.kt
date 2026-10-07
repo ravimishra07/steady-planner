@@ -2,7 +2,10 @@ package com.exam.assistant.feature.onboarding.model
 
 import androidx.annotation.StringRes
 import com.exam.assistant.domain.Cushion
+import com.exam.assistant.domain.DEFAULT_NEET_EXAM_DATE
 import com.exam.assistant.domain.NEET_EXAM_ID
+import com.exam.assistant.domain.PlanMode
+import com.exam.assistant.domain.defaultFinishByDate
 import com.exam.assistant.feature.onboarding.R
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -16,7 +19,13 @@ data class OnboardingUiState(
     val commitments: List<OnboardingCommitment> = defaultCommitments(),
     val wakeMinute: Int = DEFAULT_WAKE_MINUTE,
     val sleepMinute: Int = DEFAULT_SLEEP_MINUTE,
-    val targetDate: LocalDate = LocalDate.now().plusDays(DEFAULT_DAYS.toLong()),
+    /** The NEET date. Distinct from [targetDate], the student's finish-by goal. */
+    val examDate: LocalDate = LocalDate.parse(DEFAULT_NEET_EXAM_DATE),
+    /** False until NTA announces the date: the UI says "expected, not yet announced". */
+    val examDateOfficial: Boolean = false,
+    val planMode: PlanMode = PlanMode.DEADLINE,
+    /** The finish-by date. Always on or before [examDate] and at least a week out. */
+    val targetDate: LocalDate = defaultFinishByDate(LocalDate.parse(DEFAULT_NEET_EXAM_DATE), LocalDate.now()),
     val workId: String = WORK_COLLEGE,
     val weekdayHours: Float = 4f,
     val weekendHours: Float = 7f,
@@ -79,7 +88,6 @@ internal val DAY_SHAPES = listOf(
 internal const val WORK_FULLTIME = "ft"
 internal const val WORK_WORKING = "job"
 internal const val WORK_COLLEGE = "col"
-internal const val DEFAULT_DAYS = 118
 internal const val DEFAULT_WAKE_MINUTE = 6 * 60
 internal const val DEFAULT_SLEEP_MINUTE = 23 * 60
 internal const val PROGRESS_SEGMENTS = 6

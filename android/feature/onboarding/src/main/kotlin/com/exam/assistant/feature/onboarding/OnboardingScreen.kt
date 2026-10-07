@@ -59,6 +59,8 @@ fun OnboardingRoute(
     planRepository: PlanRepository,
     rollingPlanRepository: RollingPlanRepository,
     dispatchers: AppDispatchers,
+    examDate: LocalDate,
+    examDateOfficial: Boolean,
     background: BackgroundAppearance,
     onBackground: (BackgroundAppearance) -> Unit,
     accentPalette: AccentPalette,
@@ -77,6 +79,8 @@ fun OnboardingRoute(
             planRepository,
             rollingPlanRepository,
             dispatchers,
+            examDate,
+            examDateOfficial,
         ),
     ),
 ) {
@@ -200,7 +204,7 @@ fun OnboardingScreen(
                 onWake,
                 onSleep,
             )
-            OnboardingStep.Date -> OnboardingTargetDateStep(state.targetDate, false, onDate)
+            OnboardingStep.Date -> OnboardingTargetDateStep(state.targetDate, state.examDate, state.examDateOfficial, onDate)
             OnboardingStep.Hours -> {
                 OnboardingHoursParityStep(
                     state = state,

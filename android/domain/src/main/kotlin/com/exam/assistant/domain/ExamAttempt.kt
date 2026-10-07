@@ -23,6 +23,9 @@ data class ExamAttempt(
     val updatedAtEpochMs: Long,
 
     val status: ExamAttemptStatus,
+
+    /** Deadline mode is the default; steady mode has no finish-by pressure. */
+    val planMode: PlanMode = PlanMode.DEADLINE,
 )
 
 enum class ExamAttemptStatus {
