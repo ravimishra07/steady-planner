@@ -78,6 +78,7 @@ internal fun HomeStudyContent(
     state: HomeUiState,
     onAdjustPlan: () -> Unit,
     onRebalanceMissed: () -> Unit,
+    onStartFresh: () -> Unit,
     onDismissMissed: () -> Unit,
     onLogClass: (String, Int) -> Unit,
     onNextLecture: () -> Unit,
@@ -145,6 +146,13 @@ internal fun HomeStudyContent(
                         )
                     }
                     if (state.selectedIsToday) {
+                        state.freshStart?.let {
+                            FreshStartCard(
+                                onStartFresh = onStartFresh,
+                                onNotNow = onDismissMissed,
+                                modifier = Modifier.padding(bottom = Spacing.lg),
+                            )
+                        }
                         state.missedBlocks?.let { missed ->
                             MissedBlocksPrompt(
                                 missed = missed,
@@ -173,7 +181,8 @@ internal fun HomeStudyContent(
                             )
                         }
                     }
-                    state.missedDayRecovery?.let { recovery ->
+                    // One recovery surface at a time: start fresh, then the missed-days prompt, then today's.
+                    state.missedDayRecovery?.takeIf { state.freshStart == null && state.missedBlocks == null }?.let { recovery ->
                         MissedDayRecoveryPanel(
                             recovery = recovery,
                             onStartNextNow = { onStartMissedSession(recovery.nextSessionId) },
@@ -897,6 +906,38 @@ private fun MissedBlocksPrompt(
                     colors = ButtonDefaults.buttonColors(containerColor = colors.brandDeep, contentColor = colors.onBrand),
                     shape = RoundedCornerShape(Radius.pill),
                 ) { Text(stringResource(R.string.home_missed_blocks_yes)) }
+                TextButton(onClick = onNotNow) { Text(stringResource(R.string.home_missed_blocks_not_now)) }
+            }
+        }
+    }
+}
+
+/** "Start fresh from today" (§5.5). No count and no warning colour: it is a restart, not a reckoning. */
+@Composable
+private fun FreshStartCard(
+    onStartFresh: () -> Unit,
+    onNotNow: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = AppTheme.colors
+    Surface(shape = RoundedCornerShape(Radius.lg), color = colors.elevated, modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text(
+                text = stringResource(R.string.home_fresh_start_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = colors.text,
+            )
+            Text(
+                text = stringResource(R.string.home_fresh_start_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.textSecondary,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Button(
+                    onClick = onStartFresh,
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.brandDeep, contentColor = colors.onBrand),
+                    shape = RoundedCornerShape(Radius.pill),
+                ) { Text(stringResource(R.string.home_fresh_start_action)) }
                 TextButton(onClick = onNotNow) { Text(stringResource(R.string.home_missed_blocks_not_now)) }
             }
         }

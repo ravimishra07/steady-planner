@@ -39,7 +39,10 @@ import com.exam.assistant.domain.StudyPlacementIssue
 import com.exam.assistant.domain.buildDayTimeline
 import com.exam.assistant.domain.daysToExam
 import com.exam.assistant.domain.nextRevisionDueIfCompleted
+import com.exam.assistant.domain.shouldStartFresh
+import com.exam.assistant.domain.streakBroken
 import com.exam.assistant.domain.studiedMinutesByDate
+import com.exam.assistant.domain.studyDates
 import com.exam.assistant.domain.syllabusMetrics
 import com.exam.assistant.domain.targetStates
 import com.exam.assistant.domain.currentMinuteOfDay
@@ -135,6 +138,8 @@ class HomeViewModel(
             val fit = attempt?.let { runCatching { rollingPlanRepository.planFit(withOptions = false) }.getOrNull() }
                 ?.takeIf { !it.fits }
             val missed = attempt?.let { runCatching { rollingPlanRepository.missedPrompt(today) }.getOrNull() }
+            val fresh = missed != null && shouldStartFresh(missed.days, streakBroken(studyDates(history), today))
+            val startedFresh = attempt?.let { runCatching { rollingPlanRepository.startedFreshOn(today) }.getOrNull() } == true
             revisionStates = attempt?.let { revisionRepository.allFor(it.id) }.orEmpty().associateBy { it.nodeId }
             val syllabus = if (attempt != null && pack != null) {
                 syllabusMetrics(
@@ -157,7 +162,9 @@ class HomeViewModel(
                     daysUntilExam = attempt?.let { daysToExam(it, today) } ?: 0,
                     syllabusPercent = syllabus?.overall?.percent ?: 0,
                     planFit = fit?.let { PlanFitUi(it.shortByMinutes, it.finishBy, it.calibrated) },
-                    missedBlocks = missed?.let { MissedBlocksUi(it.count, it.since) },
+                    missedBlocks = missed?.takeIf { !fresh }?.let { MissedBlocksUi(it.count, it.since) },
+                    freshStart = missed?.takeIf { fresh }?.let { FreshStartUi(it.since) },
+                    startedFreshToday = startedFresh,
                     coaching = coaching,
                     activeSprint = running?.let { session ->
                         val endsAt = session.runningEndsAtMs ?: return@let null
@@ -210,6 +217,23 @@ class HomeViewModel(
         _state.update { it.copy(missedBlocks = null) }
         viewModelScope.launch {
             rollingPlanRepository.rebalanceMissed(since = prompt.since)
+            attemptId?.let { reloadCanonical(it) }
+            val fit = rollingPlanRepository.planFit(withOptions = false)?.takeIf { !it.fits }
+            _state.update {
+                it.copy(planFit = fit?.let { f -> PlanFitUi(f.shortByMinutes, f.finishBy, f.calibrated) }).rebuild()
+            }
+        }
+    }
+
+    /**
+     * "Start fresh from today": every missed block becomes SKIPPED, the plan is made again from
+     * today and the missed state is cleared. Nothing afterwards counts what was missed.
+     */
+    fun startFresh() {
+        val prompt = _state.value.freshStart ?: return
+        _state.update { it.copy(freshStart = null, missedBlocks = null, startedFreshToday = true).rebuild() }
+        viewModelScope.launch {
+            rollingPlanRepository.startFresh(since = prompt.since)
             attemptId?.let { reloadCanonical(it) }
             val fit = rollingPlanRepository.planFit(withOptions = false)?.takeIf { !it.fits }
             _state.update {
@@ -276,7 +300,7 @@ class HomeViewModel(
 
     /** "Not now": hidden for the rest of today. */
     fun dismissMissedBlocks() {
-        _state.update { it.copy(missedBlocks = null) }
+        _state.update { it.copy(missedBlocks = null, freshStart = null) }
         viewModelScope.launch { rollingPlanRepository.dismissMissedPrompt() }
     }
 
@@ -821,7 +845,8 @@ class HomeViewModel(
         val plannedMinutes = builtTimeline.sumOf { entry ->
             (entry as? DayTimelineEntry.Study)?.block?.durationMinutes ?: 0
         }
-        val nextMissed = missedSessions.firstOrNull()
+        // After "Start fresh" nothing on Today counts what was missed.
+        val nextMissed = missedSessions.firstOrNull()?.takeIf { !startedFreshToday }
         val recovery = nextMissed?.let { session ->
             val availableTodayMinutes = builtTimeline
                 .filterIsInstance<DayTimelineEntry.Gap>()

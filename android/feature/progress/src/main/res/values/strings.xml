@@ -49,6 +49,12 @@
     <string name="insights_less">Less</string>
     <string name="insights_more">More</string>
     <string name="insights_current_streak">Current streak</string>
+    <string name="insights_new_streak_today">New streak starts today</string>
+    <string name="insights_progress_week">This week\'s progress</string>
+    <string name="insights_progress_week_subtitle">What you got done in the last 7 days</string>
+    <string name="insights_chapters_learned">Chapters learned</string>
+    <string name="insights_lectures_done">Lectures done so far</string>
+    <string name="insights_revisions_done">Revisions done</string>
     <string name="insights_active_this_period">Active days in period</string>
     <string name="insights_planned">Planned</string>
     <string name="insights_completed_planned">Completed from plan</string>

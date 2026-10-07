@@ -227,6 +227,7 @@ fun SteadylineNavHost(
                     studyPreferenceRepository = container.studyPreferenceRepository,
                     revisionRepository = container.revisionRepository,
                     availabilityRepository = container.availabilityRepository,
+                    chapterStageRepository = container.chapterStageRepository,
                     onOpenSettings = { navController.navigate(Route.Settings.path) },
                     onGoToday = { navController.navigate(Route.Home.path) { launchSingleTop = true } },
                     modifier = Modifier.padding(padding).consumeWindowInsets(padding),

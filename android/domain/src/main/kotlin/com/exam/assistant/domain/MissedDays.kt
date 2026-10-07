@@ -31,3 +31,30 @@ fun missedPlannedBlocks(
  */
 fun skipMissedBlocks(missed: List<StudyPlanBlock>, nowMs: Long): List<StudyPlanBlock> =
     missed.map { it.copy(status = PlanBlockStatus.SKIPPED, updatedAtEpochMs = nowMs) }
+
+/**
+ * How many recent days have missed blocks: the run of missed days ending at the latest one,
+ * where a day with no planner blocks at all (a rest day) does not break the run. Older,
+ * separate misses are left to the ordinary rebalance prompt.
+ */
+fun missedDayCount(missed: List<StudyPlanBlock>, plannedDates: Set<LocalDate> = emptySet()): Int {
+    val missedDates = missed.mapTo(sortedSetOf()) { it.scheduledDate }
+    val latest = missedDates.lastOrNull() ?: return 0
+    var count = 0
+    var cursor = latest
+    val earliest = missedDates.first()
+    while (cursor >= earliest) {
+        when {
+            cursor in missedDates -> count++
+            cursor in plannedDates -> return count
+        }
+        cursor = cursor.minusDays(1)
+    }
+    return count
+}
+
+/** Two or more missed days, or a broken streak with missed blocks: offer "Start fresh from today". */
+const val FRESH_START_MISSED_DAYS = 2
+
+fun shouldStartFresh(missedDays: Int, streakBroken: Boolean): Boolean =
+    missedDays >= FRESH_START_MISSED_DAYS || (missedDays >= 1 && streakBroken)

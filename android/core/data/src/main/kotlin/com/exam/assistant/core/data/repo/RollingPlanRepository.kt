@@ -38,6 +38,7 @@ import com.exam.assistant.domain.TopicProgressStatus
 import com.exam.assistant.domain.effectiveTargetLeafIds
 import com.exam.assistant.domain.isReplacedByReplanFrom
 import com.exam.assistant.domain.leafIds
+import com.exam.assistant.domain.missedDayCount
 import com.exam.assistant.domain.missedPlannedBlocks
 import com.exam.assistant.domain.personalCalibration
 import com.exam.assistant.domain.plan
@@ -53,10 +54,14 @@ import kotlinx.coroutines.withContext
 private val Context.planPromptDataStore by preferencesDataStore(name = "plan_prompts")
 private val missedResolvedThroughKey = longPreferencesKey("missed_resolved_through")
 private val missedDismissedOnKey = longPreferencesKey("missed_dismissed_on")
+private val freshStartOnKey = longPreferencesKey("fresh_start_on")
 private val liveBacklogSplitKey = intPreferencesKey("live_backlog_split")
 
-/** "You missed N blocks. Rebalance the next days?" Blocks are counted from [since] up to yesterday. */
-data class MissedPrompt(val count: Int, val since: LocalDate)
+/**
+ * "You missed N blocks. Rebalance the next days?" Blocks are counted from [since] up to yesterday.
+ * [days] is the recent run of days with missed blocks ([missedDayCount]).
+ */
+data class MissedPrompt(val count: Int, val since: LocalDate, val days: Int = 1)
 
 /**
  * Owns the rolling-plan transaction. All automatic future intent is derived
@@ -230,12 +235,21 @@ class RollingPlanRepository(
 
     /** Planner-made blocks from earlier days that were never done, since [since] (inclusive). */
     suspend fun missedBlocks(since: LocalDate, today: LocalDate = LocalDate.now()): List<StudyPlanBlock> =
+        missedWithPlannedDates(since, today).first
+
+    /** The missed blocks, plus every earlier date that had planner blocks (for [missedDayCount]). */
+    private suspend fun missedWithPlannedDates(
+        since: LocalDate,
+        today: LocalDate,
+    ): Pair<List<StudyPlanBlock>, Set<LocalDate>> =
         withContext(dispatchers.io) {
-            val attempt = db.examAttemptDao().activeOnce()?.toDomain() ?: return@withContext emptyList()
+            val attempt = db.examAttemptDao().activeOnce()?.toDomain()
+                ?: return@withContext emptyList<StudyPlanBlock>() to emptySet()
             val blocks = db.studyPlanBlockDao().between(attempt.id, since.toEpochDay(), today.minusDays(1).toEpochDay())
                 .map { it.toDomain() }
             val sessions = db.studySessionDao().between(attempt.id, since.toEpochDay(), today.toEpochDay()).map { it.toDomain() }
-            missedPlannedBlocks(blocks, sessions, today, since)
+            val planned = blocks.filter { it.status != PlanBlockStatus.RESCHEDULED }.mapTo(mutableSetOf()) { it.scheduledDate }
+            missedPlannedBlocks(blocks, sessions, today, since) to planned
         }
 
     /**
@@ -247,8 +261,8 @@ class RollingPlanRepository(
         if (prefs[missedDismissedOnKey] == today.toEpochDay()) return null
         val resolved = prefs[missedResolvedThroughKey]?.let(LocalDate::ofEpochDay)
         val since = maxOf(resolved ?: today.minusDays(MISSED_LOOKBACK_DAYS), today.minusDays(MISSED_LOOKBACK_DAYS))
-        val count = missedBlocks(since, today).size
-        return if (count > 0) MissedPrompt(count, since) else null
+        val (missed, planned) = missedWithPlannedDates(since, today)
+        return if (missed.isNotEmpty()) MissedPrompt(missed.size, since, missedDayCount(missed, planned)) else null
     }
 
     /** "Not now": hide the prompt for the rest of [today]. It comes back tomorrow if blocks are still missed. */
@@ -273,6 +287,24 @@ class RollingPlanRepository(
         }
         return replenish(fromDate = today, nowMs = nowMs)
     }
+
+    /**
+     * "Start fresh from today" (PRODUCTION_V1_PLAN §5.5): the same move as [rebalanceMissed], and
+     * today is remembered so Today shows no catch-up count for the rest of the day.
+     */
+    suspend fun startFresh(
+        since: LocalDate,
+        today: LocalDate = LocalDate.now(),
+        nowMs: Long = System.currentTimeMillis(),
+    ): RollingPlanResult? {
+        val result = rebalanceMissed(since, today, nowMs)
+        appContext.planPromptDataStore.edit { it[freshStartOnKey] = today.toEpochDay() }
+        return result
+    }
+
+    /** Did the student start fresh on [today]? */
+    suspend fun startedFreshOn(today: LocalDate = LocalDate.now()): Boolean =
+        appContext.planPromptDataStore.data.first()[freshStartOnKey] == today.toEpochDay()
 
     private suspend fun calibrationFor(attempt: ExamAttempt, pack: ExamPack): Calibration {
         val covered = coveredLeafIds(attempt)

@@ -54,6 +54,7 @@ import com.exam.assistant.core.data.SyllabusStore
 import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.AvailabilityRepository
+import com.exam.assistant.core.data.repo.ChapterStageRepository
 import com.exam.assistant.core.data.repo.RevisionRepository
 import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.StudySessionRepository
@@ -88,6 +89,7 @@ fun ProgressRoute(
     studyPreferenceRepository: StudyPreferenceRepository,
     revisionRepository: RevisionRepository,
     availabilityRepository: AvailabilityRepository,
+    chapterStageRepository: ChapterStageRepository,
     modifier: Modifier = Modifier,
     onOpenSettings: () -> Unit = {},
     onGoToday: () -> Unit = {},
@@ -96,7 +98,7 @@ fun ProgressRoute(
             examPackRepository, attemptRepository, planRepository, studySessionRepository,
             topicProgressRepository, targetSyllabusRepository,
             rollingPlanRepository, studyPreferenceRepository,
-            revisionRepository, availabilityRepository,
+            revisionRepository, availabilityRepository, chapterStageRepository,
         ),
     ),
 ) {
@@ -168,8 +170,21 @@ fun ProgressScreen(
                 Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.insights_settings), tint = colors.textSecondary)
             }
         }
-        PeriodSelector(selected = state.period, onSelect = onPeriodSelected)
+        // Progress first (§5.5): what got done this week, then syllabus and revision. Hours come after.
+        InsightsSection(title = stringResource(R.string.insights_progress_week), subtitle = stringResource(R.string.insights_progress_week_subtitle)) {
+            WeekProgressCard(data)
+        }
+        InsightsSection(title = stringResource(R.string.insights_syllabus), subtitle = stringResource(R.string.insights_syllabus_subtitle)) {
+            SyllabusCard(data, onManageTarget)
+        }
+        InsightsSection(title = stringResource(R.string.insights_subjects), subtitle = stringResource(R.string.insights_subjects_subtitle)) {
+            SubjectsCard(data.subjects)
+        }
+        InsightsSection(title = stringResource(R.string.insights_revision), subtitle = stringResource(R.string.insights_revision_subtitle)) {
+            RevisionCard(data)
+        }
 
+        PeriodSelector(selected = state.period, onSelect = onPeriodSelected)
         InsightsSection(title = stringResource(periodTitle(state.period)), subtitle = periodSubtitle(state.period)) {
             QuickStats(data)
         }
@@ -185,23 +200,14 @@ fun ProgressScreen(
         InsightsSection(title = stringResource(R.string.insights_plan_actual), subtitle = stringResource(R.string.insights_plan_actual_subtitle)) {
             PlanActualCard(data)
         }
-        InsightsSection(title = stringResource(R.string.insights_syllabus), subtitle = stringResource(R.string.insights_syllabus_subtitle)) {
-            SyllabusCard(data, onManageTarget)
-        }
         InsightsSection(
             title = stringResource(if (data.forecast.hasTarget) R.string.insights_forecast else R.string.insights_forecast_steady),
             subtitle = stringResource(if (data.forecast.hasTarget) R.string.insights_forecast_subtitle else R.string.insights_forecast_steady_subtitle),
         ) {
             ForecastCard(data)
         }
-        InsightsSection(title = stringResource(R.string.insights_subjects), subtitle = stringResource(R.string.insights_subjects_subtitle)) {
-            SubjectsCard(data.subjects)
-        }
         InsightsSection(title = stringResource(R.string.insights_remaining), subtitle = stringResource(R.string.insights_remaining_subtitle)) {
             RemainingCard(data.subjects, data.syllabusRemainingSections)
-        }
-        InsightsSection(title = stringResource(R.string.insights_revision), subtitle = stringResource(R.string.insights_revision_subtitle)) {
-            RevisionCard(data)
         }
         InsightsSection(title = stringResource(R.string.insights_pattern), subtitle = stringResource(R.string.insights_pattern_subtitle)) {
             PatternCard(data)
@@ -320,6 +326,23 @@ private fun QuickStats(data: InsightsData) {
     }
 }
 
+/** Chapters learned, lectures done (with coaching counts) and revisions done, all over the last 7 days. */
+@Composable
+private fun WeekProgressCard(data: InsightsData) {
+    AppCard {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+        ) {
+            StatItem(stringResource(R.string.insights_chapters_learned), data.chaptersLearnedThisWeek.toString(), Modifier.weight(1f))
+            data.lecturesDone?.let { lectures ->
+                StatItem(stringResource(R.string.insights_lectures_done), lectures.toString(), Modifier.weight(1f))
+            }
+            StatItem(stringResource(R.string.insights_revisions_done), data.revision.completedThisWeek.toString(), Modifier.weight(1f))
+        }
+    }
+}
+
 @Composable
 private fun StatLine(leftLabel: String, leftValue: String, rightLabel: String, rightValue: String, rightNote: String? = null) {
     val colors = AppTheme.colors
@@ -402,7 +425,15 @@ private fun ConsistencyCard(data: InsightsData) {
             }
             HorizontalDivider(modifier = Modifier.padding(top = Spacing.md), color = colors.borderSubtle)
             Row(modifier = Modifier.fillMaxWidth().padding(top = Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-                SummaryItem(stringResource(R.string.insights_current_streak), if (data.hasStudyHistory) streakLabel(data.currentStreak) else stringResource(R.string.insights_no_value), Modifier.weight(1f))
+                SummaryItem(
+                    stringResource(R.string.insights_current_streak),
+                    when {
+                        data.streakBroken -> stringResource(R.string.insights_new_streak_today)
+                        data.hasStudyHistory -> streakLabel(data.currentStreak)
+                        else -> stringResource(R.string.insights_no_value)
+                    },
+                    Modifier.weight(1f),
+                )
                 SummaryItem(stringResource(R.string.insights_active_this_period), if (data.hasStudyInPeriod) pluralStringResource(R.plurals.insights_active_days_fraction, data.periodDays.size, data.studyDaysInPeriod, data.periodDays.size) else stringResource(R.string.insights_no_value), Modifier.weight(1f))
             }
         }
@@ -599,7 +630,7 @@ private fun ForecastCard(data: InsightsData) {
                 }
                 Row(modifier = Modifier.padding(top = Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.xl)) {
                     MetricPair(stringResource(R.string.insights_recent_average), insightDuration(forecast.recentAverageMinutesPerDay))
-                    MetricPair(stringResource(R.string.insights_required_pace), insightDuration(forecast.requiredMinutesPerDay), colors.warning)
+                    MetricPair(stringResource(R.string.insights_required_pace), insightDuration(forecast.requiredMinutesPerDay))
                 }
                 Text(
                     stringResource(

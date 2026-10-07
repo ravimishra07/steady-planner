@@ -1,7 +1,9 @@
 package com.exam.assistant.domain
 
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import kotlin.math.ceil
 import kotlin.math.roundToInt
@@ -363,6 +365,13 @@ fun longestStreak(studyDates: Set<LocalDate>): Int {
     return longest
 }
 
+/**
+ * A streak that was running and stopped: there is study history before today, but no streak
+ * today. Screens show it neutrally ("New streak starts today"), never as a loss.
+ */
+fun streakBroken(studyDates: Set<LocalDate>, today: LocalDate): Boolean =
+    currentStreak(studyDates, today) == 0 && studyDates.any { it < today }
+
 /** Days from [today] to [targetDate], never negative. The same function serves exam date and finish-by date. */
 fun daysToTarget(targetDate: LocalDate, today: LocalDate): Int =
     ChronoUnit.DAYS.between(today, targetDate).toInt().coerceAtLeast(0)
@@ -393,6 +402,29 @@ fun revisionsDueThisWeek(states: Collection<RevisionState>, today: LocalDate): L
 /** Revision sessions completed in [from]..[to], including partial saves. */
 fun revisionsCompleted(sessions: Iterable<StudySession>, from: LocalDate, to: LocalDate): Int =
     sessions.count { it.activityType == StudyActivityType.REVISION && it.countsAsStudy() && it.studyDate in from..to }
+
+// ---------------------------------------------------------------------------
+// Progress (what got done, ahead of hours: PRODUCTION_V1_PLAN §5.5)
+// ---------------------------------------------------------------------------
+
+/**
+ * Target chapters marked learned with a learned date in [from]..[to] (in [zone]). The same
+ * target and covered sets as [coverage], so it never counts an excluded chapter.
+ */
+fun chaptersLearnedBetween(
+    progress: Collection<TopicProgress>,
+    targetIds: Set<String>,
+    from: LocalDate,
+    to: LocalDate,
+    zone: ZoneId,
+): Int = progress.count { p ->
+    p.status == TopicProgressStatus.COVERED &&
+        p.nodeId in targetIds &&
+        p.coveredAtEpochMs?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() in from..to } == true
+}
+
+/** Coaching lectures ticked done, over every chapter. Zero without coaching counts. */
+fun lecturesDone(coaching: Collection<ChapterCoaching>): Int = coaching.sumOf { it.normalized().lecturesDone }
 
 data class RevisionOnTime(val onTime: Int, val due: Int) {
     val percent: Int? get() = if (due <= 0) null else onTime * 100 / due

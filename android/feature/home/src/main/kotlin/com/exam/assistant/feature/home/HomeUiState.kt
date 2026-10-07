@@ -65,6 +65,11 @@ data class MissedBlocksUi(
     val since: LocalDate,
 )
 
+/** "Start fresh from today". Carries no count on purpose: nothing on it says how much was missed. */
+data class FreshStartUi(
+    val since: LocalDate,
+)
+
 /** One chapter the student can say their batch taught today. */
 data class CoachingChapterOption(
     val chapterId: String,
@@ -124,5 +129,9 @@ data class HomeUiState(
     val syllabusPercent: Int = 0,
     val planFit: PlanFitUi? = null,
     val missedBlocks: MissedBlocksUi? = null,
+    /** Two or more missed days, or a broken streak: one "Start fresh from today" card instead of the missed prompts. */
+    val freshStart: FreshStartUi? = null,
+    /** The student started fresh today: no catch-up count on Today for the rest of the day. */
+    val startedFreshToday: Boolean = false,
     val coaching: CoachingTodayUi? = null,
 )

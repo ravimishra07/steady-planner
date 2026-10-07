@@ -71,6 +71,9 @@
     <string name="home_missed_blocks_body">Missed blocks are dropped from the past and their work goes back into the next days.</string>
     <string name="home_missed_blocks_yes">Yes</string>
     <string name="home_missed_blocks_not_now">Not now</string>
+    <string name="home_fresh_start_title">Start fresh from today</string>
+    <string name="home_fresh_start_body">Earlier days are behind you. Their work goes back into the queue and today\'s plan starts clean.</string>
+    <string name="home_fresh_start_action">Start fresh</string>
     <string name="home_fit_banner">About %1$d h (estimate) doesn\'t fit before %2$s.</string>
     <string name="home_fit_banner_calibrated">About %1$d h at your pace doesn\'t fit before %2$s.</string>
     <string name="home_fit_adjust">Adjust plan</string>

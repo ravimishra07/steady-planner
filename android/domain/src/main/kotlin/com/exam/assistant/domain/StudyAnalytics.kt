@@ -1,6 +1,7 @@
 package com.exam.assistant.domain
 
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import kotlin.math.ceil
@@ -116,6 +117,12 @@ data class InsightsData(
     val calibration: Calibration = Calibration.NONE,
     /** Deadline mode: does the remaining work fit before finish-by? Null in steady mode. */
     val fit: PlanFit? = null,
+    /** Target chapters learned in the last 7 days. Insights leads with this, not hours (§5.5). */
+    val chaptersLearnedThisWeek: Int = 0,
+    /** Coaching lectures ticked done; null when the student keeps no coaching counts. */
+    val lecturesDone: Int? = null,
+    /** History exists but no streak today: shown as "New streak starts today", never as a loss. */
+    val streakBroken: Boolean = false,
 )
 
 const val HEATMAP_DAYS = 84
@@ -137,6 +144,9 @@ fun computeInsights(
     nowMinuteOfDay: Int,
     calibration: Calibration = Calibration.NONE,
     fit: PlanFit? = null,
+    progress: Collection<TopicProgress> = emptyList(),
+    coaching: List<ChapterCoaching> = emptyList(),
+    zone: ZoneId = ZoneId.systemDefault(),
 ): InsightsData {
     val counted = sessions.filter { it.countsAsStudy() }
     val periodStart = period.days?.let { today.minusDays(it - 1) }
@@ -225,6 +235,9 @@ fun computeInsights(
         longestStreak = longestStreak(dates),
         calibration = calibration,
         fit = fit,
+        chaptersLearnedThisWeek = chaptersLearnedBetween(progress, syllabus.targetLeafIds, weekStart, today, zone),
+        lecturesDone = coaching.takeIf { list -> list.any { !it.isEmpty } }?.let(::lecturesDone),
+        streakBroken = streakBroken(dates, today),
     )
 }
 

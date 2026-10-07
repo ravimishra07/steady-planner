@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.AvailabilityRepository
+import com.exam.assistant.core.data.repo.ChapterStageRepository
 import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.RevisionRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
@@ -14,6 +15,7 @@ import com.exam.assistant.core.data.repo.StudySessionRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.domain.Calibration
+import com.exam.assistant.domain.ChapterCoaching
 import com.exam.assistant.domain.ExamPack
 import com.exam.assistant.domain.PlanFit
 import com.exam.assistant.domain.InsightPeriod
@@ -51,6 +53,7 @@ class ProgressViewModel(
     private val studyPreferenceRepository: StudyPreferenceRepository,
     private val revisionRepository: RevisionRepository,
     private val availabilityRepository: AvailabilityRepository,
+    private val chapterStageRepository: ChapterStageRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(InsightsUiState())
     val state: StateFlow<InsightsUiState> = _state.asStateFlow()
@@ -65,6 +68,7 @@ class ProgressViewModel(
     private var targetOverrides = emptyMap<String, TargetNodeState>()
     private var calibration = Calibration.NONE
     private var fit: PlanFit? = null
+    private var coaching = emptyList<ChapterCoaching>()
 
     init { refresh() }
 
@@ -87,6 +91,7 @@ class ProgressViewModel(
             targetOverrides = targetStates(targetSyllabusRepository.overridesFor(attempt.id))
             calibration = rollingPlanRepository.calibration()
             fit = rollingPlanRepository.planFit(withOptions = false)
+            coaching = chapterStageRepository.coachingFor(attempt.id)
             cachedPlan = InsightPlan(
                 startedOn = Instant.ofEpochMilli(attempt.createdAtEpochMs).atZone(ZoneId.systemDefault()).toLocalDate(),
                 targetDate = attempt.targetCompletionDate,
@@ -144,6 +149,9 @@ class ProgressViewModel(
             nowMinuteOfDay = currentMinuteOfDay(),
             calibration = calibration,
             fit = fit,
+            progress = progress,
+            coaching = coaching,
+            zone = ZoneId.systemDefault(),
         )
         _state.update {
             it.copy(
@@ -175,13 +183,14 @@ class ProgressViewModel(
         private val studyPreferenceRepository: StudyPreferenceRepository,
         private val revisionRepository: RevisionRepository,
         private val availabilityRepository: AvailabilityRepository,
+        private val chapterStageRepository: ChapterStageRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T = ProgressViewModel(
             examPackRepository, attemptRepository, planRepository, studySessionRepository,
             topicProgressRepository, targetSyllabusRepository,
             rollingPlanRepository, studyPreferenceRepository,
-            revisionRepository, availabilityRepository,
+            revisionRepository, availabilityRepository, chapterStageRepository,
         ) as T
     }
 }
