@@ -45,6 +45,7 @@ import com.exam.assistant.feature.onboarding.steps.OnboardingHoursParityStep
 import com.exam.assistant.feature.onboarding.steps.OnboardingPlanStep
 import com.exam.assistant.feature.onboarding.steps.OnboardingSyllabusStep
 import com.exam.assistant.feature.onboarding.steps.OnboardingTargetDateStep
+import com.exam.assistant.domain.PlanFitOption
 import java.time.LocalDate
 
 @Composable
@@ -119,6 +120,7 @@ fun OnboardingRoute(
         onWeekendChange = viewModel::setWeekendHours,
         onToggleTargetSubject = viewModel::toggleTargetSubject,
         onToggleTargetChapter = viewModel::toggleTargetChapter,
+        onApplyFitOption = viewModel::applyFitOption,
         onDismissFinishError = viewModel::dismissFinishError,
         modifier = modifier,
     )
@@ -151,6 +153,7 @@ fun OnboardingScreen(
     onWeekendChange: (Float) -> Unit,
     onToggleTargetSubject: (String) -> Unit,
     onToggleTargetChapter: (String) -> Unit,
+    onApplyFitOption: (PlanFitOption) -> Unit,
     onDismissFinishError: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -219,16 +222,13 @@ fun OnboardingScreen(
                 onToggleSubject = onToggleTargetSubject,
                 onToggleChapter = onToggleTargetChapter,
             )
-            OnboardingStep.Plan -> state.cushion?.let {
-                OnboardingPlanStep(
-                    state = state,
-                    cushion = it,
-                    onWeekdayChange = onWeekdayChange,
-                    onWeekendChange = onWeekendChange,
-                    onDate = onDate,
-                )
-            }
-                ?: CircularProgressIndicator()
+            OnboardingStep.Plan -> OnboardingPlanStep(
+                state = state,
+                onWeekdayChange = onWeekdayChange,
+                onWeekendChange = onWeekendChange,
+                onDate = onDate,
+                onApplyFitOption = onApplyFitOption,
+            )
         }
     }
 

@@ -10,6 +10,9 @@ import com.exam.assistant.core.data.db.toEntity
 import com.exam.assistant.domain.Calibration
 import com.exam.assistant.domain.DEFAULT_PLANNING_HORIZON_DAYS
 import com.exam.assistant.domain.ExamAttempt
+import com.exam.assistant.domain.ExamAttemptStatus
+import com.exam.assistant.domain.NEET_EXAM_ID
+import com.exam.assistant.domain.WeeklyAvailability
 import com.exam.assistant.domain.ExamPack
 import com.exam.assistant.domain.PlanFit
 import com.exam.assistant.domain.PlanInputs
@@ -102,6 +105,39 @@ class RollingPlanRepository(
         return withContext(dispatchers.default) { inputs.planFit(nowMs) }
     }
 
+    /**
+     * The same fit, for a plan the student is still shaping in onboarding. The student's real
+     * history (covered work, focused time, revision states, calibration, kept blocks) comes
+     * from Room, so editing a plan subtracts what is already done; [draft] supplies what they are
+     * changing. Null in steady mode.
+     */
+    suspend fun draftFit(draft: PlanDraft, nowMs: Long = System.currentTimeMillis()): PlanFit? {
+        if (draft.mode != PlanMode.DEADLINE) return null
+        val existing = withContext(dispatchers.io) {
+            db.examAttemptDao().activeOnce()?.toDomain()?.takeIf { it.examId == NEET_EXAM_ID }
+        }
+        val pack = examPackRepository.examPackFor(NEET_EXAM_ID)
+        val priorities = examPackRepository.pyqPriorities().chapters
+        val attempt = (existing ?: ExamAttempt(
+            id = DRAFT_ATTEMPT_ID, examId = NEET_EXAM_ID, syllabusVersion = pack.syllabusVersion,
+            examDate = draft.examDate, targetCompletionDate = draft.finishBy,
+            createdAtEpochMs = nowMs, updatedAtEpochMs = nowMs, status = ExamAttemptStatus.ACTIVE,
+        )).copy(examDate = draft.examDate, targetCompletionDate = draft.finishBy, planMode = draft.mode)
+        val parked = pack.subjects.flatMap { it.nodes }.map { it.id }.filter { it !in draft.includedChapterIds }
+        val inputs = withContext(dispatchers.io) {
+            loadInputs(
+                attempt, pack, priorities, LocalDate.now(), 1, nowMs,
+                overridesByNodeId = parked.associateWith { TargetNodeState.EXCLUDED },
+            )
+        }.copy(
+            weekdayTargetMinutes = draft.weekdayTargetMinutes,
+            weekendTargetMinutes = draft.weekendTargetMinutes,
+            weeklyAvailability = draft.weeklyAvailability,
+            availabilityOverrides = emptyList(),
+        )
+        return withContext(dispatchers.default) { inputs.planFit(nowMs) }
+    }
+
     /** The student's pace against the estimates, from completed Learn sessions. [Calibration.NONE] with no plan. */
     suspend fun calibration(): Calibration {
         val attempt = withContext(dispatchers.io) { db.examAttemptDao().activeOnce()?.toDomain() } ?: return Calibration.NONE
@@ -163,6 +199,7 @@ class RollingPlanRepository(
             .associate { it.nodeId to TargetNodeState.valueOf(it.state) }
         val covered = coveredLeafIds(attempt)
         val focusedByNode = db.studySessionDao().completedLearnSumsByNode(attempt.id).associate { it.nodeId to (it.totalSeconds / 60) }
+        val calibration = personalCalibration(pack, focusedByNode, covered)
         val deadline = attempt.planMode == PlanMode.DEADLINE
         val rangeEnd = if (deadline) {
             maxOf(attempt.targetCompletionDate, attempt.examDate ?: attempt.targetCompletionDate)
@@ -206,7 +243,8 @@ class RollingPlanRepository(
             mode = attempt.planMode,
             examDate = attempt.examDate,
             allowLearnInRevisionPhase = preferences?.allowLearnInRevisionPhase ?: false,
-            calibrationFactor = personalCalibration(pack, focusedByNode, covered).factor,
+            calibrationFactor = calibration.factor,
+            calibrationActive = calibration.active,
             priorities = priorities,
             revisionStates = db.revisionStateDao().allEnabled(attempt.id).map { it.toDomain() },
             weakNodeCounts = db.studySessionDao().struggledCountsByNode(attempt.id).associate { it.nodeId to it.total },
@@ -226,5 +264,18 @@ class RollingPlanRepository(
 
     private companion object {
         const val MOCK_LOOKBACK_DAYS = 14L
+        const val DRAFT_ATTEMPT_ID = "draft"
     }
 }
+
+/** What the student is choosing in onboarding, before it is saved. */
+data class PlanDraft(
+    val mode: PlanMode,
+    val examDate: LocalDate,
+    val finishBy: LocalDate,
+    val weekdayTargetMinutes: Int,
+    val weekendTargetMinutes: Int,
+    val weeklyAvailability: List<WeeklyAvailability>,
+    /** Chapters (top-level syllabus nodes) the student is preparing; every other chapter is parked. */
+    val includedChapterIds: Set<String>,
+)

@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Weekend
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -77,7 +78,9 @@ import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.core.design.Stroke
-import com.exam.assistant.domain.Cushion
+import com.exam.assistant.domain.PlanFit
+import com.exam.assistant.domain.PlanFitOption
+import com.exam.assistant.domain.PlanMode
 import com.exam.assistant.feature.onboarding.CapacityIssuesCard
 import com.exam.assistant.feature.onboarding.CapacityIssue
 import com.exam.assistant.feature.onboarding.CommitmentIssue
@@ -736,75 +739,67 @@ private fun HoursStepper(
 @Composable
 internal fun OnboardingPlanStep(
     state: OnboardingUiState,
-    cushion: Cushion,
     onWeekdayChange: (Float) -> Unit,
     onWeekendChange: (Float) -> Unit,
     onDate: (LocalDate) -> Unit,
+    onApplyFitOption: (PlanFitOption) -> Unit,
 ) {
     var editing by remember { mutableStateOf(false) }
     val shortDatePattern = stringResource(R.string.onboarding_plan_short_date_pattern)
     val dateFormatter = remember(shortDatePattern) { DateTimeFormatter.ofPattern(shortDatePattern, Locale.getDefault()) }
     val targetLabel = state.targetDate.format(dateFormatter)
-    val dailyAverage = ((state.weekdayHours * 5) + (state.weekendHours * 2)) / 7f
-    val learnDays = if (!state.useProvidedSyllabus || cushion.need == 0) 0 else {
-        ceil(cushion.need / dailyAverage.coerceAtLeast(.5f)).toInt().coerceAtMost(state.daysUntilTarget)
-    }
-    val leftover = (state.daysUntilTarget - learnDays).coerceAtLeast(0)
-    val slackDays = (leftover * .4f).roundToInt()
-    val reviseDays = leftover - slackDays
     val todayLabel = LocalDate.now().format(dateFormatter)
-    val weeklyHours = state.weekdayHours * 5 + state.weekendHours * 2
+    val fit = state.fit
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxl)) {
-        Text(
-            text = when {
-                !state.useProvidedSyllabus -> stringResource(R.string.onboarding_plan_verdict_empty)
-                cushion.isShort -> stringResource(
-                    R.string.onboarding_plan_coverage_short,
-                    planHour(weeklyHours),
-                    cushion.coverage,
-                    targetLabel,
+        when {
+            !state.useProvidedSyllabus -> PlanVerdict(stringResource(R.string.onboarding_plan_verdict_empty))
+            state.planMode == PlanMode.STEADY -> PlanVerdict(stringResource(R.string.onboarding_plan_steady))
+            fit == null -> CircularProgressIndicator()
+            else -> {
+                val estimateLabel = stringResource(
+                    if (fit.calibrated) R.string.onboarding_plan_at_your_pace else R.string.onboarding_plan_estimate_label,
                 )
-                else -> stringResource(R.string.onboarding_plan_fits, targetLabel)
-            },
-            style = MaterialTheme.typography.titleMedium,
-            color = AppTheme.colors.textSecondary,
-        )
-        if (state.useProvidedSyllabus) {
-            if (cushion.isShort) {
+                PlanVerdict(
+                    if (fit.fits) {
+                        stringResource(R.string.onboarding_plan_fits, targetLabel)
+                    } else {
+                        stringResource(
+                            R.string.onboarding_plan_short,
+                            planHour(fit.shortByMinutes / 60f),
+                            estimateLabel,
+                            targetLabel,
+                        )
+                    },
+                )
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    LinearProgressIndicator(
-                        progress = { cushion.coverage / 100f },
-                        modifier = Modifier.fillMaxWidth().height(Spacing.sm).clip(CircleShape),
+                    PlanStatRow(
+                        stringResource(R.string.onboarding_plan_stat_learn),
+                        stringResource(R.string.onboarding_plan_hours_value, planHour(fit.learnMinutes / 60f), estimateLabel),
                     )
-                    Text(
-                        stringResource(R.string.onboarding_plan_progress, cushion.coverage),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = AppTheme.colors.textSecondary,
+                    PlanStatRow(
+                        stringResource(R.string.onboarding_plan_stat_practice),
+                        stringResource(R.string.onboarding_plan_hours_value, planHour(fit.practiceMinutes / 60f), estimateLabel),
                     )
-                    Text(
-                        stringResource(R.string.onboarding_plan_estimate, cushion.have, cushion.need),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = AppTheme.colors.textSecondary,
+                    PlanStatRow(
+                        stringResource(R.string.onboarding_plan_stat_revision),
+                        if (fit.revisionWindowDays > 0) {
+                            pluralStringResource(R.plurals.onboarding_plan_revision_days, fit.revisionWindowDays, fit.revisionWindowDays)
+                        } else {
+                            stringResource(R.string.onboarding_plan_revision_none)
+                        },
                     )
-                    Text(
-                        stringResource(R.string.onboarding_plan_adjust),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = AppTheme.colors.text,
+                    PlanStatRow(
+                        stringResource(R.string.onboarding_plan_stat_verdict),
+                        if (fit.fits) {
+                            stringResource(R.string.onboarding_plan_stat_fits)
+                        } else {
+                            stringResource(R.string.onboarding_plan_stat_short, planHour(fit.shortByMinutes / 60f), estimateLabel)
+                        },
                     )
                 }
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                    Row(Modifier.fillMaxWidth().height(Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                        if (learnDays > 0) Box(Modifier.weight(learnDays.toFloat()).height(Spacing.md).clip(CircleShape).background(AppTheme.colors.brand))
-                        if (reviseDays > 0) Box(Modifier.weight(reviseDays.toFloat()).height(Spacing.md).clip(CircleShape).background(AppTheme.colors.brand.copy(alpha = .45f)))
-                        if (slackDays > 0) Box(Modifier.weight(slackDays.toFloat()).height(Spacing.md).clip(CircleShape).background(AppTheme.colors.surface3))
-                    }
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        PhaseLegend(AppTheme.colors.brand, stringResource(R.string.onboarding_plan_learn, learnDays))
-                        PhaseLegend(AppTheme.colors.brand.copy(alpha = .45f), stringResource(R.string.onboarding_plan_revise, reviseDays))
-                        PhaseLegend(AppTheme.colors.surface3, stringResource(R.string.onboarding_plan_slack, slackDays))
-                    }
+                if (!fit.fits) {
+                    FitOptions(fit, targetLabel, dateFormatter, state.fitLoading, onApplyFitOption)
                 }
             }
         }
@@ -869,10 +864,66 @@ internal fun OnboardingPlanStep(
 }
 
 @Composable
-private fun PhaseLegend(color: Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.icon)) {
-        Box(Modifier.size(Size.legendDot).clip(CircleShape).background(color))
-        Text(label, style = MaterialTheme.typography.labelLarge, color = AppTheme.colors.textSecondary)
+private fun PlanVerdict(text: String) {
+    Text(text = text, style = MaterialTheme.typography.titleMedium, color = AppTheme.colors.textSecondary)
+}
+
+@Composable
+private fun PlanStatRow(label: String, value: String) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+        Text(value, style = MaterialTheme.typography.titleSmall, color = AppTheme.colors.text)
+    }
+}
+
+/** The four ways out of a plan that is short. Each button applies a choice the planner has already verified. */
+@Composable
+private fun FitOptions(
+    fit: PlanFit,
+    targetLabel: String,
+    dateFormatter: DateTimeFormatter,
+    loading: Boolean,
+    onApply: (PlanFitOption) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Text(stringResource(R.string.onboarding_plan_options_title), style = MaterialTheme.typography.titleSmall)
+        fit.options.forEach { option ->
+            val (title, detail, action) = when (option) {
+                is PlanFitOption.AddMinutesPerDay -> Triple(
+                    stringResource(R.string.onboarding_plan_option_add, option.minutes),
+                    stringResource(R.string.onboarding_plan_option_add_detail, targetLabel),
+                    R.string.onboarding_plan_option_apply,
+                )
+                is PlanFitOption.ParkChapters -> Triple(
+                    pluralStringResource(R.plurals.onboarding_plan_option_park, option.count, option.count),
+                    stringResource(R.string.onboarding_plan_option_park_detail, planHour(option.minutesFreed / 60f)),
+                    R.string.onboarding_plan_option_apply,
+                )
+                is PlanFitOption.MoveFinishBy -> Triple(
+                    stringResource(R.string.onboarding_plan_option_move, option.date.format(dateFormatter)),
+                    stringResource(R.string.onboarding_plan_option_move_detail),
+                    R.string.onboarding_plan_option_apply,
+                )
+                is PlanFitOption.AcceptCoverage -> Triple(
+                    stringResource(R.string.onboarding_plan_option_accept, option.percent),
+                    stringResource(R.string.onboarding_plan_option_accept_detail),
+                    R.string.onboarding_plan_option_continue,
+                )
+            }
+            Surface(shape = RoundedCornerShape(Radius.lg), color = AppTheme.colors.elevated) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(title, style = MaterialTheme.typography.titleSmall, color = AppTheme.colors.text)
+                        Text(detail, style = MaterialTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
+                    }
+                    TextButton(onClick = { onApply(option) }, enabled = !loading) { Text(stringResource(action)) }
+                }
+            }
+        }
     }
 }
 

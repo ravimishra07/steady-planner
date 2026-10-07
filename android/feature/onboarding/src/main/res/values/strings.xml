@@ -123,14 +123,37 @@
 
     <string name="onboarding_plan_title">Your plan</string>
     <string name="onboarding_plan_verdict_empty"><b>Add at least one chapter</b> before starting day 1. Open Syllabus, then Organise.</string>
-    <string name="onboarding_plan_coverage_short">At %1$s hours each week, you can cover about <b>%2$d%%</b> by %3$s.</string>
-    <string name="onboarding_plan_fits">Your selected syllabus fits by <b>%1$s</b>, with time left for revision.</string>
-    <string name="onboarding_plan_estimate">%1$d hours available from about %2$d estimated hours. Revision is included.</string>
-    <string name="onboarding_plan_adjust">To cover more, change your hours, finish date, or chapters.</string>
-    <string name="onboarding_plan_progress">%1$d%% estimated coverage</string>
-    <string name="onboarding_plan_learn">Learn · %1$dd</string>
-    <string name="onboarding_plan_revise">Revise · %1$dd</string>
-    <string name="onboarding_plan_slack">Slack · %1$dd</string>
+    <string name="onboarding_plan_fits">Your selected syllabus fits by <b>%1$s</b>.</string>
+    <string name="onboarding_plan_short">Short by about <b>%1$s h</b> %2$s before %3$s. Pick how to close the gap.</string>
+    <string name="onboarding_plan_steady">Steady plan: no finish-by date. We sequence the next work from your daily hours and show a projected finish as you go.</string>
+    <string name="onboarding_plan_estimate_label">(estimate)</string>
+    <string name="onboarding_plan_at_your_pace">(at your pace)</string>
+    <string name="onboarding_plan_stat_learn">Learn</string>
+    <string name="onboarding_plan_stat_practice">Practice</string>
+    <string name="onboarding_plan_stat_revision">Revision phase</string>
+    <string name="onboarding_plan_stat_verdict">Before finish-by</string>
+    <string name="onboarding_plan_stat_fits">Fits</string>
+    <string name="onboarding_plan_stat_short">Short by %1$s h %2$s</string>
+    <string name="onboarding_plan_hours_value">~%1$s h %2$s</string>
+    <plurals name="onboarding_plan_revision_days">
+        <item quantity="one">%1$d day before the exam</item>
+        <item quantity="other">%1$d days before the exam</item>
+    </plurals>
+    <string name="onboarding_plan_revision_none">None: finish-by is the exam date</string>
+    <string name="onboarding_plan_options_title">How to fit it</string>
+    <string name="onboarding_plan_option_add">Add %1$d min a day</string>
+    <string name="onboarding_plan_option_add_detail">Weekdays and weekends. Everything fits by %1$s.</string>
+    <plurals name="onboarding_plan_option_park">
+        <item quantity="one">Park %1$d lowest-yield chapter</item>
+        <item quantity="other">Park %1$d lowest-yield chapters</item>
+    </plurals>
+    <string name="onboarding_plan_option_park_detail">Frees about %1$s h (estimate). Lowest past-paper yield first.</string>
+    <string name="onboarding_plan_option_move">Move finish-by to %1$s</string>
+    <string name="onboarding_plan_option_move_detail">The earliest date it all fits. Less time for revision.</string>
+    <string name="onboarding_plan_option_accept">Accept about %1$d%% coverage</string>
+    <string name="onboarding_plan_option_accept_detail">Keep this plan. The rest stays unplanned.</string>
+    <string name="onboarding_plan_option_apply">Apply</string>
+    <string name="onboarding_plan_option_continue">Continue</string>
     <string name="onboarding_plan_every_weekday">Every weekday</string>
     <string name="onboarding_plan_every_weekend">Every weekend day</string>
     <string name="onboarding_plan_hour_value">%1$sh</string>

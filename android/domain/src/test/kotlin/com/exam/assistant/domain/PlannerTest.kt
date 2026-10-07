@@ -465,6 +465,17 @@ class PlannerTest {
     }
 
     @Test
+    fun `weekend days at the end of the range are counted as weekend days`() {
+        // The old arithmetic counted leftover days as weekdays: a Saturday-Sunday range with no
+        // weekday time reported nothing available. Per-date availability sees the weekend.
+        val saturday = LocalDate.of(2026, 10, 17)
+        val fit = inputs(from = saturday, target = saturday.plusDays(1), weekday = 0, weekend = 240).run().fit!!
+        assertTrue(fit.scheduledMinutes > 0)
+        val weekdayOnly = inputs(from = start, target = start.plusDays(1), weekday = 0, weekend = 240).run().fit!!
+        assertEquals(0, weekdayOnly.scheduledMinutes)
+    }
+
+    @Test
     fun `steady mode has no fit at all`() {
         assertNull(inputs(mode = PlanMode.STEADY).planFit(longAgoMs))
     }

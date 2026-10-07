@@ -21,6 +21,8 @@ data class PlanFit(
     val shortByMinutes: Int,
     /** Days from finish-by to the exam: the revision window. Zero without an exam date. */
     val revisionWindowDays: Int,
+    /** True once the hours are scaled by the student's own pace; until then they are the bundled estimates. */
+    val calibrated: Boolean = false,
     /** Ways to close the gap, with their computed effect. Empty when it fits. */
     val options: List<PlanFitOption> = emptyList(),
 ) {

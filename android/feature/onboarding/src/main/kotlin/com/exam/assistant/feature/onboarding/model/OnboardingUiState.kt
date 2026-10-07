@@ -1,9 +1,9 @@
 package com.exam.assistant.feature.onboarding.model
 
 import androidx.annotation.StringRes
-import com.exam.assistant.domain.Cushion
 import com.exam.assistant.domain.DEFAULT_NEET_EXAM_DATE
 import com.exam.assistant.domain.NEET_EXAM_ID
+import com.exam.assistant.domain.PlanFit
 import com.exam.assistant.domain.PlanMode
 import com.exam.assistant.domain.defaultFinishByDate
 import com.exam.assistant.feature.onboarding.R
@@ -34,7 +34,9 @@ data class OnboardingUiState(
     val selectedChapterIds: Set<String> = emptySet(),
     val coveredChapterIds: Set<String> = emptySet(),
     val syllabusSubjects: List<OnboardingSyllabusSubject> = emptyList(),
-    val cushion: Cushion? = null,
+    /** Deadline mode: whether the remaining work fits before [targetDate], from the planner itself. Null until computed or in steady mode. */
+    val fit: PlanFit? = null,
+    val fitLoading: Boolean = false,
     val finishing: Boolean = false,
     val finishFailed: Boolean = false,
 ) {

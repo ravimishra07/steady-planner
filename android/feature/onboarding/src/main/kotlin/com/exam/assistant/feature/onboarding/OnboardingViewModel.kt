@@ -12,6 +12,7 @@ import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.SavedPlan
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.AvailabilityRepository
+import com.exam.assistant.core.data.repo.PlanDraft
 import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.core.data.repo.StudyPreferenceRepository
@@ -20,17 +21,16 @@ import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.domain.ExamAttempt
 import com.exam.assistant.domain.ExamAttemptStatus
 import com.exam.assistant.domain.ExamPack
+import com.exam.assistant.domain.PlanFitOption
+import com.exam.assistant.domain.PlanMode
 import com.exam.assistant.domain.NEET_EXAM_ID
 import com.exam.assistant.domain.StudyPreferences
 import com.exam.assistant.domain.TargetNodeState
 import com.exam.assistant.domain.TopicProgressStatus
 import com.exam.assistant.domain.WeeklyAvailability
-import com.exam.assistant.domain.availableHours
 import com.exam.assistant.domain.coerceFinishBy
 import com.exam.assistant.domain.defaultFinishByDate
-import com.exam.assistant.domain.cushion
 import com.exam.assistant.domain.leafIds
-import com.exam.assistant.domain.totalMinutes
 import com.exam.assistant.feature.onboarding.model.DAY_SHAPES
 import com.exam.assistant.feature.onboarding.model.ExamCatalog
 import com.exam.assistant.feature.onboarding.model.OnboardingCommitment
@@ -45,6 +45,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -72,6 +73,7 @@ class OnboardingViewModel(
 ) : ViewModel() {
 
     private var currentPack: ExamPack? = null
+    private var fitJob: Job? = null
     private val _state = MutableStateFlow(
         OnboardingUiState(
             examDate = examDate,
@@ -105,8 +107,9 @@ class OnboardingViewModel(
         if (!canContinue(current)) return
         when (current.step) {
             OnboardingStep.Plan -> finish(current)
-            OnboardingStep.Syllabus -> _state.update {
-                it.copy(step = OnboardingStep.Plan, cushion = computeCushion(it))
+            OnboardingStep.Syllabus -> {
+                _state.update { it.copy(step = OnboardingStep.Plan, fit = null) }
+                refreshFit()
             }
             else -> advance()
         }
@@ -147,8 +150,9 @@ class OnboardingViewModel(
     fun setTargetDate(date: LocalDate) {
         val today = LocalDate.now()
         _state.update {
-            it.copy(targetDate = coerceFinishBy(date, it.examDate, today)).refreshCushionIfNeeded()
+            it.copy(targetDate = coerceFinishBy(date, it.examDate, today))
         }
+        refreshFitIfOnPlanStep()
     }
 
     fun addCommitment(kind: String) {
@@ -204,11 +208,13 @@ class OnboardingViewModel(
     }
 
     fun setWeekdayHours(hours: Float) {
-        _state.update { it.copy(weekdayHours = hours.halfHourStep()).refreshCushionIfNeeded() }
+        _state.update { it.copy(weekdayHours = hours.halfHourStep()) }
+        refreshFitIfOnPlanStep()
     }
 
     fun setWeekendHours(hours: Float) {
-        _state.update { it.copy(weekendHours = hours.halfHourStep()).refreshCushionIfNeeded() }
+        _state.update { it.copy(weekendHours = hours.halfHourStep()) }
+        refreshFitIfOnPlanStep()
     }
 
     fun setStudyPlace(place: String) {
@@ -260,9 +266,6 @@ class OnboardingViewModel(
     fun dismissFinishError() {
         _state.update { it.copy(finishFailed = false) }
     }
-
-    fun totalHours(state: OnboardingUiState = _state.value): Int =
-        availableHours(state.daysUntilTarget, state.weekdayHours.toDouble(), state.weekendHours.toDouble())
 
     fun commitmentIssues(state: OnboardingUiState = _state.value): List<CommitmentIssue> =
         commitmentIssuesFor(state)
@@ -376,24 +379,70 @@ class OnboardingViewModel(
         _state.update { current -> current.step.next()?.let { current.copy(step = it) } ?: current }
     }
 
-    private fun OnboardingUiState.refreshCushionIfNeeded(): OnboardingUiState =
-        if (step == OnboardingStep.Plan) copy(cushion = computeCushion(this)) else this
+    private fun refreshFitIfOnPlanStep() {
+        if (_state.value.step == OnboardingStep.Plan) refreshFit()
+    }
 
-    private fun computeCushion(state: OnboardingUiState) = cushion(
-        rawHours = if (state.useProvidedSyllabus) {
-            currentPack?.subjects
-                ?.flatMap { it.nodes }
-                ?.filter { it.id in state.selectedChapterIds }
-                ?.sumOf { it.totalMinutes() }
-                ?.div(60.0)
-                ?: 0.0
-        } else {
-            0.0
-        },
-        days = state.daysUntilTarget,
-        weekdayHours = state.weekdayHours.toDouble(),
-        weekendHours = state.weekendHours.toDouble(),
-    )
+    /**
+     * Asks the planner whether the remaining work fits before finish-by. It is the same
+     * simulation that builds the plan, fed the same history, so the answer is what will be scheduled.
+     */
+    private fun refreshFit() {
+        fitJob?.cancel()
+        val draft = _state.value
+        if (!draft.useProvidedSyllabus || draft.planMode != PlanMode.DEADLINE) {
+            _state.update { it.copy(fit = null, fitLoading = false) }
+            return
+        }
+        _state.update { it.copy(fitLoading = true) }
+        fitJob = viewModelScope.launch {
+            val fit = rollingPlanRepository.draftFit(
+                PlanDraft(
+                    mode = draft.planMode,
+                    examDate = draft.examDate,
+                    finishBy = draft.targetDate,
+                    weekdayTargetMinutes = (draft.weekdayHours * 60).roundToInt(),
+                    weekendTargetMinutes = (draft.weekendHours * 60).roundToInt(),
+                    weeklyAvailability = freeWindowsFor(DRAFT_ATTEMPT_ID, draft),
+                    includedChapterIds = draft.selectedChapterIds,
+                ),
+            )
+            _state.update { current ->
+                // A newer change started its own request; only the latest answer may land.
+                if (current.targetDate == draft.targetDate && current.weekdayHours == draft.weekdayHours &&
+                    current.weekendHours == draft.weekendHours && current.selectedChapterIds == draft.selectedChapterIds
+                ) {
+                    current.copy(fit = fit, fitLoading = false)
+                } else {
+                    current
+                }
+            }
+        }
+    }
+
+    /** Applies one of the choices shown when the plan is short. Each was verified by planning again. */
+    fun applyFitOption(option: PlanFitOption) {
+        when (option) {
+            is PlanFitOption.AddMinutesPerDay -> _state.update {
+                it.copy(
+                    weekdayHours = (it.weekdayHours + option.minutes / 60f).coerceAtMost(MAX_WEEKDAY_HOURS),
+                    weekendHours = (it.weekendHours + option.minutes / 60f).coerceAtMost(MAX_WEEKEND_HOURS),
+                )
+            }
+            is PlanFitOption.ParkChapters -> _state.update {
+                it.copy(selectedChapterIds = it.selectedChapterIds - option.chapterIds.toSet())
+            }
+            is PlanFitOption.MoveFinishBy -> {
+                val today = LocalDate.now()
+                _state.update { it.copy(targetDate = coerceFinishBy(option.date, it.examDate, today)) }
+            }
+            is PlanFitOption.AcceptCoverage -> {
+                continueFromCurrent()
+                return
+            }
+        }
+        refreshFitIfOnPlanStep()
+    }
 
     private fun finish(state: OnboardingUiState) {
         if (state.finishing) return
@@ -530,6 +579,9 @@ class OnboardingViewModel(
 
     private companion object {
         const val DRAFT_KEY = "onboarding_draft_v1"
+        const val DRAFT_ATTEMPT_ID = "draft"
+        const val MAX_WEEKDAY_HOURS = 14f
+        const val MAX_WEEKEND_HOURS = 16f
     }
 }
 

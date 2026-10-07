@@ -103,6 +103,8 @@ data class PlanInputs(
     val allowLearnInRevisionPhase: Boolean = false,
     /** Personal pace factor (§4.1) applied to every Learn estimate. */
     val calibrationFactor: Double = 1.0,
+    /** Whether [calibrationFactor] was measured on enough chapters to call the hours "yours". */
+    val calibrationActive: Boolean = false,
     val priorities: Map<String, ChapterPriority> = emptyMap(),
     val revisionStates: Collection<RevisionState> = emptyList(),
     /** STRUGGLED outcome counts by node id; weak chapters are revised first within a band. */
@@ -565,6 +567,7 @@ fun PlanInputs.plan(horizonDays: Int, nowMs: Long): RollingPlanResult {
             practiceMinutes = practiceNeeded,
             shortByMinutes = learnLeft + practiceLeft,
             revisionWindowDays = examDate?.let { ChronoUnit.DAYS.between(targetDate, it).toInt().coerceAtLeast(0) } ?: 0,
+            calibrated = calibrationActive,
         )
     } else {
         null
