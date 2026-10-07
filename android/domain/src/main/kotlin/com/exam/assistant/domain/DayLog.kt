@@ -51,7 +51,8 @@ fun dayLog(
             sessionId = session.id,
             title = chapter?.title ?: node?.title ?: session.planBlockId?.let { customTitles[it] },
             topicTitle = node?.title?.takeIf { chapter != null && node.id != chapter.id },
-            subjectName = session.nodeId?.let { pack?.findSubjectOf(it)?.name },
+            subjectName = session.nodeId?.let { pack?.findSubjectOf(it)?.name }
+                ?: session.subjectId?.let { id -> pack?.subjects?.firstOrNull { it.id == id }?.name },
             activityType = session.activityType,
             focusedMinutes = focusedMinutes(session),
             startMinuteOfDay = minuteOfDay(session.startedAtEpochMs, zone),

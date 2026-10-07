@@ -17,6 +17,8 @@ import com.exam.assistant.domain.BlockTag
 import com.exam.assistant.domain.FocusBlockRef
 import com.exam.assistant.domain.FocusSession
 import com.exam.assistant.domain.FocusStatus
+import com.exam.assistant.domain.FOCUS_LENGTH_MAX_MINUTES
+import com.exam.assistant.domain.FOCUS_LENGTH_MIN_MINUTES
 import com.exam.assistant.domain.StudyActivityType
 import com.exam.assistant.domain.StudySession
 import com.exam.assistant.domain.StudyOutcome
@@ -59,6 +61,8 @@ class FocusViewModel(
     private var lastCheckpointFocusedSeconds = 0
     private var selectedBlock: FocusBlockRef? = null
     private var lastCompletedSessionId: String? = null
+    /** A length picked on this screen; wins over a planned block's length until the session starts. */
+    private var lengthOverrideMinutes: Int? = null
 
     init {
         // Every change — from this screen, a notification action or the end alarm — arrives here.
@@ -115,12 +119,14 @@ class FocusViewModel(
     fun startSession() {
         viewModelScope.launch {
             val block = selectedBlock ?: nextBlock()
-            val duration = block?.id
-                ?.let { id -> planRepository.byId(id) }
-                ?.plannedMinutes
-                ?.times(60)
+            val duration = lengthOverrideMinutes?.times(60)
+                ?: block?.id
+                    ?.let { id -> planRepository.byId(id) }
+                    ?.plannedMinutes
+                    ?.times(60)
                 ?: preferredSessionSec()
             selectedBlock = null
+            lengthOverrideMinutes = null
             focusController.start(
                 FocusSession(
                     status = FocusStatus.RUNNING,
@@ -146,8 +152,14 @@ class FocusViewModel(
         _state.update { it.copy(showStopDialog = true) }
     }
 
+    /**
+     * The length chips on the idle screen (§6.4): a preset or a custom 5–180 min. The choice is
+     * used for the next start, even on a planned block, and saved as the default everywhere.
+     */
     fun setDuration(minutes: Int) {
-        if (minutes !in setOf(25, 50, 90)) return
+        if (minutes !in FOCUS_LENGTH_MIN_MINUTES..FOCUS_LENGTH_MAX_MINUTES) return
+        lengthOverrideMinutes = minutes
+        _state.update { it.copy(durationMinutes = minutes) }
         viewModelScope.launch {
             savePreferredSessionMinutes(minutes)
             val current = focusController.load()
@@ -168,11 +180,9 @@ class FocusViewModel(
     }
 
     private suspend fun savePreferredSessionMinutes(minutes: Int) {
-        val attempt = attemptRepository.activeAttempt()
-        if (attempt == null) {
-            settingsStore.setFocusDurationSec(minutes * 60)
-            return
-        }
+        // Settings and Focus write the same stores (§6.4).
+        settingsStore.setFocusDurationSec(minutes * 60)
+        val attempt = attemptRepository.activeAttempt() ?: return
         val current = studyPreferenceRepository.forAttempt(attempt.id) ?: StudyPreferences(attemptId = attempt.id)
         studyPreferenceRepository.upsert(current.copy(preferredSessionMinutes = minutes))
     }
@@ -184,7 +194,7 @@ class FocusViewModel(
             selectedBlock = chosenBlock
             _state.update {
                 it.copy(
-                    durationMinutes = chosen.plannedMinutes,
+                    durationMinutes = lengthOverrideMinutes ?: chosen.plannedMinutes,
                     blockTitle = chosenBlock.title,
                     blockSubtitle = chosenBlock.subtitle,
                     blockTag = chosenBlock.tag,
@@ -353,7 +363,8 @@ class FocusViewModel(
                         blockSubtitle = next?.subtitle.orEmpty(),
                         blockTag = next?.tag,
                         hasBlock = next != null,
-                        durationMinutes = next?.let { row -> sessions.firstOrNull { it.first.id == row.id }?.first?.plannedMinutes }
+                        durationMinutes = lengthOverrideMinutes
+                            ?: next?.let { row -> sessions.firstOrNull { it.first.id == row.id }?.first?.plannedMinutes }
                             ?: it.durationMinutes,
                         queue = sessions
                             .filterNot { row -> row.first.id == next?.id }

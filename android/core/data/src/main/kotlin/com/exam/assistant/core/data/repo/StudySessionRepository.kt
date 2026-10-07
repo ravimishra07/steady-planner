@@ -198,4 +198,61 @@ class StudySessionRepository(
             result.revision?.let { revisionDao.upsert(it.toEntity()) }
         }
     }
+
+    /**
+     * "Log study I did offline" (§6.3): stores a session that is already COMPLETED. It goes through
+     * the same completion rules as Focus ([completeStudySession]) so topic progress and the revision
+     * schedule move exactly as a timed session would, dated on the day the student studied.
+     */
+    suspend fun logManualSession(session: StudySession, nowMs: Long): StudySession = withContext(dispatchers.io) {
+        val nodeId = session.nodeId
+        lateinit var stored: StudySession
+        db.withTransaction {
+            val revisionDao = db.revisionStateDao()
+            val currentRevision = nodeId?.let { revisionDao.byNode(session.attemptId, it)?.toDomain() }
+            val result = completeStudySession(session, currentRevision, session.studyDate, nowMs)
+            stored = result.session.copy(endedAtEpochMs = session.endedAtEpochMs)
+            sessionDao.upsert(stored.toEntity())
+            sessionDao.upsertSegment(manualSegment(stored).toEntity())
+            if (nodeId != null) {
+                val progressDao = db.topicProgressDao()
+                val current = progressDao.byNode(session.attemptId, nodeId)?.toDomain()
+                progressDao.upsert(topicProgressAfterStudy(current, session.attemptId, nodeId, nowMs).toEntity())
+                result.revision?.let { revisionDao.upsert(it.toEntity()) }
+            }
+        }
+        stored
+    }
+
+    /**
+     * Saves an edited past session (§6.3). Only the record changes: the revision schedule it
+     * produced is left alone, so editing can never apply an outcome twice. Every metric reads
+     * focused seconds from here, so totals follow on the next load.
+     */
+    suspend fun updateSession(session: StudySession) = withContext(dispatchers.io) {
+        db.withTransaction {
+            sessionDao.upsert(session.toEntity())
+            val segments = sessionDao.segmentsFor(session.id)
+            if (segments.size <= 1) {
+                sessionDao.deleteSegmentsFor(session.id)
+                sessionDao.upsertSegment(manualSegment(session, segments.firstOrNull()?.id).toEntity())
+            }
+        }
+    }
+
+    /** Deletes a past session and its segments. The plan block it completed keeps its status. */
+    suspend fun deleteSession(sessionId: String) = withContext(dispatchers.io) {
+        sessionDao.deleteSession(sessionId)
+    }
+
+    private fun manualSegment(session: StudySession, id: String? = null) = StudySessionSegment(
+        id = id ?: "${session.id}_0",
+        sessionId = session.id,
+        nodeId = session.nodeId,
+        subjectId = session.subjectId,
+        startedAtEpochMs = session.startedAtEpochMs,
+        endedAtEpochMs = session.endedAtEpochMs,
+        focusedSeconds = session.focusedSeconds,
+        order = 0,
+    )
 }

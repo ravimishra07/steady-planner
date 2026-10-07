@@ -183,6 +183,8 @@ class SettingsDetailViewModel(
                         defaultStudyPlace = draft.studyPlace.trim().ifBlank { null },
                     ),
                 )
+                // Focus reads the same length (§6.4): keep its store in step.
+                settingsStore.setFocusDurationSec(draft.focusDurationMinutes * 60)
                 check(rollingPlanRepository.replenish(fromDate = LocalDate.now()) != null) {
                     "The study plan could not be regenerated"
                 }

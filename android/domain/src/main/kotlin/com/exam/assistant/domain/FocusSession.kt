@@ -56,6 +56,15 @@ data class FocusSession(
 
 const val DEFAULT_FOCUS_DURATION_SEC = 50 * 60
 
+/** Focus length presets (PRODUCTION_V1_PLAN §6.4). Focus and Settings offer the same choices. */
+val FOCUS_LENGTH_PRESETS_MINUTES: List<Int> = listOf(25, 50, 90)
+const val FOCUS_LENGTH_MIN_MINUTES = 5
+const val FOCUS_LENGTH_MAX_MINUTES = 180
+
+/** A typed custom length, clamped into the allowed range; null when it is not a number. */
+fun focusLengthMinutesOrNull(input: String): Int? =
+    input.trim().toIntOrNull()?.coerceIn(FOCUS_LENGTH_MIN_MINUTES, FOCUS_LENGTH_MAX_MINUTES)
+
 fun formatFocusClock(seconds: Int): String {
     val safe = seconds.coerceAtLeast(0)
     val minutes = safe / 60

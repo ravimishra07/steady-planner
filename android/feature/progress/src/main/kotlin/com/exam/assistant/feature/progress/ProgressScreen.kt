@@ -94,6 +94,7 @@ fun ProgressRoute(
     onOpenSettings: () -> Unit = {},
     onGoToday: () -> Unit = {},
     onOpenDay: (java.time.LocalDate) -> Unit = {},
+    onLogStudy: () -> Unit = {},
     viewModel: ProgressViewModel = viewModel(
         factory = ProgressViewModel.Factory(
             examPackRepository, attemptRepository, planRepository, studySessionRepository,
@@ -111,6 +112,7 @@ fun ProgressRoute(
         onOpenSettings = onOpenSettings,
         onGoToday = onGoToday,
         onOpenDay = onOpenDay,
+        onLogStudy = onLogStudy,
         onManageTarget = viewModel::openTargetManager,
         onCloseTargetManager = viewModel::closeTargetManager,
         onToggleSection = viewModel::toggleSectionTarget,
@@ -126,6 +128,7 @@ fun ProgressScreen(
     onOpenSettings: () -> Unit = {},
     onGoToday: () -> Unit = {},
     onOpenDay: (java.time.LocalDate) -> Unit = {},
+    onLogStudy: () -> Unit = {},
     onManageTarget: () -> Unit = {},
     onCloseTargetManager: () -> Unit = {},
     onToggleSection: (String) -> Unit = {},
@@ -154,7 +157,7 @@ fun ProgressScreen(
 
     val data = state.data
     if (!data.hasStudyHistory) {
-        EmptyProgressScreen(data = data, onGoToday = onGoToday, modifier = modifier)
+        EmptyProgressScreen(data = data, onGoToday = onGoToday, onLogStudy = onLogStudy, modifier = modifier)
         return
     }
     Column(
@@ -173,6 +176,7 @@ fun ProgressScreen(
                 Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.insights_settings), tint = colors.textSecondary)
             }
         }
+        LogStudyButton(onClick = onLogStudy, modifier = Modifier.padding(top = Spacing.sm))
         // Progress first (§5.5): what got done this week, then syllabus and revision. Hours come after.
         InsightsSection(title = stringResource(R.string.insights_progress_week), subtitle = stringResource(R.string.insights_progress_week_subtitle)) {
             WeekProgressCard(data)
@@ -228,7 +232,7 @@ fun ProgressScreen(
 }
 
 @Composable
-private fun EmptyProgressScreen(data: InsightsData, onGoToday: () -> Unit, modifier: Modifier = Modifier) {
+private fun EmptyProgressScreen(data: InsightsData, onGoToday: () -> Unit, onLogStudy: () -> Unit, modifier: Modifier = Modifier) {
     val colors = AppTheme.colors
     Column(
         modifier = modifier
@@ -269,6 +273,7 @@ private fun EmptyProgressScreen(data: InsightsData, onGoToday: () -> Unit, modif
             Button(onClick = onGoToday, modifier = Modifier.fillMaxWidth().height(Size.ctaHeight)) {
                 Text(stringResource(R.string.progress_start_next))
             }
+            LogStudyButton(onClick = onLogStudy)
         }
         Spacer(Modifier.height(Spacing.xxl))
     }

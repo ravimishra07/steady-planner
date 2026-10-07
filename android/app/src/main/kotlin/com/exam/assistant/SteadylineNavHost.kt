@@ -34,6 +34,7 @@ import com.exam.assistant.core.data.neetExamDateOfficial
 import com.exam.assistant.feature.home.HomeRoute
 import com.exam.assistant.feature.onboarding.OnboardingRoute
 import com.exam.assistant.feature.progress.DayLogRoute
+import com.exam.assistant.feature.progress.LogSessionRoute
 import com.exam.assistant.feature.progress.ProgressRoute
 import com.exam.assistant.feature.settings.MoreRoute
 import com.exam.assistant.feature.settings.AppearanceScreen
@@ -243,6 +244,7 @@ fun SteadylineNavHost(
                     onOpenSettings = { navController.navigate(Route.Settings.path) },
                     onGoToday = { navController.navigate(Route.Home.path) { launchSingleTop = true } },
                     onOpenDay = { date -> navController.navigate(Route.DayLog.pathFor(date)) },
+                    onLogStudy = { navController.navigate(Route.LogSession.newOn(null)) },
                     modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                 )
             }
@@ -310,6 +312,26 @@ fun SteadylineNavHost(
                     studySessionRepository = container.studySessionRepository,
                     planRepository = container.planRepository,
                     onBack = { navController.popBackStack() },
+                    onLogStudy = { date -> navController.navigate(Route.LogSession.newOn(date)) },
+                    onEditSession = { id -> navController.navigate(Route.LogSession.edit(id)) },
+                    modifier = Modifier.padding(padding).consumeWindowInsets(padding),
+                )
+            }
+            composable(
+                route = Route.LogSession.path,
+                arguments = listOf(
+                    navArgument(Route.LogSession.ARG_SESSION) { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument(Route.LogSession.ARG_DAY) { type = NavType.LongType; defaultValue = Route.LogSession.NO_DAY },
+                ),
+            ) { entry ->
+                val day = entry.arguments?.getLong(Route.LogSession.ARG_DAY) ?: Route.LogSession.NO_DAY
+                LogSessionRoute(
+                    sessionId = entry.arguments?.getString(Route.LogSession.ARG_SESSION),
+                    date = if (day == Route.LogSession.NO_DAY) null else java.time.LocalDate.ofEpochDay(day),
+                    examPackRepository = container.examPackRepository,
+                    attemptRepository = container.attemptRepository,
+                    studySessionRepository = container.studySessionRepository,
+                    onDone = { navController.popBackStack() },
                     modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                 )
             }

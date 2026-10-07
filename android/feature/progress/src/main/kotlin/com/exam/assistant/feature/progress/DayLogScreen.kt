@@ -13,7 +13,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import com.exam.assistant.core.design.Size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +61,8 @@ fun DayLogRoute(
     studySessionRepository: StudySessionRepository,
     planRepository: PlanRepository,
     onBack: () -> Unit,
+    onLogStudy: (LocalDate) -> Unit,
+    onEditSession: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DayLogViewModel = viewModel(
         key = "day-log-$date",
@@ -56,16 +70,29 @@ fun DayLogRoute(
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    DayLogScreen(state = state, onBack = onBack, modifier = modifier)
+    // Back from logging or editing a session: re-read the day.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refresh() }
+    DayLogScreen(
+        state = state,
+        onBack = onBack,
+        onLogStudy = { onLogStudy(date) },
+        onEditSession = onEditSession,
+        onDeleteSession = viewModel::delete,
+        modifier = modifier,
+    )
 }
 
 @Composable
 fun DayLogScreen(
     state: DayLogUiState,
     onBack: () -> Unit,
+    onLogStudy: () -> Unit,
+    onEditSession: (String) -> Unit,
+    onDeleteSession: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
+    var pendingDelete by remember { mutableStateOf<String?>(null) }
     Column(modifier = modifier.fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.xs, vertical = Spacing.sm),
@@ -92,7 +119,14 @@ fun DayLogScreen(
         when {
             state.loading -> CenteredNote(stringResource(R.string.insights_loading))
             state.loadFailed -> CenteredNote(stringResource(R.string.insights_load_failed))
-            log == null || log.entries.isEmpty() -> CenteredNote(stringResource(R.string.day_log_empty))
+            log == null || log.entries.isEmpty() -> Column(
+                modifier = Modifier.fillMaxSize().padding(Spacing.screen),
+                verticalArrangement = Arrangement.spacedBy(Spacing.lg, Alignment.CenterVertically),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(stringResource(R.string.day_log_empty), style = MaterialTheme.typography.bodyLarge, color = colors.textMuted)
+                LogStudyButton(onClick = onLogStudy)
+            }
             else -> Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -110,27 +144,49 @@ fun DayLogScreen(
                     color = colors.textSecondary,
                     modifier = Modifier.padding(top = Spacing.sm, bottom = Spacing.md),
                 )
-                DaySessionList(entries = log.entries)
+                DaySessionList(entries = log.entries, onEdit = onEditSession, onDelete = { pendingDelete = it })
+                LogStudyButton(onClick = onLogStudy, modifier = Modifier.padding(top = Spacing.lg))
                 Spacer(Modifier.height(Spacing.xl))
             }
         }
     }
+    pendingDelete?.let { id ->
+        DeleteSessionDialog(
+            onConfirm = { pendingDelete = null; onDeleteSession(id) },
+            onDismiss = { pendingDelete = null },
+        )
+    }
 }
 
-/** The day's sessions in one card. Each row is a [SessionListItem], ready for edit and delete. */
+/** "Log study I did offline" (§6.3). Shown on Insights and in the day view. */
 @Composable
-internal fun DaySessionList(entries: List<DaySessionEntry>, modifier: Modifier = Modifier) {
+internal fun LogStudyButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    OutlinedButton(onClick = onClick, modifier = modifier.fillMaxWidth().heightIn(min = Size.touchTarget)) {
+        Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(Size.smallIcon))
+        Spacer(Modifier.width(Spacing.sm))
+        Text(stringResource(R.string.log_session_open))
+    }
+}
+
+/** The day's sessions in one card. Tapping a row edits it; the trailing action deletes it after a confirm. */
+@Composable
+internal fun DaySessionList(
+    entries: List<DaySessionEntry>,
+    onEdit: (String) -> Unit,
+    onDelete: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val colors = AppTheme.colors
     AppCard(modifier = modifier) {
         entries.forEachIndexed { index, entry ->
-            DaySessionRow(entry)
+            DaySessionRow(entry, onEdit, onDelete)
             if (index < entries.lastIndex) HorizontalDivider(color = colors.borderSubtle)
         }
     }
 }
 
 @Composable
-private fun DaySessionRow(entry: DaySessionEntry) {
+private fun DaySessionRow(entry: DaySessionEntry, onEdit: (String) -> Unit, onDelete: (String) -> Unit) {
     val type = stringResource(activityLabel(entry.activityType))
     val detail = listOfNotNull(type, entry.topicTitle, entry.subjectName).joinToString(stringResource(R.string.day_log_separator))
     val time = entry.endMinuteOfDay?.let {
@@ -141,6 +197,17 @@ private fun DaySessionRow(entry: DaySessionEntry) {
         title = entry.title ?: type,
         detail = detail,
         duration = insightDuration(entry.focusedMinutes),
+        onClick = { onEdit(entry.sessionId) },
+        trailing = {
+            IconButton(onClick = { onDelete(entry.sessionId) }) {
+                Icon(
+                    Icons.Outlined.Delete,
+                    contentDescription = stringResource(R.string.log_session_delete),
+                    tint = AppTheme.colors.textMuted,
+                    modifier = Modifier.size(Size.smallIcon),
+                )
+            }
+        },
     )
 }
 
@@ -151,7 +218,7 @@ private fun CenteredNote(text: String) {
     }
 }
 
-private fun activityLabel(type: StudyActivityType): Int = when (type) {
+internal fun activityLabel(type: StudyActivityType): Int = when (type) {
     StudyActivityType.LEARN -> R.string.day_log_type_learn
     StudyActivityType.REVISION -> R.string.day_log_type_revision
     StudyActivityType.PRACTICE -> R.string.day_log_type_practice

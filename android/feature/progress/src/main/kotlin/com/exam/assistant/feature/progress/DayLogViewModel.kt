@@ -48,6 +48,16 @@ class DayLogViewModel(
         }
     }
 
+    /** Deletes a session after the row's confirm; the day re-reads so the total follows. */
+    fun delete(sessionId: String) = viewModelScope.launch {
+        try {
+            studySessionRepository.deleteSession(sessionId)
+        } catch (_: Throwable) {
+            // The row stays; the next refresh shows the truth.
+        }
+        refresh()
+    }
+
     class Factory(
         private val date: LocalDate,
         private val examPackRepository: ExamPackRepository,

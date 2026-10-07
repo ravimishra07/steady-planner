@@ -27,4 +27,14 @@ sealed interface Route {
         override val path = "day/{$ARG}"
         fun pathFor(date: java.time.LocalDate) = "day/${date.toEpochDay()}"
     }
+
+    /** Log an offline session, or edit one when [ARG_SESSION] is set (PRODUCTION_V1_PLAN §6.3). */
+    data object LogSession : Route {
+        const val ARG_SESSION = "sessionId"
+        const val ARG_DAY = "epochDay"
+        override val path = "log-session?$ARG_SESSION={$ARG_SESSION}&$ARG_DAY={$ARG_DAY}"
+        fun newOn(date: java.time.LocalDate?) = "log-session?$ARG_DAY=${date?.toEpochDay() ?: NO_DAY}"
+        fun edit(sessionId: String) = "log-session?$ARG_SESSION=$sessionId"
+        const val NO_DAY = Long.MIN_VALUE
+    }
 }

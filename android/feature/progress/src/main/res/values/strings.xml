@@ -179,4 +179,25 @@
     <string name="day_log_type_custom">Custom</string>
     <string name="day_log_type_break">Break</string>
     <string name="insights_view_day">See what you studied</string>
+    <string name="log_session_open">Log study I did offline</string>
+    <string name="log_session_title">Log offline study</string>
+    <string name="log_session_edit_title">Edit session</string>
+    <string name="log_session_subject">Subject</string>
+    <string name="log_session_chapter">Chapter</string>
+    <string name="log_session_chapter_none">No specific chapter</string>
+    <string name="log_session_type">Type</string>
+    <string name="log_session_duration">Duration</string>
+    <string name="log_session_shorter">Shorter</string>
+    <string name="log_session_longer">Longer</string>
+    <string name="log_session_date">Date</string>
+    <string name="log_session_start">Started at</string>
+    <string name="log_session_save">Save session</string>
+    <string name="log_session_save_changes">Save changes</string>
+    <string name="log_session_save_failed">Could not save. Try again.</string>
+    <string name="log_session_unavailable">This session is no longer available.</string>
+    <string name="log_session_delete">Delete session</string>
+    <string name="log_session_delete_title">Delete this session?</string>
+    <string name="log_session_delete_body">Its time comes off your totals. This cannot be undone.</string>
+    <string name="log_session_cancel">Cancel</string>
+    <string name="log_session_ok">OK</string>
 </resources>

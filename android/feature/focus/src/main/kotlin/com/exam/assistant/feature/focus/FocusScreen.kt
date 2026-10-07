@@ -71,6 +71,12 @@ import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.data.repo.StudySessionRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
+import com.exam.assistant.core.design.LengthPicker
+import com.exam.assistant.core.design.LengthPickerLabels
+import com.exam.assistant.domain.FOCUS_LENGTH_MAX_MINUTES
+import com.exam.assistant.domain.FOCUS_LENGTH_MIN_MINUTES
+import com.exam.assistant.domain.FOCUS_LENGTH_PRESETS_MINUTES
+import com.exam.assistant.domain.focusLengthMinutesOrNull
 import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
@@ -141,6 +147,7 @@ fun FocusRoute(
         onResume = viewModel::resume,
         onExtend = viewModel::extendFiveMinutes,
         onSelectQueueItem = viewModel::selectQueueItem,
+        onDuration = viewModel::setDuration,
         onRequestStop = viewModel::requestStop,
         onSavePartialAndStop = viewModel::savePartialAndStop,
         onDiscardAndStop = viewModel::discardAndStop,
@@ -165,6 +172,7 @@ fun FocusScreen(
     onExtend: () -> Unit,
     onSelectQueueItem: (String) -> Unit,
     onRequestStop: () -> Unit,
+    onDuration: (Int) -> Unit = {},
     onSavePartialAndStop: () -> Unit,
     onDiscardAndStop: () -> Unit,
     onDismissStop: () -> Unit,
@@ -222,6 +230,7 @@ fun FocusScreen(
             state = state,
             onStart = onStart,
             onSelectQueueItem = onSelectQueueItem,
+            onDuration = onDuration,
             modifier = modifier,
         )
         return
@@ -464,6 +473,7 @@ private fun FocusIdleScreen(
     state: FocusUiState,
     onStart: () -> Unit,
     onSelectQueueItem: (String) -> Unit,
+    onDuration: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
@@ -604,6 +614,28 @@ private fun FocusIdleScreen(
                 }
             }
         }
+
+        val minutesLabel = stringResource(R.string.focus_length_minutes)
+        Text(
+            text = stringResource(R.string.focus_length),
+            style = MaterialTheme.typography.titleSmall,
+            color = colors.textSecondary,
+            modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.xs),
+        )
+        LengthPicker(
+            presets = FOCUS_LENGTH_PRESETS_MINUTES,
+            selectedMinutes = state.durationMinutes,
+            onSelect = onDuration,
+            parseCustom = ::focusLengthMinutesOrNull,
+            labels = LengthPickerLabels(
+                minutes = { minutesLabel.format(it) },
+                custom = stringResource(R.string.focus_length_custom),
+                dialogTitle = stringResource(R.string.focus_length_custom_title),
+                fieldLabel = stringResource(R.string.focus_length_custom_field, FOCUS_LENGTH_MIN_MINUTES, FOCUS_LENGTH_MAX_MINUTES),
+                ok = stringResource(R.string.focus_length_ok),
+                cancel = stringResource(R.string.focus_length_cancel),
+            ),
+        )
 
         if (state.queue.isNotEmpty()) {
             val left = state.queue.count { !it.completed } + if (state.hasBlock) 1 else 0

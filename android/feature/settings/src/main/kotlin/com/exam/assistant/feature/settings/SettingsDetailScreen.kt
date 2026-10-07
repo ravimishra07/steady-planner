@@ -60,6 +60,12 @@ import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.AppValueStepper
+import com.exam.assistant.core.design.LengthPicker
+import com.exam.assistant.core.design.LengthPickerLabels
+import com.exam.assistant.domain.FOCUS_LENGTH_MAX_MINUTES
+import com.exam.assistant.domain.FOCUS_LENGTH_MIN_MINUTES
+import com.exam.assistant.domain.FOCUS_LENGTH_PRESETS_MINUTES
+import com.exam.assistant.domain.focusLengthMinutesOrNull
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
@@ -319,16 +325,22 @@ private fun SettingsEditor(
     )
     SectionTitle(stringResource(R.string.settings_focus))
     Text(stringResource(R.string.settings_focus_length), style = MaterialTheme.typography.bodyMedium)
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        listOf(25, 50, 90).forEach { minutes ->
-            FilterChip(
-                selected = state.focusDurationMinutes == minutes,
-                onClick = { onFocusDuration(minutes) },
-                enabled = !state.saving,
-                label = { Text(stringResource(R.string.settings_focus_minutes, minutes)) },
-            )
-        }
-    }
+    val minutesLabel = stringResource(R.string.settings_focus_minutes)
+    LengthPicker(
+        presets = FOCUS_LENGTH_PRESETS_MINUTES,
+        selectedMinutes = state.focusDurationMinutes,
+        onSelect = onFocusDuration,
+        parseCustom = ::focusLengthMinutesOrNull,
+        enabled = !state.saving,
+        labels = LengthPickerLabels(
+            minutes = { minutesLabel.format(it) },
+            custom = stringResource(R.string.settings_focus_custom),
+            dialogTitle = stringResource(R.string.settings_focus_custom_title),
+            fieldLabel = stringResource(R.string.settings_focus_custom_field, FOCUS_LENGTH_MIN_MINUTES, FOCUS_LENGTH_MAX_MINUTES),
+            ok = stringResource(R.string.settings_ok),
+            cancel = stringResource(R.string.settings_cancel),
+        ),
+    )
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier

@@ -44,4 +44,11 @@
     <string name="focus_learned_prompt">Mark chapter learned?</string>
     <string name="focus_learned_yes">Yes</string>
     <string name="focus_learned_not_yet">Not yet</string>
+    <string name="focus_length">Session length</string>
+    <string name="focus_length_minutes">%1$d min</string>
+    <string name="focus_length_custom">Custom</string>
+    <string name="focus_length_custom_title">Custom session length</string>
+    <string name="focus_length_custom_field">Minutes (%1$d–%2$d)</string>
+    <string name="focus_length_ok">OK</string>
+    <string name="focus_length_cancel">Cancel</string>
 </resources>

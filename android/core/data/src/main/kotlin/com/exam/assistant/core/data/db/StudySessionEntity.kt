@@ -208,6 +208,18 @@ interface StudySessionDao {
     @Query("SELECT MIN(studyDateEpochDay) FROM study_session WHERE attemptId = :attemptId AND status = 'COMPLETED'")
     suspend fun earliestStudyDate(attemptId: String): Long?
 
+    @Query("DELETE FROM study_session WHERE id = :id")
+    suspend fun deleteById(id: String)
+
+    @Query("DELETE FROM study_session_segment WHERE sessionId = :sessionId")
+    suspend fun deleteSegmentsFor(sessionId: String)
+
+    @Transaction
+    suspend fun deleteSession(id: String) {
+        deleteSegmentsFor(id)
+        deleteById(id)
+    }
+
     @Query("DELETE FROM study_session WHERE attemptId = :attemptId")
     suspend fun deleteForAttempt(attemptId: String)
 
