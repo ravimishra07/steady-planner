@@ -829,3 +829,9 @@ and don't move them afterwards.
 ## Progress log
 
 - 2026-10-07 · Phase A2 · §9 Metrics.kt + consistency test, §6.2 time accounting, §7.1 revision unify · 01653b0
+- 2026-10-07 · Phase B1 · §3.1 plan modes in the data model (Room 5 → 6), §3.2 exam date vs finish-by (RemoteConfig `neet_exam_date`, "expected, not yet announced") · 63cd0d8
+- 2026-10-07 · Phase B2 · §4.2 `tools/build_pyq_priority.py` + `neet_pyq_priority.json`, `ChapterPriority` loader · 1ce7cd3
+- 2026-10-07 · Phase B3 · §4.1 calibration, §4.3 practice/revision/mock blocks + revision phase, §4.4 no past blocks + protected blocks, `PlanFit`, Organise high-yield order, Syllabus yield labels · c41a164
+- 2026-10-07 · Phase B4 · §3.4 feasibility from the planner (`REVISION_MULTIPLIER`/`cushion` removed), four fix choices applied for real · 611024b
+- 2026-10-07 · Phase B5 · §4.4 Today fit banner, missed-blocks rebalance prompt, daily top-up; Insights fit + "Your pace" line; "est." labels · 636cc4a
+- 2026-10-07 · Phase B notes · Deferred: mode picker UI and editable exam date (Phase C); WorkManager top-up; per-chapter practice-session credit beyond completed PRACTICE sessions. Decisions: exam day itself is never planned; a legacy attempt whose exam date equalled finish-by gets the expected NEET date in the 5 → 6 migration; moved AUTO blocks are now kept by a replan (they used to be deleted).
