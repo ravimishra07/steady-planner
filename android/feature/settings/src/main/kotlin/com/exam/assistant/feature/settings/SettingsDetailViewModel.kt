@@ -46,6 +46,8 @@ data class SettingsDetailUiState(
     val clearing: Boolean = false,
     val clearFailed: Boolean = false,
     val showDiscardDialog: Boolean = false,
+    /** End-of-session sound and vibration. Saved immediately, not part of the draft. */
+    val focusEndAlert: Boolean = true,
 ) {
     /** True when the exam date is still the configured one, so "expected, not yet announced" applies to it. */
     val examDateIsConfigured: Boolean get() = examDate == configExamDate
@@ -72,6 +74,14 @@ class SettingsDetailViewModel(
 
     init {
         refresh()
+        viewModelScope.launch {
+            settingsStore.focusEndAlert.collect { enabled -> _state.update { it.copy(focusEndAlert = enabled) } }
+        }
+    }
+
+    fun setFocusEndAlert(enabled: Boolean) {
+        _state.update { it.copy(focusEndAlert = enabled) }
+        viewModelScope.launch { settingsStore.setFocusEndAlert(enabled) }
     }
 
     fun refresh() {

@@ -8,4 +8,19 @@
     <string name="tab_settings">Settings</string>
 
     <string name="focus_revision_title">Revision · %1$s</string>
+
+    <string name="focus_channel_running">Focus timer</string>
+    <string name="focus_channel_running_desc">The running timer, with pause and stop.</string>
+    <string name="focus_channel_end">Session end</string>
+    <string name="focus_channel_end_desc">Sound and vibration when a focus session ends.</string>
+    <string name="focus_channel_end_silent">Session end (silent)</string>
+    <string name="focus_channel_end_silent_desc">A quiet notice when a focus session ends.</string>
+    <string name="focus_notif_default_title">Focus session</string>
+    <string name="focus_notif_running">%1$s · ends %2$s</string>
+    <string name="focus_notif_paused">Paused · %1$s left</string>
+    <string name="focus_notif_complete">Session complete</string>
+    <string name="focus_notif_complete_body">%1$s · well done. Open to log how it went.</string>
+    <string name="focus_action_pause">Pause</string>
+    <string name="focus_action_resume">Resume</string>
+    <string name="focus_action_stop">Stop</string>
 </resources>

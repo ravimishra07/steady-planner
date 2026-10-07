@@ -69,6 +69,7 @@
     <string name="settings_study_spot_hint">Library, terrace, desk</string>
     <string name="settings_focus">Focus</string>
     <string name="settings_focus_length">Session length</string>
+    <string name="settings_focus_end_alert">End-of-session sound &amp; vibration</string>
     <string name="settings_focus_minutes">%1$d min</string>
     <string name="settings_data">Data</string>
     <string name="settings_loading">Loading your settings…</string>

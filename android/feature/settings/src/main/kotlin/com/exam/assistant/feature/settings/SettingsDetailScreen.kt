@@ -37,7 +37,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -106,6 +109,7 @@ fun SettingsDetailRoute(
         onWeekendChange = viewModel::setWeekendHours,
         onStudyPlaceChange = viewModel::setStudyPlace,
         onFocusDuration = viewModel::setFocusDurationMinutes,
+        onFocusEndAlert = viewModel::setFocusEndAlert,
         onPlanMode = viewModel::setPlanMode,
         onExamDate = viewModel::setExamDate,
         onFinishBy = viewModel::setFinishBy,
@@ -133,6 +137,7 @@ fun SettingsDetailScreen(
     onWeekendChange: (Float) -> Unit,
     onStudyPlaceChange: (String) -> Unit,
     onFocusDuration: (Int) -> Unit,
+    onFocusEndAlert: (Boolean) -> Unit,
     onPlanMode: (PlanMode) -> Unit,
     onExamDate: (LocalDate) -> Unit,
     onFinishBy: (LocalDate) -> Unit,
@@ -240,6 +245,7 @@ fun SettingsDetailScreen(
                     onWeekendChange = onWeekendChange,
                     onStudyPlaceChange = onStudyPlaceChange,
                     onFocusDuration = onFocusDuration,
+                    onFocusEndAlert = onFocusEndAlert,
                     onPlanMode = onPlanMode,
                     onExamDate = onExamDate,
                     onFinishBy = onFinishBy,
@@ -259,6 +265,7 @@ private fun SettingsEditor(
     onWeekendChange: (Float) -> Unit,
     onStudyPlaceChange: (String) -> Unit,
     onFocusDuration: (Int) -> Unit,
+    onFocusEndAlert: (Boolean) -> Unit,
     onPlanMode: (PlanMode) -> Unit,
     onExamDate: (LocalDate) -> Unit,
     onFinishBy: (LocalDate) -> Unit,
@@ -321,6 +328,25 @@ private fun SettingsEditor(
                 label = { Text(stringResource(R.string.settings_focus_minutes, minutes)) },
             )
         }
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = Size.touchTarget)
+            .toggleable(
+                value = state.focusEndAlert,
+                role = Role.Switch,
+                onValueChange = onFocusEndAlert,
+            ),
+    ) {
+        Text(
+            text = stringResource(R.string.settings_focus_end_alert),
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.text,
+            modifier = Modifier.weight(1f),
+        )
+        Switch(checked = state.focusEndAlert, onCheckedChange = null)
     }
     Button(
         onClick = onSave,

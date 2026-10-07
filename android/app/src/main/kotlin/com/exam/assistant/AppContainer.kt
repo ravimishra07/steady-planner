@@ -4,6 +4,7 @@ import android.content.Context
 import com.exam.assistant.core.common.AppDispatchers
 import com.exam.assistant.core.common.DefaultAppDispatchers
 import com.exam.assistant.core.data.ExamPackRepository
+import com.exam.assistant.core.data.FocusController
 import com.exam.assistant.core.data.FocusStore
 import com.exam.assistant.core.data.LocalRemoteConfig
 import com.exam.assistant.core.data.PlanStore
@@ -25,7 +26,9 @@ import com.exam.assistant.core.data.repo.StudySessionRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.domain.PendingSyllabusPick
-import com.exam.assistant.domain.FocusStatus
+import com.exam.assistant.focus.AppFocusEffects
+import com.exam.assistant.focus.FocusAlarm
+import com.exam.assistant.focus.FocusNotifier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,6 +60,18 @@ class AppContainer(private val context: Context) {
     val studySessionStore: StudySessionStore by lazy { StudySessionStore(context, dispatchers) }
 
     val remoteConfig: RemoteConfig by lazy { LocalRemoteConfig() }
+
+    /** The one path for Focus session changes: screen, notification actions, end alarm, boot, cold start. */
+    val focusController: FocusController by lazy {
+        FocusController(
+            focusStore = focusStore,
+            attemptRepository = attemptRepository,
+            planRepository = planRepository,
+            studySessionRepository = studySessionRepository,
+            rollingPlanRepository = rollingPlanRepository,
+            effects = AppFocusEffects(FocusNotifier(context), FocusAlarm(context), settings),
+        )
+    }
 
     // Canonical Room architecture. Legacy stores remain migration/rollback inputs only.
     val examPackRepository: ExamPackRepository by lazy { ExamPackRepository(context, dispatchers) }
@@ -97,6 +112,9 @@ class AppContainer(private val context: Context) {
 
     val pendingSyllabusPick = MutableStateFlow<PendingSyllabusPick?>(null)
 
+    /** One-shot: a notification tap asked for the Focus screen. */
+    val openFocusRequest = MutableStateFlow(false)
+
     /** One-shot: Today's "adjust plan" opens the setup flow on its Plan step. */
     val onboardingStartAtPlan = MutableStateFlow(false)
 
@@ -109,27 +127,21 @@ class AppContainer(private val context: Context) {
         }
     }
 
-    /** Cold-start recovery: a timer that expired while the process was dead earns credit exactly once. */
+    /** Cold-start recovery: an expired timer earns credit exactly once; a live one gets its alarm and notification back. */
     private suspend fun reconcileExpiredFocus() {
-        val now = System.currentTimeMillis()
-        val persisted = focusStore.load()
-        if (!persisted.isExpiredAt(now)) return
-        val attempt = attemptRepository.activeAttempt()
-        val active = attempt?.let { studySessionRepository.activeSession(it.id) }
-        if (active != null) {
-            studySessionRepository.completeSession(
-                active.copy(focusedSeconds = persisted.durationSec.coerceAtLeast(active.focusedSeconds)),
-                today = active.studyDate,
-                nowMs = now,
-            )
-        }
-        focusStore.save(
-            persisted.copy(
-                status = FocusStatus.DONE,
-                remainingSec = 0,
-                endsAtMs = null,
-                completedToday = persisted.completedToday + if (active != null) 1 else 0,
-            ),
-        )
+        runCatching { focusController.reconcile() }
     }
+
+    /** BOOT_COMPLETED and MY_PACKAGE_REPLACED: both wipe this app's alarms. */
+    suspend fun onBootOrUpdate() {
+        runCatching { focusController.reconcile() }
+        rearmDailyReminder()
+    }
+
+    /**
+     * Hook for the daily study reminder (not built yet): re-schedule its alarm
+     * here so it survives reboot and app update. Intentionally empty for now.
+     */
+    @Suppress("RedundantSuspendModifier")
+    suspend fun rearmDailyReminder() = Unit
 }

@@ -1,5 +1,6 @@
 package com.exam.assistant
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -39,6 +40,7 @@ class MainActivity : ComponentActivity() {
         splash.setKeepOnScreenCondition { !viewModel.state.value.ready }
 
         viewModel.observeTheme()
+        if (savedInstanceState == null) handleOpenRequest(intent)
 
         setContent {
             val state by viewModel.state.collectAsStateWithLifecycle()
@@ -62,5 +64,22 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleOpenRequest(intent)
+    }
+
+    /** A Focus notification tap lands here; the nav host does the navigation. */
+    private fun handleOpenRequest(intent: Intent?) {
+        if (intent?.getStringExtra(EXTRA_OPEN) == OPEN_FOCUS) {
+            (application as SteadylineApp).container.openFocusRequest.value = true
+        }
+    }
+
+    companion object {
+        const val EXTRA_OPEN = "com.exam.assistant.extra.OPEN"
+        const val OPEN_FOCUS = "focus"
     }
 }

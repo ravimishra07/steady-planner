@@ -41,7 +41,9 @@ import com.exam.assistant.feature.settings.PolicyScreen
 import com.exam.assistant.feature.settings.SettingsDetailRoute
 import com.exam.assistant.feature.syllabus.SyllabusRoute
 import com.exam.assistant.feature.syllabus.OrganiseRoute
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun SteadylineNavHost(
@@ -57,6 +59,15 @@ fun SteadylineNavHost(
     val currentPath = backStackEntry?.destination?.route
     val tab = Tab.entries.firstOrNull { it.route.path == currentPath }
     val context = LocalContext.current
+    val openFocus by container.openFocusRequest.collectAsStateWithLifecycle()
+    LaunchedEffect(openFocus) {
+        if (openFocus) {
+            container.openFocusRequest.value = false
+            // Wait for the graph: on a cold start from the notification it is not set yet.
+            navController.currentBackStackEntryFlow.first()
+            navController.navigate(Route.Focus.path) { launchSingleTop = true }
+        }
+    }
 
     Scaffold(
         containerColor = AppTheme.colors.bg,
@@ -132,8 +143,8 @@ fun SteadylineNavHost(
                     onEditPlan = { navController.navigate(Route.Organise.path) },
                     onOpenDay = { date -> navController.navigate(Route.DayLog.pathFor(date)) },
                     onStartFocus = { session ->
-                        val current = container.focusStore.load()
-                        container.focusStore.save(
+                        val current = container.focusController.load()
+                        container.focusController.start(
                             FocusSession(
                                 status = FocusStatus.RUNNING,
                                 durationSec = session.durationMinutes * 60,
@@ -198,7 +209,7 @@ fun SteadylineNavHost(
             }
             composable(Route.Focus.path) {
                 FocusRoute(
-                    focusStore = container.focusStore,
+                    focusController = container.focusController,
                     settingsStore = container.settings,
                     examPackRepository = container.examPackRepository,
                     attemptRepository = container.attemptRepository,
@@ -207,7 +218,6 @@ fun SteadylineNavHost(
                     rollingPlanRepository = container.rollingPlanRepository,
                     studyPreferenceRepository = container.studyPreferenceRepository,
                     topicProgressRepository = container.topicProgressRepository,
-                    appScope = container.appScope,
                     onClose = {
                         navController.navigate(Route.Home.path) {
                             popUpTo(Route.Home.path) { inclusive = true }
@@ -280,6 +290,8 @@ fun SteadylineNavHost(
                     examDateOfficial = container.remoteConfig.neetExamDateOfficial(),
                     onBack = { navController.popBackStack() },
                     onCleared = {
+                        // Clearing all data wiped the session; drop its alarm and notification too.
+                        container.appScope.launch { container.focusController.reconcile() }
                         navController.navigate(Route.Onboarding.path) {
                             popUpTo(0) { inclusive = true }
                         }

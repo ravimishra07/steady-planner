@@ -1,6 +1,15 @@
 package com.exam.assistant.feature.focus
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,7 +62,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.exam.assistant.core.data.FocusStore
+import com.exam.assistant.core.data.FocusController
 import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.SettingsStore
 import com.exam.assistant.core.data.repo.AttemptRepository
@@ -72,11 +81,10 @@ import com.exam.assistant.domain.FocusStatus
 import com.exam.assistant.domain.StudyOutcome
 import com.exam.assistant.domain.formatFocusClock
 import androidx.annotation.StringRes
-import kotlinx.coroutines.CoroutineScope
 
 @Composable
 fun FocusRoute(
-    focusStore: FocusStore,
+    focusController: FocusController,
     settingsStore: SettingsStore,
     examPackRepository: ExamPackRepository,
     attemptRepository: AttemptRepository,
@@ -85,12 +93,11 @@ fun FocusRoute(
     rollingPlanRepository: RollingPlanRepository,
     studyPreferenceRepository: StudyPreferenceRepository,
     topicProgressRepository: TopicProgressRepository,
-    appScope: CoroutineScope,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: FocusViewModel = viewModel(
         factory = FocusViewModel.Factory(
-            focusStore,
+            focusController,
             settingsStore,
             examPackRepository,
             attemptRepository,
@@ -99,18 +106,37 @@ fun FocusRoute(
             rollingPlanRepository,
             studyPreferenceRepository,
             topicProgressRepository,
-            appScope,
         ),
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val remaining by viewModel.remainingSeconds.collectAsStateWithLifecycle()
+    // Coming back to the app re-reads the clock from ends_at.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refresh() }
+
+    // Asked once, at the first Focus start. The timer starts whatever the answer is.
+    val context = LocalContext.current
+    val notificationPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { viewModel.startSession() }
+    val onStart: () -> Unit = {
+        val needsAsk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            state.askNotificationPermission &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        if (needsAsk) {
+            viewModel.markNotificationPromptShown()
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            viewModel.startSession()
+        }
+    }
 
     FocusScreen(
         state = state,
         remainingSeconds = remaining,
         onClose = onClose,
-        onStart = viewModel::startSession,
+        onStart = onStart,
         onPause = viewModel::pause,
         onResume = viewModel::resume,
         onExtend = viewModel::extendFiveMinutes,

@@ -1,6 +1,7 @@
 package com.exam.assistant.core.data
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -25,6 +26,8 @@ class SettingsStore(
     private val legacyThemeKey = stringPreferencesKey("theme_choice")
     private val paletteKey = stringPreferencesKey("accent_palette")
     private val focusDurationKey = intPreferencesKey("focus_duration_sec")
+    private val focusEndAlertKey = booleanPreferencesKey("focus_end_alert")
+    private val notificationPromptKey = booleanPreferencesKey("notification_prompt_shown")
 
     /** Emits on every change, for the settings screen. */
     /** Null means no personal choice yet, so Remote Config defaults may be used. */
@@ -62,6 +65,28 @@ class SettingsStore(
 
     suspend fun setFocusDurationSec(seconds: Int) = withContext(dispatchers.io) {
         context.dataStore.edit { it[focusDurationKey] = seconds }
+        Unit
+    }
+
+    /** End-of-session sound and vibration. On by default. */
+    val focusEndAlert: Flow<Boolean> = context.dataStore.data.map { it[focusEndAlertKey] ?: true }
+
+    suspend fun focusEndAlertOnce(): Boolean = withContext(dispatchers.io) {
+        context.dataStore.data.first()[focusEndAlertKey] ?: true
+    }
+
+    suspend fun setFocusEndAlert(enabled: Boolean) = withContext(dispatchers.io) {
+        context.dataStore.edit { it[focusEndAlertKey] = enabled }
+        Unit
+    }
+
+    /** Whether the notification permission has been asked for at a Focus start. */
+    suspend fun notificationPromptShown(): Boolean = withContext(dispatchers.io) {
+        context.dataStore.data.first()[notificationPromptKey] ?: false
+    }
+
+    suspend fun setNotificationPromptShown() = withContext(dispatchers.io) {
+        context.dataStore.edit { it[notificationPromptKey] = true }
         Unit
     }
 

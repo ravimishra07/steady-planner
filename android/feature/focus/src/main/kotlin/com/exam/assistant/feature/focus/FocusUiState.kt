@@ -26,6 +26,8 @@ data class FocusUiState(
     val outcome: StudyOutcome? = null,
     /** Set after a Learn session on a chapter not yet learned: "Mark chapter learned?" (§5.1). */
     val learnPrompt: LearnPrompt? = null,
+    /** True until the notification permission has been asked for once, at a Focus start. */
+    val askNotificationPermission: Boolean = false,
 )
 
 data class LearnPrompt(
