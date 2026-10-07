@@ -22,6 +22,7 @@ data class DayBlock(
     val isRevision: Boolean,
     val completed: Boolean,
     val subtopics: List<SubtopicSlot>,
+    val revisionCount: Int = 0,
 ) {
     val durationMinutes: Int get() = endMinuteOfDay - startMinuteOfDay
 }
@@ -177,6 +178,7 @@ private fun sessionToDayBlock(session: StudySessionRecord, sections: List<Syllab
         isRevision = session.isRevision,
         completed = session.completed,
         subtopics = if (session.isRevision) emptyList() else subtopicsFor(node, start, end),
+        revisionCount = session.revisionCount,
     )
 }
 

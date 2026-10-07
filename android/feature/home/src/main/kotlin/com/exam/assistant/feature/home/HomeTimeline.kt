@@ -387,7 +387,11 @@ private fun StudyBlockContent(
                 }
                 Text(
                     text = if (block.isRevision) {
-                        stringResource(R.string.home_revision_tag).uppercase() + " · " + block.subjectLabel
+                        listOfNotNull(
+                            stringResource(R.string.home_revision_tag).uppercase(),
+                            block.subjectLabel.ifBlank { null },
+                            block.revisionCount.takeIf { it > 0 }?.let { stringResource(R.string.home_revised_count, it) },
+                        ).joinToString(" · ")
                     } else {
                         block.subjectLabel
                     },

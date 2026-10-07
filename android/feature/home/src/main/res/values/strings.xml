@@ -82,6 +82,7 @@
     <string name="home_plan_my_day">Plan my day</string>
     <string name="home_studying_now">Studying · %1$s left</string>
     <string name="home_revision_tag">Revision</string>
+    <string name="home_revised_count">Revised ×%1$d</string>
     <string name="home_summary_nothing">Nothing scheduled</string>
     <string name="home_summary_complete">Day complete</string>
     <string name="home_summary_left">%1$s left</string>

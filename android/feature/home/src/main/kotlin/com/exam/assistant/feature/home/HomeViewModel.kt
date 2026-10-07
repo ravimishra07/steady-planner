@@ -34,6 +34,7 @@ import com.exam.assistant.domain.effectiveWindowsFor
 import com.exam.assistant.domain.averageDailyMinutes
 import com.exam.assistant.domain.coachingBacklogMetrics
 import com.exam.assistant.domain.findNode
+import com.exam.assistant.domain.chapterOf
 import com.exam.assistant.domain.findSubjectOf
 import com.exam.assistant.domain.StudyPlacementIssue
 import com.exam.assistant.domain.buildDayTimeline
@@ -134,13 +135,13 @@ class HomeViewModel(
             val today = LocalDate.now()
             // Daily top-up back to the 21 day horizon, before the day is read.
             if (attempt != null) runCatching { rollingPlanRepository.topUpIfNewDay(today) }
+            revisionStates = attempt?.let { revisionRepository.allFor(it.id) }.orEmpty().associateBy { it.nodeId }
             if (attempt != null) reloadCanonical(attempt.id)
             val fit = attempt?.let { runCatching { rollingPlanRepository.planFit(withOptions = false) }.getOrNull() }
                 ?.takeIf { !it.fits }
             val missed = attempt?.let { runCatching { rollingPlanRepository.missedPrompt(today) }.getOrNull() }
             val fresh = missed != null && shouldStartFresh(missed.days, streakBroken(studyDates(history), today))
             val startedFresh = attempt?.let { runCatching { rollingPlanRepository.startedFreshOn(today) }.getOrNull() } == true
-            revisionStates = attempt?.let { revisionRepository.allFor(it.id) }.orEmpty().associateBy { it.nodeId }
             val syllabus = if (attempt != null && pack != null) {
                 syllabusMetrics(
                     pack = pack!!,
@@ -194,16 +195,20 @@ class HomeViewModel(
                 val actual = sessionsByBlock[block.id]
                 val node = block.nodeId?.let { currentPack?.findNode(it) }
                 val subject = block.nodeId?.let { currentPack?.findSubjectOf(it) }
+                val isRevision = block.activityType == StudyActivityType.REVISION
+                // A revision block names its chapter (§7.2); renames come with the pack.
+                val chapter = if (isRevision) block.nodeId?.let { currentPack?.chapterOf(it) } else null
                 StudySessionRecord(
                     id = block.id,
                     date = block.scheduledDate,
                     startMinuteOfDay = block.startMinuteOfDay,
                     durationMinutes = block.plannedMinutes,
                     nodeKey = block.nodeId.orEmpty(),
-                    title = block.customTitle ?: node?.title ?: "Study session",
+                    title = block.customTitle ?: chapter?.title ?: node?.title ?: "Study session",
                     sectionName = subject?.name.orEmpty(),
                     subjectId = block.subjectId.orEmpty(),
-                    isRevision = block.activityType == StudyActivityType.REVISION,
+                    isRevision = isRevision,
+                    revisionCount = if (isRevision) block.nodeId?.let { revisionStates[it]?.revisionCount } ?: 0 else 0,
                     completed = block.status == PlanBlockStatus.COMPLETED || actual?.status == StudySessionStatus.COMPLETED,
                     runningEndsAtMs = actual?.takeIf { it.status == StudySessionStatus.RUNNING }
                         ?.let { it.startedAtEpochMs + block.plannedMinutes * 60_000L },

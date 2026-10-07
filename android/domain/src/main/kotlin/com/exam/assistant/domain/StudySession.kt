@@ -13,6 +13,8 @@ data class StudySessionRecord(
     val sectionName: String,
     val subjectId: String,
     val isRevision: Boolean = false,
+    /** Revisions already done on this topic; shown as "Revised ×N" on a revision block. */
+    val revisionCount: Int = 0,
     val completed: Boolean = false,
     /** Planned intent stays separate from actual focused effort for truthful analytics. */
     val planned: Boolean = true,
