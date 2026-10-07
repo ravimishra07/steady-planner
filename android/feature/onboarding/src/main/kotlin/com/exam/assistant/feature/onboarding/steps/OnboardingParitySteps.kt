@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -36,6 +37,7 @@ import androidx.compose.material.icons.filled.Weekend
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -498,13 +500,60 @@ private fun MinutePickerDialog(initialMinute: Int, onDismiss: () -> Unit, onConf
     )
 }
 
+/** "Do you have a date you want to finish the syllabus by?" Yes is deadline mode (preselected), Not yet is steady mode. */
+@Composable
+internal fun OnboardingModeStep(
+    state: OnboardingUiState,
+    onMode: (PlanMode) -> Unit,
+    onDate: (LocalDate) -> Unit,
+    onExamDate: (LocalDate) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxl)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            OnboardingSelectableCard(
+                title = stringResource(R.string.onboarding_mode_yes),
+                selected = state.planMode == PlanMode.DEADLINE,
+                onClick = { onMode(PlanMode.DEADLINE) },
+                showUnselectedIndicator = true,
+                trailing = {
+                    Text(
+                        stringResource(R.string.onboarding_mode_yes_detail),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AppTheme.colors.textSecondary,
+                    )
+                },
+            )
+            OnboardingSelectableCard(
+                title = stringResource(R.string.onboarding_mode_not_yet),
+                selected = state.planMode == PlanMode.STEADY,
+                onClick = { onMode(PlanMode.STEADY) },
+                showUnselectedIndicator = true,
+                trailing = {
+                    Text(
+                        stringResource(R.string.onboarding_mode_not_yet_detail),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AppTheme.colors.textSecondary,
+                    )
+                },
+            )
+        }
+        if (state.planMode == PlanMode.DEADLINE) {
+            OnboardingTargetDateStep(state.targetDate, state.examDate, state.examDateOfficial, state.examDateIsConfigured, onDate, onExamDate)
+        } else {
+            ExamDateRow(state.examDate, state.examDateOfficial, state.examDateIsConfigured, onExamDate)
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun OnboardingTargetDateStep(
     targetDate: LocalDate,
     examDate: LocalDate,
     examDateOfficial: Boolean,
+    examDateIsConfigured: Boolean,
     onDate: (LocalDate) -> Unit,
+    onExamDate: (LocalDate) -> Unit,
 ) {
     val today = LocalDate.now()
     val formatter = remember { DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(Locale.getDefault()) }
@@ -528,19 +577,12 @@ internal fun OnboardingTargetDateStep(
             Column(Modifier.weight(1f)) {
                 Text(targetDate.format(formatter), style = MaterialTheme.typography.titleLarge)
                 Text(stringResource(R.string.onboarding_date_personal_target), style = MaterialTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
-                Text(
-                    text = stringResource(
-                        if (examDateOfficial) R.string.onboarding_date_exam_official else R.string.onboarding_date_exam_expected,
-                        examDate.format(formatter),
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AppTheme.colors.textMuted,
-                )
             }
             Surface(shape = CircleShape, color = AppTheme.colors.selectionContainer) {
                 Text(pluralStringResource(R.plurals.onboarding_date_days_chip, days, days), modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm), style = MaterialTheme.typography.labelLarge)
             }
         }
+        ExamDateRow(examDate, examDateOfficial, examDateIsConfigured, onExamDate)
         DatePicker(
             state = datePickerState,
             showModeToggle = false,
@@ -548,6 +590,58 @@ internal fun OnboardingTargetDateStep(
             headline = null,
             modifier = Modifier.fillMaxWidth(),
         )
+    }
+}
+
+/** The exam date with its honesty label ("expected, not yet announced" until it is official or the student's own), and a way to change it. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ExamDateRow(
+    examDate: LocalDate,
+    official: Boolean,
+    isConfigured: Boolean,
+    onExamDate: (LocalDate) -> Unit,
+) {
+    val formatter = remember { DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(Locale.getDefault()) }
+    var editing by remember { mutableStateOf(false) }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = stringResource(
+                if (official || !isConfigured) R.string.onboarding_date_exam_official else R.string.onboarding_date_exam_expected,
+                examDate.format(formatter),
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = AppTheme.colors.textSecondary,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = { editing = true }, modifier = Modifier.heightIn(min = Size.touchTarget)) {
+            Text(stringResource(R.string.onboarding_exam_date_change))
+        }
+    }
+    if (editing) {
+        val today = LocalDate.now()
+        val minMillis = today.plusDays(7).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        val maxMillis = today.plusYears(3).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        val state = rememberDatePickerState(
+            initialSelectedDateMillis = examDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean = utcTimeMillis in minMillis..maxMillis
+            },
+        )
+        DatePickerDialog(
+            onDismissRequest = { editing = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    state.selectedDateMillis?.let { millis ->
+                        onExamDate(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
+                    }
+                    editing = false
+                }) { Text(stringResource(R.string.onboarding_ok)) }
+            },
+            dismissButton = { TextButton(onClick = { editing = false }) { Text(stringResource(R.string.onboarding_cancel)) } },
+        ) {
+            DatePicker(state = state, showModeToggle = false)
+        }
     }
 }
 
@@ -742,6 +836,7 @@ internal fun OnboardingPlanStep(
     onWeekdayChange: (Float) -> Unit,
     onWeekendChange: (Float) -> Unit,
     onDate: (LocalDate) -> Unit,
+    onExamDate: (LocalDate) -> Unit,
     onApplyFitOption: (PlanFitOption) -> Unit,
 ) {
     var editing by remember { mutableStateOf(false) }
@@ -754,7 +849,21 @@ internal fun OnboardingPlanStep(
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxl)) {
         when {
             !state.useProvidedSyllabus -> PlanVerdict(stringResource(R.string.onboarding_plan_verdict_empty))
-            state.planMode == PlanMode.STEADY -> PlanVerdict(stringResource(R.string.onboarding_plan_steady))
+            state.planMode == PlanMode.STEADY -> {
+                PlanVerdict(stringResource(R.string.onboarding_plan_steady))
+                when {
+                    state.projectionLoading -> CircularProgressIndicator()
+                    state.projectedFinish != null -> PlanStatRow(
+                        stringResource(R.string.onboarding_plan_projected_finish),
+                        stringResource(R.string.onboarding_plan_projected_value, state.projectedFinish.format(dateFormatter)),
+                    )
+                    else -> Text(
+                        stringResource(R.string.onboarding_plan_projected_none),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = AppTheme.colors.textSecondary,
+                    )
+                }
+            }
             fit == null -> CircularProgressIndicator()
             else -> {
                 val estimateLabel = stringResource(
@@ -842,7 +951,7 @@ internal fun OnboardingPlanStep(
                 value = targetLabel,
                 editing = editing,
             ) {
-                OnboardingTargetDateStep(state.targetDate, state.examDate, state.examDateOfficial, onDate)
+                OnboardingTargetDateStep(state.targetDate, state.examDate, state.examDateOfficial, state.examDateIsConfigured, onDate, onExamDate)
             }
         }
         OutlinedButton(

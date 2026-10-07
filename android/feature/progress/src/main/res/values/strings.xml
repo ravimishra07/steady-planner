@@ -25,6 +25,8 @@
     <string name="insights_syllabus">Syllabus</string>
     <string name="insights_syllabus_subtitle">Your target, not the full exam syllabus</string>
     <string name="insights_forecast">Will I finish on time?</string>
+    <string name="insights_forecast_steady">When will I finish?</string>
+    <string name="insights_forecast_steady_subtitle">A projection from your own pace. There is no deadline to miss.</string>
     <string name="insights_forecast_subtitle">A forecast based on your overall preparation plan</string>
     <string name="insights_subjects">Subjects</string>
     <string name="insights_subjects_subtitle">Tap a subject to see its coverage</string>
@@ -54,8 +56,6 @@
     <string name="insights_plan_percent">%1$d%% of plan completed</string>
     <string name="insights_no_actual_yet">No completed study yet</string>
     <string name="insights_no_planned_blocks">No planned study blocks yet.</string>
-    <string name="insights_ahead">%1$s ahead of this plan</string>
-    <string name="insights_behind">%1$s behind this plan</string>
     <string name="insights_total_period">%1$s studied in this period</string>
     <string name="insights_start_studying">Your study time will appear here.</string>
     <plurals name="insights_topics_fraction">

@@ -33,6 +33,7 @@ import com.exam.assistant.domain.missedPlannedBlocks
 import com.exam.assistant.domain.personalCalibration
 import com.exam.assistant.domain.plan
 import com.exam.assistant.domain.planFit
+import com.exam.assistant.domain.projectedFinish
 import com.exam.assistant.domain.skipMissedBlocks
 import java.time.Instant
 import java.time.LocalDate
@@ -136,6 +137,29 @@ class RollingPlanRepository(
      */
     suspend fun draftFit(draft: PlanDraft, nowMs: Long = System.currentTimeMillis()): PlanFit? {
         if (draft.mode != PlanMode.DEADLINE) return null
+        val inputs = draftInputs(draft, nowMs)
+        return withContext(dispatchers.default) { inputs.planFit(nowMs) }
+    }
+
+    /**
+     * Steady mode's projected finish for a draft: the day the planner would place the last Learn or
+     * Practice block at the draft's hours, or null if the work does not end before the exam.
+     */
+    suspend fun draftProjection(draft: PlanDraft, nowMs: Long = System.currentTimeMillis()): LocalDate? {
+        val inputs = draftInputs(draft, nowMs)
+        return withContext(dispatchers.default) { inputs.projectedFinish(nowMs) }
+    }
+
+    /** The projected finish for the saved plan (steady mode), from the same planner as [replenish]. */
+    suspend fun projectedFinish(nowMs: Long = System.currentTimeMillis()): LocalDate? {
+        val attempt = withContext(dispatchers.io) { db.examAttemptDao().activeOnce()?.toDomain() } ?: return null
+        val pack = examPackRepository.examPackFor(attempt.examId)
+        val priorities = examPackRepository.pyqPriorities().chapters
+        val inputs = withContext(dispatchers.io) { loadInputs(attempt, pack, priorities, LocalDate.now(), 1, nowMs) }
+        return withContext(dispatchers.default) { inputs.projectedFinish(nowMs) }
+    }
+
+    private suspend fun draftInputs(draft: PlanDraft, nowMs: Long): PlanInputs {
         val existing = withContext(dispatchers.io) {
             db.examAttemptDao().activeOnce()?.toDomain()?.takeIf { it.examId == NEET_EXAM_ID }
         }
@@ -147,7 +171,7 @@ class RollingPlanRepository(
             createdAtEpochMs = nowMs, updatedAtEpochMs = nowMs, status = ExamAttemptStatus.ACTIVE,
         )).copy(examDate = draft.examDate, targetCompletionDate = draft.finishBy, planMode = draft.mode)
         val parked = pack.subjects.flatMap { it.nodes }.map { it.id }.filter { it !in draft.includedChapterIds }
-        val inputs = withContext(dispatchers.io) {
+        return withContext(dispatchers.io) {
             loadInputs(
                 attempt, pack, priorities, LocalDate.now(), 1, nowMs,
                 overridesByNodeId = parked.associateWith { TargetNodeState.EXCLUDED },
@@ -158,7 +182,6 @@ class RollingPlanRepository(
             weeklyAvailability = draft.weeklyAvailability,
             availabilityOverrides = emptyList(),
         )
-        return withContext(dispatchers.default) { inputs.planFit(nowMs) }
     }
 
     /** The student's pace against the estimates, from completed Learn sessions. [Calibration.NONE] with no plan. */

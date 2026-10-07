@@ -22,6 +22,8 @@ data class InsightPlan(
     val availabilityOverrides: List<AvailabilityOverride> = emptyList(),
     val weekdayTargetMinutes: Int = 4 * 60,
     val weekendTargetMinutes: Int = 7 * 60,
+    /** Steady mode has no finish-by date, so no subject status and no "behind" anywhere. */
+    val planMode: PlanMode = PlanMode.DEADLINE,
 )
 
 data class StudyDayInsight(
@@ -59,6 +61,8 @@ data class RevisionInsight(
 
 data class ForecastInsight(
     val targetDate: LocalDate,
+    /** False in steady mode: [targetDate] is not a goal, only a placeholder. */
+    val hasTarget: Boolean = true,
     val forecastDate: LocalDate?,
     val daysDelta: Int?,
     val recentAverageMinutesPerDay: Int?,
@@ -167,7 +171,7 @@ fun computeInsights(
             remainingSections = cover.remaining,
             totalSections = cover.total,
             completedSections = cover.covered,
-            status = subjectStatus(cover.percent, plan.startedOn, plan.targetDate, today),
+            status = if (plan.planMode == PlanMode.DEADLINE) subjectStatus(cover.percent, plan.startedOn, plan.targetDate, today) else null,
         )
     }
 
@@ -258,12 +262,14 @@ private fun forecastInsight(
         weekdayTargetMinutes = plan.weekdayTargetMinutes,
         weekendTargetMinutes = plan.weekendTargetMinutes,
     )
-    val required = requiredPace(remainingMinutes, available).minutesPerStudyDay?.takeIf { remainingMinutes > 0 }
+    val deadline = plan.planMode == PlanMode.DEADLINE
+    val required = requiredPace(remainingMinutes, available).minutesPerStudyDay?.takeIf { remainingMinutes > 0 && deadline }
     val recentAverage = allPace?.minutesPerDay?.roundToInt()
     return ForecastInsight(
         targetDate = plan.targetDate,
+        hasTarget = plan.planMode == PlanMode.DEADLINE,
         forecastDate = forecast?.expected,
-        daysDelta = forecast?.let { ChronoUnit.DAYS.between(plan.targetDate, it.expected).toInt() },
+        daysDelta = forecast?.takeIf { deadline }?.let { ChronoUnit.DAYS.between(plan.targetDate, it.expected).toInt() },
         recentAverageMinutesPerDay = recentAverage,
         requiredMinutesPerDay = required,
         extraMinutesPerDay = if (recentAverage != null && required != null && required > recentAverage) required - recentAverage else 0,

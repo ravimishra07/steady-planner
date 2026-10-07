@@ -42,10 +42,11 @@ import com.exam.assistant.feature.onboarding.steps.OnboardingAppearanceStep
 import com.exam.assistant.feature.onboarding.steps.OnboardingCoachingStep
 import com.exam.assistant.feature.onboarding.steps.OnboardingCommitmentsStep
 import com.exam.assistant.feature.onboarding.steps.OnboardingHoursParityStep
+import com.exam.assistant.feature.onboarding.steps.OnboardingModeStep
 import com.exam.assistant.feature.onboarding.steps.OnboardingPlanStep
 import com.exam.assistant.feature.onboarding.steps.OnboardingSyllabusStep
-import com.exam.assistant.feature.onboarding.steps.OnboardingTargetDateStep
 import com.exam.assistant.domain.PlanFitOption
+import com.exam.assistant.domain.PlanMode
 import java.time.LocalDate
 
 @Composable
@@ -117,6 +118,8 @@ fun OnboardingRoute(
         onWake = viewModel::setWakeMinute,
         onSleep = viewModel::setSleepMinute,
         onDate = viewModel::setTargetDate,
+        onMode = viewModel::setPlanMode,
+        onExamDate = viewModel::setExamDate,
         onSelectWork = viewModel::selectWork,
         onWeekdayChange = viewModel::setWeekdayHours,
         onWeekendChange = viewModel::setWeekendHours,
@@ -150,6 +153,8 @@ fun OnboardingScreen(
     onWake: (Int) -> Unit,
     onSleep: (Int) -> Unit,
     onDate: (LocalDate) -> Unit,
+    onMode: (PlanMode) -> Unit,
+    onExamDate: (LocalDate) -> Unit,
     onSelectWork: (String) -> Unit,
     onWeekdayChange: (Float) -> Unit,
     onWeekendChange: (Float) -> Unit,
@@ -209,7 +214,7 @@ fun OnboardingScreen(
                 onWake,
                 onSleep,
             )
-            OnboardingStep.Date -> OnboardingTargetDateStep(state.targetDate, state.examDate, state.examDateOfficial, onDate)
+            OnboardingStep.Date -> OnboardingModeStep(state, onMode, onDate, onExamDate)
             OnboardingStep.Hours -> {
                 OnboardingHoursParityStep(
                     state = state,
@@ -229,6 +234,7 @@ fun OnboardingScreen(
                 onWeekdayChange = onWeekdayChange,
                 onWeekendChange = onWeekendChange,
                 onDate = onDate,
+                onExamDate = onExamDate,
                 onApplyFitOption = onApplyFitOption,
             )
         }

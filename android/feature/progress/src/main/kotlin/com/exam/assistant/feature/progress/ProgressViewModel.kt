@@ -94,6 +94,7 @@ class ProgressViewModel(
                 availabilityOverrides = availabilityRepository.overridesFor(attempt.id),
                 weekdayTargetMinutes = preferences?.weekdayTargetMinutes ?: (4 * 60),
                 weekendTargetMinutes = preferences?.weekendTargetMinutes ?: (7 * 60),
+                planMode = attempt.planMode,
             )
             rebuild()
         } catch (_: Throwable) {

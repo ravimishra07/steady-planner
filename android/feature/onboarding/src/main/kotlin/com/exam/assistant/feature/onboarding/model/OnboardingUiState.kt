@@ -23,6 +23,8 @@ data class OnboardingUiState(
     val examDate: LocalDate = LocalDate.parse(DEFAULT_NEET_EXAM_DATE),
     /** False until NTA announces the date: the UI says "expected, not yet announced". */
     val examDateOfficial: Boolean = false,
+    /** The date the app ships with (or RemoteConfig supplies). An exam date the student changed is theirs, not "expected". */
+    val configExamDate: LocalDate = LocalDate.parse(DEFAULT_NEET_EXAM_DATE),
     val planMode: PlanMode = PlanMode.DEADLINE,
     /** The finish-by date. Always on or before [examDate] and at least a week out. */
     val targetDate: LocalDate = defaultFinishByDate(LocalDate.parse(DEFAULT_NEET_EXAM_DATE), LocalDate.now()),
@@ -37,10 +39,15 @@ data class OnboardingUiState(
     /** Deadline mode: whether the remaining work fits before [targetDate], from the planner itself. Null until computed or in steady mode. */
     val fit: PlanFit? = null,
     val fitLoading: Boolean = false,
+    /** Steady mode: the day the planner would finish the remaining work at these hours. Null when it does not finish before the exam. */
+    val projectedFinish: LocalDate? = null,
+    val projectionLoading: Boolean = false,
     val finishing: Boolean = false,
     val finishFailed: Boolean = false,
 ) {
     val canGoBack: Boolean get() = step != OnboardingStep.Appearance
+    /** True when the exam date is the configured one, so the "expected / official" label applies to it. */
+    val examDateIsConfigured: Boolean get() = examDate == configExamDate
     val daysUntilTarget: Int
         get() = ChronoUnit.DAYS.between(LocalDate.now(), targetDate).toInt().coerceAtLeast(1)
 }

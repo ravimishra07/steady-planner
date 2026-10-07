@@ -14,6 +14,22 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.heightIn
+import com.exam.assistant.domain.MIN_FINISH_BY_DAYS_AHEAD
+import com.exam.assistant.domain.PlanMode
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
@@ -56,6 +72,8 @@ fun SettingsDetailRoute(
     attemptRepository: AttemptRepository,
     studyPreferenceRepository: StudyPreferenceRepository,
     rollingPlanRepository: RollingPlanRepository,
+    configExamDate: LocalDate,
+    examDateOfficial: Boolean,
     onBack: () -> Unit,
     onCleared: () -> Unit,
     modifier: Modifier = Modifier,
@@ -70,6 +88,8 @@ fun SettingsDetailRoute(
             attemptRepository = attemptRepository,
             studyPreferenceRepository = studyPreferenceRepository,
             rollingPlanRepository = rollingPlanRepository,
+            configExamDate = configExamDate,
+            examDateOfficial = examDateOfficial,
         ),
     ),
 ) {
@@ -86,6 +106,9 @@ fun SettingsDetailRoute(
         onWeekendChange = viewModel::setWeekendHours,
         onStudyPlaceChange = viewModel::setStudyPlace,
         onFocusDuration = viewModel::setFocusDurationMinutes,
+        onPlanMode = viewModel::setPlanMode,
+        onExamDate = viewModel::setExamDate,
+        onFinishBy = viewModel::setFinishBy,
         onSave = viewModel::save,
         onDismissSaveResult = viewModel::dismissSaveResult,
         onDismissDiscard = viewModel::dismissDiscard,
@@ -110,6 +133,9 @@ fun SettingsDetailScreen(
     onWeekendChange: (Float) -> Unit,
     onStudyPlaceChange: (String) -> Unit,
     onFocusDuration: (Int) -> Unit,
+    onPlanMode: (PlanMode) -> Unit,
+    onExamDate: (LocalDate) -> Unit,
+    onFinishBy: (LocalDate) -> Unit,
     onSave: () -> Unit,
     onDismissSaveResult: () -> Unit,
     onDismissDiscard: () -> Unit,
@@ -214,6 +240,9 @@ fun SettingsDetailScreen(
                     onWeekendChange = onWeekendChange,
                     onStudyPlaceChange = onStudyPlaceChange,
                     onFocusDuration = onFocusDuration,
+                    onPlanMode = onPlanMode,
+                    onExamDate = onExamDate,
+                    onFinishBy = onFinishBy,
                     onSave = onSave,
                     onDismissSaveResult = onDismissSaveResult,
                     onRequestClear = onRequestClear,
@@ -230,11 +259,15 @@ private fun SettingsEditor(
     onWeekendChange: (Float) -> Unit,
     onStudyPlaceChange: (String) -> Unit,
     onFocusDuration: (Int) -> Unit,
+    onPlanMode: (PlanMode) -> Unit,
+    onExamDate: (LocalDate) -> Unit,
+    onFinishBy: (LocalDate) -> Unit,
     onSave: () -> Unit,
     onDismissSaveResult: () -> Unit,
     onRequestClear: () -> Unit,
 ) {
     val colors = AppTheme.colors
+    PlanSection(state, onPlanMode, onExamDate, onFinishBy)
     SectionTitle(stringResource(R.string.settings_hours))
     AppValueStepper(
         label = stringResource(R.string.settings_weekdays),
@@ -333,6 +366,121 @@ private fun SettingsEditor(
         ),
     ) {
         Text(stringResource(R.string.settings_clear_plan))
+    }
+}
+
+/** Settings → Plan: switch mode, edit the exam date and the finish-by date. Saving regenerates future planner-made blocks only. */
+@Composable
+private fun PlanSection(
+    state: SettingsDetailUiState,
+    onPlanMode: (PlanMode) -> Unit,
+    onExamDate: (LocalDate) -> Unit,
+    onFinishBy: (LocalDate) -> Unit,
+) {
+    val colors = AppTheme.colors
+    SectionTitle(stringResource(R.string.settings_plan))
+    Text(
+        stringResource(R.string.settings_plan_question),
+        style = MaterialTheme.typography.bodyMedium,
+        color = colors.textSecondary,
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.padding(top = Spacing.sm)) {
+        FilterChip(
+            selected = state.planMode == PlanMode.DEADLINE,
+            onClick = { onPlanMode(PlanMode.DEADLINE) },
+            enabled = !state.saving,
+            label = { Text(stringResource(R.string.settings_plan_yes)) },
+        )
+        FilterChip(
+            selected = state.planMode == PlanMode.STEADY,
+            onClick = { onPlanMode(PlanMode.STEADY) },
+            enabled = !state.saving,
+            label = { Text(stringResource(R.string.settings_plan_not_yet)) },
+        )
+    }
+    Text(
+        stringResource(
+            if (state.planMode == PlanMode.DEADLINE) R.string.settings_plan_deadline_detail else R.string.settings_plan_steady_detail,
+        ),
+        style = MaterialTheme.typography.bodySmall,
+        color = colors.textSecondary,
+        modifier = Modifier.padding(top = Spacing.sm),
+    )
+    val exam = state.examDate
+    if (exam != null) {
+        DateRow(
+            title = stringResource(R.string.settings_plan_exam_date),
+            date = exam,
+            note = if (state.examDateIsConfigured && !state.examDateOfficial) stringResource(R.string.settings_plan_exam_expected) else null,
+            minDate = LocalDate.now().plusDays(MIN_FINISH_BY_DAYS_AHEAD.toLong()),
+            maxDate = LocalDate.now().plusYears(3),
+            enabled = !state.saving,
+            onDate = onExamDate,
+        )
+    }
+    val finishBy = state.finishBy
+    if (state.planMode == PlanMode.DEADLINE && finishBy != null) {
+        DateRow(
+            title = stringResource(R.string.settings_plan_finish_by),
+            date = finishBy,
+            note = null,
+            minDate = LocalDate.now().plusDays(MIN_FINISH_BY_DAYS_AHEAD.toLong()),
+            maxDate = maxOf(exam ?: finishBy, LocalDate.now().plusDays(MIN_FINISH_BY_DAYS_AHEAD.toLong())),
+            enabled = !state.saving,
+            onDate = onFinishBy,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DateRow(
+    title: String,
+    date: LocalDate,
+    note: String?,
+    minDate: LocalDate,
+    maxDate: LocalDate,
+    enabled: Boolean,
+    onDate: (LocalDate) -> Unit,
+) {
+    val colors = AppTheme.colors
+    var editing by remember { mutableStateOf(false) }
+    val formatter = remember { DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()) }
+    Row(
+        modifier = Modifier.fillMaxWidth().heightIn(min = Size.touchTarget),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, color = colors.text)
+            Text(
+                text = date.format(formatter) + (note?.let { " · $it" }.orEmpty()),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.textSecondary,
+            )
+        }
+        TextButton(onClick = { editing = true }, enabled = enabled, modifier = Modifier.heightIn(min = Size.touchTarget)) {
+            Text(stringResource(R.string.settings_plan_change))
+        }
+    }
+    if (editing) {
+        val minMillis = minDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        val maxMillis = maxDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        val pickerState = rememberDatePickerState(
+            initialSelectedDateMillis = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean = utcTimeMillis in minMillis..maxMillis
+            },
+        )
+        DatePickerDialog(
+            onDismissRequest = { editing = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { onDate(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
+                    editing = false
+                }) { Text(stringResource(R.string.settings_ok)) }
+            },
+            dismissButton = { TextButton(onClick = { editing = false }) { Text(stringResource(R.string.settings_cancel)) } },
+        ) { DatePicker(state = pickerState, showModeToggle = false) }
     }
 }
 

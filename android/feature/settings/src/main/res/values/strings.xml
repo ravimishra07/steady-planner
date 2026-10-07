@@ -48,6 +48,17 @@
     <string name="settings_palette_amber">Amber</string>
     <string name="settings_background_grey">Grey</string>
     <string name="settings_background_slate">Slate</string>
+    <string name="settings_plan">Plan</string>
+    <string name="settings_plan_question">Do you have a date you want to finish the syllabus by?</string>
+    <string name="settings_plan_yes">Yes</string>
+    <string name="settings_plan_not_yet">Not yet</string>
+    <string name="settings_plan_deadline_detail">Work is spread over the days up to your finish-by date. Saving replans your future planner-made blocks only; your own and completed blocks stay.</string>
+    <string name="settings_plan_steady_detail">Hours only. Saving replans your future planner-made blocks only; your own and completed blocks stay. Your finish-by date is kept in case you switch back.</string>
+    <string name="settings_plan_exam_date">NEET exam date</string>
+    <string name="settings_plan_exam_expected">expected, not yet announced</string>
+    <string name="settings_plan_finish_by">Finish syllabus by</string>
+    <string name="settings_plan_change">Change</string>
+    <string name="settings_cancel">Cancel</string>
     <string name="settings_hours">Your hours</string>
     <string name="settings_weekdays">Weekdays</string>
     <string name="settings_weekends">Weekends</string>

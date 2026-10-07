@@ -401,6 +401,80 @@ Onboard (≤3 min) → Today: one obvious next block → Focus → mark outcome
 - There is a checklist of every chapter against its source.
 - A migration test shows progress surviving a syllabus version bump.
 
+### P0-5.4 Coaching backlog tracker (added after Reddit research, 2026-10-07)
+
+**Evidence.** About 1,600 Reddit posts, mostly r/JEENEETards and
+r/NEETdroppers2toppers. Students count backlog in **coaching lectures and
+DPPs**, not in NCERT chapters:
+
+- "60+ lectures backlogs and 100+ Dpp backlogs"
+- "every chapter has 14-15 lectures"
+
+The coaching batch schedule is their real plan. The question they keep asking
+is "clear the backlog or keep up with live classes?"
+
+**Build:**
+
+- **Optional per-chapter counts.** "Lectures in this chapter" (N) and "DPPs"
+  (M). The student enters them or bumps them with + as their batch adds more.
+  Each lecture and each DPP gets a tick, with fast bulk-tick ("done up to
+  lecture 9").
+- **Batch position.** "My batch is currently at: <chapter>, lecture k". It is
+  set from Today in one tap and updated as classes happen. This extends the
+  §4.5 "Taught in class today" log.
+- **Backlog.** Lectures and DPPs behind the batch position, shown by subject:
+  "Physics: 23 lectures, 41 DPPs behind".
+- **Catch-up plan.** The planner splits each day between **live** work (today's
+  class, its DPP, and the §4.5 same-day revision) and **backlog** work.
+  - Default split is 60/40, adjustable 0–100.
+  - Backlog items become plan blocks. A lecture block defaults to 90 min and a
+    DPP block to 30 min; both are editable.
+  - Show the backlog-clear date at the current split.
+- Students who don't use coaching skip all of this; the NCERT chapter flow
+  stays as it is.
+- §5.3's backlog view is replaced by this whenever counts exist.
+
+**Acceptance criteria:**
+
+- A coached student can enter one chapter's lectures and DPPs in under 30
+  seconds.
+- Backlog numbers come from `Metrics.kt` only.
+- Domain tests cover the live/backlog split and the clear-date estimate.
+
+### P0-5.5 Restart without guilt (added after Reddit research)
+
+**Evidence.** The recurring cycle is "planning a lot → not executing → feeling
+bad → escaping → repeat", and "once my routine breaks… I can't restart". Hour
+leaderboards demotivate students (YPT groups: "every other nga studying 15+
+hours… demotivates me"). Students also say hours aren't progress.
+
+**Build:**
+
+- After 2 or more missed days, or a broken streak, Today shows **"Start fresh
+  from today"**.
+  - One tap moves the missed work back into the queue (it becomes SKIPPED and
+    is replanned).
+  - It clears the missed state. There are no red numbers and no "you missed X"
+    count afterwards.
+- Insights leads with **progress**: chapters and lectures done this week, then
+  revisions. Hours come second. There is no comparison with other people and
+  no hour goals shown as failure.
+- Streak copy is neutral. A broken streak shows "New streak starts today", not
+  a loss message.
+
+### P1-5.6 "What did I study" day view
+
+On any calendar day, list the sessions with chapter, type and focused time.
+Requested in reviews: "I can see day wise how much I studied but I cannot know
+what I studied".
+
+### P1-10.5 Support line
+
+Settings → Help shows one calm entry: "Feeling overwhelmed? Tele-MANAS (Govt.
+of India), free, 24×7: **14416**". The number is shown as text, with a dial
+intent as well (PIB source verified 2026-10-07). There are no pop-ups and no
+monitoring of the student's content.
+
 ### P1-5.3 Backlog view
 
 - **Definition:** backlog = planned blocks in the past that are not completed

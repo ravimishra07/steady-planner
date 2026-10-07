@@ -77,7 +77,14 @@
     <string name="onboarding_day_friday_full">Friday</string>
     <string name="onboarding_day_saturday_full">Saturday</string>
 
-    <string name="onboarding_date_title">When should this plan finish?</string>
+    <string name="onboarding_date_title">Do you have a date you want to finish the syllabus by?</string>
+    <string name="onboarding_mode_yes">Yes, I have a date</string>
+    <string name="onboarding_mode_yes_detail">We spread the remaining work over the days up to it and show the hours it needs against the hours you have.</string>
+    <string name="onboarding_mode_not_yet">Not yet</string>
+    <string name="onboarding_mode_not_yet_detail">Set your daily hours only. We line up the next work and show a projected finish from your pace.</string>
+    <string name="onboarding_exam_date_change">Change exam date</string>
+    <string name="onboarding_ok">OK</string>
+    <string name="onboarding_cancel">Cancel</string>
     <string name="onboarding_date_personal_target">Finish-by date</string>
     <string name="onboarding_date_exam_official">NEET exam: %1$s</string>
     <string name="onboarding_date_exam_expected">NEET exam: expected %1$s (not yet announced)</string>
@@ -126,6 +133,9 @@
     <string name="onboarding_plan_fits">Your selected syllabus fits by <b>%1$s</b>.</string>
     <string name="onboarding_plan_short">Short by about <b>%1$s h</b> %2$s before %3$s. Pick how to close the gap.</string>
     <string name="onboarding_plan_steady">Steady plan: no finish-by date. We sequence the next work from your daily hours and show a projected finish as you go.</string>
+    <string name="onboarding_plan_projected_finish">Projected finish</string>
+    <string name="onboarding_plan_projected_value">%1$s (estimate)</string>
+    <string name="onboarding_plan_projected_none">Add a little more time each day to see a projected finish date.</string>
     <string name="onboarding_plan_estimate_label">(estimate)</string>
     <string name="onboarding_plan_at_your_pace">(at your pace)</string>
     <string name="onboarding_plan_stat_learn">Learn</string>

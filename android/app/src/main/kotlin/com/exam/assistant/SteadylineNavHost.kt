@@ -266,6 +266,8 @@ fun SteadylineNavHost(
                     attemptRepository = container.attemptRepository,
                     studyPreferenceRepository = container.studyPreferenceRepository,
                     rollingPlanRepository = container.rollingPlanRepository,
+                    configExamDate = container.remoteConfig.neetExamDate(),
+                    examDateOfficial = container.remoteConfig.neetExamDateOfficial(),
                     onBack = { navController.popBackStack() },
                     onCleared = {
                         navController.navigate(Route.Onboarding.path) {

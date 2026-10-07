@@ -39,6 +39,9 @@ const val MOCK_NEAR_DAYS = 28
 /** Smallest block the planner will cut to fit a leftover window. */
 const val MIN_AUTO_BLOCK_MINUTES = 15
 
+/** How far steady mode looks for a finish date when the student has no exam date. */
+const val PROJECTION_DAYS = 730L
+
 /** Ids of blocks the revision engine placed start with this, so they are told apart from a student's own revision blocks. */
 const val ENGINE_REVISION_ID_PREFIX = "rev_"
 
@@ -72,6 +75,11 @@ data class RollingPlanResult(
     val fit: PlanFit? = null,
     /** Mock tests the whole simulation placed, including days past the emitted horizon. */
     val mockTestsPlanned: Int = 0,
+    /**
+     * The day the last Learn or Practice block lands, when the simulation was run to the end
+     * ([PlanInputs.projectedFinish]) and every remaining chapter fits. Null otherwise.
+     */
+    val projectedFinish: LocalDate? = null,
 )
 
 enum class PlanningOrder {
@@ -342,20 +350,36 @@ private class DayPlacer(windows: List<Pair<Int, Int>>, private val breakMinutes:
 private fun StudyPlanBlock.countsAsStudy(): Boolean =
     activityType !in NON_STUDY_TYPES
 
-/** Plans [horizonDays] days from [PlanInputs.startDate]; deadline mode simulates on to finish-by for [RollingPlanResult.fit]. */
-fun PlanInputs.plan(horizonDays: Int, nowMs: Long): RollingPlanResult {
+/**
+ * When the planner would finish the remaining Learn and Practice work at the student's own
+ * hours, or null if it does not finish before the exam. Steady mode's "projected finish"
+ * (PRODUCTION_V1_PLAN §3.1): it simulates every day to the end but emits nothing.
+ */
+fun PlanInputs.projectedFinish(nowMs: Long): LocalDate? =
+    plan(horizonDays = 1, nowMs = nowMs, simulateToEnd = true).projectedFinish
+
+/**
+ * Plans [horizonDays] days from [PlanInputs.startDate]; deadline mode simulates on to finish-by for [RollingPlanResult.fit].
+ * With [simulateToEnd] steady mode also runs to the exam (or [PROJECTION_DAYS] without one), only to find the finish date.
+ */
+fun PlanInputs.plan(horizonDays: Int, nowMs: Long, simulateToEnd: Boolean = false): RollingPlanResult {
     val deadline = mode == PlanMode.DEADLINE
     val lastExamDay = examDate?.minusDays(1)
     // Last date anything may be planned on. The exam day itself is not planned.
     val hardEnd: LocalDate = when {
         deadline -> if (lastExamDay != null && lastExamDay > targetDate) lastExamDay else targetDate
+        simulateToEnd -> lastExamDay ?: startDate.plusDays(PROJECTION_DAYS)
         else -> lastExamDay ?: startDate.plusDays(horizonDays.coerceAtLeast(1).toLong() - 1)
     }
     if (horizonDays <= 0 || startDate > hardEnd) return RollingPlanResult(emptyList(), emptyList(), 0)
 
     val emitEnd = minOf(hardEnd, startDate.plusDays((horizonDays - 1).toLong()))
     val learnEnd: LocalDate? = if (deadline) targetDate else null
-    val simEnd = if (learnEnd != null) minOf(hardEnd, maxOf(emitEnd, learnEnd)) else emitEnd
+    val simEnd = when {
+        learnEnd != null -> minOf(hardEnd, maxOf(emitEnd, learnEnd))
+        simulateToEnd -> hardEnd
+        else -> emitEnd
+    }
 
     val clock = clockAt(nowMs)
     val nowDate = clock.date
@@ -387,6 +411,7 @@ fun PlanInputs.plan(horizonDays: Int, nowMs: Long): RollingPlanResult {
     var mockCount = 0
     var snapshotAtLearnEnd: Pair<Int, Int>? = null
     var snapshotAtEmitEnd: List<RemainingWork>? = null
+    var lastWorkDate: LocalDate? = null
 
     fun learnRemainingNow() = model.chapters.sumOf { it.learnRemaining }
     fun practiceRemainingNow() = model.chapters.sumOf { it.practiceRemaining }
@@ -541,6 +566,7 @@ fun PlanInputs.plan(horizonDays: Int, nowMs: Long): RollingPlanResult {
                 add(type, leaf?.nodeId ?: chapter.id, chapter.subjectId, placed.first, placed.second, PlanBlockSource.AUTO)
                 blockIndex++
                 if (leaf != null) leaf.remaining -= placed.second else chapter.practiceRemaining -= placed.second
+                lastWorkDate = today
                 budget -= placed.second
             }
         }
@@ -578,6 +604,7 @@ fun PlanInputs.plan(horizonDays: Int, nowMs: Long): RollingPlanResult {
         unscheduledMinutes = remainingAtEmit.sumOf { it.remainingMinutes },
         fit = fit,
         mockTestsPlanned = mockCount,
+        projectedFinish = if (simulateToEnd && learnRemainingNow() + practiceRemainingNow() == 0) lastWorkDate ?: startDate else null,
     )
 }
 

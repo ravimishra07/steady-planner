@@ -188,7 +188,10 @@ fun ProgressScreen(
         InsightsSection(title = stringResource(R.string.insights_syllabus), subtitle = stringResource(R.string.insights_syllabus_subtitle)) {
             SyllabusCard(data, onManageTarget)
         }
-        InsightsSection(title = stringResource(R.string.insights_forecast), subtitle = stringResource(R.string.insights_forecast_subtitle)) {
+        InsightsSection(
+            title = stringResource(if (data.forecast.hasTarget) R.string.insights_forecast else R.string.insights_forecast_steady),
+            subtitle = stringResource(if (data.forecast.hasTarget) R.string.insights_forecast_subtitle else R.string.insights_forecast_steady_subtitle),
+        ) {
             ForecastCard(data)
         }
         InsightsSection(title = stringResource(R.string.insights_subjects), subtitle = stringResource(R.string.insights_subjects_subtitle)) {
@@ -506,12 +509,6 @@ private fun PlanActualCard(data: InsightsData) {
                         modifier = Modifier.padding(top = Spacing.xs),
                     )
                 }
-                Text(
-                    text = if (data.planDeltaMinutes >= 0) stringResource(R.string.insights_ahead, insightDuration(data.planDeltaMinutes)) else stringResource(R.string.insights_behind, insightDuration(-data.planDeltaMinutes)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (data.planDeltaMinutes >= 0) colors.success else colors.warning,
-                    modifier = Modifier.padding(top = Spacing.sm),
-                )
             }
         }
     }
@@ -548,11 +545,11 @@ private fun SyllabusCard(data: InsightsData, onManageTarget: () -> Unit) {
 private fun ForecastCard(data: InsightsData) {
     val colors = AppTheme.colors
     val forecast = data.forecast
-    Surface(shape = RoundedCornerShape(Radius.lg), color = colors.warningRow) {
+    Surface(shape = RoundedCornerShape(Radius.lg), color = if (forecast.hasTarget) colors.warningRow else colors.elevated) {
         Column(modifier = Modifier.padding(Spacing.lg)) {
             PlanFitLines(data)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                MetricPair(stringResource(R.string.insights_target_date), formatInsightDate(forecast.targetDate))
+                if (forecast.hasTarget) MetricPair(stringResource(R.string.insights_target_date), formatInsightDate(forecast.targetDate))
                 val earliest = forecast.forecastEarliestDate
                 val latest = forecast.forecastLatestDate
                 val paceRange = if (earliest != null && latest != null) {
@@ -564,10 +561,23 @@ private fun ForecastCard(data: InsightsData) {
                 } else {
                     stringResource(R.string.insights_not_enough_history)
                 }
-                MetricPair(stringResource(R.string.insights_at_current_pace), paceRange, colors.warning, Alignment.End)
+                MetricPair(
+                    stringResource(R.string.insights_at_current_pace),
+                    paceRange,
+                    if (forecast.hasTarget) colors.warning else colors.text,
+                    if (forecast.hasTarget) Alignment.End else Alignment.Start,
+                )
             }
             if (!forecast.hasReliablePace) {
                 Text(stringResource(R.string.insights_forecast_insufficient), style = MaterialTheme.typography.bodySmall, color = colors.textSecondary, modifier = Modifier.padding(top = Spacing.lg))
+            } else if (!forecast.hasTarget) {
+                Text(
+                    stringResource(R.string.insights_forecast_evidence, forecast.evidenceActiveDays, forecast.evidenceWindowDays),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.textMuted,
+                    modifier = Modifier.padding(top = Spacing.lg),
+                )
+                Text(stringResource(R.string.insights_forecast_note), style = MaterialTheme.typography.labelSmall, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.md))
             } else {
                 val delta = forecast.daysDelta ?: 0
                 Text(

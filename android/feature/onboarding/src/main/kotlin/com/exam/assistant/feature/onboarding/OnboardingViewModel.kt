@@ -24,6 +24,7 @@ import com.exam.assistant.domain.ExamPack
 import com.exam.assistant.domain.PlanFitOption
 import com.exam.assistant.domain.PlanMode
 import com.exam.assistant.domain.NEET_EXAM_ID
+import com.exam.assistant.domain.MIN_FINISH_BY_DAYS_AHEAD
 import com.exam.assistant.domain.StudyPreferences
 import com.exam.assistant.domain.TargetNodeState
 import com.exam.assistant.domain.TopicProgressStatus
@@ -79,6 +80,7 @@ class OnboardingViewModel(
         OnboardingUiState(
             examDate = examDate,
             examDateOfficial = examDateOfficial,
+            configExamDate = examDate,
             targetDate = defaultFinishByDate(examDate, LocalDate.now()),
         ),
     )
@@ -146,6 +148,25 @@ class OnboardingViewModel(
                 commitments = commitmentsForStudyMode(it.commitments, id),
             )
         }
+    }
+
+    /** "Do you have a date you want to finish the syllabus by?" Yes is deadline mode, Not yet is steady mode. */
+    fun setPlanMode(mode: PlanMode) {
+        _state.update { it.copy(planMode = mode) }
+        refreshFitIfOnPlanStep()
+    }
+
+    /** The exam date is editable. The finish-by date follows if the exam moves in front of it. */
+    fun setExamDate(date: LocalDate) {
+        val today = LocalDate.now()
+        val exam = date.coerceAtLeast(today.plusDays(MIN_FINISH_BY_DAYS_AHEAD.toLong()))
+        _state.update {
+            it.copy(
+                examDate = exam,
+                targetDate = coerceFinishBy(if (it.targetDate > exam) exam else it.targetDate, exam, today),
+            )
+        }
+        refreshFitIfOnPlanStep()
     }
 
     fun setTargetDate(date: LocalDate) {
@@ -347,11 +368,12 @@ class OnboardingViewModel(
                     wakeMinute = saved?.wakeMinute ?: current.wakeMinute,
                     sleepMinute = saved?.sleepMinute ?: current.sleepMinute,
                     planMode = attempt?.planMode ?: current.planMode,
+                    examDate = attempt?.examDate ?: current.examDate,
                     targetDate = coerceFinishBy(
                         attempt?.targetCompletionDate
                             ?: saved?.targetDateEpochDay?.let(LocalDate::ofEpochDay)
                             ?: current.targetDate,
-                        current.examDate,
+                        attempt?.examDate ?: current.examDate,
                         LocalDate.now(),
                     ),
                     workId = saved?.workId ?: current.workId,
@@ -396,29 +418,30 @@ class OnboardingViewModel(
     private fun refreshFit() {
         fitJob?.cancel()
         val draft = _state.value
-        if (!draft.useProvidedSyllabus || draft.planMode != PlanMode.DEADLINE) {
-            _state.update { it.copy(fit = null, fitLoading = false) }
+        if (!draft.useProvidedSyllabus) {
+            _state.update { it.copy(fit = null, fitLoading = false, projectedFinish = null, projectionLoading = false) }
             return
         }
-        _state.update { it.copy(fitLoading = true) }
+        _state.update { it.copy(fitLoading = true, projectionLoading = it.planMode == PlanMode.STEADY) }
         fitJob = viewModelScope.launch {
-            val fit = rollingPlanRepository.draftFit(
-                PlanDraft(
-                    mode = draft.planMode,
-                    examDate = draft.examDate,
-                    finishBy = draft.targetDate,
-                    weekdayTargetMinutes = (draft.weekdayHours * 60).roundToInt(),
-                    weekendTargetMinutes = (draft.weekendHours * 60).roundToInt(),
-                    weeklyAvailability = freeWindowsFor(DRAFT_ATTEMPT_ID, draft),
-                    includedChapterIds = draft.selectedChapterIds,
-                ),
+            val planDraft = PlanDraft(
+                mode = draft.planMode,
+                examDate = draft.examDate,
+                finishBy = draft.targetDate,
+                weekdayTargetMinutes = (draft.weekdayHours * 60).roundToInt(),
+                weekendTargetMinutes = (draft.weekendHours * 60).roundToInt(),
+                weeklyAvailability = freeWindowsFor(DRAFT_ATTEMPT_ID, draft),
+                includedChapterIds = draft.selectedChapterIds,
             )
+            val fit = if (draft.planMode == PlanMode.DEADLINE) rollingPlanRepository.draftFit(planDraft) else null
+            val projected = if (draft.planMode == PlanMode.STEADY) rollingPlanRepository.draftProjection(planDraft) else null
             _state.update { current ->
                 // A newer change started its own request; only the latest answer may land.
-                if (current.targetDate == draft.targetDate && current.weekdayHours == draft.weekdayHours &&
+                if (current.planMode == draft.planMode && current.examDate == draft.examDate &&
+                    current.targetDate == draft.targetDate && current.weekdayHours == draft.weekdayHours &&
                     current.weekendHours == draft.weekendHours && current.selectedChapterIds == draft.selectedChapterIds
                 ) {
-                    current.copy(fit = fit, fitLoading = false)
+                    current.copy(fit = fit, fitLoading = false, projectedFinish = projected, projectionLoading = false)
                 } else {
                     current
                 }
@@ -728,6 +751,8 @@ private fun encodeDraft(state: OnboardingUiState): String = JSONObject().apply {
     put("wake", state.wakeMinute)
     put("sleep", state.sleepMinute)
     put("date", state.targetDate.toEpochDay())
+    put("exam", state.examDate.toEpochDay())
+    put("mode", state.planMode.name)
     put("work", state.workId)
     put("weekday", state.weekdayHours.toDouble())
     put("weekend", state.weekendHours.toDouble())
@@ -749,6 +774,8 @@ private fun decodeDraft(raw: String, base: OnboardingUiState): OnboardingUiState
         coachingId = json.optString("coaching", base.coachingId),
         wakeMinute = json.optInt("wake", base.wakeMinute),
         sleepMinute = json.optInt("sleep", base.sleepMinute),
+        examDate = LocalDate.ofEpochDay(json.optLong("exam", base.examDate.toEpochDay())),
+        planMode = runCatching { PlanMode.valueOf(json.optString("mode")) }.getOrDefault(base.planMode),
         targetDate = LocalDate.ofEpochDay(json.optLong("date", base.targetDate.toEpochDay())),
         workId = json.optString("work", base.workId),
         weekdayHours = json.optDouble("weekday", base.weekdayHours.toDouble()).toFloat(),
