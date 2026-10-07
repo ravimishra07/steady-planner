@@ -27,7 +27,6 @@ import com.exam.assistant.domain.FocusBlockRef
 import com.exam.assistant.domain.FocusSession
 import com.exam.assistant.domain.FocusStatus
 import com.exam.assistant.feature.focus.FocusRoute
-import com.exam.assistant.focuslock.FocusLockService
 import com.exam.assistant.feature.home.HomeRoute
 import com.exam.assistant.feature.onboarding.OnboardingRoute
 import com.exam.assistant.feature.progress.ProgressRoute
@@ -140,10 +139,6 @@ fun SteadylineNavHost(
                                 ),
                             ),
                         )
-                        val lock = container.focusLockStore.load()
-                        if (lock.enabled && lock.configured && container.focusLockCapabilityChecker.current().allGranted) {
-                            FocusLockService.start(context)
-                        }
                         navController.navigate(Route.Focus.path)
                     },
                     pendingSyllabusPick = container.pendingSyllabusPick,
@@ -190,9 +185,6 @@ fun SteadylineNavHost(
                     planRepository = container.planRepository,
                     studySessionRepository = container.studySessionRepository,
                     rollingPlanRepository = container.rollingPlanRepository,
-                    focusLockStore = container.focusLockStore,
-                    focusLockCapabilityChecker = container.focusLockCapabilityChecker,
-                    installedAppProvider = container.installedAppProvider,
                     appScope = container.appScope,
                     onClose = {
                         navController.navigate(Route.Home.path) {
@@ -200,15 +192,6 @@ fun SteadylineNavHost(
                             launchSingleTop = true
                         }
                     },
-                    onFocusLockStart = {
-                        container.appScope.launch {
-                            val lock = container.focusLockStore.load()
-                            if (lock.enabled && lock.configured && container.focusLockCapabilityChecker.current().allGranted) {
-                                FocusLockService.start(context)
-                            }
-                        }
-                    },
-                    onFocusLockStop = { FocusLockService.stop(context) },
                     modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                 )
             }

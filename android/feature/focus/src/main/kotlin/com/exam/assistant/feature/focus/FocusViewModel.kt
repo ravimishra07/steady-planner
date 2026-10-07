@@ -48,9 +48,6 @@ class FocusViewModel(
     private val studySessionRepository: StudySessionRepository,
     private val rollingPlanRepository: RollingPlanRepository,
     private val appScope: CoroutineScope,
-    /** Told, never asked — Focus Lock reacts to the session lifecycle, it doesn't own it. */
-    private val onFocusLockStart: () -> Unit = {},
-    private val onFocusLockStop: () -> Unit = {},
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(FocusUiState())
@@ -82,11 +79,6 @@ class FocusViewModel(
                 syncNormalizedSession(session, now)
             }
             startTickerIfNeeded(session)
-            // Recovery path: if our process (and possibly the service) was killed mid-session,
-            // re-derive Focus Lock's active state from the session rather than trusting memory.
-            if (session.status == FocusStatus.RUNNING || session.status == FocusStatus.PAUSED) {
-                onFocusLockStart()
-            }
         }
     }
 
@@ -111,7 +103,6 @@ class FocusViewModel(
             ensureNormalizedSession(session)
             applySession(session)
             startTickerIfNeeded(session)
-            onFocusLockStart()
         }
     }
 
@@ -145,7 +136,6 @@ class FocusViewModel(
             syncNormalizedSession(session)
             applySession(session)
             startTickerIfNeeded(session)
-            onFocusLockStart()
         }
     }
 
@@ -304,7 +294,6 @@ class FocusViewModel(
         applySession(session)
         stopTicker()
         dismissStopDialog()
-        onFocusLockStop()
     }
 
     private suspend fun finishStoppedSession(current: FocusSession) {
@@ -318,7 +307,6 @@ class FocusViewModel(
         applySession(session)
         stopTicker()
         dismissStopDialog()
-        onFocusLockStop()
     }
 
     private suspend fun persistPartialSession(focus: FocusSession, nowMs: Long) {
@@ -543,9 +531,7 @@ class FocusViewModel(
         private val studySessionRepository: StudySessionRepository,
         private val rollingPlanRepository: RollingPlanRepository,
         private val appScope: CoroutineScope,
-        private val onFocusLockStart: () -> Unit = {},
-        private val onFocusLockStop: () -> Unit = {},
-    ) : ViewModelProvider.Factory {
+            ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             FocusViewModel(
@@ -557,8 +543,6 @@ class FocusViewModel(
                 studySessionRepository,
                 rollingPlanRepository,
                 appScope,
-                onFocusLockStart,
-                onFocusLockStop,
             ) as T
     }
 

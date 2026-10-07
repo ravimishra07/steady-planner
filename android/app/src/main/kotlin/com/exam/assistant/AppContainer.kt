@@ -4,10 +4,7 @@ import android.content.Context
 import com.exam.assistant.core.common.AppDispatchers
 import com.exam.assistant.core.common.DefaultAppDispatchers
 import com.exam.assistant.core.data.ExamPackRepository
-import com.exam.assistant.core.data.FocusLockCapabilityChecker
-import com.exam.assistant.core.data.FocusLockStore
 import com.exam.assistant.core.data.FocusStore
-import com.exam.assistant.core.data.InstalledAppProvider
 import com.exam.assistant.core.data.LocalRemoteConfig
 import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.RemoteConfig
@@ -61,12 +58,6 @@ class AppContainer(private val context: Context) {
     val studySessionStore: StudySessionStore by lazy { StudySessionStore(context, dispatchers) }
 
     val remoteConfig: RemoteConfig by lazy { LocalRemoteConfig() }
-
-    val focusLockStore: FocusLockStore by lazy { FocusLockStore(context, dispatchers) }
-
-    val focusLockCapabilityChecker: FocusLockCapabilityChecker by lazy { FocusLockCapabilityChecker(context) }
-
-    val installedAppProvider: InstalledAppProvider by lazy { InstalledAppProvider(context, dispatchers) }
 
     // Canonical Room architecture. Legacy stores remain migration/rollback inputs only.
     val examPackRepository: ExamPackRepository by lazy { ExamPackRepository(context, dispatchers) }
