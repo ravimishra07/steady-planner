@@ -89,7 +89,7 @@ internal fun OnboardingSelectionIndicator(
         selected -> Icon(
             imageVector = Icons.Filled.CheckCircle,
             contentDescription = null,
-            tint = colors.brandDeep,
+            tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(Size.selectionIndicator),
         )
         enabled -> Icon(
@@ -159,4 +159,4 @@ private fun formatHour(value: Float): String =
 /** Selected = accent outline on the normal surface. Never a tinted fill with same-hue text. */
 @Composable
 internal fun selectionBorder(selected: Boolean): BorderStroke? =
-    if (selected) BorderStroke(Stroke.selected, AppTheme.colors.brandDeep) else null
+    if (selected) BorderStroke(Stroke.selected, MaterialTheme.colorScheme.primary) else null

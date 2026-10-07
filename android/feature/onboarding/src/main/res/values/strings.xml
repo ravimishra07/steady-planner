@@ -3,9 +3,7 @@
     <string name="onboarding_commitments_duration">%1$s h</string>
     <string name="onboarding_back">Back</string>
 
-    <string name="onboarding_appearance_title">Theme</string>
-    <string name="onboarding_appearance_accent">Accent</string>
-    <string name="onboarding_appearance_background">Background</string>
+    <string name="onboarding_appearance_title">Choose a theme</string>
     <string name="onboarding_accent_blue">Blue</string>
     <string name="onboarding_accent_purple">Purple</string>
     <string name="onboarding_accent_green">Green</string>
@@ -23,15 +21,11 @@
     <string name="onboarding_continue">Continue</string>
 
     <string name="onboarding_coaching_title">How do you study?</string>
-    <string name="onboarding_coaching_self">Mostly self-study</string>
-    <string name="onboarding_coaching_self_mode">No fixed classes</string>
+    <string name="onboarding_coaching_self">Self-study</string>
     <string name="onboarding_coaching_school">School or college</string>
-    <string name="onboarding_coaching_school_mode">School-day schedule</string>
-    <string name="onboarding_coaching_choice">Coaching-led</string>
-    <string name="onboarding_coaching_choice_mode">Coaching schedule</string>
+    <string name="onboarding_coaching_choice">Coaching</string>
 
-    <string name="onboarding_commitments_title">Fixed times</string>
-    <string name="onboarding_commitments_lede">Classes, meals, travel.</string>
+    <string name="onboarding_commitments_title">Fixed non-study hours</string>
     <string name="onboarding_commitments_wake_after_sleep">Lights out must be after wake-up.</string>
     <string name="onboarding_commitments_no_days">%1$s needs at least one day.</string>
     <string name="onboarding_commitments_invalid_range">%1$s must end after it starts.</string>
@@ -45,7 +39,13 @@
     <string name="onboarding_commitments_rename_save">Save</string>
     <string name="onboarding_commitments_rename_cancel">Cancel</string>
     <string name="onboarding_commitments_add">Add</string>
-    <string name="onboarding_commitments_fixed_times">Fixed times</string>
+    <string name="onboarding_commitments_suggested">Suggested</string>
+    <string name="onboarding_time_select">Select time</string>
+    <string name="onboarding_time_ok">OK</string>
+    <string name="onboarding_time_cancel">Cancel</string>
+    <string name="onboarding_time_am">am</string>
+    <string name="onboarding_time_pm">pm</string>
+    <string name="onboarding_time_value">%1$d:%2$02d %3$s</string>
     <string name="onboarding_commitments_awake">Awake between</string>
     <string name="onboarding_commitments_up_at">Up at</string>
     <string name="onboarding_commitments_lights_out">Lights out</string>

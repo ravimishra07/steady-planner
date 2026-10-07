@@ -2,6 +2,41 @@
 
 package com.exam.assistant.feature.onboarding.steps
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PageSize
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.TimePickerDefaults
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.Stroke as DrawStroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.constrainWidth
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.exam.assistant.core.design.ThemePreviewMetrics
+import kotlinx.coroutines.launch
+import kotlin.math.absoluteValue
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -101,7 +136,6 @@ import com.exam.assistant.feature.onboarding.model.DAY_SHAPES
 import com.exam.assistant.feature.onboarding.model.ExamCatalog
 import com.exam.assistant.feature.onboarding.model.OnboardingCommitment
 import com.exam.assistant.feature.onboarding.model.OnboardingUiState
-import java.text.DateFormat
 import java.text.NumberFormat
 import java.time.Instant
 import java.time.LocalDate
@@ -109,77 +143,179 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.temporal.ChronoUnit
-import java.util.Calendar
 import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
+/**
+ * "Choose a theme": background carousel. The centered page is the selection; the
+ * accent picker lives above Continue ([OnboardingAccentPicker]).
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun OnboardingAppearanceStep(
     background: BackgroundAppearance,
     accent: AccentPalette,
     onBackground: (BackgroundAppearance) -> Unit,
-    onAccent: (AccentPalette) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxl)) {
-        AppearanceLabel(R.string.onboarding_appearance_accent)
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            AccentPalette.entries.forEach { option ->
-                val selected = option == accent
-                Surface(
-                    onClick = { onAccent(option) },
-                    modifier = Modifier.weight(1f),
-                    color = AppTheme.colors.elevated,
-                    border = selectionBorder(selected),
-                    shape = RoundedCornerShape(Radius.md),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(vertical = Spacing.md, horizontal = Spacing.xs),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    ) {
-                        Box(
-                            modifier = Modifier.size(Size.swatch).clip(CircleShape).background(option.brand),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            if (selected) Icon(Icons.Filled.Check, null, tint = option.onSwatch)
+    val options = BackgroundAppearance.entries
+    val pagerState = rememberPagerState(initialPage = options.indexOf(background)) { options.size }
+    val scope = rememberCoroutineScope()
+    val currentBackground by rememberUpdatedState(background)
+    val currentOnBackground by rememberUpdatedState(onBackground)
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.settledPage }.collect { page ->
+            val settled = options[page]
+            if (settled != currentBackground) currentOnBackground(settled)
+        }
+    }
+    val accentColor = MaterialTheme.colorScheme.primary
+    val ringColor = accentColor
+    val gapColor = AppTheme.colors.bg
+
+    Column {
+        BoxWithConstraints(Modifier.bleedHorizontally(Spacing.lg)) {
+            val side = ((maxWidth - ThemePreviewMetrics.pageWidth) / 2).coerceAtLeast(Spacing.none)
+            HorizontalPager(
+                state = pagerState,
+                pageSize = PageSize.Fixed(ThemePreviewMetrics.pageWidth),
+                pageSpacing = ThemePreviewMetrics.pageSpacing,
+                contentPadding = PaddingValues(horizontal = side, vertical = Spacing.sm),
+                modifier = Modifier.fillMaxWidth().selectableGroup(),
+            ) { page ->
+                val option = options[page]
+                val centered = page == pagerState.currentPage
+                val name = stringResource(backgroundLabel(option))
+                Box(
+                    Modifier
+                        .graphicsLayer {
+                            val distance = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction)
+                                .absoluteValue.coerceAtMost(1f)
+                            val scale = 1f - (1f - ThemePreviewMetrics.minScale) * distance
+                            scaleX = scale
+                            scaleY = scale
+                            alpha = 1f - (1f - ThemePreviewMetrics.minAlpha) * distance
                         }
-                        Text(stringResource(accentLabel(option)), style = MaterialTheme.typography.labelMedium)
-                    }
+                        .previewRing(visible = centered, ring = ringColor, gap = gapColor)
+                        .clip(RoundedCornerShape(ThemePreviewMetrics.corner))
+                        .selectable(
+                            selected = centered,
+                            role = Role.RadioButton,
+                            onClick = { scope.launch { pagerState.animateScrollToPage(page) } },
+                        )
+                        .semantics { contentDescription = name },
+                ) {
+                    BackgroundMiniature(option, accent.primaryFor(option.isDark))
                 }
             }
         }
-        AppearanceLabel(R.string.onboarding_appearance_background)
-        // Fixed 3-column grid. FlowRow + weight measured the row before widening the cells,
-        // so the square previews overflowed and were clipped.
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            BackgroundAppearance.entries.chunked(3).forEach { row ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    row.forEach { option ->
-                        val selected = option == background
-                        Surface(
-                            onClick = { onBackground(option) },
-                            modifier = Modifier.weight(1f),
-                            color = AppTheme.colors.elevated,
-                            border = selectionBorder(selected),
-                            shape = RoundedCornerShape(Radius.md),
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(Spacing.sm),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                            ) {
-                                BackgroundMiniature(option, accent.brand, selected)
-                                Text(stringResource(backgroundLabel(option)), style = MaterialTheme.typography.labelMedium)
-                            }
-                        }
+        Text(
+            text = stringResource(backgroundLabel(options[pagerState.currentPage])),
+            style = MaterialTheme.typography.titleSmall,
+            color = AppTheme.colors.text,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(top = Spacing.md),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
+        ) {
+            options.indices.forEach { index ->
+                val active = index == pagerState.currentPage
+                val width by animateDpAsState(if (active) Size.pagerDotActive else Size.pagerDot, label = "pagerDot")
+                Box(
+                    Modifier
+                        .size(width = width, height = Size.pagerDot)
+                        .clip(CircleShape)
+                        .background(if (active) accentColor else AppTheme.colors.border),
+                )
+            }
+        }
+    }
+}
+
+/** Five accent circles in one pill outline, docked above Continue on the theme step. */
+@Composable
+internal fun OnboardingAccentPicker(
+    accent: AccentPalette,
+    onAccent: (AccentPalette) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val dark = AppTheme.colors.isDark
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .border(Stroke.hairline, AppTheme.colors.outline, CircleShape)
+            .padding(horizontal = Spacing.md, vertical = Spacing.xs)
+            .selectableGroup(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AccentPalette.entries.forEach { option ->
+            val selected = option == accent
+            val name = stringResource(accentLabel(option))
+            Box(
+                modifier = Modifier
+                    .size(Size.touchTarget)
+                    .clip(CircleShape)
+                    .selectable(selected = selected, role = Role.RadioButton, onClick = { onAccent(option) })
+                    .semantics { contentDescription = name },
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    modifier = Modifier.size(Size.accentDot).clip(CircleShape).background(option.primaryFor(dark)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (selected) {
+                        Icon(
+                            imageVector = Icons.Filled.Check,
+                            contentDescription = null,
+                            tint = option.onPrimaryFor(dark),
+                            modifier = Modifier.size(Size.accentCheck),
+                        )
                     }
-                    repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
         }
     }
 }
+
+/** Lets a full-bleed child ignore the screen margin of its parent column. */
+private fun Modifier.bleedHorizontally(margin: Dp): Modifier = layout { measurable, constraints ->
+    val extra = (margin * 2).roundToPx()
+    val placeable = measurable.measure(
+        constraints.copy(
+            minWidth = constraints.minWidth + extra,
+            maxWidth = if (constraints.hasBoundedWidth) constraints.maxWidth + extra else constraints.maxWidth,
+        ),
+    )
+    layout(constraints.constrainWidth(placeable.width - extra), placeable.height) {
+        placeable.place(-extra / 2, 0)
+    }
+}
+
+/** 2dp accent ring with a 2dp gap outside the preview, drawn beyond its bounds. */
+private fun Modifier.previewRing(visible: Boolean, ring: Color, gap: Color): Modifier =
+    if (!visible) this else drawBehind {
+        val gapPx = ThemePreviewMetrics.ringGap.toPx()
+        val ringPx = ThemePreviewMetrics.ringWidth.toPx()
+        val corner = ThemePreviewMetrics.corner.toPx()
+        val outset = gapPx + ringPx / 2
+        drawRoundRect(
+            color = gap,
+            topLeft = Offset(-gapPx / 2, -gapPx / 2),
+            size = androidx.compose.ui.geometry.Size(size.width + gapPx, size.height + gapPx),
+            cornerRadius = CornerRadius(corner + gapPx / 2),
+            style = DrawStroke(width = gapPx),
+        )
+        drawRoundRect(
+            color = ring,
+            topLeft = Offset(-outset, -outset),
+            size = androidx.compose.ui.geometry.Size(size.width + outset * 2, size.height + outset * 2),
+            cornerRadius = CornerRadius(corner + outset),
+            style = DrawStroke(width = ringPx),
+        )
+    }
 
 @Composable
 private fun AppearanceLabel(labelRes: Int) {
@@ -190,78 +326,150 @@ private fun AppearanceLabel(labelRes: Int) {
     )
 }
 
+/** A Today screen in miniature: header, hero card, two block rows, bottom nav. */
 @Composable
-private fun BackgroundMiniature(option: BackgroundAppearance, accent: Color, selected: Boolean) {
-    Surface(
-        modifier = Modifier.fillMaxWidth().aspectRatio(1f),
-        shape = RoundedCornerShape(Radius.sm),
-        color = option.previewBackground,
-        border = BorderStroke(Stroke.hairline, AppTheme.colors.border),
+private fun BackgroundMiniature(option: BackgroundAppearance, accent: Color) {
+    val ink = option.previewInk
+    val m = ThemePreviewMetrics
+    BoxWithConstraints(
+        Modifier
+            .fillMaxWidth()
+            .aspectRatio(m.aspectRatio)
+            .clip(RoundedCornerShape(m.corner))
+            .background(option.previewBackground)
+            .border(Stroke.hairline, AppTheme.colors.outline, RoundedCornerShape(m.corner))
+            .padding(Stroke.hairline),
     ) {
-        Box(Modifier.padding(Spacing.sm)) {
-            Box(
-                Modifier.fillMaxWidth(.66f).height(Spacing.xs).clip(CircleShape).background(option.previewInk),
-            )
-            Box(
-                Modifier.fillMaxWidth().padding(top = Spacing.md).height(CalendarMetrics.meterHeight).clip(CircleShape)
-                    .background(option.previewInk.copy(alpha = .4f)),
-            )
-            Box(
-                Modifier.align(Alignment.BottomStart).size(Spacing.md).clip(CircleShape).background(accent),
-            )
+        val inner = maxWidth
+        val block = inner - m.sideMargin * 2
+        Column(Modifier.padding(top = m.topPadding)) {
+            PreviewBar(inner * m.headerWidth, m.headerHeight, ink, Modifier.padding(start = m.sideMargin))
+            PreviewBar(inner * m.lineWidth, m.lineHeight, ink.copy(alpha = m.inkSoft), Modifier.padding(start = m.sideMargin, top = m.lineTop))
+            Column(
+                modifier = Modifier
+                    .padding(start = m.sideMargin, top = m.heroTop)
+                    .size(block, m.heroHeight)
+                    .clip(RoundedCornerShape(m.heroCorner))
+                    .background(ink.copy(alpha = m.inkFill))
+                    .padding(m.heroPadding),
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                val heroInner = block - m.heroPadding * 2
+                PreviewBar(heroInner * m.heroAccentWidth, m.heroBarHeight, accent)
+                PreviewBar(heroInner * m.heroInkWidth, m.heroBarHeight, ink.copy(alpha = m.inkSoft))
+            }
+            listOf(m.itemBarWidth, m.itemBarShortWidth).forEach { fraction ->
+                Row(
+                    modifier = Modifier
+                        .padding(start = m.sideMargin, top = m.itemTop)
+                        .size(block, m.itemHeight)
+                        .clip(RoundedCornerShape(m.itemCorner))
+                        .background(ink.copy(alpha = m.inkFill))
+                        .padding(horizontal = m.itemPadding),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(m.itemGap),
+                ) {
+                    Box(Modifier.size(m.itemRing).border(m.itemRingStroke, accent, CircleShape))
+                    PreviewBar((block - m.itemPadding * 2) * fraction, m.itemBarHeight, ink.copy(alpha = m.inkStrong))
+                }
+            }
+        }
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(m.navHeight)
+                .background(ink.copy(alpha = m.inkNav))
+                .padding(horizontal = m.sideMargin),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            PreviewBar(m.navActiveWidth, m.navIcon, accent)
+            repeat(3) {
+                Box(
+                    Modifier
+                        .size(m.navIcon)
+                        .clip(RoundedCornerShape(m.navIconCorner))
+                        .background(ink.copy(alpha = m.inkSoft)),
+                )
+            }
         }
     }
 }
 
-private data class CoachingChoice(val id: String, val nameRes: Int, val modeRes: Int?, val icon: ImageVector)
+@Composable
+private fun PreviewBar(width: Dp, height: Dp, color: Color, modifier: Modifier = Modifier) {
+    Box(modifier.size(width, height).clip(CircleShape).background(color))
+}
+
+private data class CoachingChoice(val id: String, val nameRes: Int, val icon: ImageVector)
 
 private val primaryCoachingChoices = listOf(
-    CoachingChoice("self", R.string.onboarding_coaching_self, R.string.onboarding_coaching_self_mode, Icons.Filled.Person),
-    CoachingChoice("school", R.string.onboarding_coaching_school, R.string.onboarding_coaching_school_mode, Icons.Filled.School),
-    CoachingChoice("coaching", R.string.onboarding_coaching_choice, R.string.onboarding_coaching_choice_mode, Icons.Filled.Groups),
+    CoachingChoice("self", R.string.onboarding_coaching_self, Icons.Filled.Person),
+    CoachingChoice("school", R.string.onboarding_coaching_school, Icons.Filled.School),
+    CoachingChoice("coaching", R.string.onboarding_coaching_choice, Icons.Filled.Groups),
 )
 
+/** M3 Expressive grouped list: rows joined by 2dp gaps, 20dp outer corners, 4dp inner. */
 @Composable
 internal fun OnboardingCoachingStep(selectedId: String, onSelect: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        primaryCoachingChoices.forEach { choice ->
-            CoachingRow(choice, selected = selectedId == choice.id) {
+    Column(
+        modifier = Modifier.padding(top = Spacing.sm).selectableGroup(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
+    ) {
+        primaryCoachingChoices.forEachIndexed { index, choice ->
+            val shape = groupShape(index, primaryCoachingChoices.size)
+            CoachingRow(choice, selected = selectedId == choice.id, shape = shape) {
                 onSelect(choice.id)
             }
         }
     }
 }
 
+private fun groupShape(index: Int, count: Int): RoundedCornerShape {
+    val top = if (index == 0) Radius.group else Radius.extraSmall
+    val bottom = if (index == count - 1) Radius.group else Radius.extraSmall
+    return RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom)
+}
+
 @Composable
-private fun CoachingRow(choice: CoachingChoice, selected: Boolean, onClick: () -> Unit) {
+private fun CoachingRow(choice: CoachingChoice, selected: Boolean, shape: RoundedCornerShape, onClick: () -> Unit) {
+    val primary = MaterialTheme.colorScheme.primary
     Surface(
-        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(Radius.md),
+        shape = shape,
         color = AppTheme.colors.elevated,
-        border = selectionBorder(selected),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().height(Size.themePreview).padding(horizontal = Spacing.lg),
+            modifier = Modifier
+                .fillMaxWidth()
+                .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+                .heightIn(min = Size.listRow)
+                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
-            Icon(choice.icon, null, tint = if (selected) AppTheme.colors.brandDeep else AppTheme.colors.textSecondary)
-            Column(Modifier.weight(1f)) {
-                Text(
-                    stringResource(choice.nameRes),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = AppTheme.colors.text,
-                )
-                choice.modeRes?.let { modeRes ->
-                    Text(
-                        stringResource(modeRes),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = AppTheme.colors.textSecondary,
-                    )
-                }
-            }
-            if (selected) Icon(Icons.Filled.CheckCircle, null, tint = AppTheme.colors.brandDeep)
+            Icon(
+                imageVector = choice.icon,
+                contentDescription = null,
+                tint = if (selected) primary else AppTheme.colors.textSecondary,
+                modifier = Modifier.size(Size.standardIcon),
+            )
+            Text(
+                text = stringResource(choice.nameRes),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
+                color = AppTheme.colors.text,
+                modifier = Modifier.weight(1f),
+            )
+            RadioButton(
+                selected = selected,
+                onClick = null,
+                colors = RadioButtonDefaults.colors(
+                    selectedColor = primary,
+                    unselectedColor = AppTheme.colors.outline,
+                ),
+            )
         }
     }
 }
@@ -282,13 +490,23 @@ internal fun OnboardingCommitmentsStep(
     var showAddOptions by remember { mutableStateOf(false) }
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-        Text(stringResource(R.string.onboarding_commitments_lede), style = MaterialTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            AppearanceLabel(R.string.onboarding_commitments_fixed_times)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Lightbulb,
+                    contentDescription = null,
+                    tint = AppTheme.colors.textSecondary,
+                    modifier = Modifier.size(Size.smallIcon),
+                )
+                AppearanceLabel(R.string.onboarding_commitments_suggested)
+            }
             OutlinedButton(onClick = { showAddOptions = !showAddOptions }) {
                 Icon(
                     imageVector = Icons.Filled.Add,
@@ -340,7 +558,7 @@ internal fun OnboardingCommitmentsStep(
             }
         }
         AppearanceLabel(R.string.onboarding_commitments_awake)
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             TimeField(stringResource(R.string.onboarding_commitments_up_at), state.wakeMinute, onWake, Modifier.weight(1f))
             TimeField(stringResource(R.string.onboarding_commitments_lights_out), state.sleepMinute, onSleep, Modifier.weight(1f))
         }
@@ -403,7 +621,7 @@ private fun CommitmentCard(
                     Icon(Icons.Filled.Close, stringResource(R.string.onboarding_commitments_remove, label))
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 TimeField(stringResource(R.string.onboarding_commitments_starts), commitment.startMinute, { onStart(commitment.id, it) }, Modifier.weight(1f))
                 TimeField(stringResource(R.string.onboarding_commitments_ends), commitment.endMinute, { onEnd(commitment.id, it) }, Modifier.weight(1f))
             }
@@ -422,14 +640,14 @@ private fun CommitmentCard(
                                 contentDescription = dayName
                             },
                         shape = CircleShape,
-                        color = if (selected) AppTheme.colors.brandDeep else Color.Transparent,
+                        color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
                         border = if (selected) null else BorderStroke(Stroke.hairline, AppTheme.colors.outline),
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
                                 stringResource(labelRes),
                                 style = MaterialTheme.typography.labelLarge,
-                                color = if (selected) AppTheme.colors.onBrand else AppTheme.colors.text,
+                                color = if (selected) MaterialTheme.colorScheme.onPrimary else AppTheme.colors.text,
                             )
                         }
                     }
@@ -484,28 +702,89 @@ private fun issueText(issue: CommitmentIssue): String = when (issue) {
     is CommitmentIssue.OutsideWakingHours -> stringResource(R.string.onboarding_commitments_outside_waking, stringResource(issue.labelRes))
 }
 
+/** M3 outlined, read-only time field. The whole field opens the time picker. */
 @Composable
 private fun TimeField(label: String, minute: Int, onChange: (Int) -> Unit, modifier: Modifier = Modifier) {
     var open by remember { mutableStateOf(false) }
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = AppTheme.colors.textSecondary)
-        Surface(onClick = { open = true }, shape = RoundedCornerShape(Radius.sm), border = BorderStroke(Stroke.hairline, AppTheme.colors.outline), color = Color.Transparent) {
-            Text(clockLabel(minute), modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Size.summaryTrack), style = MaterialTheme.typography.bodyMedium)
-        }
+    val colors = AppTheme.colors
+    val value = clockLabel(minute)
+    val openLabel = stringResource(R.string.onboarding_time_select)
+    Box(modifier) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {},
+            readOnly = true,
+            singleLine = true,
+            label = { Text(label) },
+            trailingIcon = { Icon(Icons.Outlined.Schedule, contentDescription = null) },
+            textStyle = MaterialTheme.typography.bodyLarge,
+            shape = RoundedCornerShape(Radius.extraSmall),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = colors.text,
+                unfocusedTextColor = colors.text,
+                focusedBorderColor = colors.outline,
+                unfocusedBorderColor = colors.outline,
+                focusedLabelColor = colors.text,
+                unfocusedLabelColor = colors.text,
+                focusedTrailingIconColor = colors.text,
+                unfocusedTrailingIconColor = colors.text,
+            ),
+            modifier = Modifier.fillMaxWidth().heightIn(min = Size.textField),
+        )
+        // Clickable overlay so a tap anywhere on the field (not just the icon) opens the picker.
+        Box(
+            Modifier
+                .matchParentSize()
+                .padding(top = Spacing.sm)
+                .clip(RoundedCornerShape(Radius.extraSmall))
+                .clickable(role = Role.Button, onClickLabel = openLabel) { open = true }
+                .semantics { contentDescription = "$label, $value" },
+        )
     }
     if (open) MinutePickerDialog(minute, { open = false }, { onChange(it); open = false })
 }
 
+/** M3 time picker in a basic dialog: "Select time", dial, Cancel / OK. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MinutePickerDialog(initialMinute: Int, onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
-    val state = rememberTimePickerState(initialMinute / 60 % 24, initialMinute % 60)
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = { onConfirm(state.hour * 60 + state.minute) }) { Text(stringResource(android.R.string.ok)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) } },
-        text = { TimePicker(state) },
-    )
+    val state = rememberTimePickerState(initialMinute / 60 % 24, initialMinute % 60, is24Hour = false)
+    val scheme = MaterialTheme.colorScheme
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(
+            shape = RoundedCornerShape(Radius.extraLarge),
+            color = scheme.surfaceContainerHigh,
+        ) {
+            Column(Modifier.padding(Spacing.xxl)) {
+                Text(
+                    text = stringResource(R.string.onboarding_time_select),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AppTheme.colors.text,
+                    modifier = Modifier.padding(bottom = Spacing.xl),
+                )
+                TimePicker(
+                    state = state,
+                    colors = TimePickerDefaults.colors(
+                        selectorColor = scheme.primary,
+                        timeSelectorSelectedContainerColor = scheme.primary,
+                        timeSelectorSelectedContentColor = scheme.onPrimary,
+                        periodSelectorSelectedContainerColor = scheme.primary,
+                        periodSelectorSelectedContentColor = scheme.onPrimary,
+                        clockDialSelectedContentColor = scheme.onPrimary,
+                    ),
+                )
+                Row(
+                    modifier = Modifier.align(Alignment.End),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.onboarding_time_cancel)) }
+                    TextButton(onClick = { onConfirm(state.hour * 60 + state.minute) }) {
+                        Text(stringResource(R.string.onboarding_time_ok))
+                    }
+                }
+            }
+        }
+    }
 }
 
 /** "Finish the syllabus by": Pick a date is deadline mode (preselected), Not sure yet is steady mode. */
@@ -1132,10 +1411,16 @@ private fun commitmentKindLabel(kind: String): Int = when (kind) {
     else -> R.string.onboarding_commitment_other
 }
 
+/** 12-hour clock, lowercase am/pm: "4:00 pm". */
+@Composable
 private fun clockLabel(minuteOfDay: Int): String {
-    val calendar = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, minuteOfDay / 60 % 24)
-        set(Calendar.MINUTE, minuteOfDay % 60)
-    }
-    return DateFormat.getTimeInstance(DateFormat.SHORT).format(calendar.time)
+    val hour = minuteOfDay / 60 % 24
+    val minute = minuteOfDay % 60
+    val hour12 = if (hour % 12 == 0) 12 else hour % 12
+    return stringResource(
+        R.string.onboarding_time_value,
+        hour12,
+        minute,
+        stringResource(if (hour < 12) R.string.onboarding_time_am else R.string.onboarding_time_pm),
+    )
 }

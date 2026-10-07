@@ -9,8 +9,8 @@ class ThemeContractTest {
     fun purpleDark_matchesAngularMaterialRoles() {
         val colors = resolveAppColors(BackgroundAppearance.Dark, AccentPalette.Purple)
 
-        assertEquals(Color(0xFFD5BAFF), colors.primary)
-        assertEquals(Color(0xFF42008A), colors.onPrimary)
+        assertEquals(Color(0xFFDCB9F9), colors.primary)
+        assertEquals(Color(0xFF1C1B1F), colors.onPrimary)
         assertEquals(Color(0xFF5F00C0), colors.primaryContainer)
         assertEquals(Color(0xFFECDCFF), colors.onPrimaryContainer)
         assertEquals(Color(0xFF151316), colors.surface)
@@ -27,9 +27,9 @@ class ThemeContractTest {
         val light = resolveAppColors(BackgroundAppearance.System, AccentPalette.Blue, systemDark = false)
         val dark = resolveAppColors(BackgroundAppearance.System, AccentPalette.Blue, systemDark = true)
 
-        assertEquals(Color(0xFF005CBB), light.primary)
+        assertEquals(Color(0xFF315CAA), light.primary)
         assertEquals(Color(0xFFFEF8FC), light.surface)
-        assertEquals(Color(0xFFABC7FF), dark.primary)
+        assertEquals(Color(0xFFB3C4FF), dark.primary)
         assertEquals(Color(0xFF151316), dark.surface)
     }
 
@@ -42,6 +42,6 @@ class ThemeContractTest {
         assertEquals(Color(0xFFE9EAEE), grey.surfaceContainer)
         assertEquals(Color(0xFF111820), slate.surface)
         assertEquals(Color(0xFF1A232D), slate.surfaceContainer)
-        assertEquals(Color(0xFF02E600), slate.primary)
+        assertEquals(Color(0xFFA6D397), slate.primary)
     }
 }

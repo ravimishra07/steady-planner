@@ -39,6 +39,7 @@ import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.feature.onboarding.components.OnboardingShell
 import com.exam.assistant.feature.onboarding.model.OnboardingStep
 import com.exam.assistant.feature.onboarding.model.OnboardingUiState
+import com.exam.assistant.feature.onboarding.steps.OnboardingAccentPicker
 import com.exam.assistant.feature.onboarding.steps.OnboardingAppearanceStep
 import com.exam.assistant.feature.onboarding.steps.OnboardingCoachingStep
 import com.exam.assistant.feature.onboarding.steps.OnboardingCommitmentsStep
@@ -215,9 +216,14 @@ fun OnboardingScreen(
         onContinue = onContinue,
         onSkip = onSkip,
         modifier = modifier,
+        bottomContent = if (state.step == OnboardingStep.Appearance) {
+            { OnboardingAccentPicker(accentPalette, onAccentPalette) }
+        } else {
+            null
+        },
     ) {
         when (state.step) {
-            OnboardingStep.Appearance -> OnboardingAppearanceStep(background, accentPalette, onBackground, onAccentPalette)
+            OnboardingStep.Appearance -> OnboardingAppearanceStep(background, accentPalette, onBackground)
             OnboardingStep.Coaching -> OnboardingCoachingStep(state.coachingId, onSelectCoaching)
             OnboardingStep.Commitments -> OnboardingCommitmentsStep(
                 state,

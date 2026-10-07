@@ -33,6 +33,8 @@ object Radius {
     val large = 16.dp
     val extraLarge = 28.dp
     val summary = 24.dp
+    /** Outer corners of an M3 Expressive grouped list (inner corners = extraSmall). */
+    val group = 20.dp
     val full = 9999.dp
 
     // Stable aliases used by existing components.
@@ -136,8 +138,69 @@ object Size {
     val themePreview = 72.dp
     val appearanceModeSwatch = 36.dp
     val appearanceRow = 64.dp
+    /** Accent circle inside the theme picker pill (48dp touch target around it). */
+    val accentDot = 36.dp
+    /** Check mark drawn inside a selected accent circle. */
+    val accentCheck = 20.dp
+    /** M3 outlined text field container height. */
+    val textField = 56.dp
+    /** Minimum height of a one-line list row. */
+    val listRow = 56.dp
+    /** Pager position dot, and the width of the active one. */
+    val pagerDot = 6.dp
+    val pagerDotActive = 16.dp
     /** Tallest a scrolling chapter list may grow inside a dialog. */
     val dialogListMaxHeight = 280.dp
+}
+
+/**
+ * Theme picker carousel and its phone-screen previews (prototype `.carousel` / `.mini`).
+ * Preview content is drawn at about 1.5x true scale so it reads at 144dp wide.
+ */
+object ThemePreviewMetrics {
+    val pageWidth = 144.dp
+    val pageSpacing = 12.dp
+    const val aspectRatio = 360f / 780f
+    val corner = 12.dp
+    val ringWidth = 2.dp
+    val ringGap = 2.dp
+    const val minScale = 0.82f
+    const val minAlpha = 0.55f
+
+    val topPadding = 16.dp
+    val sideMargin = 10.dp
+    val headerHeight = 10.dp
+    const val headerWidth = 0.62f
+    val lineTop = 6.dp
+    val lineHeight = 6.dp
+    const val lineWidth = 0.38f
+    val heroTop = 16.dp
+    val heroHeight = 88.dp
+    val heroCorner = 8.dp
+    val heroPadding = 12.dp
+    val heroBarHeight = 6.dp
+    const val heroAccentWidth = 0.72f
+    const val heroInkWidth = 0.48f
+    val itemTop = 8.dp
+    val itemHeight = 36.dp
+    val itemCorner = 8.dp
+    val itemPadding = 10.dp
+    val itemGap = 8.dp
+    val itemRing = 12.dp
+    val itemRingStroke = 2.dp
+    val itemBarHeight = 5.dp
+    const val itemBarWidth = 0.62f
+    const val itemBarShortWidth = 0.46f
+    val navHeight = 40.dp
+    val navIcon = 10.dp
+    val navIconCorner = 3.dp
+    val navActiveWidth = 22.dp
+
+    /** Ink opacities: strong bar, soft bar, card fill, nav fill. */
+    const val inkStrong = 0.6f
+    const val inkSoft = 0.45f
+    const val inkFill = 0.09f
+    const val inkNav = 0.07f
 }
 
 /** Measured from the Angular mobile Today calendar. */

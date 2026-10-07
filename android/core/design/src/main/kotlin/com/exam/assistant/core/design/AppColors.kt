@@ -46,6 +46,8 @@ data class AppColors(
     val surfaceContainer: Color,
     val surfaceContainerHigh: Color,
     val surfaceContainerHighest: Color,
+    /** True for Dark, Slate and System-when-dark. */
+    val isDark: Boolean = false,
 ) {
     // Product semantics. These aliases ensure feature code never invents a
     // color while all values still resolve to the measured M3 scheme.
@@ -66,7 +68,8 @@ data class AppColors(
     val ctaBorder: Color get() = primary.copy(alpha = 0.32f)
     val text: Color get() = onSurface
     val textSecondary: Color get() = onSurfaceVariant
-    val textMuted: Color get() = onSurfaceVariant.copy(alpha = 0.80f)
+    /** No grey text on dark backgrounds: muted text is primary white there. */
+    val textMuted: Color get() = if (isDark) onSurface else onSurfaceVariant.copy(alpha = 0.80f)
     val textDisabled: Color get() = onSurface.copy(alpha = 0.38f)
     val tabBg: Color get() = surfaceContainer
     val tabUnselected: Color get() = onSurfaceVariant
@@ -127,7 +130,8 @@ fun resolveAppColors(
         surface = neutral.surface,
         onSurface = neutral.onSurface,
         surfaceVariant = neutral.surfaceVariant,
-        onSurfaceVariant = neutral.onSurfaceVariant,
+        // No grey text on dark backgrounds: secondary text = primary text there.
+        onSurfaceVariant = if (resolvedBackground.isDark) neutral.onSurface else neutral.onSurfaceVariant,
         inverseSurface = neutral.inverseSurface,
         inverseOnSurface = neutral.inverseOnSurface,
         error = neutral.error,
@@ -144,6 +148,7 @@ fun resolveAppColors(
         surfaceContainer = neutral.surfaceContainer,
         surfaceContainerHigh = neutral.surfaceContainerHigh,
         surfaceContainerHighest = neutral.surfaceContainerHighest,
+        isDark = resolvedBackground.isDark,
     )
 }
 

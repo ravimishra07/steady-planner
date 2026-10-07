@@ -49,6 +49,8 @@ internal fun OnboardingShell(
     onBack: () -> Unit,
     onContinue: () -> Unit,
     onSkip: (() -> Unit)? = null,
+    /** Optional controls docked between the content and the CTA (theme step accent picker). */
+    bottomContent: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     val colors = AppTheme.colors
@@ -81,6 +83,11 @@ internal fun OnboardingShell(
             Spacer(Modifier.height(Spacing.xxl))
         }
         HorizontalDivider(color = colors.border)
+        if (bottomContent != null) {
+            Box(Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.md)) {
+                bottomContent()
+            }
+        }
         Button(
             onClick = onContinue,
             enabled = continueEnabled,
@@ -91,8 +98,8 @@ internal fun OnboardingShell(
                 .height(Size.ctaHeight),
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
-                containerColor = colors.brandDeep,
-                contentColor = colors.onBrand,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 disabledContainerColor = colors.surfaceControl,
                 disabledContentColor = colors.textDisabled,
             ),
