@@ -9,6 +9,7 @@ import androidx.room.Upsert
 import com.exam.assistant.domain.ExamAttempt
 import com.exam.assistant.domain.ExamAttemptStatus
 import com.exam.assistant.domain.PlanMode
+import com.exam.assistant.domain.StartingPoint
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
@@ -24,6 +25,7 @@ data class ExamAttemptEntity(
     val updatedAtEpochMs: Long,
     val status: String,
     val planMode: String,
+    val startingPoint: String?,
 )
 
 fun ExamAttemptEntity.toDomain() = ExamAttempt(
@@ -36,6 +38,7 @@ fun ExamAttemptEntity.toDomain() = ExamAttempt(
     updatedAtEpochMs = updatedAtEpochMs,
     status = ExamAttemptStatus.valueOf(status),
     planMode = runCatching { PlanMode.valueOf(planMode) }.getOrDefault(PlanMode.DEADLINE),
+    startingPoint = startingPoint?.let { name -> runCatching { StartingPoint.valueOf(name) }.getOrNull() },
 )
 
 fun ExamAttempt.toEntity() = ExamAttemptEntity(
@@ -48,6 +51,7 @@ fun ExamAttempt.toEntity() = ExamAttemptEntity(
     updatedAtEpochMs = updatedAtEpochMs,
     status = status.name,
     planMode = planMode.name,
+    startingPoint = startingPoint?.name,
 )
 
 @Dao

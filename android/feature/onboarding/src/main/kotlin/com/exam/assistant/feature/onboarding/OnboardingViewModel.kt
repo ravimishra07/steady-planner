@@ -25,6 +25,7 @@ import com.exam.assistant.domain.PlanFitOption
 import com.exam.assistant.domain.PlanMode
 import com.exam.assistant.domain.NEET_EXAM_ID
 import com.exam.assistant.domain.MIN_FINISH_BY_DAYS_AHEAD
+import com.exam.assistant.domain.StartingPoint
 import com.exam.assistant.domain.StudyPreferences
 import com.exam.assistant.domain.TargetNodeState
 import com.exam.assistant.domain.TopicProgressStatus
@@ -40,6 +41,10 @@ import com.exam.assistant.feature.onboarding.model.OnboardingSyllabusChapter
 import com.exam.assistant.feature.onboarding.model.OnboardingSyllabusSubject
 import com.exam.assistant.feature.onboarding.model.OnboardingUiState
 import com.exam.assistant.feature.onboarding.model.commitmentsForStudyMode
+import com.exam.assistant.feature.onboarding.model.finishedAfterStartingPointChange
+import com.exam.assistant.feature.onboarding.model.toggleChapterFinished
+import com.exam.assistant.feature.onboarding.model.toggleClassFinished
+import com.exam.assistant.feature.onboarding.model.toggleSubjectFinished
 import com.exam.assistant.feature.onboarding.model.defaultCommitments
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -76,6 +81,8 @@ class OnboardingViewModel(
 
     private var currentPack: ExamPack? = null
     private var fitJob: Job? = null
+    /** Chapters that were fully finished when this screen opened, so only real changes are written back. */
+    private var initialCoveredChapterIds: Set<String> = emptySet()
     private val _state = MutableStateFlow(
         OnboardingUiState(
             examDate = examDate,
@@ -122,6 +129,7 @@ class OnboardingViewModel(
         OnboardingStep.Coaching -> state.coachingId.isNotBlank()
         OnboardingStep.Commitments -> commitmentIssues(state).isEmpty()
         OnboardingStep.Hours -> capacityIssues(state).isEmpty()
+        OnboardingStep.Start -> state.startingPoint != null
         OnboardingStep.Syllabus -> !state.useProvidedSyllabus || state.selectedChapterIds.isNotEmpty()
         OnboardingStep.Plan -> !state.finishing
         else -> true
@@ -166,6 +174,36 @@ class OnboardingViewModel(
                 targetDate = coerceFinishBy(if (it.targetDate > exam) exam else it.targetDate, exam, today),
             )
         }
+        refreshFitIfOnPlanStep()
+    }
+
+    /** "Which class / attempt?" A dropper starts with most chapters finished once; the student unticks exceptions. */
+    fun selectStartingPoint(point: StartingPoint) {
+        val allIds = currentPack.topLevelNodeIds()
+        _state.update { current ->
+            val (covered, auto) = finishedAfterStartingPointChange(
+                point = point,
+                current = current.coveredChapterIds,
+                autoFilled = current.coveredIsAutoFilled,
+                keepExisting = current.editMode,
+                allChapterIds = allIds,
+            )
+            current.copy(startingPoint = point, coveredChapterIds = covered, coveredIsAutoFilled = auto)
+        }
+    }
+
+    fun toggleFinishedChapter(chapterId: String) = updateFinished { toggleChapterFinished(it, chapterId) }
+
+    fun toggleFinishedSubject(subjectId: String) {
+        val subject = _state.value.syllabusSubjects.firstOrNull { it.id == subjectId } ?: return
+        updateFinished { toggleSubjectFinished(it, subject) }
+    }
+
+    fun toggleFinishedClass(classNumber: Int) =
+        updateFinished { toggleClassFinished(it, _state.value.syllabusSubjects, classNumber) }
+
+    private fun updateFinished(change: (Set<String>) -> Set<String>) {
+        _state.update { it.copy(coveredChapterIds = change(it.coveredChapterIds), coveredIsAutoFilled = false) }
         refreshFitIfOnPlanStep()
     }
 
@@ -386,7 +424,9 @@ class OnboardingViewModel(
                         .filter { chapter -> chapter.leafIds().isNotEmpty() && chapter.leafIds().all { it in coveredLeafIds } }
                         .mapTo(mutableSetOf()) { it.id },
                     syllabusSubjects = subjects,
+                    startingPoint = attempt?.startingPoint,
                 )
+                initialCoveredChapterIds = hydrated.coveredChapterIds
                 savedStateHandle.get<String>(DRAFT_KEY)?.let { decodeDraft(it, hydrated) } ?: hydrated
             }
             // "Adjust plan" from Today lands on the plan, where the fit and its choices are.
@@ -432,6 +472,8 @@ class OnboardingViewModel(
                 weekendTargetMinutes = (draft.weekendHours * 60).roundToInt(),
                 weeklyAvailability = freeWindowsFor(DRAFT_ATTEMPT_ID, draft),
                 includedChapterIds = draft.selectedChapterIds,
+                coveredChapterIds = draft.coveredChapterIds,
+                startingPoint = draft.startingPoint,
             )
             val fit = if (draft.planMode == PlanMode.DEADLINE) rollingPlanRepository.draftFit(planDraft) else null
             val projected = if (draft.planMode == PlanMode.STEADY) rollingPlanRepository.draftProjection(planDraft) else null
@@ -439,7 +481,8 @@ class OnboardingViewModel(
                 // A newer change started its own request; only the latest answer may land.
                 if (current.planMode == draft.planMode && current.examDate == draft.examDate &&
                     current.targetDate == draft.targetDate && current.weekdayHours == draft.weekdayHours &&
-                    current.weekendHours == draft.weekendHours && current.selectedChapterIds == draft.selectedChapterIds
+                    current.weekendHours == draft.weekendHours && current.selectedChapterIds == draft.selectedChapterIds &&
+                    current.coveredChapterIds == draft.coveredChapterIds
                 ) {
                     current.copy(fit = fit, fitLoading = false, projectedFinish = projected, projectionLoading = false)
                 } else {
@@ -501,9 +544,11 @@ class OnboardingViewModel(
                     updatedAtEpochMs = now,
                     status = ExamAttemptStatus.ACTIVE,
                     planMode = state.planMode,
+                    startingPoint = state.startingPoint,
                 )
 
                 attemptRepository.upsert(attempt)
+                saveFinishedChapters(attemptId, pack, state.coveredChapterIds, now)
 
                 val availability = freeWindowsFor(attemptId, state)
                 availabilityRepository.replaceWeekly(attemptId, availability)
@@ -548,6 +593,7 @@ class OnboardingViewModel(
                 _openOrganiseAfterFinish.value = !state.useProvidedSyllabus || state.selectedChapterIds.isEmpty()
                 _finished.value = true
             } catch (_: Exception) {
+                runCatching { restoreFinishedChapters(attemptId, currentPack, state.coveredChapterIds) }
                 runCatching { planRepository.replaceAllForAttempt(attemptId, previousPlan) }
                 if (existingAttempt == null) {
                     runCatching { attemptRepository.deleteAttemptAndAllData(attemptId) }
@@ -572,6 +618,24 @@ class OnboardingViewModel(
                 _state.update { it.copy(finishing = false, finishFailed = true) }
             }
         }
+    }
+
+    /** Writes only what changed since the screen opened: newly finished chapters on, unticked ones off. */
+    private suspend fun saveFinishedChapters(attemptId: String, pack: ExamPack, covered: Set<String>, nowMs: Long) {
+        val chapters = pack.subjects.flatMap { it.nodes }.associateBy { it.id }
+        val added = (covered - initialCoveredChapterIds).mapNotNull { chapters[it] }
+        val removed = (initialCoveredChapterIds - covered).mapNotNull { chapters[it] }
+        topicProgressRepository.setCovered(attemptId, added.flatMap { it.leafIds() }, covered = true, nowMs = nowMs)
+        topicProgressRepository.setCovered(attemptId, removed.flatMap { it.leafIds() }, covered = false, nowMs = nowMs)
+    }
+
+    private suspend fun restoreFinishedChapters(attemptId: String, pack: ExamPack?, attempted: Set<String>) {
+        val chapters = pack?.subjects?.flatMap { it.nodes }?.associateBy { it.id } ?: return
+        val now = System.currentTimeMillis()
+        val added = (attempted - initialCoveredChapterIds).mapNotNull { chapters[it] }
+        val removed = (initialCoveredChapterIds - attempted).mapNotNull { chapters[it] }
+        topicProgressRepository.setCovered(attemptId, added.flatMap { it.leafIds() }, covered = false, nowMs = now)
+        topicProgressRepository.setCovered(attemptId, removed.flatMap { it.leafIds() }, covered = true, nowMs = now)
     }
 
     class Factory(
@@ -759,6 +823,9 @@ private fun encodeDraft(state: OnboardingUiState): String = JSONObject().apply {
     put("place", state.studyPlace)
     put("provided", state.useProvidedSyllabus)
     put("selected", JSONArray(state.selectedChapterIds.toList()))
+    put("covered", JSONArray(state.coveredChapterIds.toList()))
+    put("coveredAuto", state.coveredIsAutoFilled)
+    put("start", state.startingPoint?.name ?: "")
     put("commitments", JSONArray(state.commitments.map(::encodeCommitment)))
 }.toString()
 
@@ -783,6 +850,9 @@ private fun decodeDraft(raw: String, base: OnboardingUiState): OnboardingUiState
         studyPlace = json.optString("place", base.studyPlace),
         useProvidedSyllabus = json.optBoolean("provided", base.useProvidedSyllabus),
         selectedChapterIds = strings("selected").ifEmpty { base.selectedChapterIds },
+        coveredChapterIds = if (json.has("covered")) strings("covered") else base.coveredChapterIds,
+        coveredIsAutoFilled = json.optBoolean("coveredAuto", false),
+        startingPoint = runCatching { StartingPoint.valueOf(json.optString("start")) }.getOrDefault(base.startingPoint),
         commitments = restoredCommitments.ifEmpty { base.commitments },
     )
 }.getOrDefault(base)

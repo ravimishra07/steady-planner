@@ -114,6 +114,11 @@ data class PlanInputs(
     /** Whether [calibrationFactor] was measured on enough chapters to call the hours "yours". */
     val calibrationActive: Boolean = false,
     val priorities: Map<String, ChapterPriority> = emptyMap(),
+    /**
+     * Droppers (§3.3): once every chapter that still needs Learn work is placed, the rest of each
+     * day goes to revision passes over the chapters already learned, even before finish-by.
+     */
+    val revisionShaped: Boolean = false,
     val revisionStates: Collection<RevisionState> = emptyList(),
     /** STRUGGLED outcome counts by node id; weak chapters are revised first within a band. */
     val weakNodeCounts: Map<String, Int> = emptyMap(),
@@ -163,6 +168,7 @@ fun generateRollingPlan(
     allowLearnInRevisionPhase: Boolean = false,
     calibrationFactor: Double = 1.0,
     priorities: Map<String, ChapterPriority> = emptyMap(),
+    revisionShaped: Boolean = false,
     revisionStates: Collection<RevisionState> = emptyList(),
     weakNodeCounts: Map<String, Int> = emptyMap(),
     practicedChapterIds: Set<String> = emptySet(),
@@ -190,6 +196,7 @@ fun generateRollingPlan(
     allowLearnInRevisionPhase = allowLearnInRevisionPhase,
     calibrationFactor = calibrationFactor,
     priorities = priorities,
+    revisionShaped = revisionShaped,
     revisionStates = revisionStates,
     weakNodeCounts = weakNodeCounts,
     practicedChapterIds = practicedChapterIds,
@@ -570,9 +577,15 @@ fun PlanInputs.plan(horizonDays: Int, nowMs: Long, simulateToEnd: Boolean = fals
                 budget -= placed.second
             }
         }
-        if (inRevisionPhase && passChapters.isNotEmpty()) {
+        // Revision passes: the whole revision phase, and for a dropper whatever is left of the day once Learn is placed.
+        val passPool = when {
+            inRevisionPhase -> passChapters
+            revisionShaped -> passChapters.filter { ref -> model.chapters.none { it.id == ref.id && it.learnRemaining > 0 } }
+            else -> emptyList()
+        }
+        if (passPool.isNotEmpty()) {
             while (budget > 0) {
-                val chapter = passChapters[passCursor % passChapters.size]
+                val chapter = passPool[passCursor % passPool.size]
                 val want = minOf(config.revisionPassMinutes, budget)
                 val placed = placer.place(want, minOf(want, config.minBlockMinutes)) ?: break
                 add(StudyActivityType.REVISION, chapter.id, chapter.subjectId, placed.first, placed.second, PlanBlockSource.AUTO)

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,6 +39,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -83,6 +85,7 @@ import com.exam.assistant.core.design.Stroke
 import com.exam.assistant.domain.PlanFit
 import com.exam.assistant.domain.PlanFitOption
 import com.exam.assistant.domain.PlanMode
+import com.exam.assistant.domain.StartingPoint
 import com.exam.assistant.feature.onboarding.CapacityIssuesCard
 import com.exam.assistant.feature.onboarding.CapacityIssue
 import com.exam.assistant.feature.onboarding.CommitmentIssue
@@ -641,6 +644,114 @@ private fun ExamDateRow(
             dismissButton = { TextButton(onClick = { editing = false }) { Text(stringResource(R.string.onboarding_cancel)) } },
         ) {
             DatePicker(state = state, showModeToggle = false)
+        }
+    }
+}
+
+/**
+ * "Which class / attempt?", then "Mark chapters you've already finished": tick a whole subject or class and
+ * untick the exceptions. A dropper starts with everything ticked.
+ */
+@Composable
+internal fun OnboardingStartStep(
+    state: OnboardingUiState,
+    onSelectStartingPoint: (StartingPoint) -> Unit,
+    onToggleSubject: (String) -> Unit,
+    onToggleChapter: (String) -> Unit,
+    onToggleClass: (Int) -> Unit,
+) {
+    var expandedSubjectId by remember { mutableStateOf<String?>(null) }
+    val allChapters = state.syllabusSubjects.flatMap { it.chapters }
+    val finishedCount = allChapters.count { it.id in state.coveredChapterIds }
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        AppearanceLabel(R.string.onboarding_start_question)
+        listOf(
+            Triple(StartingPoint.CLASS_11, R.string.onboarding_start_class_11, R.string.onboarding_start_class_11_detail),
+            Triple(StartingPoint.CLASS_12, R.string.onboarding_start_class_12, R.string.onboarding_start_class_12_detail),
+            Triple(StartingPoint.DROPPER, R.string.onboarding_start_dropper, R.string.onboarding_start_dropper_detail),
+        ).forEach { (point, title, detail) ->
+            OnboardingSelectableCard(
+                title = stringResource(title),
+                selected = state.startingPoint == point,
+                onClick = { onSelectStartingPoint(point) },
+                showUnselectedIndicator = true,
+                trailing = {
+                    Text(stringResource(detail), style = MaterialTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
+                },
+            )
+        }
+        if (state.startingPoint != null && allChapters.isNotEmpty()) {
+            Spacer(Modifier.height(Spacing.md))
+            AppearanceLabel(R.string.onboarding_finished_title)
+            Text(
+                pluralStringResource(R.plurals.onboarding_finished_summary, allChapters.size, finishedCount, allChapters.size),
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppTheme.colors.textSecondary,
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                listOf(11, 12).forEach { classNumber ->
+                    val ids = allChapters.filter { it.classNumber == classNumber }.map { it.id }
+                    if (ids.isNotEmpty()) {
+                        FilterChip(
+                            selected = ids.all { it in state.coveredChapterIds },
+                            onClick = { onToggleClass(classNumber) },
+                            label = { Text(stringResource(R.string.onboarding_finished_all_class, classNumber)) },
+                            modifier = Modifier.heightIn(min = Size.touchTarget),
+                        )
+                    }
+                }
+            }
+            state.syllabusSubjects.forEach { subject ->
+                val ids = subject.chapters.map { it.id }
+                val done = ids.count { it in state.coveredChapterIds }
+                val all = ids.isNotEmpty() && done == ids.size
+                Surface(
+                    shape = RoundedCornerShape(Radius.lg),
+                    border = BorderStroke(Stroke.hairline, AppTheme.colors.border),
+                    color = AppTheme.colors.elevated,
+                ) {
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.xs, top = Spacing.sm, bottom = Spacing.sm),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(subject.name, style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    stringResource(R.string.onboarding_finished_subject_count, done, ids.size),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = AppTheme.colors.textSecondary,
+                                )
+                            }
+                            TextButton(onClick = { onToggleSubject(subject.id) }, modifier = Modifier.heightIn(min = Size.touchTarget)) {
+                                Text(stringResource(if (all) R.string.onboarding_finished_clear else R.string.onboarding_finished_all))
+                            }
+                            IconButton(onClick = { expandedSubjectId = if (expandedSubjectId == subject.id) null else subject.id }) {
+                                Icon(
+                                    if (expandedSubjectId == subject.id) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                                    contentDescription = stringResource(
+                                        if (expandedSubjectId == subject.id) R.string.onboarding_syllabus_collapse_subject
+                                        else R.string.onboarding_syllabus_expand_subject,
+                                        subject.name,
+                                    ),
+                                )
+                            }
+                        }
+                        if (expandedSubjectId == subject.id) {
+                            subject.chapters.forEach { chapter ->
+                                OnboardingSelectableCard(
+                                    title = chapter.name,
+                                    selected = chapter.id in state.coveredChapterIds,
+                                    onClick = { onToggleChapter(chapter.id) },
+                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+                                    showUnselectedIndicator = true,
+                                )
+                            }
+                            Box(Modifier.height(Spacing.sm))
+                        }
+                    }
+                }
+            }
         }
     }
 }

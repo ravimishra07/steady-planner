@@ -44,9 +44,11 @@ import com.exam.assistant.feature.onboarding.steps.OnboardingCommitmentsStep
 import com.exam.assistant.feature.onboarding.steps.OnboardingHoursParityStep
 import com.exam.assistant.feature.onboarding.steps.OnboardingModeStep
 import com.exam.assistant.feature.onboarding.steps.OnboardingPlanStep
+import com.exam.assistant.feature.onboarding.steps.OnboardingStartStep
 import com.exam.assistant.feature.onboarding.steps.OnboardingSyllabusStep
 import com.exam.assistant.domain.PlanFitOption
 import com.exam.assistant.domain.PlanMode
+import com.exam.assistant.domain.StartingPoint
 import java.time.LocalDate
 
 @Composable
@@ -125,6 +127,10 @@ fun OnboardingRoute(
         onWeekendChange = viewModel::setWeekendHours,
         onToggleTargetSubject = viewModel::toggleTargetSubject,
         onToggleTargetChapter = viewModel::toggleTargetChapter,
+        onSelectStartingPoint = viewModel::selectStartingPoint,
+        onToggleFinishedSubject = viewModel::toggleFinishedSubject,
+        onToggleFinishedChapter = viewModel::toggleFinishedChapter,
+        onToggleFinishedClass = viewModel::toggleFinishedClass,
         onApplyFitOption = viewModel::applyFitOption,
         onDismissFinishError = viewModel::dismissFinishError,
         modifier = modifier,
@@ -160,6 +166,10 @@ fun OnboardingScreen(
     onWeekendChange: (Float) -> Unit,
     onToggleTargetSubject: (String) -> Unit,
     onToggleTargetChapter: (String) -> Unit,
+    onSelectStartingPoint: (StartingPoint) -> Unit,
+    onToggleFinishedSubject: (String) -> Unit,
+    onToggleFinishedChapter: (String) -> Unit,
+    onToggleFinishedClass: (Int) -> Unit,
     onApplyFitOption: (PlanFitOption) -> Unit,
     onDismissFinishError: () -> Unit,
     modifier: Modifier = Modifier,
@@ -177,6 +187,7 @@ fun OnboardingScreen(
             OnboardingStep.Commitments -> R.string.onboarding_commitments_title
             OnboardingStep.Date -> R.string.onboarding_date_title
             OnboardingStep.Hours -> R.string.onboarding_hours_title
+            OnboardingStep.Start -> R.string.onboarding_start_title
             OnboardingStep.Syllabus -> if (state.useProvidedSyllabus) R.string.onboarding_syllabus_title else R.string.onboarding_syllabus_custom_title
             OnboardingStep.Plan -> R.string.onboarding_plan_title
         },
@@ -224,6 +235,13 @@ fun OnboardingScreen(
                     onWeekendChange = onWeekendChange,
                 )
             }
+            OnboardingStep.Start -> OnboardingStartStep(
+                state = state,
+                onSelectStartingPoint = onSelectStartingPoint,
+                onToggleSubject = onToggleFinishedSubject,
+                onToggleChapter = onToggleFinishedChapter,
+                onToggleClass = onToggleFinishedClass,
+            )
             OnboardingStep.Syllabus -> OnboardingSyllabusStep(
                 state = state,
                 onToggleSubject = onToggleTargetSubject,

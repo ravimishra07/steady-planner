@@ -75,7 +75,7 @@ class OnboardingRulesTest {
     fun `dedicated NEET onboarding skips the exam chooser`() {
         assertEquals(OnboardingStep.Coaching, OnboardingStep.Appearance.next())
         assertEquals(OnboardingStep.Appearance, OnboardingStep.Coaching.previous())
-        assertEquals(7, OnboardingStep.entries.size)
+        assertEquals(8, OnboardingStep.entries.size)
         assertEquals(PROGRESS_SEGMENTS - 1, OnboardingStep.Syllabus.progressIndex)
         assertEquals(PROGRESS_SEGMENTS - 1, OnboardingStep.Plan.progressIndex)
     }

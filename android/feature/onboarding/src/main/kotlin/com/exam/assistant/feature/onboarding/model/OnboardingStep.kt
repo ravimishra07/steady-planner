@@ -6,6 +6,7 @@ enum class OnboardingStep {
     Commitments,
     Date,
     Hours,
+    Start,
     Syllabus,
     Plan,
     ;
@@ -16,6 +17,7 @@ enum class OnboardingStep {
         Commitments -> 2
         Date -> 3
         Hours -> 4
+        Start -> 5
         Syllabus, Plan -> PROGRESS_SEGMENTS - 1
     }
 
@@ -24,7 +26,8 @@ enum class OnboardingStep {
         Coaching -> Commitments
         Commitments -> Date
         Date -> Hours
-        Hours -> Syllabus
+        Hours -> Start
+        Start -> Syllabus
         Syllabus -> Plan
         Plan -> null
     }
@@ -35,7 +38,8 @@ enum class OnboardingStep {
         Commitments -> Coaching
         Date -> Commitments
         Hours -> Date
-        Syllabus -> Hours
+        Start -> Hours
+        Syllabus -> Start
         Plan -> Syllabus
     }
 }

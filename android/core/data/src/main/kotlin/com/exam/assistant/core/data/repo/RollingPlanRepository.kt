@@ -23,12 +23,14 @@ import com.exam.assistant.domain.PlanMode
 import com.exam.assistant.domain.PlanBlockStatus
 import com.exam.assistant.domain.PlanningOrder
 import com.exam.assistant.domain.RollingPlanResult
+import com.exam.assistant.domain.StartingPoint
 import com.exam.assistant.domain.StudyActivityType
 import com.exam.assistant.domain.StudyPlanBlock
 import com.exam.assistant.domain.TargetNodeState
 import com.exam.assistant.domain.TopicProgressStatus
 import com.exam.assistant.domain.effectiveTargetLeafIds
 import com.exam.assistant.domain.isReplacedByReplanFrom
+import com.exam.assistant.domain.leafIds
 import com.exam.assistant.domain.missedPlannedBlocks
 import com.exam.assistant.domain.personalCalibration
 import com.exam.assistant.domain.plan
@@ -176,12 +178,29 @@ class RollingPlanRepository(
                 attempt, pack, priorities, LocalDate.now(), 1, nowMs,
                 overridesByNodeId = parked.associateWith { TargetNodeState.EXCLUDED },
             )
-        }.copy(
-            weekdayTargetMinutes = draft.weekdayTargetMinutes,
-            weekendTargetMinutes = draft.weekendTargetMinutes,
-            weeklyAvailability = draft.weeklyAvailability,
-            availabilityOverrides = emptyList(),
-        )
+        }.let { loaded ->
+            loaded.copy(
+                weekdayTargetMinutes = draft.weekdayTargetMinutes,
+                weekendTargetMinutes = draft.weekendTargetMinutes,
+                weeklyAvailability = draft.weeklyAvailability,
+                availabilityOverrides = emptyList(),
+                coveredLeafIds = draftCoveredLeaves(pack, loaded.coveredLeafIds, draft.coveredChapterIds),
+                revisionShaped = draft.startingPoint?.revisionShaped ?: loaded.revisionShaped,
+            )
+        }
+    }
+
+    /**
+     * Finished work as the student has it on screen: chapters ticked in the draft count, chapters that
+     * were finished when the screen opened but are unticked now do not, and any partial progress
+     * elsewhere stays. This is what makes "edit plan" subtract finished work from the need.
+     */
+    private fun draftCoveredLeaves(pack: ExamPack, saved: Set<String>, finished: Set<String>): Set<String> {
+        val chapters = pack.subjects.flatMap { it.nodes }
+        val wasFinished = chapters.filter { it.leafIds().isNotEmpty() && saved.containsAll(it.leafIds()) }.map { it.id }.toSet()
+        val unticked = chapters.filter { it.id in wasFinished && it.id !in finished }.flatMap { it.leafIds() }.toSet()
+        val ticked = chapters.filter { it.id in finished }.flatMap { it.leafIds() }
+        return saved - unticked + ticked
     }
 
     /** The student's pace against the estimates, from completed Learn sessions. [Calibration.NONE] with no plan. */
@@ -311,6 +330,7 @@ class RollingPlanRepository(
             calibrationFactor = calibration.factor,
             calibrationActive = calibration.active,
             priorities = priorities,
+            revisionShaped = attempt.startingPoint?.revisionShaped ?: false,
             revisionStates = db.revisionStateDao().allEnabled(attempt.id).map { it.toDomain() },
             weakNodeCounts = db.studySessionDao().struggledCountsByNode(attempt.id).associate { it.nodeId to it.total },
             practicedChapterIds = practicedChapters,
@@ -344,4 +364,7 @@ data class PlanDraft(
     val weeklyAvailability: List<WeeklyAvailability>,
     /** Chapters (top-level syllabus nodes) the student is preparing; every other chapter is parked. */
     val includedChapterIds: Set<String>,
+    /** Chapters the student marked as finished (Learned) in this setup. */
+    val coveredChapterIds: Set<String> = emptySet(),
+    val startingPoint: StartingPoint? = null,
 )

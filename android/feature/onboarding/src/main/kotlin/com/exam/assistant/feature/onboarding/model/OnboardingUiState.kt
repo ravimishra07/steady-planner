@@ -5,6 +5,7 @@ import com.exam.assistant.domain.DEFAULT_NEET_EXAM_DATE
 import com.exam.assistant.domain.NEET_EXAM_ID
 import com.exam.assistant.domain.PlanFit
 import com.exam.assistant.domain.PlanMode
+import com.exam.assistant.domain.StartingPoint
 import com.exam.assistant.domain.defaultFinishByDate
 import com.exam.assistant.feature.onboarding.R
 import java.time.LocalDate
@@ -34,7 +35,12 @@ data class OnboardingUiState(
     val studyPlace: String = "",
     val useProvidedSyllabus: Boolean = true,
     val selectedChapterIds: Set<String> = emptySet(),
+    /** Chapters the student has already finished (Learned). Saved when the plan is built. */
     val coveredChapterIds: Set<String> = emptySet(),
+    /** "Which class / attempt?" Null until the student answers it. */
+    val startingPoint: StartingPoint? = null,
+    /** True while [coveredChapterIds] is still the dropper default nobody has touched. */
+    val coveredIsAutoFilled: Boolean = false,
     val syllabusSubjects: List<OnboardingSyllabusSubject> = emptyList(),
     /** Deadline mode: whether the remaining work fits before [targetDate], from the planner itself. Null until computed or in steady mode. */
     val fit: PlanFit? = null,
@@ -99,7 +105,7 @@ internal const val WORK_WORKING = "job"
 internal const val WORK_COLLEGE = "col"
 internal const val DEFAULT_WAKE_MINUTE = 6 * 60
 internal const val DEFAULT_SLEEP_MINUTE = 23 * 60
-internal const val PROGRESS_SEGMENTS = 6
+internal const val PROGRESS_SEGMENTS = 7
 
 internal fun defaultCommitments(): List<OnboardingCommitment> {
     val everyDay = (0..6).toSet()

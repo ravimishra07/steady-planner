@@ -77,3 +77,13 @@ fun ExamPack.subtreeIds(nodeId: String): Set<String> {
     val node = findNode(nodeId) ?: return emptySet()
     return node.flatten().map { it.id }.toSet()
 }
+
+/** The NCERT class (11 or 12) a bundled chapter belongs to, read from its stable id; null for custom chapters. */
+fun SyllabusNode.classNumber(): Int? = id.split('.').getOrNull(2)?.toIntOrNull()
+
+/** Top-level nodes of every subject: the unit the student ticks as Learned. */
+fun ExamPack.chapters(): List<SyllabusNode> = subjects.flatMap { it.nodes }
+
+/** The chapter (top-level node of a subject) that contains [nodeId], or the node itself if it is one. */
+fun ExamPack.chapterOf(nodeId: String): SyllabusNode? =
+    chapters().firstOrNull { chapter -> chapter.id == nodeId || chapter.flatten().any { it.id == nodeId } }
