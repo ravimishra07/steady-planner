@@ -26,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +48,7 @@ internal fun OnboardingShell(
     continueEnabled: Boolean = true,
     onBack: () -> Unit,
     onContinue: () -> Unit,
+    onSkip: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     val colors = AppTheme.colors
@@ -61,6 +63,7 @@ internal fun OnboardingShell(
             progressIndex = progressIndex,
             canGoBack = canGoBack,
             onBack = onBack,
+            onSkip = onSkip,
         )
         Column(
             modifier = Modifier
@@ -104,6 +107,7 @@ private fun OnboardingTopBar(
     progressIndex: Int?,
     canGoBack: Boolean,
     onBack: () -> Unit,
+    onSkip: (() -> Unit)?,
 ) {
     val colors = AppTheme.colors
     Row(
@@ -137,7 +141,13 @@ private fun OnboardingTopBar(
         } else {
             Spacer(Modifier.weight(1f))
         }
-        Spacer(Modifier.width(Size.touchTarget))
+        if (onSkip != null) {
+            TextButton(onClick = onSkip, modifier = Modifier.height(Size.touchTarget)) {
+                Text(stringResource(R.string.onboarding_skip), style = MaterialTheme.typography.labelLarge, color = colors.textSecondary)
+            }
+        } else {
+            Spacer(Modifier.width(Size.touchTarget))
+        }
     }
 }
 

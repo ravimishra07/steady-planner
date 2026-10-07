@@ -111,6 +111,7 @@ fun OnboardingRoute(
         capacityIssues = viewModel.capacityIssues(state),
         onBack = viewModel::back,
         onContinue = viewModel::continueFromCurrent,
+        onSkip = if (viewModel.canSkip(state)) viewModel::skipCurrent else null,
         onBackground = onBackground,
         onAccentPalette = onAccentPalette,
         onSelectCoaching = viewModel::selectCoaching,
@@ -150,6 +151,7 @@ fun OnboardingScreen(
     capacityIssues: List<CapacityIssue>,
     onBack: () -> Unit,
     onContinue: () -> Unit,
+    onSkip: (() -> Unit)?,
     onBackground: (BackgroundAppearance) -> Unit,
     onAccentPalette: (AccentPalette) -> Unit,
     onSelectCoaching: (String) -> Unit,
@@ -211,6 +213,7 @@ fun OnboardingScreen(
         continueEnabled = canContinue,
         onBack = onBack,
         onContinue = onContinue,
+        onSkip = onSkip,
         modifier = modifier,
     ) {
         when (state.step) {

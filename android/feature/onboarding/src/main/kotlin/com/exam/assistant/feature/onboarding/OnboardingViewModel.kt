@@ -40,6 +40,8 @@ import com.exam.assistant.feature.onboarding.model.DAY_SHAPES
 import com.exam.assistant.feature.onboarding.model.ExamCatalog
 import com.exam.assistant.feature.onboarding.model.OnboardingCommitment
 import com.exam.assistant.feature.onboarding.model.OnboardingStep
+import com.exam.assistant.feature.onboarding.model.DEFAULT_SLEEP_MINUTE
+import com.exam.assistant.feature.onboarding.model.DEFAULT_WAKE_MINUTE
 import com.exam.assistant.feature.onboarding.model.OnboardingSyllabusChapter
 import com.exam.assistant.feature.onboarding.model.OnboardingSyllabusSubject
 import com.exam.assistant.feature.onboarding.model.OnboardingUiState
@@ -446,6 +448,25 @@ class OnboardingViewModel(
         _state.update { current ->
             current.copy(commitments = current.commitments.map { if (it.id == id) transform(it) else it })
         }
+    }
+
+    /** Optional steps only: Theme keeps its defaults; Fixed times drops whatever was added. */
+    fun canSkip(state: OnboardingUiState = _state.value): Boolean =
+        state.step == OnboardingStep.Appearance || state.step == OnboardingStep.Commitments
+
+    fun skipCurrent() {
+        val current = _state.value
+        if (!canSkip(current)) return
+        if (current.step == OnboardingStep.Commitments) {
+            _state.update {
+                it.copy(
+                    commitments = emptyList(),
+                    wakeMinute = if (it.wakeMinute < it.sleepMinute) it.wakeMinute else DEFAULT_WAKE_MINUTE,
+                    sleepMinute = if (it.wakeMinute < it.sleepMinute) it.sleepMinute else DEFAULT_SLEEP_MINUTE,
+                )
+            }
+        }
+        advance()
     }
 
     private fun advance() {
