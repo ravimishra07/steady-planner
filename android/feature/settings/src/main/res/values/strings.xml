@@ -30,7 +30,7 @@
     <string name="more_terms_sub">The short version</string>
     <string name="more_about">About NEET Planner</string>
     <string name="more_about_version">Version %1$s</string>
-    <string name="more_footer">NEET Planner · offline app</string>
+    <string name="more_footer">NEET Planner · your study data stays on this phone</string>
     <string name="settings_exam_neet">NEET UG</string>
 
     <string name="settings_detail_title">Settings</string>
@@ -114,7 +114,7 @@
     <string name="settings_back">Back</string>
 
     <string name="policy_privacy_title">Privacy</string>
-    <string name="policy_privacy_body">Your plan, syllabus ticks, and focus sessions are stored only in this app’s private storage. The app does not send them to a server and excludes them from Android backup and device transfer. Clearing app data or uninstalling the app permanently removes them.</string>
+    <string name="policy_privacy_body">Your plan, syllabus progress, study sessions, revision, mocks and mistake tags stay in this app\'s private storage on your phone. They are never sent to us or anyone else, and they are excluded from Android backup and device transfer. Clearing app data or uninstalling deletes them.\n\nExport backup writes a file only where you choose. The app does not upload it.\n\nIf \"Share anonymous usage data\" is on (Settings → Privacy, on by default), the app sends usage events and crash reports to Google Firebase (Analytics and Crashlytics) over an encrypted connection. Events hold only categories and counts, never your name, chapter titles, scores or anything you typed. Firebase also records an app-instance ID, device model, Android version and an approximate region from your IP address. The Advertising ID is not collected and there are no ads. Turning the switch off stops this collection.\n\nPro is bought through Google Play, which handles payment. The app only keeps whether this Google account owns Pro.\n\nWe do not sell or share your data. Full policy: see the store listing.</string>
     <string name="policy_terms_title">Terms</string>
     <string name="policy_terms_body">NEET Planner is a study planning tool. Hours and coverage are estimates, not guarantees. Use your own judgment for exam prep.</string>
     <string name="policy_about_title">About NEET Planner</string>
