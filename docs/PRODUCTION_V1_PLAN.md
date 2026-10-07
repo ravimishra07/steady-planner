@@ -468,12 +468,10 @@ On any calendar day, list the sessions with chapter, type and focused time.
 Requested in reviews: "I can see day wise how much I studied but I cannot know
 what I studied".
 
-### P1-10.5 Support line
+### ~~P1-10.5 Support line~~ — removed (Ravi, 2026-10-07)
 
-Settings → Help shows one calm entry: "Feeling overwhelmed? Tele-MANAS (Govt.
-of India), free, 24×7: **14416**". The number is shown as text, with a dial
-intent as well (PIB source verified 2026-10-07). There are no pop-ups and no
-monitoring of the student's content.
+Not in V1. The app gives no content or video, so a helpline entry has no place
+in it.
 
 ### P1-5.3 Backlog view
 
