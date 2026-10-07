@@ -900,6 +900,7 @@ class HomeViewModel(
             completedTodayMinutes = doneMins,
             plannedTodayMinutes = plannedMinutes,
             missedDayRecovery = recovery,
+            canOpenDayLog = selectedDate < today && doneMins > 0,
         )
     }
 

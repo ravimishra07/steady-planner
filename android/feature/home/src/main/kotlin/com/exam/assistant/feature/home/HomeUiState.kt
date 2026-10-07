@@ -133,5 +133,7 @@ data class HomeUiState(
     val freshStart: FreshStartUi? = null,
     /** The student started fresh today: no catch-up count on Today for the rest of the day. */
     val startedFreshToday: Boolean = false,
+    /** A past day with logged study is selected: Today links to "What you studied" for it. */
+    val canOpenDayLog: Boolean = false,
     val coaching: CoachingTodayUi? = null,
 )

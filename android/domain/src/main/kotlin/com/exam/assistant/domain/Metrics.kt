@@ -161,6 +161,9 @@ fun studiedSeconds(sessions: Iterable<StudySession>, from: LocalDate? = null, to
 fun studiedMinutes(sessions: Iterable<StudySession>, from: LocalDate? = null, to: LocalDate? = null): Int =
     studiedSeconds(sessions, from, to) / 60
 
+/** One session's focused time in whole minutes. Never its planned length. */
+fun focusedMinutes(session: StudySession): Int = session.focusedSeconds / 60
+
 /** Whole studied minutes per calendar day. */
 fun studiedMinutesByDate(sessions: Iterable<StudySession>): Map<LocalDate, Int> =
     sessions.asSequence().filter { it.countsAsStudy() }

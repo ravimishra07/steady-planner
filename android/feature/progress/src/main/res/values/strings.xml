@@ -162,4 +162,21 @@
     <string name="insights_not_preparing">Not preparing</string>
     <string name="insights_preparing">In target</string>
     <string name="insights_done">Done</string>
+    <string name="day_log_title">What you studied</string>
+    <string name="day_log_back">Back</string>
+    <string name="day_log_empty">No study logged on this day.</string>
+    <plurals name="day_log_summary">
+        <item quantity="one">%1$s focused in %2$d session</item>
+        <item quantity="other">%1$s focused in %2$d sessions</item>
+    </plurals>
+    <string name="day_log_separator">" · "</string>
+    <string name="day_log_time_range">%1$s–%2$s</string>
+    <string name="day_log_type_learn">Learn</string>
+    <string name="day_log_type_revision">Revision</string>
+    <string name="day_log_type_practice">Practice</string>
+    <string name="day_log_type_mock">Mock test</string>
+    <string name="day_log_type_class">Class</string>
+    <string name="day_log_type_custom">Custom</string>
+    <string name="day_log_type_break">Break</string>
+    <string name="insights_view_day">See what you studied</string>
 </resources>

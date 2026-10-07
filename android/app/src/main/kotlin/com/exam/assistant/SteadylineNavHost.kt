@@ -33,6 +33,7 @@ import com.exam.assistant.core.data.neetExamDate
 import com.exam.assistant.core.data.neetExamDateOfficial
 import com.exam.assistant.feature.home.HomeRoute
 import com.exam.assistant.feature.onboarding.OnboardingRoute
+import com.exam.assistant.feature.progress.DayLogRoute
 import com.exam.assistant.feature.progress.ProgressRoute
 import com.exam.assistant.feature.settings.MoreRoute
 import com.exam.assistant.feature.settings.AppearanceScreen
@@ -129,6 +130,7 @@ fun SteadylineNavHost(
                         navController.navigate(Route.Onboarding.path)
                     },
                     onEditPlan = { navController.navigate(Route.Organise.path) },
+                    onOpenDay = { date -> navController.navigate(Route.DayLog.pathFor(date)) },
                     onStartFocus = { session ->
                         val current = container.focusStore.load()
                         container.focusStore.save(
@@ -230,6 +232,7 @@ fun SteadylineNavHost(
                     chapterStageRepository = container.chapterStageRepository,
                     onOpenSettings = { navController.navigate(Route.Settings.path) },
                     onGoToday = { navController.navigate(Route.Home.path) { launchSingleTop = true } },
+                    onOpenDay = { date -> navController.navigate(Route.DayLog.pathFor(date)) },
                     modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                 )
             }
@@ -281,6 +284,20 @@ fun SteadylineNavHost(
                             popUpTo(0) { inclusive = true }
                         }
                     },
+                    modifier = Modifier.padding(padding).consumeWindowInsets(padding),
+                )
+            }
+            composable(
+                route = Route.DayLog.path,
+                arguments = listOf(navArgument(Route.DayLog.ARG) { type = NavType.LongType }),
+            ) { entry ->
+                DayLogRoute(
+                    date = java.time.LocalDate.ofEpochDay(entry.arguments?.getLong(Route.DayLog.ARG) ?: java.time.LocalDate.now().toEpochDay()),
+                    examPackRepository = container.examPackRepository,
+                    attemptRepository = container.attemptRepository,
+                    studySessionRepository = container.studySessionRepository,
+                    planRepository = container.planRepository,
+                    onBack = { navController.popBackStack() },
                     modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                 )
             }

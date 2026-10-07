@@ -93,6 +93,7 @@ fun ProgressRoute(
     modifier: Modifier = Modifier,
     onOpenSettings: () -> Unit = {},
     onGoToday: () -> Unit = {},
+    onOpenDay: (java.time.LocalDate) -> Unit = {},
     viewModel: ProgressViewModel = viewModel(
         factory = ProgressViewModel.Factory(
             examPackRepository, attemptRepository, planRepository, studySessionRepository,
@@ -109,6 +110,7 @@ fun ProgressRoute(
         onPeriodSelected = viewModel::selectPeriod,
         onOpenSettings = onOpenSettings,
         onGoToday = onGoToday,
+        onOpenDay = onOpenDay,
         onManageTarget = viewModel::openTargetManager,
         onCloseTargetManager = viewModel::closeTargetManager,
         onToggleSection = viewModel::toggleSectionTarget,
@@ -123,6 +125,7 @@ fun ProgressScreen(
     onPeriodSelected: (InsightPeriod) -> Unit = {},
     onOpenSettings: () -> Unit = {},
     onGoToday: () -> Unit = {},
+    onOpenDay: (java.time.LocalDate) -> Unit = {},
     onManageTarget: () -> Unit = {},
     onCloseTargetManager: () -> Unit = {},
     onToggleSection: (String) -> Unit = {},
@@ -192,7 +195,7 @@ fun ProgressScreen(
             title = stringResource(R.string.insights_consistency),
             subtitle = stringResource(R.string.insights_consistency_subtitle),
         ) {
-            ConsistencyCard(data)
+            ConsistencyCard(data, onOpenDay)
         }
         InsightsSection(title = stringResource(R.string.insights_study_time), subtitle = stringResource(R.string.insights_study_time_subtitle)) {
             StudyTimeCard(data)
@@ -362,7 +365,7 @@ private fun StatItem(label: String, value: String, modifier: Modifier, note: Str
 }
 
 @Composable
-private fun ConsistencyCard(data: InsightsData) {
+private fun ConsistencyCard(data: InsightsData, onOpenDay: (java.time.LocalDate) -> Unit) {
     val colors = AppTheme.colors
     val weeks = remember(data.heatmapDays) { data.heatmapDays.chunked(7) }
     var selectedIndex by remember(data.period) { mutableIntStateOf(data.heatmapDays.indexOfLast { it.minutes > 0 }.coerceAtLeast(0)) }
@@ -413,6 +416,11 @@ private fun ConsistencyCard(data: InsightsData) {
                             if (selected.minutes > 0) {
                                 Text(pluralStringResource(R.plurals.insights_sessions_count, selected.sessions, selected.sessions), style = MaterialTheme.typography.bodySmall, color = colors.textSecondary, modifier = Modifier.align(Alignment.CenterVertically))
                             }
+                        }
+                    }
+                    if (selected.sessions > 0) {
+                        TextButton(onClick = { onOpenDay(selected.date) }, contentPadding = androidx.compose.foundation.layout.PaddingValues(Spacing.none)) {
+                            Text(stringResource(R.string.insights_view_day), color = colors.brandSoft)
                         }
                     }
                 }
@@ -862,7 +870,7 @@ private fun periodSubtitle(period: InsightPeriod): String = stringResource(when 
 })
 
 @Composable
-private fun insightDuration(minutes: Int?): String = when {
+internal fun insightDuration(minutes: Int?): String = when {
     minutes == null -> stringResource(R.string.insights_no_value)
     minutes < 60 -> stringResource(R.string.insights_minutes_value, minutes)
     minutes % 60 == 0 -> stringResource(R.string.insights_hours_value, minutes / 60)

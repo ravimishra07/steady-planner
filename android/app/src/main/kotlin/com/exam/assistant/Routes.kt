@@ -20,4 +20,11 @@ sealed interface Route {
     data object Appearance : Route { override val path = "settings/appearance" }
     data object SettingsDetail : Route { override val path = "settings/detail" }
     data object Policy : Route { override val path = "policy/{policyId}" }
+
+    /** "What did I study" for one day; the argument is the date's epoch day. */
+    data object DayLog : Route {
+        const val ARG = "epochDay"
+        override val path = "day/{$ARG}"
+        fun pathFor(date: java.time.LocalDate) = "day/${date.toEpochDay()}"
+    }
 }

@@ -83,6 +83,7 @@ internal fun HomeStudyContent(
     onLogClass: (String, Int) -> Unit,
     onNextLecture: () -> Unit,
     onEditPlan: () -> Unit,
+    onOpenDay: (java.time.LocalDate) -> Unit,
     onSelectDate: (java.time.LocalDate) -> Unit,
     onToggleCalendarExpanded: () -> Unit,
     onOpenAdd: () -> Unit,
@@ -144,6 +145,12 @@ internal fun HomeStudyContent(
                             issue = issue,
                             modifier = Modifier.padding(bottom = Spacing.md),
                         )
+                    }
+                    if (state.canOpenDayLog) {
+                        TextButton(
+                            onClick = { onOpenDay(state.selectedDate) },
+                            modifier = Modifier.padding(bottom = Spacing.sm),
+                        ) { Text(stringResource(R.string.home_view_day_log)) }
                     }
                     if (state.selectedIsToday) {
                         state.freshStart?.let {
