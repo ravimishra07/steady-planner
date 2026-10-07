@@ -4,11 +4,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.exam.assistant.core.data.ExamPackRepository
+import com.exam.assistant.core.data.StageLabelStore
+import com.exam.assistant.core.data.repo.ChapterStageRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.domain.ChapterPriority
+import com.exam.assistant.domain.ChapterStage
+import com.exam.assistant.domain.ChapterStageMark
+import com.exam.assistant.domain.RevisionState
+import com.exam.assistant.domain.StageLabels
+import com.exam.assistant.domain.chapterRevisionCount
 import com.exam.assistant.domain.ExamPack
 import com.exam.assistant.domain.PyqPriorityTable
 import com.exam.assistant.domain.SyllabusNode
@@ -41,6 +48,8 @@ class SyllabusViewModel(
     private val attemptRepository: AttemptRepository,
     private val targetSyllabusRepository: TargetSyllabusRepository,
     private val rollingPlanRepository: RollingPlanRepository,
+    private val chapterStageRepository: ChapterStageRepository,
+    private val stageLabelStore: StageLabelStore,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SyllabusUiState())
@@ -57,6 +66,9 @@ class SyllabusViewModel(
     private var defaultExpansionSeeded = false
     private var priorityTable: PyqPriorityTable = PyqPriorityTable.EMPTY
     private var priorityLoaded = false
+    private var stageMarks: Map<String, Map<ChapterStage, ChapterStageMark>> = emptyMap()
+    private var revisionStates: Map<String, RevisionState> = emptyMap()
+    private var stageLabels = StageLabels()
 
     init {
         refresh()
@@ -83,6 +95,11 @@ class SyllabusViewModel(
     private suspend fun reloadProgress() {
         val id = attemptId ?: run { rebuild(); return }
         progress = topicProgressRepository.allOnce(id)
+        stageMarks = chapterStageRepository.marksFor(id)
+            .groupBy { it.chapterId }
+            .mapValues { (_, marks) -> marks.associateBy { it.stage } }
+        revisionStates = chapterStageRepository.revisionStatesFor(id)
+        stageLabels = stageLabelStore.load()
         rebuild()
     }
 
@@ -110,6 +127,56 @@ class SyllabusViewModel(
             topicProgressRepository.setCovered(id, leaves, covered = !allDone, nowMs = nowMs)
             rollingPlanRepository.replenish(nowMs = nowMs)
             reloadProgress()
+        }
+    }
+
+    /**
+     * One tap on a chapter's stage chip. Learned is the chapter's covered tick, so it takes the
+     * same path as the status dot; Revised adds one; every other stage toggles.
+     */
+    fun tapStage(chapterId: String, stage: ChapterStage) {
+        if (stage == ChapterStage.LEARNED) {
+            toggleTick(chapterId)
+            return
+        }
+        val id = attemptId ?: return
+        viewModelScope.launch {
+            val nowMs = System.currentTimeMillis()
+            if (stage == ChapterStage.REVISED) {
+                chapterStageRepository.adjustCount(id, chapterId, stage, delta = 1, nowMs = nowMs)
+            } else {
+                chapterStageRepository.toggle(id, chapterId, stage, nowMs)
+            }
+            reloadProgress()
+        }
+    }
+
+    /** Long-press on Revised takes back one hand-logged revision. Focus revisions are not touched. */
+    fun undoRevision(chapterId: String) {
+        val id = attemptId ?: return
+        viewModelScope.launch {
+            chapterStageRepository.adjustCount(id, chapterId, ChapterStage.REVISED, delta = -1, nowMs = System.currentTimeMillis())
+            reloadProgress()
+        }
+    }
+
+    fun saveStageLabels(labels: StageLabels) {
+        viewModelScope.launch {
+            stageLabelStore.save(labels)
+            stageLabels = stageLabelStore.load()
+            rebuild()
+        }
+    }
+
+    private fun stageChipsFor(node: SyllabusNode, learned: Boolean): List<StageChipUi> {
+        val marks = stageMarks[node.id].orEmpty()
+        return stageLabels.visibleStages().map { stage ->
+            val count = when (stage) {
+                ChapterStage.LEARNED -> if (learned) 1 else 0
+                ChapterStage.REVISED -> chapterRevisionCount(node, revisionStates, marks[stage]?.count ?: 0)
+                else -> if (stage in marks) 1 else 0
+            }
+            StageChipUi(stage = stage, customLabel = stageLabels.labelFor(stage), count = count)
         }
     }
 
@@ -196,6 +263,7 @@ class SyllabusViewModel(
                 completedPercent = canonical.overall.percent,
                 pyqFirstYear = priorityTable.firstYear,
                 pyqLastYear = priorityTable.lastYear,
+                stageLabels = stageLabels,
             )
         }
     }
@@ -293,6 +361,11 @@ class SyllabusViewModel(
             classNumber = node.id.split('.').getOrNull(2)?.toIntOrNull(),
             excluded = isNodeEffectivelyExcluded(node.id, ancestorIds, targetOverrides),
             priority = if (ancestorIds.isEmpty() && priorityLoaded) priorityTable.forChapter(node.id) else null,
+            stageChips = if (ancestorIds.isEmpty()) {
+                stageChipsFor(node, learned = tickState == com.exam.assistant.domain.SyllabusTickState.ALL)
+            } else {
+                emptyList()
+            },
         )
         if (node.children.isEmpty() || node.id !in openNodeIds) {
             return listOf(row)
@@ -317,9 +390,19 @@ class SyllabusViewModel(
         private val attemptRepository: AttemptRepository,
         private val targetSyllabusRepository: TargetSyllabusRepository,
         private val rollingPlanRepository: RollingPlanRepository,
+        private val chapterStageRepository: ChapterStageRepository,
+        private val stageLabelStore: StageLabelStore,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            SyllabusViewModel(examPackRepository, topicProgressRepository, attemptRepository, targetSyllabusRepository, rollingPlanRepository) as T
+            SyllabusViewModel(
+                examPackRepository,
+                topicProgressRepository,
+                attemptRepository,
+                targetSyllabusRepository,
+                rollingPlanRepository,
+                chapterStageRepository,
+                stageLabelStore,
+            ) as T
     }
 }

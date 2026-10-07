@@ -1,6 +1,8 @@
 package com.exam.assistant.feature.syllabus
 
 import com.exam.assistant.domain.ChapterPriority
+import com.exam.assistant.domain.ChapterStage
+import com.exam.assistant.domain.StageLabels
 import com.exam.assistant.domain.SyllabusTickState
 
 data class SyllabusTreeRow(
@@ -26,6 +28,15 @@ data class SyllabusTreeRow(
     val excluded: Boolean = false,
     /** Set on chapter rows once the PYQ table has loaded. Never zero for "no data": see [ChapterPriority]. */
     val priority: ChapterPriority? = null,
+    /** Chapter rows only: the student's visible stages, in order. */
+    val stageChips: List<StageChipUi> = emptyList(),
+)
+
+/** One stage chip on a chapter row. [count] is 0/1 for ticks, N for Revised. Null label = default name. */
+data class StageChipUi(
+    val stage: ChapterStage,
+    val customLabel: String?,
+    val count: Int,
 )
 
 data class SyllabusChapterStat(
@@ -61,4 +72,5 @@ data class SyllabusUiState(
     /** Years the PYQ counts cover, for the "(2021–25)" label. Zero until loaded. */
     val pyqFirstYear: Int = 0,
     val pyqLastYear: Int = 0,
+    val stageLabels: StageLabels = StageLabels(),
 )

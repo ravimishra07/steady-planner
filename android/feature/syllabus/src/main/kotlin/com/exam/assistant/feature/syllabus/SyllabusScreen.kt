@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.LocalFlorist
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -70,6 +71,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.exam.assistant.core.data.ExamPackRepository
+import com.exam.assistant.core.data.StageLabelStore
+import com.exam.assistant.core.data.repo.ChapterStageRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
@@ -83,7 +86,9 @@ import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.core.design.Stroke
+import com.exam.assistant.domain.ChapterStage
 import com.exam.assistant.domain.PendingSyllabusPick
+import com.exam.assistant.domain.StageLabels
 import com.exam.assistant.domain.minutesToHours
 import com.exam.assistant.domain.SyllabusTickState
 import kotlinx.coroutines.launch
@@ -95,11 +100,21 @@ fun SyllabusRoute(
     attemptRepository: AttemptRepository,
     targetSyllabusRepository: TargetSyllabusRepository,
     rollingPlanRepository: RollingPlanRepository,
+    chapterStageRepository: ChapterStageRepository,
+    stageLabelStore: StageLabelStore,
     onStartTopic: (PendingSyllabusPick) -> Unit,
     onOrganise: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SyllabusViewModel = viewModel(
-        factory = SyllabusViewModel.Factory(examPackRepository, topicProgressRepository, attemptRepository, targetSyllabusRepository, rollingPlanRepository),
+        factory = SyllabusViewModel.Factory(
+            examPackRepository,
+            topicProgressRepository,
+            attemptRepository,
+            targetSyllabusRepository,
+            rollingPlanRepository,
+            chapterStageRepository,
+            stageLabelStore,
+        ),
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -108,6 +123,9 @@ fun SyllabusRoute(
         state = state,
         onToggleExpand = viewModel::toggleExpand,
         onToggleTick = viewModel::toggleTick,
+        onTapStage = viewModel::tapStage,
+        onUndoRevision = viewModel::undoRevision,
+        onSaveStageLabels = viewModel::saveStageLabels,
         onStartTopic = onStartTopic,
         onOrganise = onOrganise,
         modifier = modifier,
@@ -122,10 +140,14 @@ fun SyllabusScreen(
     state: SyllabusUiState,
     onToggleExpand: (String) -> Unit,
     onToggleTick: (String) -> Unit,
+    onTapStage: (String, ChapterStage) -> Unit,
+    onUndoRevision: (String) -> Unit,
+    onSaveStageLabels: (StageLabels) -> Unit,
     onStartTopic: (PendingSyllabusPick) -> Unit,
     onOrganise: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var stageLabelsOpen by remember { mutableStateOf(false) }
     var filters by remember { mutableStateOf<Set<SyllabusFilter>>(emptySet()) }
     var filtersOpen by remember { mutableStateOf(false) }
     var priorityDetail by remember { mutableStateOf<PriorityDetail?>(null) }
@@ -161,6 +183,13 @@ fun SyllabusScreen(
                     Icon(
                         imageVector = Icons.Filled.FilterAlt,
                         contentDescription = stringResource(R.string.syllabus_filter),
+                        tint = colors.textSecondary,
+                    )
+                }
+                IconButton(onClick = { stageLabelsOpen = true }) {
+                    Icon(
+                        imageVector = Icons.Filled.Tune,
+                        contentDescription = stringResource(R.string.syllabus_stage_labels_title),
                         tint = colors.textSecondary,
                     )
                 }
@@ -205,6 +234,8 @@ fun SyllabusScreen(
                                 subject = subject,
                                 onToggleExpand = onToggleExpand,
                                 onToggleTick = onToggleTick,
+                                onTapStage = onTapStage,
+                                onUndoRevision = onUndoRevision,
                                 onStartTopic = onStartTopic,
                                 filters = filters,
                                 pyqFirstYear = state.pyqFirstYear,
@@ -223,6 +254,14 @@ fun SyllabusScreen(
                 firstYear = state.pyqFirstYear,
                 lastYear = state.pyqLastYear,
                 onDismiss = { priorityDetail = null },
+            )
+        }
+
+        if (stageLabelsOpen) {
+            StageLabelsDialog(
+                labels = state.stageLabels,
+                onSave = onSaveStageLabels,
+                onDismiss = { stageLabelsOpen = false },
             )
         }
 
@@ -508,6 +547,8 @@ private fun SubjectCard(
     subject: SyllabusSubjectCard,
     onToggleExpand: (String) -> Unit,
     onToggleTick: (String) -> Unit,
+    onTapStage: (String, ChapterStage) -> Unit,
+    onUndoRevision: (String) -> Unit,
     onStartTopic: (PendingSyllabusPick) -> Unit,
     filters: Set<SyllabusFilter>,
     pyqFirstYear: Int,
@@ -612,6 +653,8 @@ private fun SubjectCard(
                             row = row,
                             onToggleExpand = onToggleExpand,
                             onToggleTick = onToggleTick,
+                            onTapStage = onTapStage,
+                            onUndoRevision = onUndoRevision,
                             onStartTopic = onStartTopic,
                             pyqFirstYear = pyqFirstYear,
                             pyqLastYear = pyqLastYear,
@@ -638,6 +681,8 @@ private fun SyllabusRowView(
     row: SyllabusTreeRow,
     onToggleExpand: (String) -> Unit,
     onToggleTick: (String) -> Unit,
+    onTapStage: (String, ChapterStage) -> Unit,
+    onUndoRevision: (String) -> Unit,
     onStartTopic: (PendingSyllabusPick) -> Unit,
     pyqFirstYear: Int,
     pyqLastYear: Int,
@@ -733,6 +778,15 @@ private fun SyllabusRowView(
                         color = colors.textMuted,
                     )
                 }
+            }
+            if (row.stageChips.isNotEmpty() && !row.excluded) {
+                StageChipRow(
+                    chapterId = row.key,
+                    chips = row.stageChips,
+                    onTapStage = onTapStage,
+                    onUndoRevision = onUndoRevision,
+                    modifier = Modifier.padding(top = Spacing.sm),
+                )
             }
         }
 

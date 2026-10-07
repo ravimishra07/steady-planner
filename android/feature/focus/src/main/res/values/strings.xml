@@ -41,4 +41,7 @@
         <item quantity="other">%1$d left today</item>
     </plurals>
 
+    <string name="focus_learned_prompt">Mark chapter learned?</string>
+    <string name="focus_learned_yes">Yes</string>
+    <string name="focus_learned_not_yet">Not yet</string>
 </resources>

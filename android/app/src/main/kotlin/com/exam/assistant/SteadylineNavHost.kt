@@ -167,6 +167,8 @@ fun SteadylineNavHost(
                     attemptRepository = container.attemptRepository,
                     targetSyllabusRepository = container.targetSyllabusRepository,
                     rollingPlanRepository = container.rollingPlanRepository,
+                    chapterStageRepository = container.chapterStageRepository,
+                    stageLabelStore = container.stageLabelStore,
                     onStartTopic = { pick ->
                         container.pendingSyllabusPick.value = pick
                         navController.navigate(Route.Home.path) {
@@ -201,6 +203,7 @@ fun SteadylineNavHost(
                     studySessionRepository = container.studySessionRepository,
                     rollingPlanRepository = container.rollingPlanRepository,
                     studyPreferenceRepository = container.studyPreferenceRepository,
+                    topicProgressRepository = container.topicProgressRepository,
                     appScope = container.appScope,
                     onClose = {
                         navController.navigate(Route.Home.path) {

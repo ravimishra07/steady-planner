@@ -91,4 +91,15 @@
     <string name="organise_delete_chapter">Delete chapter</string>
     <string name="organise_no_chapters">No chapters here yet. Add the first one to create a plan.</string>
     <string name="organise_my_syllabus">My syllabus</string>
+    <string name="syllabus_stage_learned">Learned</string>
+    <string name="syllabus_stage_ncert">NCERT read</string>
+    <string name="syllabus_stage_practice">Practice/DPP</string>
+    <string name="syllabus_stage_pyq">PYQ</string>
+    <string name="syllabus_stage_revised">Revised</string>
+    <string name="syllabus_stage_custom">Custom stage</string>
+    <string name="syllabus_stage_revised_count">%1$s ×%2$d</string>
+    <string name="syllabus_stage_labels_title">Chapter stages</string>
+    <string name="syllabus_stage_labels_body">Rename a stage, untick it to hide it, or name your own stage in the last row. Only Learned counts toward coverage.</string>
+    <string name="syllabus_stage_labels_save">Save</string>
+    <string name="syllabus_stage_labels_cancel">Cancel</string>
 </resources>

@@ -24,4 +24,11 @@ data class FocusUiState(
     val queue: List<FocusQueueItem> = emptyList(),
     val showStopDialog: Boolean = false,
     val outcome: StudyOutcome? = null,
+    /** Set after a Learn session on a chapter not yet learned: "Mark chapter learned?" (§5.1). */
+    val learnPrompt: LearnPrompt? = null,
+)
+
+data class LearnPrompt(
+    val chapterId: String,
+    val chapterTitle: String,
 )

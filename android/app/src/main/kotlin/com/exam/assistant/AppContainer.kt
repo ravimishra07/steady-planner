@@ -9,10 +9,12 @@ import com.exam.assistant.core.data.LocalRemoteConfig
 import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.RemoteConfig
 import com.exam.assistant.core.data.SettingsStore
+import com.exam.assistant.core.data.StageLabelStore
 import com.exam.assistant.core.data.StudySessionStore
 import com.exam.assistant.core.data.SyllabusStore
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.AvailabilityRepository
+import com.exam.assistant.core.data.repo.ChapterStageRepository
 import com.exam.assistant.core.data.repo.MigrationRepository
 import com.exam.assistant.core.data.repo.MigrationStore
 import com.exam.assistant.core.data.repo.PlanRepository
@@ -63,6 +65,8 @@ class AppContainer(private val context: Context) {
     val studySessionRepository: StudySessionRepository by lazy { StudySessionRepository(context, dispatchers) }
     val topicProgressRepository: TopicProgressRepository by lazy { TopicProgressRepository(context, dispatchers) }
     val revisionRepository: RevisionRepository by lazy { RevisionRepository(context, dispatchers) }
+    val chapterStageRepository: ChapterStageRepository by lazy { ChapterStageRepository(context, dispatchers) }
+    val stageLabelStore: StageLabelStore by lazy { StageLabelStore(context, dispatchers) }
     val rollingPlanRepository: RollingPlanRepository by lazy {
         RollingPlanRepository(context, dispatchers, examPackRepository)
     }

@@ -24,8 +24,9 @@ import java.time.LocalDate
         StudyPreferencesEntity::class,
         SubjectStudyPreferenceEntity::class,
         SubjectPreferredWindowEntity::class,
+        ChapterStageEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -38,6 +39,7 @@ abstract class PrepTrackerDatabase : RoomDatabase() {
     abstract fun targetNodeOverrideDao(): TargetNodeOverrideDao
     abstract fun availabilityDao(): AvailabilityDao
     abstract fun studyPreferenceDao(): StudyPreferenceDao
+    abstract fun chapterStageDao(): ChapterStageDao
 
     companion object {
         @Volatile
@@ -49,7 +51,7 @@ abstract class PrepTrackerDatabase : RoomDatabase() {
                     context.applicationContext,
                     PrepTrackerDatabase::class.java,
                     "prep_tracker.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                     .build()
                     .also { instance = it }
             }
@@ -112,6 +114,20 @@ abstract class PrepTrackerDatabase : RoomDatabase() {
         val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE exam_attempt ADD COLUMN startingPoint TEXT")
+            }
+        }
+
+        /**
+         * Per-chapter stages (PRODUCTION_V1_PLAN §5.1). Additive only. Existing covered chapters
+         * need no copy: Learned is read from topic_progress, which this migration leaves untouched.
+         */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `chapter_stage` (`attemptId` TEXT NOT NULL, `chapterId` TEXT NOT NULL, " +
+                        "`stage` TEXT NOT NULL, `count` INTEGER NOT NULL DEFAULT 1, `updatedAtEpochMs` INTEGER, " +
+                        "PRIMARY KEY(`attemptId`, `chapterId`, `stage`))",
+                )
             }
         }
 

@@ -11,6 +11,7 @@ import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.data.repo.StudySessionRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
+import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.domain.BlockTag
 import com.exam.assistant.domain.FocusBlockRef
 import com.exam.assistant.domain.FocusSession
@@ -23,7 +24,9 @@ import com.exam.assistant.domain.StudyOutcome
 import com.exam.assistant.domain.StudyPreferences
 import com.exam.assistant.domain.StudyPlanBlock
 import com.exam.assistant.domain.PlanBlockStatus
+import com.exam.assistant.domain.chapterOf
 import com.exam.assistant.domain.findNode
+import com.exam.assistant.domain.leafIds
 import com.exam.assistant.domain.findSubjectOf
 import java.time.Instant
 import java.time.LocalDate
@@ -50,6 +53,7 @@ class FocusViewModel(
     private val studySessionRepository: StudySessionRepository,
     private val rollingPlanRepository: RollingPlanRepository,
     private val studyPreferenceRepository: StudyPreferenceRepository,
+    private val topicProgressRepository: TopicProgressRepository,
     private val appScope: CoroutineScope,
 ) : ViewModel() {
 
@@ -239,6 +243,37 @@ class FocusViewModel(
         }
     }
 
+    /** "Yes" on the learned prompt: the same write as ticking Learned on the Syllabus screen. */
+    fun markChapterLearned() {
+        val prompt = _state.value.learnPrompt ?: return
+        _state.update { it.copy(learnPrompt = null) }
+        viewModelScope.launch {
+            val attempt = attemptRepository.activeAttempt() ?: return@launch
+            val chapter = examPackRepository.examPackFor(attempt.examId).chapterOf(prompt.chapterId) ?: return@launch
+            val nowMs = System.currentTimeMillis()
+            topicProgressRepository.setCovered(attempt.id, chapter.leafIds(), covered = true, nowMs = nowMs)
+            rollingPlanRepository.replenish(nowMs = nowMs)
+        }
+    }
+
+    fun dismissLearnPrompt() {
+        _state.update { it.copy(learnPrompt = null) }
+    }
+
+    /** Only a completed Learn session on a chapter that is not yet fully covered earns the prompt. */
+    private suspend fun learnPromptFor(session: StudySession?): LearnPrompt? {
+        if (session == null || session.activityType != StudyActivityType.LEARN) return null
+        val nodeId = session.nodeId ?: return null
+        val attempt = attemptRepository.activeAttempt() ?: return null
+        val chapter = examPackRepository.examPackFor(attempt.examId).chapterOf(nodeId) ?: return null
+        val covered = topicProgressRepository.allOnce(attempt.id)
+            .filter { it.status == com.exam.assistant.domain.TopicProgressStatus.COVERED }
+            .map { it.nodeId }
+            .toSet()
+        if (chapter.leafIds().all { it in covered }) return null
+        return LearnPrompt(chapterId = chapter.id, chapterTitle = chapter.title)
+    }
+
     fun savePartialAndStop() {
         viewModelScope.launch {
             sessionMutationMutex.withLock {
@@ -313,7 +348,10 @@ class FocusViewModel(
 
     private suspend fun completeSessionLocked(current: FocusSession, nowMs: Long) {
         ensureNormalizedSession(current, nowMs)
-        lastCompletedSessionId = completeNormalizedSession(current.durationSec, nowMs)?.id
+        val completed = completeNormalizedSession(current.durationSec, nowMs)
+        lastCompletedSessionId = completed?.id
+        val learnPrompt = learnPromptFor(completed)
+        _state.update { it.copy(learnPrompt = learnPrompt) }
         rollingPlanRepository.replenish(nowMs = nowMs)
         val session = current.copy(
             status = FocusStatus.DONE,
@@ -480,6 +518,7 @@ class FocusViewModel(
                 blockTag = block?.tag,
                 hasBlock = block != null,
                 outcome = if (clocked.status == FocusStatus.DONE) it.outcome else null,
+                learnPrompt = if (clocked.status == FocusStatus.DONE) it.learnPrompt else null,
             )
         }
         if (block == null && clocked.status == FocusStatus.IDLE) {
@@ -562,6 +601,7 @@ class FocusViewModel(
         private val studySessionRepository: StudySessionRepository,
         private val rollingPlanRepository: RollingPlanRepository,
         private val studyPreferenceRepository: StudyPreferenceRepository,
+        private val topicProgressRepository: TopicProgressRepository,
         private val appScope: CoroutineScope,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
@@ -575,6 +615,7 @@ class FocusViewModel(
                 studySessionRepository,
                 rollingPlanRepository,
                 studyPreferenceRepository,
+                topicProgressRepository,
                 appScope,
             ) as T
     }

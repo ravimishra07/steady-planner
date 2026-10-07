@@ -61,6 +61,7 @@ import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.data.repo.StudySessionRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
+import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
@@ -83,6 +84,7 @@ fun FocusRoute(
     studySessionRepository: StudySessionRepository,
     rollingPlanRepository: RollingPlanRepository,
     studyPreferenceRepository: StudyPreferenceRepository,
+    topicProgressRepository: TopicProgressRepository,
     appScope: CoroutineScope,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
@@ -96,6 +98,7 @@ fun FocusRoute(
             studySessionRepository,
             rollingPlanRepository,
             studyPreferenceRepository,
+            topicProgressRepository,
             appScope,
         ),
     ),
@@ -118,6 +121,8 @@ fun FocusRoute(
         onDismissStop = viewModel::dismissStopDialog,
         onStartAnother = viewModel::startAnother,
         onOutcome = viewModel::recordOutcome,
+        onMarkLearned = viewModel::markChapterLearned,
+        onDismissLearnPrompt = viewModel::dismissLearnPrompt,
         onBackToday = onClose,
         modifier = modifier,
     )
@@ -139,6 +144,8 @@ fun FocusScreen(
     onDismissStop: () -> Unit,
     onStartAnother: () -> Unit,
     onOutcome: (StudyOutcome) -> Unit,
+    onMarkLearned: () -> Unit,
+    onDismissLearnPrompt: () -> Unit,
     onBackToday: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -358,6 +365,22 @@ fun FocusScreen(
                         .padding(bottom = Spacing.lg),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
+                    state.learnPrompt?.let { prompt ->
+                        Text(stringResource(R.string.focus_learned_prompt), style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            text = prompt.chapterTitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.textSecondary,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                            FilledTonalButton(onClick = onMarkLearned, modifier = Modifier.weight(1f)) {
+                                Text(stringResource(R.string.focus_learned_yes))
+                            }
+                            TextButton(onClick = onDismissLearnPrompt, modifier = Modifier.weight(1f)) {
+                                Text(stringResource(R.string.focus_learned_not_yet))
+                            }
+                        }
+                    }
                     Text(stringResource(R.string.focus_outcome_prompt), style = MaterialTheme.typography.titleSmall)
                     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         listOf(
