@@ -145,29 +145,31 @@ internal fun OnboardingAppearanceStep(
             }
         }
         AppearanceLabel(R.string.onboarding_appearance_background)
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            maxItemsInEachRow = 3,
-        ) {
-            BackgroundAppearance.entries.forEach { option ->
-                val selected = option == background
-                Surface(
-                    onClick = { onBackground(option) },
-                    modifier = Modifier.weight(1f),
-                    color = AppTheme.colors.elevated,
-                    border = selectionBorder(selected),
-                    shape = RoundedCornerShape(Radius.md),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(Spacing.md),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    ) {
-                        BackgroundMiniature(option, accent.brand, selected)
-                        Text(stringResource(backgroundLabel(option)), style = MaterialTheme.typography.labelMedium)
+        // Fixed 3-column grid. FlowRow + weight measured the row before widening the cells,
+        // so the square previews overflowed and were clipped.
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            BackgroundAppearance.entries.chunked(3).forEach { row ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    row.forEach { option ->
+                        val selected = option == background
+                        Surface(
+                            onClick = { onBackground(option) },
+                            modifier = Modifier.weight(1f),
+                            color = AppTheme.colors.elevated,
+                            border = selectionBorder(selected),
+                            shape = RoundedCornerShape(Radius.md),
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(Spacing.sm),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            ) {
+                                BackgroundMiniature(option, accent.brand, selected)
+                                Text(stringResource(backgroundLabel(option)), style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
                     }
+                    repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
         }
@@ -189,7 +191,7 @@ private fun BackgroundMiniature(option: BackgroundAppearance, accent: Color, sel
         modifier = Modifier.fillMaxWidth().aspectRatio(1f),
         shape = RoundedCornerShape(Radius.sm),
         color = option.previewBackground,
-        border = if (selected) BorderStroke(Stroke.selected, AppTheme.colors.brand) else null,
+        border = BorderStroke(Stroke.hairline, AppTheme.colors.border),
     ) {
         Box(Modifier.padding(Spacing.sm)) {
             Box(
