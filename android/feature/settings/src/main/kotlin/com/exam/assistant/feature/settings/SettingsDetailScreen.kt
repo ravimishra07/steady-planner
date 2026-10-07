@@ -1,6 +1,16 @@
 package com.exam.assistant.feature.settings
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.ui.platform.LocalContext
+import java.time.LocalTime
+import java.time.format.FormatStyle
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -85,6 +95,7 @@ fun SettingsDetailRoute(
     examDateOfficial: Boolean,
     onBack: () -> Unit,
     onCleared: () -> Unit,
+    onReminderChanged: suspend () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsDetailViewModel = viewModel(
         factory = SettingsDetailViewModel.Factory(
@@ -99,10 +110,25 @@ fun SettingsDetailRoute(
             rollingPlanRepository = rollingPlanRepository,
             configExamDate = configExamDate,
             examDateOfficial = examDateOfficial,
+            onReminderChanged = onReminderChanged,
         ),
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    // Asked in context (§10.1): only when the student turns the reminder on, never at launch.
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) viewModel.setReminderEnabled(true) else viewModel.onReminderPermissionDenied()
+    }
+    val onReminderToggle: (Boolean) -> Unit = { enabled ->
+        if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            viewModel.setReminderEnabled(enabled)
+        }
+    }
     val requestBack = {
         if (viewModel.requestBack()) onBack()
     }
@@ -116,6 +142,8 @@ fun SettingsDetailRoute(
         onStudyPlaceChange = viewModel::setStudyPlace,
         onFocusDuration = viewModel::setFocusDurationMinutes,
         onFocusEndAlert = viewModel::setFocusEndAlert,
+        onReminderToggle = onReminderToggle,
+        onReminderTime = viewModel::setReminderTime,
         onPlanMode = viewModel::setPlanMode,
         onExamDate = viewModel::setExamDate,
         onFinishBy = viewModel::setFinishBy,
@@ -144,6 +172,8 @@ fun SettingsDetailScreen(
     onStudyPlaceChange: (String) -> Unit,
     onFocusDuration: (Int) -> Unit,
     onFocusEndAlert: (Boolean) -> Unit,
+    onReminderToggle: (Boolean) -> Unit,
+    onReminderTime: (Int) -> Unit,
     onPlanMode: (PlanMode) -> Unit,
     onExamDate: (LocalDate) -> Unit,
     onFinishBy: (LocalDate) -> Unit,
@@ -252,6 +282,8 @@ fun SettingsDetailScreen(
                     onStudyPlaceChange = onStudyPlaceChange,
                     onFocusDuration = onFocusDuration,
                     onFocusEndAlert = onFocusEndAlert,
+                    onReminderToggle = onReminderToggle,
+                    onReminderTime = onReminderTime,
                     onPlanMode = onPlanMode,
                     onExamDate = onExamDate,
                     onFinishBy = onFinishBy,
@@ -272,6 +304,8 @@ private fun SettingsEditor(
     onStudyPlaceChange: (String) -> Unit,
     onFocusDuration: (Int) -> Unit,
     onFocusEndAlert: (Boolean) -> Unit,
+    onReminderToggle: (Boolean) -> Unit,
+    onReminderTime: (Int) -> Unit,
     onPlanMode: (PlanMode) -> Unit,
     onExamDate: (LocalDate) -> Unit,
     onFinishBy: (LocalDate) -> Unit,
@@ -390,6 +424,7 @@ private fun SettingsEditor(
             )
         }
     }
+    ReminderSection(state, onReminderToggle, onReminderTime)
     SectionTitle(stringResource(R.string.settings_data))
     Button(
         onClick = onRequestClear,
@@ -519,6 +554,90 @@ private fun DateRow(
             },
             dismissButton = { TextButton(onClick = { editing = false }) { Text(stringResource(R.string.settings_cancel)) } },
         ) { DatePicker(state = pickerState, showModeToggle = false) }
+    }
+}
+
+/** Settings → Reminders: the one optional daily "Today's plan" note and its time. Saved immediately. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReminderSection(
+    state: SettingsDetailUiState,
+    onReminderToggle: (Boolean) -> Unit,
+    onReminderTime: (Int) -> Unit,
+) {
+    val colors = AppTheme.colors
+    val context = LocalContext.current
+    var pickingTime by remember { mutableStateOf(false) }
+    val time = LocalTime.of(state.reminderMinuteOfDay / 60, state.reminderMinuteOfDay % 60)
+    val timeLabel = remember(time) { time.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)) }
+    SectionTitle(stringResource(R.string.settings_reminders))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = Size.touchTarget)
+            .toggleable(
+                value = state.reminderEnabled,
+                role = Role.Switch,
+                onValueChange = onReminderToggle,
+            ),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.settings_reminder_daily),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.text,
+            )
+            Text(
+                text = stringResource(R.string.settings_reminder_daily_detail),
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.textSecondary,
+            )
+        }
+        Switch(checked = state.reminderEnabled, onCheckedChange = null)
+    }
+    if (state.reminderPermissionDenied) {
+        Text(
+            text = stringResource(R.string.settings_reminder_denied),
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.textSecondary,
+            modifier = Modifier.padding(bottom = Spacing.sm),
+        )
+    }
+    if (state.reminderEnabled) {
+        Row(
+            modifier = Modifier.fillMaxWidth().heightIn(min = Size.touchTarget),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.settings_reminder_time), style = MaterialTheme.typography.bodyLarge, color = colors.text)
+                Text(timeLabel, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
+            }
+            TextButton(onClick = { pickingTime = true }, modifier = Modifier.heightIn(min = Size.touchTarget)) {
+                Text(stringResource(R.string.settings_plan_change))
+            }
+        }
+    }
+    if (pickingTime) {
+        val pickerState = rememberTimePickerState(
+            initialHour = time.hour,
+            initialMinute = time.minute,
+            is24Hour = android.text.format.DateFormat.is24HourFormat(context),
+        )
+        AlertDialog(
+            onDismissRequest = { pickingTime = false },
+            title = { Text(stringResource(R.string.settings_reminder_time)) },
+            text = { TimePicker(state = pickerState) },
+            confirmButton = {
+                TextButton(onClick = {
+                    onReminderTime(pickerState.hour * 60 + pickerState.minute)
+                    pickingTime = false
+                }) { Text(stringResource(R.string.settings_ok)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pickingTime = false }) { Text(stringResource(R.string.settings_cancel)) }
+            },
+        )
     }
 }
 

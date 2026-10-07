@@ -40,6 +40,10 @@
             android:name=".focus.FocusAlarmReceiver"
             android:exported="false" />
 
+        <receiver
+            android:name=".reminder.DailyReminderReceiver"
+            android:exported="false" />
+
         <!-- Exported only so the system can deliver these protected broadcasts. -->
         <receiver
             android:name=".focus.BootReceiver"

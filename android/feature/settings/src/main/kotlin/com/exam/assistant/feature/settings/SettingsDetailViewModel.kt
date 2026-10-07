@@ -3,6 +3,7 @@ package com.exam.assistant.feature.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.exam.assistant.core.data.DailyReminderSetting
 import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.FocusStore
 import com.exam.assistant.core.data.PlanStore
@@ -48,6 +49,11 @@ data class SettingsDetailUiState(
     val showDiscardDialog: Boolean = false,
     /** End-of-session sound and vibration. Saved immediately, not part of the draft. */
     val focusEndAlert: Boolean = true,
+    /** The daily "Today's plan" reminder. Saved immediately, not part of the draft. Off by default. */
+    val reminderEnabled: Boolean = false,
+    val reminderMinuteOfDay: Int = DailyReminderSetting.DEFAULT_MINUTE_OF_DAY,
+    /** The notification permission was refused while turning the reminder on. */
+    val reminderPermissionDenied: Boolean = false,
 ) {
     /** True when the exam date is still the configured one, so "expected, not yet announced" applies to it. */
     val examDateIsConfigured: Boolean get() = examDate == configExamDate
@@ -65,6 +71,8 @@ class SettingsDetailViewModel(
     private val rollingPlanRepository: RollingPlanRepository,
     configExamDate: LocalDate = LocalDate.parse(DEFAULT_NEET_EXAM_DATE),
     examDateOfficial: Boolean = false,
+    /** Arms or cancels the reminder alarm after its setting changes. Wired by :app. */
+    private val onReminderChanged: suspend () -> Unit = {},
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
@@ -76,6 +84,35 @@ class SettingsDetailViewModel(
         refresh()
         viewModelScope.launch {
             settingsStore.focusEndAlert.collect { enabled -> _state.update { it.copy(focusEndAlert = enabled) } }
+        }
+        viewModelScope.launch {
+            settingsStore.dailyReminder.collect { reminder ->
+                _state.update { it.copy(reminderEnabled = reminder.enabled, reminderMinuteOfDay = reminder.minuteOfDay) }
+            }
+        }
+    }
+
+    /** Call with true only once notifications are allowed; the screen asks for the permission first. */
+    fun setReminderEnabled(enabled: Boolean) {
+        _state.update { it.copy(reminderEnabled = enabled, reminderPermissionDenied = false) }
+        saveReminder()
+    }
+
+    fun setReminderTime(minuteOfDay: Int) {
+        _state.update { it.copy(reminderMinuteOfDay = minuteOfDay) }
+        saveReminder()
+    }
+
+    /** The permission was refused: the reminder stays off and the screen says why. */
+    fun onReminderPermissionDenied() {
+        _state.update { it.copy(reminderEnabled = false, reminderPermissionDenied = true) }
+    }
+
+    private fun saveReminder() {
+        val current = _state.value
+        viewModelScope.launch {
+            settingsStore.setDailyReminder(DailyReminderSetting(current.reminderEnabled, current.reminderMinuteOfDay))
+            runCatching { onReminderChanged() }
         }
     }
 
@@ -282,6 +319,7 @@ class SettingsDetailViewModel(
         private val rollingPlanRepository: RollingPlanRepository,
         private val configExamDate: LocalDate,
         private val examDateOfficial: Boolean,
+        private val onReminderChanged: suspend () -> Unit,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
@@ -297,6 +335,7 @@ class SettingsDetailViewModel(
                 rollingPlanRepository = rollingPlanRepository,
                 configExamDate = configExamDate,
                 examDateOfficial = examDateOfficial,
+                onReminderChanged = onReminderChanged,
             ) as T
     }
 }

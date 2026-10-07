@@ -28,6 +28,8 @@ class SettingsStore(
     private val focusDurationKey = intPreferencesKey("focus_duration_sec")
     private val focusEndAlertKey = booleanPreferencesKey("focus_end_alert")
     private val notificationPromptKey = booleanPreferencesKey("notification_prompt_shown")
+    private val dailyReminderEnabledKey = booleanPreferencesKey("daily_reminder_enabled")
+    private val dailyReminderMinuteKey = intPreferencesKey("daily_reminder_minute")
 
     /** Emits on every change, for the settings screen. */
     /** Null means no personal choice yet, so Remote Config defaults may be used. */
@@ -90,8 +92,29 @@ class SettingsStore(
         Unit
     }
 
+    /** The optional "Today's plan" reminder (PRODUCTION_V1_PLAN §10.1). Off by default. */
+    val dailyReminder: Flow<DailyReminderSetting> = context.dataStore.data.map { it.toDailyReminder() }
+
+    suspend fun dailyReminderOnce(): DailyReminderSetting = withContext(dispatchers.io) {
+        context.dataStore.data.first().toDailyReminder()
+    }
+
+    suspend fun setDailyReminder(setting: DailyReminderSetting) = withContext(dispatchers.io) {
+        context.dataStore.edit {
+            it[dailyReminderEnabledKey] = setting.enabled
+            it[dailyReminderMinuteKey] = setting.minuteOfDay.coerceIn(0, MINUTES_PER_DAY - 1)
+        }
+        Unit
+    }
+
+    private fun androidx.datastore.preferences.core.Preferences.toDailyReminder() = DailyReminderSetting(
+        enabled = this[dailyReminderEnabledKey] ?: false,
+        minuteOfDay = this[dailyReminderMinuteKey] ?: DailyReminderSetting.DEFAULT_MINUTE_OF_DAY,
+    )
+
     companion object {
         const val DEFAULT_FOCUS_DURATION_SEC = 50 * 60
+        private const val MINUTES_PER_DAY = 24 * 60
     }
 }
 
@@ -100,4 +123,14 @@ private fun String.toBackgroundAppearance(): String = when (this) {
     "dark" -> "dark"
     // Existing System users keep a stable dark baseline, matching the shipped default.
     else -> "dark"
+}
+
+/** The daily "Today's plan" reminder: whether it is on, and when, as minutes after midnight. */
+data class DailyReminderSetting(
+    val enabled: Boolean = false,
+    val minuteOfDay: Int = DEFAULT_MINUTE_OF_DAY,
+) {
+    companion object {
+        const val DEFAULT_MINUTE_OF_DAY = 7 * 60
+    }
 }

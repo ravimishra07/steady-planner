@@ -75,6 +75,11 @@
     <string name="settings_focus_custom_title">Custom session length</string>
     <string name="settings_focus_custom_field">Minutes (%1$d–%2$d)</string>
     <string name="settings_data">Data</string>
+    <string name="settings_reminders">Reminders</string>
+    <string name="settings_reminder_daily">Daily plan reminder</string>
+    <string name="settings_reminder_daily_detail">One note a day with today\'s blocks. Nothing else.</string>
+    <string name="settings_reminder_time">Reminder time</string>
+    <string name="settings_reminder_denied">Notifications are off for this app, so the reminder stays off. Allow notifications in system settings, then turn it on here.</string>
     <string name="settings_loading">Loading your settings…</string>
     <string name="settings_load_failed">Your settings could not be loaded.</string>
     <string name="settings_retry">Try again</string>

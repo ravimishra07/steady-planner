@@ -23,4 +23,13 @@
     <string name="focus_action_pause">Pause</string>
     <string name="focus_action_resume">Resume</string>
     <string name="focus_action_stop">Stop</string>
+
+    <string name="reminder_channel">Daily plan reminder</string>
+    <string name="reminder_channel_desc">One optional note a day with today\'s plan.</string>
+    <string name="reminder_title">Today\'s plan</string>
+    <plurals name="reminder_body">
+        <item quantity="one">%1$d block · first: %2$s</item>
+        <item quantity="other">%1$d blocks · first: %2$s</item>
+    </plurals>
+    <string name="reminder_body_no_plan">Nothing planned yet. Open Today to see your day.</string>
 </resources>

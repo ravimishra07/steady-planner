@@ -71,6 +71,20 @@ fun SteadylineNavHost(
             navController.navigate(Route.Focus.path) { launchSingleTop = true }
         }
     }
+    val openToday by container.openTodayRequest.collectAsStateWithLifecycle()
+    LaunchedEffect(openToday) {
+        if (openToday) {
+            container.openTodayRequest.value = false
+            val entry = navController.currentBackStackEntryFlow.first()
+            // Still in setup there is no Today to show yet.
+            if (entry.destination.route != Route.Onboarding.path) {
+                navController.navigate(Route.Home.path) {
+                    popUpTo(Route.Home.path) { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+        }
+    }
 
     Scaffold(
         containerColor = AppTheme.colors.bg,
@@ -302,6 +316,7 @@ fun SteadylineNavHost(
                             popUpTo(0) { inclusive = true }
                         }
                     },
+                    onReminderChanged = { container.rearmDailyReminder() },
                     modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                 )
             }

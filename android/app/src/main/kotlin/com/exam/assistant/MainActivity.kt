@@ -71,15 +71,18 @@ class MainActivity : ComponentActivity() {
         handleOpenRequest(intent)
     }
 
-    /** A Focus notification tap lands here; the nav host does the navigation. */
+    /** A Focus notification or daily reminder tap lands here; the nav host does the navigation. */
     private fun handleOpenRequest(intent: Intent?) {
-        if (intent?.getStringExtra(EXTRA_OPEN) == OPEN_FOCUS) {
-            (application as SteadylineApp).container.openFocusRequest.value = true
+        val container = (application as SteadylineApp).container
+        when (intent?.getStringExtra(EXTRA_OPEN)) {
+            OPEN_FOCUS -> container.openFocusRequest.value = true
+            OPEN_TODAY -> container.openTodayRequest.value = true
         }
     }
 
     companion object {
         const val EXTRA_OPEN = "com.exam.assistant.extra.OPEN"
         const val OPEN_FOCUS = "focus"
+        const val OPEN_TODAY = "today"
     }
 }

@@ -30,6 +30,7 @@ import com.exam.assistant.domain.PendingSyllabusPick
 import com.exam.assistant.focus.AppFocusEffects
 import com.exam.assistant.focus.FocusAlarm
 import com.exam.assistant.focus.FocusNotifier
+import com.exam.assistant.reminder.DailyReminder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -117,6 +118,9 @@ class AppContainer(private val context: Context) {
     /** One-shot: a notification tap asked for the Focus screen. */
     val openFocusRequest = MutableStateFlow(false)
 
+    /** One-shot: the daily reminder tap asked for Today. */
+    val openTodayRequest = MutableStateFlow(false)
+
     /** One-shot: Today's "adjust plan" opens the setup flow on its Plan step. */
     val onboardingStartAtPlan = MutableStateFlow(false)
 
@@ -140,10 +144,10 @@ class AppContainer(private val context: Context) {
         rearmDailyReminder()
     }
 
-    /**
-     * Hook for the daily study reminder (not built yet): re-schedule its alarm
-     * here so it survives reboot and app update. Intentionally empty for now.
-     */
-    @Suppress("RedundantSuspendModifier")
-    suspend fun rearmDailyReminder() = Unit
+    val dailyReminder: DailyReminder by lazy { DailyReminder(context) }
+
+    /** Arms or cancels the daily "Today's plan" reminder from the saved setting. Boot, update and every settings change. */
+    suspend fun rearmDailyReminder() {
+        runCatching { dailyReminder.apply(settings.dailyReminderOnce()) }
+    }
 }
