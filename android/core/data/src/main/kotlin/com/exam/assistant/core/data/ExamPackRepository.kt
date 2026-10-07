@@ -8,6 +8,8 @@ import com.exam.assistant.core.common.AppDispatchers
 import com.exam.assistant.domain.ExamPack
 import com.exam.assistant.domain.ExamSubject
 import com.exam.assistant.domain.NEET_EXAM_ID
+import com.exam.assistant.domain.PyqPriorityTable
+import com.exam.assistant.domain.parsePyqPriority
 import com.exam.assistant.domain.SyllabusNode
 import com.exam.assistant.domain.SyllabusNodeKind
 import kotlinx.coroutines.withContext
@@ -37,6 +39,20 @@ class ExamPackRepository(
     private val dispatchers: AppDispatchers,
 ) {
     private val bundledCache = mutableMapOf<String, ExamPack>()
+    private var priorityCache: PyqPriorityTable? = null
+
+    /**
+     * PYQ chapter priorities (`neet_pyq_priority.json`). Read on first use, off the critical
+     * path, then cached. A missing or unreadable file yields an empty table, so every chapter
+     * reads as "No PYQ data" and planning falls back to syllabus order.
+     */
+    suspend fun pyqPriorities(): PyqPriorityTable = withContext(dispatchers.default) {
+        synchronized(this@ExamPackRepository) {
+            priorityCache ?: runCatching {
+                context.assets.open(PRIORITY_ASSET).bufferedReader().use { parsePyqPriority(it.readText()) }
+            }.getOrDefault(PyqPriorityTable.EMPTY).also { priorityCache = it }
+        }
+    }
 
     suspend fun examPack(): ExamPack = withContext(dispatchers.default) {
         bundledPack(NEET_EXAM_ID)
@@ -197,3 +213,5 @@ class ExamPackRepository(
         else -> SyllabusNodeKind.SUBTOPIC
     }
 }
+
+private const val PRIORITY_ASSET = "neet_pyq_priority.json"
