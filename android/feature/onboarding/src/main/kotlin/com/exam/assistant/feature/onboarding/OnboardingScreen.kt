@@ -1,5 +1,6 @@
 package com.exam.assistant.feature.onboarding
 
+import com.exam.assistant.core.common.Analytics
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -72,6 +73,7 @@ fun OnboardingRoute(
     onAccentPalette: (AccentPalette) -> Unit,
     onFinished: (openOrganise: Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    analytics: Analytics = Analytics.NoOp,
     viewModel: OnboardingViewModel = viewModel(
         factory = OnboardingViewModel.Factory(
             planStore,
@@ -87,6 +89,7 @@ fun OnboardingRoute(
             examDate,
             examDateOfficial,
             startAtPlan,
+            analytics,
         ),
     ),
 ) {

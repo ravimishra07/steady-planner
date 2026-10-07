@@ -1,5 +1,8 @@
 package com.exam.assistant.core.data
 
+import com.exam.assistant.core.common.Analytics
+import com.exam.assistant.core.common.AnalyticsEvent
+import com.exam.assistant.core.common.AnalyticsParam
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
@@ -58,6 +61,7 @@ class FocusController(
     private val studySessionRepository: StudySessionRepository,
     private val rollingPlanRepository: RollingPlanRepository,
     private val effects: FocusEffects,
+    private val analytics: Analytics = Analytics.NoOp,
 ) {
     private val mutex = Mutex()
 
@@ -80,6 +84,15 @@ class FocusController(
 
     /** Starts (or adopts) a running or paused session. */
     suspend fun start(session: FocusSession): FocusTransition = mutex.withLock {
+        val previous = focusStore.load()
+        val adopting = (previous.status == FocusStatus.RUNNING || previous.status == FocusStatus.PAUSED) &&
+            previous.block?.id == session.block?.id
+        if (!adopting) {
+            analytics.log(
+                AnalyticsEvent.BLOCK_STARTED,
+                mapOf(AnalyticsParam.PLANNED to (session.block != null), AnalyticsParam.IS_REVISION to (session.block?.isRevision == true)),
+            )
+        }
         focusStore.save(session)
         ensureNormalizedSession(session, System.currentTimeMillis())
         publish(FocusTransition(session))
@@ -195,6 +208,12 @@ class FocusController(
         )
         focusStore.save(session)
         unseenCompletion = completed
+        val isRevision = current.block?.isRevision == true
+        analytics.log(
+            AnalyticsEvent.BLOCK_COMPLETED,
+            mapOf(AnalyticsParam.PLANNED to (current.block != null), AnalyticsParam.IS_REVISION to isRevision),
+        )
+        if (isRevision) analytics.log(AnalyticsEvent.REVISION_COMPLETED, mapOf(AnalyticsParam.SOURCE to "focus"))
         runCatching { effects.onSessionCompleted(session) }
         return publish(FocusTransition(session, didComplete = true, completed = completed))
     }

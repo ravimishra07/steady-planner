@@ -12,6 +12,8 @@ import com.exam.assistant.core.data.FocusController
 import com.exam.assistant.core.data.FocusStore
 import com.exam.assistant.core.data.LocalRemoteConfig
 import com.exam.assistant.core.data.PlanStore
+import com.exam.assistant.analytics.FirebaseAppAnalytics
+import com.exam.assistant.core.common.Analytics
 import com.exam.assistant.core.data.ProRepository
 import com.exam.assistant.core.data.RemoteConfig
 import com.exam.assistant.core.data.SettingsStore
@@ -48,6 +50,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -83,9 +86,12 @@ class AppContainer(private val context: Context) {
 
     val remoteConfig: RemoteConfig by lazy { LocalRemoteConfig() }
 
+    /** Firebase Analytics + Crashlytics when google-services.json was present at build time, else a no-op. */
+    val analytics: Analytics by lazy { FirebaseAppAnalytics.createOrNoOp(context) }
+
     /** Pro entitlement (Play Billing, cached). The billing client is built on first use, never at startup. */
     val proRepository: ProRepository by lazy {
-        ProRepository(context, dispatchers, remoteConfig, appScope, isDebugBuild = BuildConfig.DEBUG)
+        ProRepository(context, dispatchers, remoteConfig, appScope, isDebugBuild = BuildConfig.DEBUG, analytics = analytics)
     }
 
     /** One-shot: something asked for the paywall. The nav host drops it during onboarding and Focus. */
@@ -105,21 +111,22 @@ class AppContainer(private val context: Context) {
             studySessionRepository = studySessionRepository,
             rollingPlanRepository = rollingPlanRepository,
             effects = AppFocusEffects(FocusNotifier(context), FocusAlarm(context), settings),
+            analytics = analytics,
         )
     }
 
     // Canonical Room architecture. Legacy stores remain migration/rollback inputs only.
     val examPackRepository: ExamPackRepository by lazy { ExamPackRepository(context, dispatchers) }
     val attemptRepository: AttemptRepository by lazy { AttemptRepository(context, dispatchers) }
-    val planRepository: PlanRepository by lazy { PlanRepository(context, dispatchers) }
+    val planRepository: PlanRepository by lazy { PlanRepository(context, dispatchers, analytics) }
     val studySessionRepository: StudySessionRepository by lazy { StudySessionRepository(context, dispatchers) }
     val topicProgressRepository: TopicProgressRepository by lazy { TopicProgressRepository(context, dispatchers) }
     val revisionRepository: RevisionRepository by lazy { RevisionRepository(context, dispatchers) }
-    val chapterStageRepository: ChapterStageRepository by lazy { ChapterStageRepository(context, dispatchers) }
-    val mockTestRepository: MockTestRepository by lazy { MockTestRepository(context, dispatchers) }
+    val chapterStageRepository: ChapterStageRepository by lazy { ChapterStageRepository(context, dispatchers, analytics) }
+    val mockTestRepository: MockTestRepository by lazy { MockTestRepository(context, dispatchers, analytics) }
     val stageLabelStore: StageLabelStore by lazy { StageLabelStore(context, dispatchers) }
     val rollingPlanRepository: RollingPlanRepository by lazy {
-        RollingPlanRepository(context, dispatchers, examPackRepository)
+        RollingPlanRepository(context, dispatchers, examPackRepository, analytics)
     }
     val targetSyllabusRepository: TargetSyllabusRepository by lazy { TargetSyllabusRepository(context, dispatchers) }
     val availabilityRepository: AvailabilityRepository by lazy { AvailabilityRepository(context, dispatchers) }
@@ -164,6 +171,10 @@ class AppContainer(private val context: Context) {
             reconcileExpiredFocus()
             rollingPlanRepository.replenish()
             refreshWidgetsOnChange()
+        }
+        appScope.launch {
+            // Settings → "Share anonymous usage data" drives Firebase Analytics and Crashlytics (both persist it).
+            settings.shareUsageData.distinctUntilChanged().collect { enabled -> analytics.setCollectionEnabled(enabled) }
         }
         appScope.launch {
             // Restore on launch: picks up a purchase from another device, or a refund.
@@ -249,7 +260,7 @@ class AppContainer(private val context: Context) {
 
     val dailyReminder: DailyReminder by lazy { DailyReminder(context) }
 
-    val backupRepository: BackupRepository by lazy { BackupRepository(context, dispatchers, attemptRepository) }
+    val backupRepository: BackupRepository by lazy { BackupRepository(context, dispatchers, attemptRepository, analytics) }
 
     /**
      * After an import replaced every table and store: drop this device's live

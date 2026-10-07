@@ -3,6 +3,9 @@ package com.exam.assistant.core.data.repo
 import android.content.Context
 import androidx.room.withTransaction
 import com.exam.assistant.core.common.AppDispatchers
+import com.exam.assistant.core.common.Analytics
+import com.exam.assistant.core.common.AnalyticsEvent
+import com.exam.assistant.core.common.AnalyticsParam
 import com.exam.assistant.core.data.db.BatchPositionEntity
 import com.exam.assistant.core.data.db.ChapterCoachingEntity
 import com.exam.assistant.core.data.db.ChapterStageEntity
@@ -27,6 +30,7 @@ import kotlinx.coroutines.withContext
 class ChapterStageRepository(
     context: Context,
     private val dispatchers: AppDispatchers,
+    private val analytics: Analytics = Analytics.NoOp,
 ) {
     private val db = PrepTrackerDatabase.get(context)
     private val dao = db.chapterStageDao()
@@ -48,6 +52,7 @@ class ChapterStageRepository(
                     dao.delete(attemptId, chapterId, stage.name)
                 } else {
                     dao.upsert(ChapterStageEntity(attemptId, chapterId, stage.name, 1, nowMs))
+                    if (stage == ChapterStage.LEARNED) analytics.log(AnalyticsEvent.CHAPTER_LEARNED)
                 }
             }
         }
@@ -57,6 +62,9 @@ class ChapterStageRepository(
         withContext(dispatchers.io) {
             db.withTransaction {
                 val next = ((dao.byKey(attemptId, chapterId, stage.name)?.count ?: 0) + delta).coerceAtLeast(0)
+                if (stage == ChapterStage.REVISED && delta > 0) {
+                    analytics.log(AnalyticsEvent.REVISION_COMPLETED, mapOf(AnalyticsParam.SOURCE to "manual"))
+                }
                 if (next == 0) {
                     dao.delete(attemptId, chapterId, stage.name)
                 } else {

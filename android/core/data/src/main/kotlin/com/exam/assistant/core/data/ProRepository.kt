@@ -20,6 +20,9 @@ import com.android.billingclient.api.acknowledgePurchase
 import com.android.billingclient.api.queryProductDetails
 import com.android.billingclient.api.queryPurchasesAsync
 import com.exam.assistant.core.common.AppDispatchers
+import com.exam.assistant.core.common.Analytics
+import com.exam.assistant.core.common.AnalyticsEvent
+import com.exam.assistant.core.common.AnalyticsParam
 import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -82,6 +85,7 @@ class ProRepository(
     private val remoteConfig: RemoteConfig,
     private val scope: CoroutineScope,
     private val isDebugBuild: Boolean,
+    private val analytics: Analytics = Analytics.NoOp,
 ) {
     private val isProKey = booleanPreferencesKey("is_pro")
     private val debugForceKey = booleanPreferencesKey("debug_force_pro")
@@ -198,6 +202,7 @@ class ProRepository(
                     owned.any { it.purchaseState == Purchase.PurchaseState.PENDING } -> ProStatus.PENDING
                     else -> ProStatus.NOTHING_TO_RESTORE
                 }
+                analytics.log(AnalyticsEvent.RESTORE_COMPLETED, mapOf(AnalyticsParam.FOUND to hasPro))
             }
             true
         }.getOrDefault(false)
@@ -216,6 +221,7 @@ class ProRepository(
                     listOf(BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(details).build()),
                 )
                 .build()
+            analytics.log(AnalyticsEvent.PURCHASE_STARTED)
             val result = withContext(dispatchers.main) { client.launchBillingFlow(activity, params) }
             when (result.responseCode) {
                 BillingClient.BillingResponseCode.OK -> true
@@ -238,6 +244,7 @@ class ProRepository(
                     pro.any { it.purchaseState == Purchase.PurchaseState.PURCHASED } -> {
                         setPro(true)
                         _status.value = ProStatus.PURCHASED
+                        analytics.log(AnalyticsEvent.PURCHASE_COMPLETED)
                     }
                     pro.any { it.purchaseState == Purchase.PurchaseState.PENDING } -> _status.value = ProStatus.PENDING
                     else -> _status.value = ProStatus.IDLE

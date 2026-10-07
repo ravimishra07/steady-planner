@@ -20,6 +20,8 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.room.withTransaction
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.exam.assistant.core.common.AppDispatchers
+import com.exam.assistant.core.common.Analytics
+import com.exam.assistant.core.common.AnalyticsEvent
 import com.exam.assistant.core.data.customSyllabusDataStore
 import com.exam.assistant.core.data.dataStore
 import com.exam.assistant.core.data.db.PrepTrackerDatabase
@@ -79,6 +81,7 @@ class BackupRepository(
     private val context: Context,
     private val dispatchers: AppDispatchers,
     private val attemptRepository: AttemptRepository,
+    private val analytics: Analytics = Analytics.NoOp,
 ) {
     private val room by lazy { PrepTrackerDatabase.get(context) }
 
@@ -97,7 +100,7 @@ class BackupRepository(
             val json = buildBackup().toString()
             val stream = context.contentResolver.openOutputStream(uri, "wt") ?: error("No output stream")
             stream.bufferedWriter(Charsets.UTF_8).use { it.write(json) }
-        }.isSuccess
+        }.isSuccess.also { ok -> if (ok) analytics.log(AnalyticsEvent.EXPORT_DONE) }
     }
 
     suspend fun importFrom(uri: Uri): ImportResult = withContext(dispatchers.io) {

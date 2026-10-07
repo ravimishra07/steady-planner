@@ -1080,6 +1080,8 @@ internal fun OnboardingPlanStep(
             Icon(Icons.Filled.Settings, null, modifier = Modifier.size(Size.smallIcon), tint = AppTheme.colors.textSecondary)
             Text(stringResource(R.string.onboarding_plan_settings_note), style = MaterialTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
         }
+        // §11.3: the usage-data disclosure, on the last step before the plan is made.
+        Text(stringResource(R.string.onboarding_usage_data_note), style = MaterialTheme.typography.bodySmall, color = AppTheme.colors.textMuted)
     }
 }
 

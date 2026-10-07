@@ -7,6 +7,9 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.withTransaction
 import com.exam.assistant.core.common.AppDispatchers
+import com.exam.assistant.core.common.Analytics
+import com.exam.assistant.core.common.AnalyticsEvent
+import com.exam.assistant.core.common.AnalyticsParam
 import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.db.PrepTrackerDatabase
 import com.exam.assistant.core.data.db.toDomain
@@ -74,6 +77,7 @@ class RollingPlanRepository(
     context: Context,
     private val dispatchers: AppDispatchers,
     private val examPackRepository: ExamPackRepository,
+    private val analytics: Analytics = Analytics.NoOp,
 ) {
     private val appContext = context.applicationContext
     private val db = PrepTrackerDatabase.get(context)
@@ -281,6 +285,7 @@ class RollingPlanRepository(
         nowMs: Long = System.currentTimeMillis(),
     ): RollingPlanResult? {
         val missed = missedBlocks(since, today)
+        if (missed.isNotEmpty()) analytics.log(AnalyticsEvent.BLOCK_MISSED, mapOf(AnalyticsParam.COUNT to missed.size))
         withContext(dispatchers.io) {
             val skipped = skipMissedBlocks(missed, nowMs)
             if (skipped.isNotEmpty()) db.studyPlanBlockDao().markSkipped(skipped.map { it.id }, nowMs)

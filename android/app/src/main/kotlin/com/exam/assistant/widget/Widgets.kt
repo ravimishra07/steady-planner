@@ -27,6 +27,8 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.exam.assistant.R
 import com.exam.assistant.SteadylineApp
+import com.exam.assistant.core.common.AnalyticsEvent
+import com.exam.assistant.core.common.AnalyticsParam
 import com.exam.assistant.core.design.FontSize
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Spacing
@@ -61,6 +63,11 @@ class NextBlockWidget : GlanceAppWidget() {
 class StatusWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = StatusWidget()
 
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        logWidgetAdded(context, "status")
+    }
+
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         super.onUpdate(context, appWidgetManager, appWidgetIds)
         armTick(context)
@@ -75,6 +82,11 @@ class StatusWidgetReceiver : GlanceAppWidgetReceiver() {
 class NextBlockWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = NextBlockWidget()
 
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        logWidgetAdded(context, "next_block")
+    }
+
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         super.onUpdate(context, appWidgetManager, appWidgetIds)
         armTick(context)
@@ -84,6 +96,12 @@ class NextBlockWidgetReceiver : GlanceAppWidgetReceiver() {
         super.onDisabled(context)
         armTick(context)
     }
+}
+
+/** First widget of this kind placed (onEnabled). */
+private fun logWidgetAdded(context: Context, kind: String) {
+    (context.applicationContext as SteadylineApp).container.analytics
+        .log(AnalyticsEvent.WIDGET_ADDED, mapOf(AnalyticsParam.WIDGET to kind))
 }
 
 /** Arms the refresh tick while any widget is placed, cancels it once none is. */

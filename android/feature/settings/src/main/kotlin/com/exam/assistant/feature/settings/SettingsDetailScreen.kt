@@ -155,6 +155,7 @@ fun SettingsDetailRoute(
         onFocusEndAlert = viewModel::setFocusEndAlert,
         onReminderToggle = onReminderToggle,
         onReminderTime = viewModel::setReminderTime,
+        onShareUsageData = viewModel::setShareUsageData,
         onPlanMode = viewModel::setPlanMode,
         onExamDate = viewModel::setExamDate,
         onFinishBy = viewModel::setFinishBy,
@@ -195,6 +196,7 @@ fun SettingsDetailScreen(
     onFinishBy: (LocalDate) -> Unit,
     onSave: () -> Unit,
     onDismissSaveResult: () -> Unit,
+    onShareUsageData: (Boolean) -> Unit = {},
     onDismissDiscard: () -> Unit,
     onConfirmDiscard: () -> Unit,
     onExportBackup: () -> Unit,
@@ -325,6 +327,7 @@ fun SettingsDetailScreen(
                     onFocusEndAlert = onFocusEndAlert,
                     onReminderToggle = onReminderToggle,
                     onReminderTime = onReminderTime,
+                    onShareUsageData = onShareUsageData,
                     onPlanMode = onPlanMode,
                     onExamDate = onExamDate,
                     onFinishBy = onFinishBy,
@@ -350,6 +353,7 @@ private fun SettingsEditor(
     onFocusEndAlert: (Boolean) -> Unit,
     onReminderToggle: (Boolean) -> Unit,
     onReminderTime: (Int) -> Unit,
+    onShareUsageData: (Boolean) -> Unit,
     onPlanMode: (PlanMode) -> Unit,
     onExamDate: (LocalDate) -> Unit,
     onFinishBy: (LocalDate) -> Unit,
@@ -472,6 +476,28 @@ private fun SettingsEditor(
         }
     }
     ReminderSection(state, onReminderToggle, onReminderTime)
+    SectionTitle(stringResource(R.string.settings_privacy))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = Size.touchTarget)
+            .toggleable(value = state.shareUsageData, role = Role.Switch, onValueChange = onShareUsageData),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.settings_share_usage),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.text,
+            )
+            Text(
+                text = stringResource(R.string.settings_share_usage_detail),
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.textSecondary,
+            )
+        }
+        Switch(checked = state.shareUsageData, onCheckedChange = null)
+    }
     SectionTitle(stringResource(R.string.settings_data))
     Text(
         text = stringResource(R.string.settings_backup_detail),

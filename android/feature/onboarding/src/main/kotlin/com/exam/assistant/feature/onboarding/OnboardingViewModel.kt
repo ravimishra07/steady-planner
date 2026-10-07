@@ -1,5 +1,8 @@
 package com.exam.assistant.feature.onboarding
 
+import com.exam.assistant.core.common.Analytics
+import com.exam.assistant.core.common.AnalyticsEvent
+import com.exam.assistant.core.common.AnalyticsParam
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.SavedStateHandle
@@ -77,6 +80,7 @@ class OnboardingViewModel(
     examDate: LocalDate,
     examDateOfficial: Boolean,
     private val startAtPlan: Boolean,
+    private val analytics: Analytics = Analytics.NoOp,
 ) : ViewModel() {
 
     private var currentPack: ExamPack? = null
@@ -98,6 +102,7 @@ class OnboardingViewModel(
     val openOrganiseAfterFinish: StateFlow<Boolean> = _openOrganiseAfterFinish.asStateFlow()
 
     init {
+        analytics.log(AnalyticsEvent.ONBOARDING_STARTED)
         hydrate()
         viewModelScope.launch {
             state.drop(1).collect { current ->
@@ -588,6 +593,14 @@ class OnboardingViewModel(
                     ),
                 )
                 rollingPlanRepository.replenish(fromDate = LocalDate.now(), nowMs = now)
+                analytics.log(
+                    AnalyticsEvent.ONBOARDING_COMPLETED,
+                    mapOf(
+                        AnalyticsParam.MODE to state.planMode.name,
+                        AnalyticsParam.STARTING_POINT to (state.startingPoint?.name ?: "none"),
+                    ),
+                )
+                analytics.log(AnalyticsEvent.PLAN_GENERATED, mapOf(AnalyticsParam.MODE to state.planMode.name))
                 savedStateHandle.remove<String>(DRAFT_KEY)
                 _state.update { it.copy(finishing = false) }
                 _openOrganiseAfterFinish.value = !state.useProvidedSyllabus || state.selectedChapterIds.isEmpty()
@@ -652,6 +665,7 @@ class OnboardingViewModel(
         private val examDate: LocalDate,
         private val examDateOfficial: Boolean,
         private val startAtPlan: Boolean = false,
+        private val analytics: Analytics = Analytics.NoOp,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T = OnboardingViewModel(
@@ -669,6 +683,7 @@ class OnboardingViewModel(
             examDate,
             examDateOfficial,
             startAtPlan,
+            analytics,
         ) as T
     }
 

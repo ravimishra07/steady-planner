@@ -11,7 +11,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.exam.assistant.core.common.Analytics
+import com.exam.assistant.core.common.AnalyticsEvent
 import com.exam.assistant.core.data.ProRepository
+import androidx.compose.runtime.LaunchedEffect
 import com.exam.assistant.feature.settings.PaywallSheet
 import com.exam.assistant.feature.settings.PaywallUiState
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,7 +23,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class PaywallViewModel(private val proRepository: ProRepository) : ViewModel() {
+class PaywallViewModel(
+    private val proRepository: ProRepository,
+    private val analytics: Analytics,
+) : ViewModel() {
 
     val state: StateFlow<PaywallUiState> =
         combine(proRepository.isPro, proRepository.formattedPrice, proRepository.status) { isPro, price, status ->
@@ -41,9 +47,12 @@ class PaywallViewModel(private val proRepository: ProRepository) : ViewModel() {
 
     fun onDismissed() = proRepository.clearStatus()
 
-    class Factory(private val proRepository: ProRepository) : ViewModelProvider.Factory {
+    /** Each time the sheet opens; the ViewModel itself outlives one showing. */
+    fun onShown() = analytics.log(AnalyticsEvent.PAYWALL_VIEWED)
+
+    class Factory(private val proRepository: ProRepository, private val analytics: Analytics) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T = PaywallViewModel(proRepository) as T
+        override fun <T : ViewModel> create(modelClass: Class<T>): T = PaywallViewModel(proRepository, analytics) as T
     }
 
     private companion object {
@@ -55,10 +64,12 @@ class PaywallViewModel(private val proRepository: ProRepository) : ViewModel() {
 @Composable
 fun PaywallHost(
     proRepository: ProRepository,
+    analytics: Analytics,
     onDismiss: () -> Unit,
-    viewModel: PaywallViewModel = viewModel(factory = PaywallViewModel.Factory(proRepository)),
+    viewModel: PaywallViewModel = viewModel(factory = PaywallViewModel.Factory(proRepository, analytics)),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) { viewModel.onShown() }
     val activity = LocalContext.current.findActivity()
     PaywallSheet(
         state = state,

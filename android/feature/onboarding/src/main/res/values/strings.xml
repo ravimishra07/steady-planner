@@ -193,4 +193,5 @@
     <string name="onboarding_start_day_one">Start day 1</string>
     <string name="onboarding_finish_failed">Your plan could not be saved. Please try again.</string>
     <string name="onboarding_dismiss">Dismiss</string>
+    <string name="onboarding_usage_data_note">The app shares anonymous usage data and crash reports (Google Firebase) to improve. Your plan and progress stay on this phone. Turn it off any time in Settings → Privacy.</string>
 </resources>

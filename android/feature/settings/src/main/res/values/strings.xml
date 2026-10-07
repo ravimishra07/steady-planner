@@ -153,4 +153,7 @@
     <string name="more_restore">Restore purchase</string>
     <string name="more_restore_sub">Already bought Pro on another phone</string>
     <string name="more_debug_force_pro">Force Pro (debug build only)</string>
+    <string name="settings_privacy">Privacy</string>
+    <string name="settings_share_usage">Share anonymous usage data</string>
+    <string name="settings_share_usage_detail">App events and crash reports via Google Firebase help fix bugs. No names, no study notes. Your plan and progress stay on this phone.</string>
 </resources>

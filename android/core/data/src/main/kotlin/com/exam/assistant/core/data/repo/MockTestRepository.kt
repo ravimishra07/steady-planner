@@ -3,6 +3,9 @@ package com.exam.assistant.core.data.repo
 import android.content.Context
 import androidx.room.withTransaction
 import com.exam.assistant.core.common.AppDispatchers
+import com.exam.assistant.core.common.Analytics
+import com.exam.assistant.core.common.AnalyticsEvent
+import com.exam.assistant.core.common.AnalyticsParam
 import com.exam.assistant.core.data.db.PrepTrackerDatabase
 import com.exam.assistant.core.data.db.toDomain
 import com.exam.assistant.core.data.db.toEntity
@@ -16,6 +19,7 @@ import kotlinx.coroutines.withContext
 class MockTestRepository(
     context: Context,
     private val dispatchers: AppDispatchers,
+    private val analytics: Analytics = Analytics.NoOp,
 ) {
     private val db = PrepTrackerDatabase.get(context)
     private val dao = db.mockTestDao()
@@ -37,6 +41,7 @@ class MockTestRepository(
      * was already tagged is left alone, so editing and re-saving never applies it twice.
      */
     suspend fun save(mock: MockTest, mistakes: List<MockMistake>, nowMs: Long) = withContext(dispatchers.io) {
+        val isEdit = dao.byId(mock.id) != null
         db.withTransaction {
             val before = dao.mistakesFor(mock.id).map { it.toDomain() }
             dao.upsert(mock.toEntity())
@@ -48,6 +53,14 @@ class MockTestRepository(
                 revisionDao.upsert(revisionStateAfterMistake(current, mock.attemptId, chapterId, mock.date, nowMs).toEntity())
             }
         }
+        analytics.log(
+            AnalyticsEvent.MOCK_LOGGED,
+            mapOf(
+                AnalyticsParam.MOCK_TYPE to mock.type.name,
+                AnalyticsParam.IS_EDIT to isEdit,
+                AnalyticsParam.COUNT to mistakes.size,
+            ),
+        )
     }
 
     /** Deletes a mock and its tags. A revision already brought forward stays where it is. */

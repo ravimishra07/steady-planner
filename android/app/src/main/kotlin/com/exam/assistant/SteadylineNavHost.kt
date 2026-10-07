@@ -94,7 +94,7 @@ fun SteadylineNavHost(
         if (paywallRequested && paywallBlocked && currentPath != null) container.paywallRequest.value = false
     }
     if (paywallRequested && !paywallBlocked) {
-        PaywallHost(proRepository = container.proRepository, onDismiss = { container.paywallRequest.value = false })
+        PaywallHost(proRepository = container.proRepository, analytics = container.analytics, onDismiss = { container.paywallRequest.value = false })
     }
 
     Scaffold(
@@ -143,6 +143,7 @@ fun SteadylineNavHost(
                     onBackground = onBackground,
                     accentPalette = accentPalette,
                     onAccentPalette = onAccentPalette,
+                    analytics = container.analytics,
                     onFinished = { openOrganise ->
                         navController.navigate(if (openOrganise) Route.Organise.path else Route.Home.path) {
                             popUpTo(Route.Onboarding.path) { inclusive = true }

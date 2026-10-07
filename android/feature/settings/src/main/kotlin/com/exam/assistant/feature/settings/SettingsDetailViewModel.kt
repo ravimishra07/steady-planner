@@ -57,6 +57,8 @@ data class SettingsDetailUiState(
     val reminderMinuteOfDay: Int = DailyReminderSetting.DEFAULT_MINUTE_OF_DAY,
     /** The notification permission was refused while turning the reminder on. */
     val reminderPermissionDenied: Boolean = false,
+    /** Anonymous usage data and crash reports (§11.3). Saved immediately. On by default. */
+    val shareUsageData: Boolean = true,
     /** An export or import is running. */
     val backupBusy: Boolean = false,
     val backupMessage: BackupMessage? = null,
@@ -98,10 +100,19 @@ class SettingsDetailViewModel(
             settingsStore.focusEndAlert.collect { enabled -> _state.update { it.copy(focusEndAlert = enabled) } }
         }
         viewModelScope.launch {
+            settingsStore.shareUsageData.collect { enabled -> _state.update { it.copy(shareUsageData = enabled) } }
+        }
+        viewModelScope.launch {
             settingsStore.dailyReminder.collect { reminder ->
                 _state.update { it.copy(reminderEnabled = reminder.enabled, reminderMinuteOfDay = reminder.minuteOfDay) }
             }
         }
+    }
+
+    /** AppContainer follows the stored value and switches Firebase Analytics and Crashlytics with it. */
+    fun setShareUsageData(enabled: Boolean) {
+        _state.update { it.copy(shareUsageData = enabled) }
+        viewModelScope.launch { settingsStore.setShareUsageData(enabled) }
     }
 
     /** Call with true only once notifications are allowed; the screen asks for the permission first. */

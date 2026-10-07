@@ -3,6 +3,9 @@ package com.exam.assistant.core.data.repo
 import android.content.Context
 import androidx.room.withTransaction
 import com.exam.assistant.core.common.AppDispatchers
+import com.exam.assistant.core.common.Analytics
+import com.exam.assistant.core.common.AnalyticsEvent
+import com.exam.assistant.core.common.AnalyticsParam
 import com.exam.assistant.core.data.db.PrepTrackerDatabase
 import com.exam.assistant.core.data.db.toDomain
 import com.exam.assistant.core.data.db.toEntity
@@ -17,6 +20,7 @@ import java.time.LocalDate
 class PlanRepository(
     context: Context,
     private val dispatchers: AppDispatchers,
+    private val analytics: Analytics = Analytics.NoOp,
 ) {
     private val db = PrepTrackerDatabase.get(context)
     private val dao = db.studyPlanBlockDao()
@@ -59,6 +63,7 @@ class PlanRepository(
     suspend fun skip(id: String, nowMs: Long) = withContext(dispatchers.io) {
         dao.byId(id)?.toDomain()?.let { block ->
             dao.upsert(block.copy(status = PlanBlockStatus.SKIPPED, updatedAtEpochMs = nowMs).toEntity())
+            analytics.log(AnalyticsEvent.BLOCK_DROPPED, mapOf(AnalyticsParam.ACTIVITY to block.activityType.name))
         }
     }
 
@@ -79,6 +84,7 @@ class PlanRepository(
             dao.upsert(closedOriginal.toEntity())
             dao.upsert(replacement.toEntity())
         }
+        analytics.log(AnalyticsEvent.BLOCK_MOVED, mapOf(AnalyticsParam.ACTIVITY to original.activityType.name))
         replacement
     }
 }

@@ -31,6 +31,7 @@ class SettingsStore(
     private val notificationPromptKey = booleanPreferencesKey("notification_prompt_shown")
     private val dailyReminderEnabledKey = booleanPreferencesKey("daily_reminder_enabled")
     private val dailyReminderMinuteKey = intPreferencesKey("daily_reminder_minute")
+    private val shareUsageDataKey = booleanPreferencesKey("share_usage_data")
 
     /** Emits on every change, for the settings screen. */
     /** Null means no personal choice yet, so Remote Config defaults may be used. */
@@ -90,6 +91,14 @@ class SettingsStore(
 
     suspend fun setNotificationPromptShown() = withContext(dispatchers.io) {
         context.dataStore.edit { it[notificationPromptKey] = true }
+        Unit
+    }
+
+    /** Settings → "Share anonymous usage data" (analytics and crash reports, §11.3). On by default. */
+    val shareUsageData: Flow<Boolean> = context.dataStore.data.map { it[shareUsageDataKey] ?: true }
+
+    suspend fun setShareUsageData(enabled: Boolean) = withContext(dispatchers.io) {
+        context.dataStore.edit { it[shareUsageDataKey] = enabled }
         Unit
     }
 
