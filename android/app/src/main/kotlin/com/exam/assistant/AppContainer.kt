@@ -3,6 +3,7 @@ package com.exam.assistant
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import androidx.core.app.NotificationManagerCompat
 import com.exam.assistant.core.data.backup.BackupRepository
 import kotlinx.coroutines.withContext
 import com.exam.assistant.core.common.AppDispatchers
@@ -274,6 +275,23 @@ class AppContainer(private val context: Context) {
             focusController.reconcile()
         }
         rearmDailyReminder()
+        withContext(dispatchers.main) { restartProcess() }
+    }
+
+    /**
+     * Settings → Log out. There is no account: this wipes everything on the phone,
+     * drops the live timer and reminder, then relaunches into onboarding.
+     */
+    suspend fun logOut() {
+        backupRepository.wipeAll()
+        runCatching {
+            focusStore.clear()
+            studySessionStore.clear()
+            syllabusStore.clear()
+            focusController.reconcile()
+        }
+        rearmDailyReminder()
+        runCatching { NotificationManagerCompat.from(context).cancelAll() }
         withContext(dispatchers.main) { restartProcess() }
     }
 

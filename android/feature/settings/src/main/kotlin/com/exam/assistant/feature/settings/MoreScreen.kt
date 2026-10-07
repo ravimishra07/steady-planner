@@ -1,5 +1,12 @@
 package com.exam.assistant.feature.settings
 
+import com.exam.assistant.core.design.Stroke
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.Dialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -88,9 +95,12 @@ fun MoreScreen(
     onRestorePurchase: () -> Unit = {},
     onDismissProStatus: () -> Unit = {},
     onDebugForcePro: (Boolean) -> Unit = {},
+    onLogOut: () -> Unit = {},
 ) {
     val colors = AppTheme.colors
     var showRedoDialog by remember { mutableStateOf(false) }
+    var showLogOutDialog by remember { mutableStateOf(false) }
+    var loggingOut by remember { mutableStateOf(false) }
     var showSplitDialog by remember { mutableStateOf(false) }
     if (loading) {
         SettingsStatusScreen(
@@ -218,12 +228,52 @@ fun MoreScreen(
                 onClick = { onOpenPolicy("about") },
             )
         }
+        OutlinedButton(
+            onClick = { showLogOutDialog = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = Spacing.xxl)
+                .height(Size.ctaHeight),
+            border = BorderStroke(Stroke.hairline, colors.danger),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.danger),
+        ) {
+            Text(stringResource(R.string.more_log_out), style = MaterialTheme.typography.labelLarge)
+        }
         Text(
             text = stringResource(R.string.more_footer),
             style = MaterialTheme.typography.bodySmall,
             color = colors.textMuted,
             modifier = Modifier.padding(vertical = Spacing.xl),
         )
+    }
+    if (showLogOutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogOutDialog = false },
+            title = { Text(stringResource(R.string.more_log_out_title)) },
+            text = { Text(stringResource(R.string.more_log_out_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogOutDialog = false
+                        loggingOut = true
+                        onLogOut()
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = colors.danger),
+                ) { Text(stringResource(R.string.more_log_out)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogOutDialog = false }) { Text(stringResource(R.string.more_redo_confirm_no)) }
+            },
+        )
+    }
+    if (loggingOut) {
+        // Stays up until the app relaunches into onboarding.
+        Dialog(
+            onDismissRequest = {},
+            properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
+        ) {
+            CircularProgressIndicator()
+        }
     }
     if (showSplitDialog && liveBacklogSplit != null) {
         BacklogSplitDialog(

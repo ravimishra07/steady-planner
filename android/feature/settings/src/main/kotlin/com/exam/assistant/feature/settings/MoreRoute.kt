@@ -193,6 +193,7 @@ fun MoreRoute(
     proRepository: ProRepository? = null,
     isDebugBuild: Boolean = false,
     onOpenPaywall: () -> Unit = {},
+    onLogOut: () -> Unit = {},
     viewModel: MoreViewModel = composeViewModel(
         factory = MoreViewModel.Factory(
             planStore = planStore,
@@ -241,6 +242,7 @@ fun MoreRoute(
         onRestorePurchase = viewModel::restorePurchase,
         onDismissProStatus = viewModel::clearProStatus,
         onDebugForcePro = viewModel::setDebugForcePro,
+        onLogOut = onLogOut,
         modifier = modifier,
     )
 }

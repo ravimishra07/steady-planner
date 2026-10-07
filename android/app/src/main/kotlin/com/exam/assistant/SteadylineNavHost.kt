@@ -301,6 +301,7 @@ fun SteadylineNavHost(
                     proRepository = container.proRepository,
                     isDebugBuild = BuildConfig.DEBUG,
                     onOpenPaywall = container::openPaywall,
+                    onLogOut = { container.appScope.launch { container.logOut() } },
                     modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                 )
             }

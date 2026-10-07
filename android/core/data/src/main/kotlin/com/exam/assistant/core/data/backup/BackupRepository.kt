@@ -141,6 +141,21 @@ class BackupRepository(
         ImportResult.Imported
     }
 
+    /** Log out: empties every Room table and the student's DataStores. The Pro entitlement is left alone. */
+    suspend fun wipeAll(): Boolean = withContext(dispatchers.io) {
+        val wiped = runCatching {
+            val sql = room.openHelper.writableDatabase
+            val tables = userTables(sql)
+            room.withTransaction {
+                sql.execSQL("PRAGMA defer_foreign_keys = ON")
+                tables.forEach { sql.execSQL("DELETE FROM `$it`") }
+            }
+            userDataStores.values.forEach { store -> store.edit { it.clear() } }
+        }.isSuccess
+        runCatching { attemptRepository.refreshHasAttemptFlag() }
+        wiped
+    }
+
     private suspend fun buildBackup(): JSONObject {
         val sql = room.openHelper.readableDatabase
         val tables = JSONObject()

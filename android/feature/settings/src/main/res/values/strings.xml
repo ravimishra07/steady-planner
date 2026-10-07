@@ -156,4 +156,7 @@
     <string name="settings_privacy">Privacy</string>
     <string name="settings_share_usage">Share anonymous usage data</string>
     <string name="settings_share_usage_detail">App events and crash reports via Google Firebase help fix bugs. No names, no study notes. Your plan and progress stay on this phone.</string>
+    <string name="more_log_out">Log out</string>
+    <string name="more_log_out_title">Log out?</string>
+    <string name="more_log_out_body">Erases all data on this phone.</string>
 </resources>
