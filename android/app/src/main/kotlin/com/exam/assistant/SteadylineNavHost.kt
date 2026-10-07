@@ -317,6 +317,8 @@ fun SteadylineNavHost(
                         }
                     },
                     onReminderChanged = { container.rearmDailyReminder() },
+                    backupRepository = container.backupRepository,
+                    onImported = { container.appScope.launch { container.onBackupImported() } },
                     modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                 )
             }

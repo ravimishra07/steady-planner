@@ -1,6 +1,10 @@
 package com.exam.assistant
 
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import com.exam.assistant.core.data.backup.BackupRepository
+import kotlinx.coroutines.withContext
 import com.exam.assistant.core.common.AppDispatchers
 import com.exam.assistant.core.common.DefaultAppDispatchers
 import com.exam.assistant.core.data.ExamPackRepository
@@ -221,6 +225,29 @@ class AppContainer(private val context: Context) {
     }
 
     val dailyReminder: DailyReminder by lazy { DailyReminder(context) }
+
+    val backupRepository: BackupRepository by lazy { BackupRepository(context, dispatchers, attemptRepository) }
+
+    /**
+     * After an import replaced every table and store: drop this device's live
+     * timer (its alarm and notification with it), re-arm the reminder from the
+     * imported setting, then relaunch so every lazy repository and cached flow
+     * starts again on the new data.
+     */
+    suspend fun onBackupImported() {
+        runCatching {
+            focusStore.clear()
+            focusController.reconcile()
+        }
+        rearmDailyReminder()
+        withContext(dispatchers.main) { restartProcess() }
+    }
+
+    private fun restartProcess() {
+        val intent = Intent.makeRestartActivityTask(ComponentName(context, MainActivity::class.java))
+        context.startActivity(intent)
+        Runtime.getRuntime().exit(0)
+    }
 
     /** Arms or cancels the daily "Today's plan" reminder from the saved setting. Boot, update and every settings change. */
     suspend fun rearmDailyReminder() {

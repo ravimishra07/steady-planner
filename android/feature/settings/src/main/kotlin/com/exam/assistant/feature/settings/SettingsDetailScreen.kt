@@ -46,6 +46,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -65,6 +66,7 @@ import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.SettingsStore
 import com.exam.assistant.core.data.StudySessionStore
 import com.exam.assistant.core.data.SyllabusStore
+import com.exam.assistant.core.data.backup.BackupRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.core.data.repo.StudyPreferenceRepository
@@ -96,6 +98,8 @@ fun SettingsDetailRoute(
     onBack: () -> Unit,
     onCleared: () -> Unit,
     onReminderChanged: suspend () -> Unit,
+    backupRepository: BackupRepository,
+    onImported: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsDetailViewModel = viewModel(
         factory = SettingsDetailViewModel.Factory(
@@ -111,6 +115,7 @@ fun SettingsDetailRoute(
             configExamDate = configExamDate,
             examDateOfficial = examDateOfficial,
             onReminderChanged = onReminderChanged,
+            backupRepository = backupRepository,
         ),
     ),
 ) {
@@ -119,6 +124,12 @@ fun SettingsDetailRoute(
     // Asked in context (§10.1): only when the student turns the reminder on, never at launch.
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) viewModel.setReminderEnabled(true) else viewModel.onReminderPermissionDenied()
+    }
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(BACKUP_MIME)) { uri ->
+        uri?.let(viewModel::exportBackup)
+    }
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(viewModel::requestImport)
     }
     val onReminderToggle: (Boolean) -> Unit = { enabled ->
         if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -154,6 +165,11 @@ fun SettingsDetailRoute(
             viewModel.confirmDiscard()
             onBack()
         },
+        onExportBackup = { exportLauncher.launch(backupFileName(LocalDate.now())) },
+        onImportBackup = { importLauncher.launch(BACKUP_OPEN_MIMES) },
+        onConfirmImport = { viewModel.confirmImport(onImported) },
+        onDismissImport = viewModel::dismissImport,
+        onDismissBackupMessage = viewModel::dismissBackupMessage,
         onRequestClear = viewModel::requestClear,
         onConfirmClear = { viewModel.confirmClear(onCleared) },
         onDismissClear = viewModel::dismissClear,
@@ -181,6 +197,11 @@ fun SettingsDetailScreen(
     onDismissSaveResult: () -> Unit,
     onDismissDiscard: () -> Unit,
     onConfirmDiscard: () -> Unit,
+    onExportBackup: () -> Unit,
+    onImportBackup: () -> Unit,
+    onConfirmImport: () -> Unit,
+    onDismissImport: () -> Unit,
+    onDismissBackupMessage: () -> Unit,
     onRequestClear: () -> Unit,
     onConfirmClear: () -> Unit,
     onDismissClear: () -> Unit,
@@ -216,6 +237,26 @@ fun SettingsDetailScreen(
             confirmButton = {
                 TextButton(onClick = onDismissClearError) {
                     Text(stringResource(R.string.settings_ok))
+                }
+            },
+        )
+    }
+    if (state.pendingImport != null) {
+        AlertDialog(
+            onDismissRequest = onDismissImport,
+            title = { Text(stringResource(R.string.settings_import_confirm_title)) },
+            text = { Text(stringResource(R.string.settings_import_confirm_body)) },
+            confirmButton = {
+                TextButton(onClick = onConfirmImport, enabled = !state.backupBusy) {
+                    Text(
+                        if (state.backupBusy) stringResource(R.string.settings_importing)
+                        else stringResource(R.string.settings_import_yes),
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissImport, enabled = !state.backupBusy) {
+                    Text(stringResource(R.string.settings_cancel))
                 }
             },
         )
@@ -289,6 +330,9 @@ fun SettingsDetailScreen(
                     onFinishBy = onFinishBy,
                     onSave = onSave,
                     onDismissSaveResult = onDismissSaveResult,
+                    onExportBackup = onExportBackup,
+                    onImportBackup = onImportBackup,
+                    onDismissBackupMessage = onDismissBackupMessage,
                     onRequestClear = onRequestClear,
                 )
             }
@@ -311,6 +355,9 @@ private fun SettingsEditor(
     onFinishBy: (LocalDate) -> Unit,
     onSave: () -> Unit,
     onDismissSaveResult: () -> Unit,
+    onExportBackup: () -> Unit,
+    onImportBackup: () -> Unit,
+    onDismissBackupMessage: () -> Unit,
     onRequestClear: () -> Unit,
 ) {
     val colors = AppTheme.colors
@@ -426,6 +473,42 @@ private fun SettingsEditor(
     }
     ReminderSection(state, onReminderToggle, onReminderTime)
     SectionTitle(stringResource(R.string.settings_data))
+    Text(
+        text = stringResource(R.string.settings_backup_detail),
+        style = MaterialTheme.typography.bodySmall,
+        color = colors.textSecondary,
+        modifier = Modifier.padding(bottom = Spacing.sm),
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = onExportBackup,
+            enabled = !state.backupBusy && !state.saving,
+            modifier = Modifier.weight(1f).heightIn(min = Size.touchTarget),
+            shape = RoundedCornerShape(Radius.lg),
+        ) { Text(stringResource(R.string.settings_export_backup)) }
+        OutlinedButton(
+            onClick = onImportBackup,
+            enabled = !state.backupBusy && !state.saving,
+            modifier = Modifier.weight(1f).heightIn(min = Size.touchTarget),
+            shape = RoundedCornerShape(Radius.lg),
+        ) { Text(stringResource(R.string.settings_import_backup)) }
+    }
+    state.backupMessage?.let { message ->
+        TextButton(onClick = onDismissBackupMessage, modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = stringResource(
+                    when (message) {
+                        BackupMessage.EXPORTED -> R.string.settings_backup_exported
+                        BackupMessage.EXPORT_FAILED -> R.string.settings_backup_export_failed
+                        BackupMessage.IMPORT_TOO_NEW -> R.string.settings_backup_too_new
+                        BackupMessage.IMPORT_INCOMPATIBLE -> R.string.settings_backup_incompatible
+                        BackupMessage.IMPORT_FAILED -> R.string.settings_backup_import_failed
+                    },
+                ),
+                color = if (message == BackupMessage.EXPORTED) colors.success else colors.danger,
+            )
+        }
+    }
     Button(
         onClick = onRequestClear,
         enabled = !state.saving && !state.clearing,
@@ -640,6 +723,13 @@ private fun ReminderSection(
         )
     }
 }
+
+private const val BACKUP_MIME = "application/json"
+
+/** Some file managers label .json as octet-stream or plain text. */
+private val BACKUP_OPEN_MIMES = arrayOf(BACKUP_MIME, "application/octet-stream", "text/plain")
+
+private fun backupFileName(today: LocalDate): String = "neet-planner-backup-$today.json"
 
 @Composable
 private fun SectionTitle(text: String) {

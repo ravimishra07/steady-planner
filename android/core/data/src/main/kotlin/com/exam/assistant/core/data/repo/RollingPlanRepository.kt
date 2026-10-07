@@ -51,7 +51,8 @@ import java.time.ZoneId
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
-private val Context.planPromptDataStore by preferencesDataStore(name = "plan_prompts")
+// Internal so BackupRepository can export and restore it (one DataStore per file per process).
+internal val Context.planPromptDataStore by preferencesDataStore(name = "plan_prompts")
 private val missedResolvedThroughKey = longPreferencesKey("missed_resolved_through")
 private val missedDismissedOnKey = longPreferencesKey("missed_dismissed_on")
 private val freshStartOnKey = longPreferencesKey("fresh_start_on")

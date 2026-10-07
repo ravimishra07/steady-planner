@@ -12,7 +12,8 @@ import com.exam.assistant.domain.StageLabels
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
-private val Context.stageLabelDataStore by preferencesDataStore(name = "stage_labels")
+// Internal so BackupRepository can export and restore it (one DataStore per file per process).
+internal val Context.stageLabelDataStore by preferencesDataStore(name = "stage_labels")
 
 /** The student's chapter-stage labels (§5.1): renames, hidden stages, one custom stage. */
 class StageLabelStore(

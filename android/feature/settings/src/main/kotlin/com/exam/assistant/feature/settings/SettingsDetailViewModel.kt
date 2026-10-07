@@ -1,9 +1,12 @@
 package com.exam.assistant.feature.settings
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.exam.assistant.core.data.DailyReminderSetting
+import com.exam.assistant.core.data.backup.BackupRepository
+import com.exam.assistant.core.data.backup.ImportResult
 import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.FocusStore
 import com.exam.assistant.core.data.PlanStore
@@ -54,10 +57,18 @@ data class SettingsDetailUiState(
     val reminderMinuteOfDay: Int = DailyReminderSetting.DEFAULT_MINUTE_OF_DAY,
     /** The notification permission was refused while turning the reminder on. */
     val reminderPermissionDenied: Boolean = false,
+    /** An export or import is running. */
+    val backupBusy: Boolean = false,
+    val backupMessage: BackupMessage? = null,
+    /** A file was picked for import; waiting on "Replace current data?". */
+    val pendingImport: Uri? = null,
 ) {
     /** True when the exam date is still the configured one, so "expected, not yet announced" applies to it. */
     val examDateIsConfigured: Boolean get() = examDate == configExamDate
 }
+
+/** The outcome line under Settings → Your data. */
+enum class BackupMessage { EXPORTED, EXPORT_FAILED, IMPORT_TOO_NEW, IMPORT_INCOMPATIBLE, IMPORT_FAILED }
 
 class SettingsDetailViewModel(
     private val planStore: PlanStore,
@@ -73,6 +84,7 @@ class SettingsDetailViewModel(
     examDateOfficial: Boolean = false,
     /** Arms or cancels the reminder alarm after its setting changes. Wired by :app. */
     private val onReminderChanged: suspend () -> Unit = {},
+    private val backupRepository: BackupRepository? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
@@ -106,6 +118,47 @@ class SettingsDetailViewModel(
     /** The permission was refused: the reminder stays off and the screen says why. */
     fun onReminderPermissionDenied() {
         _state.update { it.copy(reminderEnabled = false, reminderPermissionDenied = true) }
+    }
+
+    fun exportBackup(uri: Uri) {
+        val backup = backupRepository ?: return
+        if (_state.value.backupBusy) return
+        _state.update { it.copy(backupBusy = true, backupMessage = null) }
+        viewModelScope.launch {
+            val ok = backup.exportTo(uri)
+            _state.update { it.copy(backupBusy = false, backupMessage = if (ok) BackupMessage.EXPORTED else BackupMessage.EXPORT_FAILED) }
+        }
+    }
+
+    fun requestImport(uri: Uri) {
+        if (!_state.value.backupBusy) _state.update { it.copy(pendingImport = uri, backupMessage = null) }
+    }
+
+    fun dismissImport() {
+        if (!_state.value.backupBusy) _state.update { it.copy(pendingImport = null) }
+    }
+
+    /** Replaces everything with the picked file. On success [onImported] restarts the app on the new data. */
+    fun confirmImport(onImported: () -> Unit) {
+        val backup = backupRepository ?: return
+        val uri = _state.value.pendingImport ?: return
+        if (_state.value.backupBusy) return
+        _state.update { it.copy(backupBusy = true, backupMessage = null) }
+        viewModelScope.launch {
+            val result = backup.importFrom(uri)
+            val message = when (result) {
+                ImportResult.Imported -> null
+                ImportResult.TooNew -> BackupMessage.IMPORT_TOO_NEW
+                ImportResult.Incompatible -> BackupMessage.IMPORT_INCOMPATIBLE
+                ImportResult.Unreadable -> BackupMessage.IMPORT_FAILED
+            }
+            _state.update { it.copy(backupBusy = result == ImportResult.Imported, pendingImport = null, backupMessage = message) }
+            if (result == ImportResult.Imported) onImported()
+        }
+    }
+
+    fun dismissBackupMessage() {
+        _state.update { it.copy(backupMessage = null) }
     }
 
     private fun saveReminder() {
@@ -320,6 +373,7 @@ class SettingsDetailViewModel(
         private val configExamDate: LocalDate,
         private val examDateOfficial: Boolean,
         private val onReminderChanged: suspend () -> Unit,
+        private val backupRepository: BackupRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
@@ -336,6 +390,7 @@ class SettingsDetailViewModel(
                 configExamDate = configExamDate,
                 examDateOfficial = examDateOfficial,
                 onReminderChanged = onReminderChanged,
+                backupRepository = backupRepository,
             ) as T
     }
 }

@@ -12,7 +12,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
-private val Context.dataStore by preferencesDataStore(name = "settings")
+// Internal so BackupRepository can export and restore it (one DataStore per file per process).
+internal val Context.dataStore by preferencesDataStore(name = "settings")
 
 /**
  * User settings. Small by design: this is the only thing allowed to delay the

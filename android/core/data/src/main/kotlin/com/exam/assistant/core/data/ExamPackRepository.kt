@@ -20,7 +20,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import kotlinx.coroutines.flow.first
 
-private val Context.customSyllabusDataStore by preferencesDataStore(name = "custom_syllabus")
+// Internal so BackupRepository can export and restore it (one DataStore per file per process).
+internal val Context.customSyllabusDataStore by preferencesDataStore(name = "custom_syllabus")
 
 data class CustomSyllabusChapter(
     val id: String,
