@@ -1,12 +1,13 @@
-@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@file:OptIn(ExperimentalLayoutApi::class)
 
-package com.exam.assistant.feature.onboarding
+package com.exam.assistant.feature.onboarding.steps
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -17,8 +18,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -34,14 +35,14 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Weekend
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -59,17 +60,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.unit.dp
 import com.exam.assistant.core.design.AccentPalette
-import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.AppStepperControl
+import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.AppValueStepper
 import com.exam.assistant.core.design.BackgroundAppearance
 import com.exam.assistant.core.design.CalendarMetrics
@@ -78,11 +78,24 @@ import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.core.design.Stroke
 import com.exam.assistant.domain.Cushion
+import com.exam.assistant.feature.onboarding.CapacityIssuesCard
+import com.exam.assistant.feature.onboarding.CapacityIssue
+import com.exam.assistant.feature.onboarding.CommitmentIssue
+import com.exam.assistant.feature.onboarding.R
+import com.exam.assistant.feature.onboarding.components.OnboardingSelectableCard
+import com.exam.assistant.feature.onboarding.model.DAY_SHAPES
+import com.exam.assistant.feature.onboarding.model.ExamCatalog
+import com.exam.assistant.feature.onboarding.model.OnboardingCommitment
+import com.exam.assistant.feature.onboarding.model.OnboardingUiState
+import java.text.DateFormat
+import java.text.NumberFormat
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import java.time.temporal.ChronoUnit
+import java.util.Calendar
 import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.roundToInt
@@ -487,12 +500,12 @@ private fun MinutePickerDialog(initialMinute: Int, onDismiss: () -> Unit, onConf
 internal fun OnboardingTargetDateStep(targetDate: LocalDate, isExamDate: Boolean, onDate: (LocalDate) -> Unit) {
     val today = LocalDate.now()
     val formatter = remember { DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(Locale.getDefault()) }
-    val days = java.time.temporal.ChronoUnit.DAYS.between(today, targetDate).toInt().coerceAtLeast(1)
+    val days = ChronoUnit.DAYS.between(today, targetDate).toInt().coerceAtLeast(1)
     val minMillis = today.plusDays(7).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
     val maxMillis = today.plusDays(730).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = targetDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
-        selectableDates = object : androidx.compose.material3.SelectableDates {
+        selectableDates = object : SelectableDates {
             override fun isSelectableDate(utcTimeMillis: Long): Boolean = utcTimeMillis in minMillis..maxMillis
         },
     )
@@ -879,7 +892,7 @@ private fun PlanSummaryRow(
     }
 }
 
-private fun planHour(value: Float): String = java.text.NumberFormat.getNumberInstance().apply {
+private fun planHour(value: Float): String = NumberFormat.getNumberInstance().apply {
     maximumFractionDigits = 1
 }.format(value)
 
@@ -931,9 +944,9 @@ private fun commitmentKindLabel(kind: String): Int = when (kind) {
 }
 
 private fun clockLabel(minuteOfDay: Int): String {
-    val calendar = java.util.Calendar.getInstance().apply {
-        set(java.util.Calendar.HOUR_OF_DAY, minuteOfDay / 60 % 24)
-        set(java.util.Calendar.MINUTE, minuteOfDay % 60)
+    val calendar = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, minuteOfDay / 60 % 24)
+        set(Calendar.MINUTE, minuteOfDay % 60)
     }
-    return java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(calendar.time)
+    return DateFormat.getTimeInstance(DateFormat.SHORT).format(calendar.time)
 }

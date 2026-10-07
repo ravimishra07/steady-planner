@@ -1,4 +1,4 @@
-package com.exam.assistant.feature.onboarding
+package com.exam.assistant.feature.onboarding.model
 
 enum class OnboardingStep {
     Appearance,

@@ -1,6 +1,12 @@
 package com.exam.assistant.feature.onboarding
 
 import com.exam.assistant.domain.NEET_EXAM_ID
+import com.exam.assistant.feature.onboarding.model.OnboardingCommitment
+import com.exam.assistant.feature.onboarding.model.OnboardingStep
+import com.exam.assistant.feature.onboarding.model.OnboardingUiState
+import com.exam.assistant.feature.onboarding.model.PROGRESS_SEGMENTS
+import com.exam.assistant.feature.onboarding.model.commitmentsForStudyMode
+import com.exam.assistant.feature.onboarding.model.defaultCommitments
 import java.time.DayOfWeek
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

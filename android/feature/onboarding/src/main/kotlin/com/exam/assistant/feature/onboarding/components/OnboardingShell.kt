@@ -1,4 +1,4 @@
-package com.exam.assistant.feature.onboarding
+package com.exam.assistant.feature.onboarding.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -21,9 +21,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,8 +32,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import com.exam.assistant.core.design.AppTheme
-import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.core.design.Size
+import com.exam.assistant.core.design.Spacing
+import com.exam.assistant.feature.onboarding.R
+import com.exam.assistant.feature.onboarding.model.PROGRESS_SEGMENTS
 
 @Composable
 internal fun OnboardingShell(
@@ -63,7 +65,7 @@ internal fun OnboardingShell(
         Column(
             modifier = Modifier
                 .weight(1f)
-            .verticalScroll(rememberScrollState())
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = Spacing.lg),
         ) {
             Text(

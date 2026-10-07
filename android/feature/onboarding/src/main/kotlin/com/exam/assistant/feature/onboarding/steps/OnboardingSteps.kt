@@ -1,4 +1,4 @@
-package com.exam.assistant.feature.onboarding
+package com.exam.assistant.feature.onboarding.steps
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -27,7 +27,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.AppType
 import com.exam.assistant.core.design.AppValueStepper
@@ -37,9 +36,15 @@ import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.core.design.Stroke
 import com.exam.assistant.domain.Cushion
+import com.exam.assistant.feature.onboarding.R
+import com.exam.assistant.feature.onboarding.components.OnboardingHourPills
+import com.exam.assistant.feature.onboarding.components.OnboardingSelectableCard
+import com.exam.assistant.feature.onboarding.model.DAY_SHAPES
+import com.exam.assistant.feature.onboarding.model.OnboardingUiState
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -282,7 +287,7 @@ internal fun OnboardingCushionStep(
         )
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
-                text = kotlin.math.abs(cushion.gap).toString(),
+                text = abs(cushion.gap).toString(),
                 style = AppType.hero,
                 color = gapColor,
             )

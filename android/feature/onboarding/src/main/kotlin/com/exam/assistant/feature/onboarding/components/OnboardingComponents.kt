@@ -1,4 +1,4 @@
-package com.exam.assistant.feature.onboarding
+package com.exam.assistant.feature.onboarding.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import com.exam.assistant.core.design.AppTheme
@@ -25,6 +26,7 @@ import com.exam.assistant.core.design.AppType
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
+import com.exam.assistant.feature.onboarding.R
 
 @Composable
 internal fun OnboardingSelectableCard(
@@ -133,8 +135,8 @@ internal fun OnboardingHourPills(
 @Composable
 private fun HourPill(
     text: String,
-    background: androidx.compose.ui.graphics.Color,
-    textColor: androidx.compose.ui.graphics.Color,
+    background: Color,
+    textColor: Color,
 ) {
     Surface(
         color = background,

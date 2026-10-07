@@ -11,9 +11,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -28,8 +31,21 @@ import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.common.AppDispatchers
 import com.exam.assistant.core.design.AccentPalette
+import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.BackgroundAppearance
-import kotlin.math.roundToInt
+import com.exam.assistant.core.design.Radius
+import com.exam.assistant.core.design.Spacing
+import com.exam.assistant.feature.onboarding.components.OnboardingShell
+import com.exam.assistant.feature.onboarding.model.OnboardingStep
+import com.exam.assistant.feature.onboarding.model.OnboardingUiState
+import com.exam.assistant.feature.onboarding.steps.OnboardingAppearanceStep
+import com.exam.assistant.feature.onboarding.steps.OnboardingCoachingStep
+import com.exam.assistant.feature.onboarding.steps.OnboardingCommitmentsStep
+import com.exam.assistant.feature.onboarding.steps.OnboardingHoursParityStep
+import com.exam.assistant.feature.onboarding.steps.OnboardingPlanStep
+import com.exam.assistant.feature.onboarding.steps.OnboardingSyllabusStep
+import com.exam.assistant.feature.onboarding.steps.OnboardingTargetDateStep
+import java.time.LocalDate
 
 @Composable
 fun OnboardingRoute(
@@ -125,7 +141,7 @@ fun OnboardingScreen(
     onCommitmentEnd: (String, Int) -> Unit,
     onWake: (Int) -> Unit,
     onSleep: (Int) -> Unit,
-    onDate: (java.time.LocalDate) -> Unit,
+    onDate: (LocalDate) -> Unit,
     onSelectWork: (String) -> Unit,
     onWeekdayChange: (Float) -> Unit,
     onWeekendChange: (Float) -> Unit,
@@ -225,13 +241,13 @@ fun OnboardingScreen(
 
 @Composable
 internal fun CapacityIssuesCard(issues: List<CapacityIssue>) {
-    androidx.compose.material3.Surface(
-        modifier = Modifier.padding(top = com.exam.assistant.core.design.Spacing.md),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(com.exam.assistant.core.design.Radius.lg),
-        color = com.exam.assistant.core.design.AppTheme.colors.dangerContainer,
+    Surface(
+        modifier = Modifier.padding(top = Spacing.md),
+        shape = RoundedCornerShape(Radius.lg),
+        color = AppTheme.colors.dangerContainer,
     ) {
-        androidx.compose.foundation.layout.Column(Modifier.padding(com.exam.assistant.core.design.Spacing.lg)) {
-            Text(stringResource(R.string.onboarding_hours_do_not_fit), style = androidx.compose.material3.MaterialTheme.typography.titleSmall)
+        Column(Modifier.padding(Spacing.lg)) {
+            Text(stringResource(R.string.onboarding_hours_do_not_fit), style = MaterialTheme.typography.titleSmall)
             issues.forEach { issue ->
                 val value = when (issue) {
                     is CapacityIssue.Weekday -> stringResource(R.string.onboarding_hours_weekday_free, formatHours(issue.freeHours))

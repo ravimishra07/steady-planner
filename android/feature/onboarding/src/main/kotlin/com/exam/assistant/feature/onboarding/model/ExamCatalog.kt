@@ -1,7 +1,8 @@
-package com.exam.assistant.feature.onboarding
+package com.exam.assistant.feature.onboarding.model
 
 import androidx.annotation.StringRes
 import com.exam.assistant.domain.NEET_EXAM_ID
+import com.exam.assistant.feature.onboarding.R
 
 internal data class ExamOption(
     val id: String,

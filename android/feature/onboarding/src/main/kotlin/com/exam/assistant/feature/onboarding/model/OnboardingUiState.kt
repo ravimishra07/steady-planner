@@ -1,9 +1,11 @@
-package com.exam.assistant.feature.onboarding
+package com.exam.assistant.feature.onboarding.model
 
 import androidx.annotation.StringRes
 import com.exam.assistant.domain.Cushion
 import com.exam.assistant.domain.NEET_EXAM_ID
+import com.exam.assistant.feature.onboarding.R
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 data class OnboardingUiState(
     val loading: Boolean = true,
@@ -29,7 +31,7 @@ data class OnboardingUiState(
 ) {
     val canGoBack: Boolean get() = step != OnboardingStep.Appearance
     val daysUntilTarget: Int
-        get() = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), targetDate).toInt().coerceAtLeast(1)
+        get() = ChronoUnit.DAYS.between(LocalDate.now(), targetDate).toInt().coerceAtLeast(1)
 }
 
 enum class CoverageBaseline {

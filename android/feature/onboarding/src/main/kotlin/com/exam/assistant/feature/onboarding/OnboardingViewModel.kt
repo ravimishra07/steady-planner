@@ -29,6 +29,15 @@ import com.exam.assistant.domain.availableHours
 import com.exam.assistant.domain.cushion
 import com.exam.assistant.domain.leafIds
 import com.exam.assistant.domain.totalMinutes
+import com.exam.assistant.feature.onboarding.model.DAY_SHAPES
+import com.exam.assistant.feature.onboarding.model.ExamCatalog
+import com.exam.assistant.feature.onboarding.model.OnboardingCommitment
+import com.exam.assistant.feature.onboarding.model.OnboardingStep
+import com.exam.assistant.feature.onboarding.model.OnboardingSyllabusChapter
+import com.exam.assistant.feature.onboarding.model.OnboardingSyllabusSubject
+import com.exam.assistant.feature.onboarding.model.OnboardingUiState
+import com.exam.assistant.feature.onboarding.model.commitmentsForStudyMode
+import com.exam.assistant.feature.onboarding.model.defaultCommitments
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
