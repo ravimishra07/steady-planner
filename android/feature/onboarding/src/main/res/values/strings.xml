@@ -23,7 +23,6 @@
     <string name="onboarding_continue">Continue</string>
 
     <string name="onboarding_coaching_title">How do you study?</string>
-    <string name="onboarding_coaching_hint">Choose the option that shapes most of your day. You can add the rest next.</string>
     <string name="onboarding_coaching_self">Mostly self-study</string>
     <string name="onboarding_coaching_self_mode">No fixed classes</string>
     <string name="onboarding_coaching_school">School or college</string>
