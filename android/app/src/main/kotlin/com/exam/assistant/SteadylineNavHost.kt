@@ -35,6 +35,8 @@ import com.exam.assistant.feature.home.HomeRoute
 import com.exam.assistant.feature.onboarding.OnboardingRoute
 import com.exam.assistant.feature.progress.DayLogRoute
 import com.exam.assistant.feature.progress.LogSessionRoute
+import com.exam.assistant.feature.progress.MockFormRoute
+import com.exam.assistant.feature.progress.TestsRoute
 import com.exam.assistant.feature.progress.ProgressRoute
 import com.exam.assistant.feature.settings.MoreRoute
 import com.exam.assistant.feature.settings.AppearanceScreen
@@ -241,10 +243,12 @@ fun SteadylineNavHost(
                     revisionRepository = container.revisionRepository,
                     availabilityRepository = container.availabilityRepository,
                     chapterStageRepository = container.chapterStageRepository,
+                    mockTestRepository = container.mockTestRepository,
                     onOpenSettings = { navController.navigate(Route.Settings.path) },
                     onGoToday = { navController.navigate(Route.Home.path) { launchSingleTop = true } },
                     onOpenDay = { date -> navController.navigate(Route.DayLog.pathFor(date)) },
                     onLogStudy = { navController.navigate(Route.LogSession.newOn(null)) },
+                    onOpenTests = { navController.navigate(Route.Tests.path) },
                     modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                 )
             }
@@ -314,6 +318,29 @@ fun SteadylineNavHost(
                     onBack = { navController.popBackStack() },
                     onLogStudy = { date -> navController.navigate(Route.LogSession.newOn(date)) },
                     onEditSession = { id -> navController.navigate(Route.LogSession.edit(id)) },
+                    modifier = Modifier.padding(padding).consumeWindowInsets(padding),
+                )
+            }
+            composable(Route.Tests.path) {
+                TestsRoute(
+                    attemptRepository = container.attemptRepository,
+                    mockTestRepository = container.mockTestRepository,
+                    onBack = { navController.popBackStack() },
+                    onAddMock = { navController.navigate(Route.MockForm.new) },
+                    onEditMock = { id -> navController.navigate(Route.MockForm.edit(id)) },
+                    modifier = Modifier.padding(padding).consumeWindowInsets(padding),
+                )
+            }
+            composable(
+                route = Route.MockForm.path,
+                arguments = listOf(navArgument(Route.MockForm.ARG) { type = NavType.StringType; nullable = true; defaultValue = null }),
+            ) { entry ->
+                MockFormRoute(
+                    mockId = entry.arguments?.getString(Route.MockForm.ARG),
+                    examPackRepository = container.examPackRepository,
+                    attemptRepository = container.attemptRepository,
+                    mockTestRepository = container.mockTestRepository,
+                    onDone = { navController.popBackStack() },
                     modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                 )
             }

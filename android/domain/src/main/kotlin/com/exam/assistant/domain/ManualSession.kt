@@ -64,6 +64,7 @@ fun manualStudySession(
         focusLockUsed = false,
         interruptionCount = 0,
         customTitle = null,
+        isManual = true,
         createdAtEpochMs = nowMs,
         updatedAtEpochMs = nowMs,
     )

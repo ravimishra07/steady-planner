@@ -1,5 +1,6 @@
 package com.exam.assistant.core.data.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Entity
 import androidx.room.Index
@@ -51,6 +52,8 @@ data class StudySessionEntity(
     val customTitle: String?,
     val createdAtEpochMs: Long,
     val updatedAtEpochMs: Long,
+    /** Logged by hand rather than timed (§6.3). */
+    @ColumnInfo(defaultValue = "0") val isManual: Boolean = false,
 )
 
 fun StudySessionEntity.toDomain() = StudySession(
@@ -75,6 +78,7 @@ fun StudySessionEntity.toDomain() = StudySession(
     customTitle = customTitle,
     createdAtEpochMs = createdAtEpochMs,
     updatedAtEpochMs = updatedAtEpochMs,
+    isManual = isManual,
 )
 
 fun StudySession.toEntity() = StudySessionEntity(
@@ -99,6 +103,7 @@ fun StudySession.toEntity() = StudySessionEntity(
     customTitle = customTitle,
     createdAtEpochMs = createdAtEpochMs,
     updatedAtEpochMs = updatedAtEpochMs,
+    isManual = isManual,
 )
 
 @Entity(

@@ -53,6 +53,9 @@ data class StudySession(
 
     val createdAtEpochMs: Long,
     val updatedAtEpochMs: Long,
+
+    /** Logged by hand ("Log study I did offline", §6.3) rather than timed. Counted like any session. */
+    val isManual: Boolean = false,
 )
 
 enum class StudySessionStatus {

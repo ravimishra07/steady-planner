@@ -7,6 +7,10 @@ import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.AvailabilityRepository
 import com.exam.assistant.core.data.repo.ChapterStageRepository
+import com.exam.assistant.core.data.repo.MockTestRepository
+import com.exam.assistant.domain.MockMistake
+import com.exam.assistant.domain.findNode
+import com.exam.assistant.domain.mostLostChapters
 import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.RevisionRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
@@ -54,6 +58,7 @@ class ProgressViewModel(
     private val revisionRepository: RevisionRepository,
     private val availabilityRepository: AvailabilityRepository,
     private val chapterStageRepository: ChapterStageRepository,
+    private val mockTestRepository: MockTestRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(InsightsUiState())
     val state: StateFlow<InsightsUiState> = _state.asStateFlow()
@@ -69,6 +74,7 @@ class ProgressViewModel(
     private var calibration = Calibration.NONE
     private var fit: PlanFit? = null
     private var coaching = emptyList<ChapterCoaching>()
+    private var mistakes = emptyList<MockMistake>()
 
     init { refresh() }
 
@@ -92,6 +98,7 @@ class ProgressViewModel(
             calibration = rollingPlanRepository.calibration()
             fit = rollingPlanRepository.planFit(withOptions = false)
             coaching = chapterStageRepository.coachingFor(attempt.id)
+            mistakes = mockTestRepository.mistakesForAttempt(attempt.id)
             cachedPlan = InsightPlan(
                 startedOn = Instant.ofEpochMilli(attempt.createdAtEpochMs).atZone(ZoneId.systemDefault()).toLocalDate(),
                 targetDate = attempt.targetCompletionDate,
@@ -168,6 +175,9 @@ class ProgressViewModel(
                     )
                 },
                 loadFailed = false,
+                mostLost = mostLostChapters(mistakes).map { lost ->
+                    LostChapterUi(currentPack.findNode(lost.chapterId)?.title ?: lost.chapterId, lost.count)
+                },
             )
         }
     }
@@ -184,13 +194,14 @@ class ProgressViewModel(
         private val revisionRepository: RevisionRepository,
         private val availabilityRepository: AvailabilityRepository,
         private val chapterStageRepository: ChapterStageRepository,
+        private val mockTestRepository: MockTestRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T = ProgressViewModel(
             examPackRepository, attemptRepository, planRepository, studySessionRepository,
             topicProgressRepository, targetSyllabusRepository,
             rollingPlanRepository, studyPreferenceRepository,
-            revisionRepository, availabilityRepository, chapterStageRepository,
+            revisionRepository, availabilityRepository, chapterStageRepository, mockTestRepository,
         ) as T
     }
 }

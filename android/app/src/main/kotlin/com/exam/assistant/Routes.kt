@@ -37,4 +37,15 @@ sealed interface Route {
         fun edit(sessionId: String) = "log-session?$ARG_SESSION=$sessionId"
         const val NO_DAY = Long.MIN_VALUE
     }
+
+    /** The mock and test log (PRODUCTION_V1_PLAN §8.1). */
+    data object Tests : Route { override val path = "tests" }
+
+    /** Add a mock, or edit one when [ARG] is set. */
+    data object MockForm : Route {
+        const val ARG = "mockId"
+        override val path = "mock-form?$ARG={$ARG}"
+        val new = "mock-form"
+        fun edit(mockId: String) = "mock-form?$ARG=$mockId"
+    }
 }

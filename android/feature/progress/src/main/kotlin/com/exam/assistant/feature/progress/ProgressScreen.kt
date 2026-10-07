@@ -55,6 +55,8 @@ import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.AvailabilityRepository
 import com.exam.assistant.core.data.repo.ChapterStageRepository
+import com.exam.assistant.core.data.repo.MockTestRepository
+import androidx.compose.material3.OutlinedButton
 import com.exam.assistant.core.data.repo.RevisionRepository
 import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.StudySessionRepository
@@ -90,17 +92,19 @@ fun ProgressRoute(
     revisionRepository: RevisionRepository,
     availabilityRepository: AvailabilityRepository,
     chapterStageRepository: ChapterStageRepository,
+    mockTestRepository: MockTestRepository,
     modifier: Modifier = Modifier,
     onOpenSettings: () -> Unit = {},
     onGoToday: () -> Unit = {},
     onOpenDay: (java.time.LocalDate) -> Unit = {},
     onLogStudy: () -> Unit = {},
+    onOpenTests: () -> Unit = {},
     viewModel: ProgressViewModel = viewModel(
         factory = ProgressViewModel.Factory(
             examPackRepository, attemptRepository, planRepository, studySessionRepository,
             topicProgressRepository, targetSyllabusRepository,
             rollingPlanRepository, studyPreferenceRepository,
-            revisionRepository, availabilityRepository, chapterStageRepository,
+            revisionRepository, availabilityRepository, chapterStageRepository, mockTestRepository,
         ),
     ),
 ) {
@@ -113,6 +117,7 @@ fun ProgressRoute(
         onGoToday = onGoToday,
         onOpenDay = onOpenDay,
         onLogStudy = onLogStudy,
+        onOpenTests = onOpenTests,
         onManageTarget = viewModel::openTargetManager,
         onCloseTargetManager = viewModel::closeTargetManager,
         onToggleSection = viewModel::toggleSectionTarget,
@@ -129,6 +134,7 @@ fun ProgressScreen(
     onGoToday: () -> Unit = {},
     onOpenDay: (java.time.LocalDate) -> Unit = {},
     onLogStudy: () -> Unit = {},
+    onOpenTests: () -> Unit = {},
     onManageTarget: () -> Unit = {},
     onCloseTargetManager: () -> Unit = {},
     onToggleSection: (String) -> Unit = {},
@@ -157,7 +163,7 @@ fun ProgressScreen(
 
     val data = state.data
     if (!data.hasStudyHistory) {
-        EmptyProgressScreen(data = data, onGoToday = onGoToday, onLogStudy = onLogStudy, modifier = modifier)
+        EmptyProgressScreen(data = data, onGoToday = onGoToday, onLogStudy = onLogStudy, onOpenTests = onOpenTests, modifier = modifier)
         return
     }
     Column(
@@ -189,6 +195,9 @@ fun ProgressScreen(
         }
         InsightsSection(title = stringResource(R.string.insights_revision), subtitle = stringResource(R.string.insights_revision_subtitle)) {
             RevisionCard(data)
+        }
+        InsightsSection(title = stringResource(R.string.tests_title), subtitle = stringResource(R.string.insights_tests_subtitle)) {
+            TestsCard(state.mostLost, onOpenTests)
         }
 
         PeriodSelector(selected = state.period, onSelect = onPeriodSelected)
@@ -232,7 +241,13 @@ fun ProgressScreen(
 }
 
 @Composable
-private fun EmptyProgressScreen(data: InsightsData, onGoToday: () -> Unit, onLogStudy: () -> Unit, modifier: Modifier = Modifier) {
+private fun EmptyProgressScreen(
+    data: InsightsData,
+    onGoToday: () -> Unit,
+    onLogStudy: () -> Unit,
+    onOpenTests: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val colors = AppTheme.colors
     Column(
         modifier = modifier
@@ -274,6 +289,9 @@ private fun EmptyProgressScreen(data: InsightsData, onGoToday: () -> Unit, onLog
                 Text(stringResource(R.string.progress_start_next))
             }
             LogStudyButton(onClick = onLogStudy)
+            OutlinedButton(onClick = onOpenTests, modifier = Modifier.fillMaxWidth().height(Size.touchTarget)) {
+                Text(stringResource(R.string.tests_open))
+            }
         }
         Spacer(Modifier.height(Spacing.xxl))
     }
@@ -781,6 +799,45 @@ private fun RevisionCard(data: InsightsData) {
                 TextButton(onClick = { showDue = !showDue }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.insights_revision_action)) }
                 if (showDue) data.revision.dueTitles.forEach { title -> Text(stringResource(R.string.insights_bullet_item, title), style = MaterialTheme.typography.bodySmall, color = colors.textSecondary, modifier = Modifier.padding(top = Spacing.xs)) }
             }
+        }
+    }
+}
+
+@Composable
+private fun TestsCard(mostLost: List<LostChapterUi>, onOpenTests: () -> Unit) {
+    AppCard {
+        Column(modifier = Modifier.padding(Spacing.lg)) {
+            MostLostChapters(mostLost)
+            OutlinedButton(onClick = onOpenTests, modifier = Modifier.fillMaxWidth().padding(top = Spacing.md)) {
+                Text(stringResource(R.string.tests_open))
+            }
+        }
+    }
+}
+
+// PRO: most-lost chapters list — entry point a later billing phase gates.
+@Composable
+private fun MostLostChapters(mostLost: List<LostChapterUi>) {
+    val colors = AppTheme.colors
+    Text(stringResource(R.string.insights_most_lost), style = MaterialTheme.typography.titleSmall, color = colors.text, fontWeight = FontWeight.SemiBold)
+    if (mostLost.isEmpty()) {
+        Text(
+            stringResource(R.string.insights_most_lost_empty),
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.textMuted,
+            modifier = Modifier.padding(top = Spacing.xs),
+        )
+        return
+    }
+    mostLost.forEach { chapter ->
+        Row(modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(chapter.title, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary, modifier = Modifier.weight(1f))
+            Text(
+                pluralStringResource(R.plurals.insights_most_lost_count, chapter.count, chapter.count),
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.warning,
+                fontWeight = FontWeight.SemiBold,
+            )
         }
     }
 }

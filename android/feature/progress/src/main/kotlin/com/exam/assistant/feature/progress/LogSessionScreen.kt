@@ -302,7 +302,7 @@ private fun PickerRow(text: String, selected: Boolean, onClick: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SessionDatePicker(date: LocalDate, onDate: (LocalDate) -> Unit, onDismiss: () -> Unit) {
+internal fun SessionDatePicker(date: LocalDate, onDate: (LocalDate) -> Unit, onDismiss: () -> Unit) {
     val maxMillis = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
     val pickerState = rememberDatePickerState(
         initialSelectedDateMillis = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),

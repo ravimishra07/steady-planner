@@ -12,7 +12,11 @@ data class InsightsUiState(
     val targetSections: List<TargetSectionUi> = emptyList(),
     val showTargetManager: Boolean = false,
     val loadFailed: Boolean = false,
+    /** "Most-lost chapters" from the mistake log (§8.2), most tagged first. */
+    val mostLost: List<LostChapterUi> = emptyList(),
 )
+
+data class LostChapterUi(val title: String, val count: Int)
 
 data class TargetSectionUi(
     val key: String,

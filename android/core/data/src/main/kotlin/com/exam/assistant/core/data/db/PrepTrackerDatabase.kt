@@ -28,8 +28,10 @@ import java.time.LocalDate
         ChapterOverrideEntity::class,
         ChapterCoachingEntity::class,
         BatchPositionEntity::class,
+        MockTestEntity::class,
+        MockMistakeEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -45,6 +47,7 @@ abstract class PrepTrackerDatabase : RoomDatabase() {
     abstract fun chapterStageDao(): ChapterStageDao
     abstract fun chapterOverrideDao(): ChapterOverrideDao
     abstract fun coachingDao(): CoachingDao
+    abstract fun mockTestDao(): MockTestDao
 
     companion object {
         @Volatile
@@ -56,7 +59,7 @@ abstract class PrepTrackerDatabase : RoomDatabase() {
                     context.applicationContext,
                     PrepTrackerDatabase::class.java,
                     "prep_tracker.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                     .build()
                     .also { instance = it }
             }
@@ -164,6 +167,29 @@ abstract class PrepTrackerDatabase : RoomDatabase() {
                     "CREATE TABLE IF NOT EXISTS `batch_position` (`attemptId` TEXT NOT NULL, `chapterId` TEXT NOT NULL, " +
                         "`lecture` INTEGER NOT NULL, `updatedAtEpochMs` INTEGER NOT NULL, PRIMARY KEY(`attemptId`))",
                 )
+            }
+        }
+
+        /**
+         * Mock log and mistake tags (PRODUCTION_V1_PLAN §8.1, §8.2), plus the manual-entry flag on
+         * sessions (§6.3). Additive only: no mock rows means no mock history, and every existing
+         * session was timed, so isManual defaults to 0.
+         */
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `mock_test` (`id` TEXT NOT NULL, `attemptId` TEXT NOT NULL, " +
+                        "`dateEpochDay` INTEGER NOT NULL, `name` TEXT NOT NULL, `type` TEXT NOT NULL, " +
+                        "`physics` INTEGER, `chemistry` INTEGER, `botany` INTEGER, `zoology` INTEGER, " +
+                        "`total` INTEGER NOT NULL, `maxTotal` INTEGER NOT NULL DEFAULT 720, " +
+                        "`attempted` INTEGER, `correct` INTEGER, `wrong` INTEGER, PRIMARY KEY(`id`))",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_mock_test_attemptId` ON `mock_test` (`attemptId`)")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `mock_mistake` (`mockId` TEXT NOT NULL, `chapterId` TEXT NOT NULL, " +
+                        "`type` TEXT NOT NULL, PRIMARY KEY(`mockId`, `chapterId`))",
+                )
+                db.execSQL("ALTER TABLE study_session ADD COLUMN isManual INTEGER NOT NULL DEFAULT 0")
             }
         }
 

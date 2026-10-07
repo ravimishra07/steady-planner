@@ -18,6 +18,7 @@ import com.exam.assistant.core.data.repo.AvailabilityRepository
 import com.exam.assistant.core.data.repo.ChapterStageRepository
 import com.exam.assistant.core.data.repo.MigrationRepository
 import com.exam.assistant.core.data.repo.MigrationStore
+import com.exam.assistant.core.data.repo.MockTestRepository
 import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.RevisionRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
@@ -81,6 +82,7 @@ class AppContainer(private val context: Context) {
     val topicProgressRepository: TopicProgressRepository by lazy { TopicProgressRepository(context, dispatchers) }
     val revisionRepository: RevisionRepository by lazy { RevisionRepository(context, dispatchers) }
     val chapterStageRepository: ChapterStageRepository by lazy { ChapterStageRepository(context, dispatchers) }
+    val mockTestRepository: MockTestRepository by lazy { MockTestRepository(context, dispatchers) }
     val stageLabelStore: StageLabelStore by lazy { StageLabelStore(context, dispatchers) }
     val rollingPlanRepository: RollingPlanRepository by lazy {
         RollingPlanRepository(context, dispatchers, examPackRepository)

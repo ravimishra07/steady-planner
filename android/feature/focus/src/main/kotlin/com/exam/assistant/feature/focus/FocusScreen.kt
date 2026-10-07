@@ -172,7 +172,7 @@ fun FocusScreen(
     onExtend: () -> Unit,
     onSelectQueueItem: (String) -> Unit,
     onRequestStop: () -> Unit,
-    onDuration: (Int) -> Unit = {},
+    onDuration: (Int) -> Unit,
     onSavePartialAndStop: () -> Unit,
     onDiscardAndStop: () -> Unit,
     onDismissStop: () -> Unit,

@@ -514,3 +514,40 @@ fun coachingBacklogMetrics(
         clearDate = backlogClearDate(total, dailyMinutes, liveSplitPct, today),
     )
 }
+
+// ---------------------------------------------------------------------------
+// Mocks and mistakes (PRODUCTION_V1_PLAN §8)
+// ---------------------------------------------------------------------------
+
+/** How many lost-marks chapters "Most-lost chapters" lists. */
+const val MOST_LOST_LIMIT = 5
+
+data class LostChapter(val chapterId: String, val count: Int)
+
+/** Chapters tagged in the most mocks, most first; ties broken by chapter id so the order is stable. */
+fun mostLostChapters(mistakes: Collection<MockMistake>, limit: Int = MOST_LOST_LIMIT): List<LostChapter> =
+    mistakes.groupingBy { it.chapterId }.eachCount()
+        .map { (id, count) -> LostChapter(id, count) }
+        .sortedWith(compareByDescending<LostChapter> { it.count }.thenBy { it.chapterId })
+        .take(limit)
+
+/** One mock on the trend chart: its total and, where given, each subject. */
+data class MockTrendPoint(
+    val mockId: String,
+    val date: LocalDate,
+    val total: Int,
+    val maxTotal: Int,
+    val subjects: Map<MockSubject, Int>,
+)
+
+/** The mocks in date order for the trend chart; same-day mocks keep their entry order. */
+fun mockTrend(mocks: Collection<MockTest>): List<MockTrendPoint> =
+    mocks.sortedBy { it.date }.map { mock ->
+        MockTrendPoint(
+            mockId = mock.id,
+            date = mock.date,
+            total = mock.total,
+            maxTotal = mock.maxTotal,
+            subjects = MockSubject.entries.mapNotNull { subject -> mock.score(subject)?.let { subject to it } }.toMap(),
+        )
+    }
