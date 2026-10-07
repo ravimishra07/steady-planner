@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="onboarding_commitments_time_range">%1$s to %2$s</string>
+    <string name="onboarding_commitments_duration">%1$s h</string>
     <string name="onboarding_back">Back</string>
 
     <string name="onboarding_appearance_title">Theme</string>

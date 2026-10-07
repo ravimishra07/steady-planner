@@ -307,7 +307,7 @@ internal fun OnboardingCommitmentsStep(
                         },
                         shape = CircleShape,
                         color = Color.Transparent,
-                        border = BorderStroke(Stroke.hairline, AppTheme.colors.border),
+                        border = BorderStroke(Stroke.hairline, AppTheme.colors.outline),
                     ) {
                         Text(stringResource(preset), modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm), style = MaterialTheme.typography.labelLarge)
                     }
@@ -377,10 +377,10 @@ private fun CommitmentCard(
                 Icon(Icons.Filled.Groups, null, tint = AppTheme.colors.brand)
                 Text(label, modifier = Modifier.weight(1f).padding(start = Spacing.sm), style = MaterialTheme.typography.titleMedium)
                 Text(
+                    // Start and end are already in the fields below; the header shows only the length.
                     stringResource(
-                        R.string.onboarding_commitments_time_range,
-                        clockLabel(commitment.startMinute),
-                        clockLabel(commitment.endMinute),
+                        R.string.onboarding_commitments_duration,
+                        planHour(((commitment.endMinute - commitment.startMinute + 24 * 60) % (24 * 60)) / 60f),
                     ),
                     style = MaterialTheme.typography.labelMedium,
                     color = AppTheme.colors.textSecondary,
@@ -418,13 +418,13 @@ private fun CommitmentCard(
                             },
                         shape = CircleShape,
                         color = if (selected) AppTheme.colors.brandDeep else Color.Transparent,
-                        border = if (selected) null else BorderStroke(Stroke.hairline, AppTheme.colors.border),
+                        border = if (selected) null else BorderStroke(Stroke.hairline, AppTheme.colors.outline),
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
                                 stringResource(labelRes),
                                 style = MaterialTheme.typography.labelLarge,
-                                color = if (selected) AppTheme.colors.onBrand else AppTheme.colors.textSecondary,
+                                color = if (selected) AppTheme.colors.onBrand else AppTheme.colors.text,
                             )
                         }
                     }
@@ -484,7 +484,7 @@ private fun TimeField(label: String, minute: Int, onChange: (Int) -> Unit, modif
     var open by remember { mutableStateOf(false) }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = AppTheme.colors.textSecondary)
-        Surface(onClick = { open = true }, shape = RoundedCornerShape(Radius.sm), border = BorderStroke(Stroke.hairline, AppTheme.colors.border), color = Color.Transparent) {
+        Surface(onClick = { open = true }, shape = RoundedCornerShape(Radius.sm), border = BorderStroke(Stroke.hairline, AppTheme.colors.outline), color = Color.Transparent) {
             Text(clockLabel(minute), modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Size.summaryTrack), style = MaterialTheme.typography.bodyMedium)
         }
     }
@@ -777,7 +777,7 @@ internal fun OnboardingHoursParityStep(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(Radius.md),
                         color = Color.Transparent,
-                        border = selectionBorder(selected) ?: BorderStroke(Stroke.hairline, AppTheme.colors.border),
+                        border = selectionBorder(selected) ?: BorderStroke(Stroke.hairline, AppTheme.colors.outline),
                     ) {
                         Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             Text(stringResource(shape.labelRes), style = MaterialTheme.typography.labelLarge)
