@@ -9,6 +9,9 @@ data class OrganiseChapterRow(
     val subjectId: String,
     val subjectName: String,
     val title: String,
+    /** The bundled (or custom-added) title, for "Reset to original name". */
+    val originalTitle: String = title,
+    val renamed: Boolean = false,
     val estimatedMinutes: Int,
     val excluded: Boolean,
     val custom: Boolean,

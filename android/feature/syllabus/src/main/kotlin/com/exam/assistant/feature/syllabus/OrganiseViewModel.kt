@@ -20,6 +20,8 @@ import com.exam.assistant.domain.TopicProgress
 import com.exam.assistant.domain.syllabusMetrics
 import com.exam.assistant.domain.findNode
 import com.exam.assistant.domain.totalMinutes
+import com.exam.assistant.domain.cleanChapterTitle
+import com.exam.assistant.domain.withChapterTitles
 import java.time.LocalDate
 import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,6 +43,8 @@ class OrganiseViewModel(
     val state: StateFlow<OrganiseUiState> = _state.asStateFlow()
 
     private var pack: ExamPack? = null
+    private var basePack: ExamPack? = null
+    private var chapterTitles: Map<String, String> = emptyMap()
     private var originalExcluded = emptySet<String>()
     private var draftExcluded = emptySet<String>()
     private var originalCustom = emptyList<CustomSyllabusChapter>()
@@ -60,7 +64,9 @@ class OrganiseViewModel(
             _state.value = OrganiseUiState(loading = false)
             return@launch
         }
-        pack = examPackRepository.examPackFor(attempt.examId)
+        basePack = examPackRepository.examPackFor(attempt.examId)
+        chapterTitles = examPackRepository.chapterTitles(attempt.id)
+        pack = basePack?.withChapterTitles(chapterTitles)
         originalCustom = examPackRepository.customChapters(attempt.examId)
         draftCustom = originalCustom
         originalExcluded = targetSyllabusRepository.overridesFor(attempt.id)
@@ -107,6 +113,17 @@ class OrganiseViewModel(
         draftCustom = draftCustom.filterNot { it.id == id }
         draftExcluded = draftExcluded - id
         refreshDraftPackAndPreview()
+    }
+
+    /** Renames take effect at once, like on Syllabus: a name is not a plan change to preview. */
+    fun renameChapter(chapterId: String, title: String?) = viewModelScope.launch {
+        val attempt = attemptRepository.activeAttempt() ?: return@launch
+        val original = basePack?.findNode(chapterId)?.title ?: return@launch
+        examPackRepository.renameChapter(attempt.id, chapterId, cleanChapterTitle(title, original))
+        chapterTitles = examPackRepository.chapterTitles(attempt.id)
+        pack = basePack?.withChapterTitles(chapterTitles)
+        originalRows = originalRows.map { row -> row.copy(title = chapterTitles[row.id] ?: row.originalTitle) }
+        refreshPreview()
     }
 
     fun discard() {
@@ -157,7 +174,8 @@ class OrganiseViewModel(
     fun consumeSaved() = _state.update { it.copy(saved = false) }
 
     private fun refreshDraftPackAndPreview() = viewModelScope.launch {
-        pack = examPackRepository.packWithCustom(_state.value.examId, draftCustom)
+        basePack = examPackRepository.packWithCustom(_state.value.examId, draftCustom)
+        pack = basePack?.withChapterTitles(chapterTitles)
         refreshPreview()
     }
 
@@ -207,6 +225,8 @@ class OrganiseViewModel(
                     subjectId = subject.id,
                     subjectName = subject.name,
                     title = node.title,
+                    originalTitle = if (node.id in chapterTitles) basePack?.findNode(node.id)?.title ?: node.title else node.title,
+                    renamed = node.id in chapterTitles,
                     estimatedMinutes = node.totalMinutes(),
                     excluded = node.id in draftExcluded,
                     custom = node.id in customIds,

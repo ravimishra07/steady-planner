@@ -29,6 +29,8 @@ import com.exam.assistant.domain.leafIds
 import com.exam.assistant.domain.totalMinutes
 import com.exam.assistant.domain.TargetNodeState
 import com.exam.assistant.domain.isNodeEffectivelyExcluded
+import com.exam.assistant.domain.cleanChapterTitle
+import com.exam.assistant.domain.withChapterTitles
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,6 +58,9 @@ class SyllabusViewModel(
     val state: StateFlow<SyllabusUiState> = _state.asStateFlow()
 
     private var pack: ExamPack? = null
+    /** The pack with bundled titles, for "Reset to original name". */
+    private var basePack: ExamPack? = null
+    private var chapterTitles: Map<String, String> = emptyMap()
     private var attemptId: String? = null
     private var progress: List<TopicProgress> = emptyList()
     private var metrics: SyllabusMetrics? = null
@@ -78,7 +83,9 @@ class SyllabusViewModel(
         viewModelScope.launch {
             val attempt = attemptRepository.activeAttempt()
             attemptId = attempt?.id
-            pack = attempt?.let { examPackRepository.examPackFor(it.examId) }
+            basePack = attempt?.let { examPackRepository.examPackFor(it.examId) }
+            chapterTitles = attempt?.let { examPackRepository.chapterTitles(it.id) }.orEmpty()
+            pack = basePack?.withChapterTitles(chapterTitles)
             targetOverrides = attempt?.let { active ->
                 targetStates(targetSyllabusRepository.overridesFor(active.id))
             }.orEmpty()
@@ -157,6 +164,34 @@ class SyllabusViewModel(
         viewModelScope.launch {
             chapterStageRepository.adjustCount(id, chapterId, ChapterStage.REVISED, delta = -1, nowMs = System.currentTimeMillis())
             reloadProgress()
+        }
+    }
+
+    /** Renames a chapter everywhere (§5.2). Null, blank or the original title resets it. */
+    fun renameChapter(chapterId: String, title: String?) {
+        val id = attemptId ?: return
+        val original = basePack?.findNode(chapterId)?.title ?: return
+        viewModelScope.launch {
+            examPackRepository.renameChapter(id, chapterId, cleanChapterTitle(title, original))
+            chapterTitles = examPackRepository.chapterTitles(id)
+            pack = basePack?.withChapterTitles(chapterTitles)
+            rebuild()
+        }
+    }
+
+    /** Park or unpark a chapter: the same exclusion Organise writes, then the plan refills. */
+    fun toggleParked(chapterId: String) {
+        val id = attemptId ?: return
+        viewModelScope.launch {
+            val nowMs = System.currentTimeMillis()
+            if (targetOverrides[chapterId] == TargetNodeState.EXCLUDED) {
+                targetSyllabusRepository.clearOverride(id, chapterId)
+            } else {
+                targetSyllabusRepository.setState(id, chapterId, TargetNodeState.EXCLUDED, nowMs)
+            }
+            targetOverrides = targetStates(targetSyllabusRepository.overridesFor(id))
+            rollingPlanRepository.replenish(nowMs = nowMs)
+            rebuild()
         }
     }
 
@@ -361,6 +396,13 @@ class SyllabusViewModel(
             classNumber = node.id.split('.').getOrNull(2)?.toIntOrNull(),
             excluded = isNodeEffectivelyExcluded(node.id, ancestorIds, targetOverrides),
             priority = if (ancestorIds.isEmpty() && priorityLoaded) priorityTable.forChapter(node.id) else null,
+            isChapter = ancestorIds.isEmpty(),
+            renamed = ancestorIds.isEmpty() && node.id in chapterTitles,
+            originalName = if (ancestorIds.isEmpty() && node.id in chapterTitles) {
+                basePack?.findNode(node.id)?.title.orEmpty()
+            } else {
+                node.title
+            },
             stageChips = if (ancestorIds.isEmpty()) {
                 stageChipsFor(node, learned = tickState == com.exam.assistant.domain.SyllabusTickState.ALL)
             } else {

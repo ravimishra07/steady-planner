@@ -249,7 +249,7 @@ class FocusViewModel(
         _state.update { it.copy(learnPrompt = null) }
         viewModelScope.launch {
             val attempt = attemptRepository.activeAttempt() ?: return@launch
-            val chapter = examPackRepository.examPackFor(attempt.examId).chapterOf(prompt.chapterId) ?: return@launch
+            val chapter = examPackRepository.examPackFor(attempt.examId, attempt.id).chapterOf(prompt.chapterId) ?: return@launch
             val nowMs = System.currentTimeMillis()
             topicProgressRepository.setCovered(attempt.id, chapter.leafIds(), covered = true, nowMs = nowMs)
             rollingPlanRepository.replenish(nowMs = nowMs)
@@ -265,7 +265,7 @@ class FocusViewModel(
         if (session == null || session.activityType != StudyActivityType.LEARN) return null
         val nodeId = session.nodeId ?: return null
         val attempt = attemptRepository.activeAttempt() ?: return null
-        val chapter = examPackRepository.examPackFor(attempt.examId).chapterOf(nodeId) ?: return null
+        val chapter = examPackRepository.examPackFor(attempt.examId, attempt.id).chapterOf(nodeId) ?: return null
         val covered = topicProgressRepository.allOnce(attempt.id)
             .filter { it.status == com.exam.assistant.domain.TopicProgressStatus.COVERED }
             .map { it.nodeId }
@@ -411,7 +411,7 @@ class FocusViewModel(
 
     private suspend fun resolveBlock(block: StudyPlanBlock): FocusBlockRef {
         val attempt = attemptRepository.activeAttempt()
-        val pack = attempt?.let { examPackRepository.examPackFor(it.examId) }
+        val pack = attempt?.let { examPackRepository.examPackFor(it.examId, it.id) }
         val node = block.nodeId?.let { pack?.findNode(it) }
         val subject = block.nodeId?.let { pack?.findSubjectOf(it) }
         return block.toFocusBlock(

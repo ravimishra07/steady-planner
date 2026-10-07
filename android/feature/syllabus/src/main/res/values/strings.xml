@@ -102,4 +102,11 @@
     <string name="syllabus_stage_labels_body">Rename a stage, untick it to hide it, or name your own stage in the last row. Only Learned counts toward coverage.</string>
     <string name="syllabus_stage_labels_save">Save</string>
     <string name="syllabus_stage_labels_cancel">Cancel</string>
+    <string name="syllabus_chapter_menu">Chapter options</string>
+    <string name="syllabus_chapter_rename">Rename chapter</string>
+    <string name="syllabus_chapter_reset_name">Reset to original name</string>
+    <string name="syllabus_chapter_original_name">Original name: %1$s</string>
+    <string name="syllabus_chapter_park">Park chapter</string>
+    <string name="syllabus_chapter_unpark">Unpark</string>
+    <string name="syllabus_chapter_coaching">Coaching lectures &amp; DPPs</string>
 </resources>

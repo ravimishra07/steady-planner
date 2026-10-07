@@ -115,7 +115,7 @@ class HomeViewModel(
         viewModelScope.launch {
             val attempt = attemptRepository.activeAttempt()
             attemptId = attempt?.id
-            pack = attempt?.let { examPackRepository.examPackFor(it.examId) }
+            pack = attempt?.let { examPackRepository.examPackFor(it.examId, it.id) }
             sections = pack?.toPickerSections().orEmpty()
             val preferences = attempt?.let { studyPreferenceRepository.forAttempt(it.id) }
             weekdayHours = preferences?.weekdayTargetMinutes?.div(60f) ?: 4f

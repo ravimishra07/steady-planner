@@ -5,7 +5,10 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.exam.assistant.core.common.AppDispatchers
+import com.exam.assistant.core.data.db.ChapterOverrideEntity
+import com.exam.assistant.core.data.db.PrepTrackerDatabase
 import com.exam.assistant.domain.ExamPack
+import com.exam.assistant.domain.withChapterTitles
 import com.exam.assistant.domain.ExamSubject
 import com.exam.assistant.domain.NEET_EXAM_ID
 import com.exam.assistant.domain.PyqPriorityTable
@@ -38,6 +41,7 @@ class ExamPackRepository(
     private val context: Context,
     private val dispatchers: AppDispatchers,
 ) {
+    private val db by lazy { PrepTrackerDatabase.get(context) }
     private val bundledCache = mutableMapOf<String, ExamPack>()
     private var priorityCache: PyqPriorityTable? = null
 
@@ -65,6 +69,33 @@ class ExamPackRepository(
      */
     suspend fun examPackFor(examId: String): ExamPack = withContext(dispatchers.default) {
         packWithCustom(examId, customChapters(examId))
+    }
+
+    /**
+     * The pack as [attemptId]'s student sees it: custom chapters plus their chapter renames
+     * (§5.2). Screens that show chapter titles load the pack through here, so one rename shows
+     * everywhere.
+     */
+    suspend fun examPackFor(examId: String, attemptId: String?): ExamPack {
+        val pack = examPackFor(examId)
+        return if (attemptId == null) pack else pack.withChapterTitles(chapterTitles(attemptId))
+    }
+
+    /** The student's chapter renames, by chapter id. */
+    suspend fun chapterTitles(attemptId: String): Map<String, String> = withContext(dispatchers.io) {
+        db.chapterOverrideDao().allOnce(attemptId)
+            .mapNotNull { row -> row.customTitle?.takeIf { it.isNotBlank() }?.let { row.chapterId to it } }
+            .toMap()
+    }
+
+    /** Renames a chapter for this attempt. A null or blank [title] restores the original name. */
+    suspend fun renameChapter(attemptId: String, chapterId: String, title: String?) = withContext(dispatchers.io) {
+        val dao = db.chapterOverrideDao()
+        if (title.isNullOrBlank()) {
+            dao.delete(attemptId, chapterId)
+        } else {
+            dao.upsert(ChapterOverrideEntity(attemptId, chapterId, title.trim()))
+        }
     }
 
     suspend fun packWithCustom(examId: String, custom: List<CustomSyllabusChapter>): ExamPack = withContext(dispatchers.default) {

@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material3.AlertDialog
@@ -111,6 +112,7 @@ fun OrganiseRoute(
         onToggleIncluded = viewModel::toggleIncluded,
         onAddChapter = viewModel::addChapter,
         onRemoveChapter = viewModel::removeChapter,
+        onRenameChapter = viewModel::renameChapter,
         onOrder = viewModel::setOrder,
         onDiscard = viewModel::discard,
         onApply = viewModel::apply,
@@ -126,11 +128,13 @@ fun OrganiseScreen(
     onToggleIncluded: (String) -> Unit,
     onAddChapter: (String, Float, String) -> Unit,
     onRemoveChapter: (String) -> Unit,
+    onRenameChapter: (String, String?) -> Unit,
     onOrder: (PlanningOrder) -> Unit,
     onDiscard: () -> Unit,
     onApply: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var renameRow by remember { mutableStateOf<OrganiseChapterRow?>(null) }
     var view by remember { mutableStateOf(OrganiseView.PLAN) }
     var addOpen by remember { mutableStateOf(false) }
     var previewOpen by remember { mutableStateOf(false) }
@@ -213,10 +217,20 @@ fun OrganiseScreen(
                         onToggleIncluded = onToggleIncluded,
                         onAdd = { addOpen = true },
                         onRemove = onRemoveChapter,
+                        onRename = { renameRow = it },
                     )
                 }
             }
         }
+    }
+
+    renameRow?.let { row ->
+        RenameChapterDialog(
+            currentName = row.title,
+            originalName = row.originalTitle,
+            onSave = { name -> onRenameChapter(row.id, name) },
+            onDismiss = { renameRow = null },
+        )
     }
 
     if (addOpen) {
@@ -436,6 +450,7 @@ private fun SyllabusDraft(
     onToggleIncluded: (String) -> Unit,
     onAdd: () -> Unit,
     onRemove: (String) -> Unit,
+    onRename: (OrganiseChapterRow) -> Unit,
 ) {
     val colors = AppTheme.colors
     val pyqFirstYear = state.pyqFirstYear
@@ -511,6 +526,9 @@ private fun SyllabusDraft(
                                 onClick = { priorityDetail = PriorityDetail(row.title, priority) },
                             )
                         }
+                    }
+                    IconButton(onClick = { onRename(row) }) {
+                        Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.syllabus_chapter_rename), tint = colors.textSecondary)
                     }
                     if (row.custom) IconButton(onClick = { onRemove(row.id) }) {
                         Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.organise_delete_chapter), tint = colors.error)

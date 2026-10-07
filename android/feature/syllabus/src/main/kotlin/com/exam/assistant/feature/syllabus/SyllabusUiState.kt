@@ -28,6 +28,11 @@ data class SyllabusTreeRow(
     val excluded: Boolean = false,
     /** Set on chapter rows once the PYQ table has loaded. Never zero for "no data": see [ChapterPriority]. */
     val priority: ChapterPriority? = null,
+    /** A top-level chapter row: carries the chapter menu (rename, park, coaching). */
+    val isChapter: Boolean = false,
+    /** The student renamed this chapter; [originalName] is the bundled title. */
+    val renamed: Boolean = false,
+    val originalName: String = "",
     /** Chapter rows only: the student's visible stages, in order. */
     val stageChips: List<StageChipUi> = emptyList(),
 )

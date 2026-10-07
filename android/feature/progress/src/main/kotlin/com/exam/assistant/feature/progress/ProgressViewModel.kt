@@ -78,7 +78,7 @@ class ProgressViewModel(
             attemptId = attempt.id
             val today = LocalDate.now()
             val preferences = studyPreferenceRepository.forAttempt(attempt.id)
-            pack = examPackRepository.examPackFor(attempt.examId)
+            pack = examPackRepository.examPackFor(attempt.examId, attempt.id)
             val start = (studySessionRepository.earliestStudyDate(attempt.id) ?: today).coerceAtMost(today.minusDays(83))
             sessions = studySessionRepository.between(attempt.id, start, today)
             planBlocks = planRepository.planBetween(attempt.id, start, today)

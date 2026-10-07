@@ -126,6 +126,8 @@ fun SyllabusRoute(
         onTapStage = viewModel::tapStage,
         onUndoRevision = viewModel::undoRevision,
         onSaveStageLabels = viewModel::saveStageLabels,
+        onRenameChapter = viewModel::renameChapter,
+        onToggleParked = viewModel::toggleParked,
         onStartTopic = onStartTopic,
         onOrganise = onOrganise,
         modifier = modifier,
@@ -143,11 +145,22 @@ fun SyllabusScreen(
     onTapStage: (String, ChapterStage) -> Unit,
     onUndoRevision: (String) -> Unit,
     onSaveStageLabels: (StageLabels) -> Unit,
+    onRenameChapter: (String, String?) -> Unit,
+    onToggleParked: (String) -> Unit,
     onStartTopic: (PendingSyllabusPick) -> Unit,
     onOrganise: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var stageLabelsOpen by remember { mutableStateOf(false) }
+    var renameRow by remember { mutableStateOf<SyllabusTreeRow?>(null) }
+    val onChapterAction: (SyllabusTreeRow, ChapterAction) -> Unit = { row, action ->
+        when (action) {
+            ChapterAction.RENAME -> renameRow = row
+            ChapterAction.RESET_NAME -> onRenameChapter(row.key, null)
+            ChapterAction.PARK -> onToggleParked(row.key)
+            ChapterAction.COACHING -> Unit
+        }
+    }
     var filters by remember { mutableStateOf<Set<SyllabusFilter>>(emptySet()) }
     var filtersOpen by remember { mutableStateOf(false) }
     var priorityDetail by remember { mutableStateOf<PriorityDetail?>(null) }
@@ -241,6 +254,7 @@ fun SyllabusScreen(
                                 pyqFirstYear = state.pyqFirstYear,
                                 pyqLastYear = state.pyqLastYear,
                                 onPriorityClick = { priorityDetail = it },
+                                onChapterAction = onChapterAction,
                             )
                         }
                     }
@@ -254,6 +268,15 @@ fun SyllabusScreen(
                 firstYear = state.pyqFirstYear,
                 lastYear = state.pyqLastYear,
                 onDismiss = { priorityDetail = null },
+            )
+        }
+
+        renameRow?.let { row ->
+            RenameChapterDialog(
+                currentName = row.name,
+                originalName = row.originalName,
+                onSave = { name -> onRenameChapter(row.key, name) },
+                onDismiss = { renameRow = null },
             )
         }
 
@@ -554,6 +577,7 @@ private fun SubjectCard(
     pyqFirstYear: Int,
     pyqLastYear: Int,
     onPriorityClick: (PriorityDetail) -> Unit,
+    onChapterAction: (SyllabusTreeRow, ChapterAction) -> Unit,
 ) {
     val colors = AppTheme.colors
     AppCard(
@@ -659,6 +683,7 @@ private fun SubjectCard(
                             pyqFirstYear = pyqFirstYear,
                             pyqLastYear = pyqLastYear,
                             onPriorityClick = onPriorityClick,
+                            onChapterAction = onChapterAction,
                         )
                     }
                 }
@@ -687,6 +712,7 @@ private fun SyllabusRowView(
     pyqFirstYear: Int,
     pyqLastYear: Int,
     onPriorityClick: (PriorityDetail) -> Unit,
+    onChapterAction: (SyllabusTreeRow, ChapterAction) -> Unit,
 ) {
     val colors = AppTheme.colors
     val muted = row.tickState == SyllabusTickState.ALL || row.excluded
@@ -794,6 +820,13 @@ private fun SyllabusRowView(
             state = row.tickState,
             onClick = { onToggleTick(row.key) },
         )
+        if (row.isChapter) {
+            ChapterMenuButton(
+                renamed = row.renamed,
+                parked = row.excluded,
+                onAction = { action -> onChapterAction(row, action) },
+            )
+        }
         if (!row.hasChildren) {
             Spacer(Modifier.width(Spacing.sm))
             PlayButton(
