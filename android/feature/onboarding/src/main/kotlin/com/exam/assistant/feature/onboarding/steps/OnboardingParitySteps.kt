@@ -91,6 +91,7 @@ import com.exam.assistant.feature.onboarding.CapacityIssue
 import com.exam.assistant.feature.onboarding.CommitmentIssue
 import com.exam.assistant.feature.onboarding.R
 import com.exam.assistant.feature.onboarding.components.OnboardingSelectableCard
+import com.exam.assistant.feature.onboarding.components.selectionBorder
 import com.exam.assistant.feature.onboarding.model.DAY_SHAPES
 import com.exam.assistant.feature.onboarding.model.ExamCatalog
 import com.exam.assistant.feature.onboarding.model.OnboardingCommitment
@@ -123,7 +124,8 @@ internal fun OnboardingAppearanceStep(
                 Surface(
                     onClick = { onAccent(option) },
                     modifier = Modifier.weight(1f),
-                    color = if (selected) AppTheme.colors.selectionContainer else AppTheme.colors.elevated,
+                    color = AppTheme.colors.elevated,
+                    border = selectionBorder(selected),
                     shape = RoundedCornerShape(Radius.md),
                 ) {
                     Column(
@@ -154,7 +156,8 @@ internal fun OnboardingAppearanceStep(
                 Surface(
                     onClick = { onBackground(option) },
                     modifier = Modifier.weight(1f),
-                    color = if (selected) AppTheme.colors.selectionContainer else AppTheme.colors.elevated,
+                    color = AppTheme.colors.elevated,
+                    border = selectionBorder(selected),
                     shape = RoundedCornerShape(Radius.md),
                 ) {
                     Column(
@@ -214,12 +217,6 @@ private val primaryCoachingChoices = listOf(
 @Composable
 internal fun OnboardingCoachingStep(selectedId: String, onSelect: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Text(
-            stringResource(R.string.onboarding_coaching_hint),
-            style = MaterialTheme.typography.bodyMedium,
-            color = AppTheme.colors.textSecondary,
-            modifier = Modifier.padding(bottom = Spacing.sm),
-        )
         primaryCoachingChoices.forEach { choice ->
             CoachingRow(choice, selected = selectedId == choice.id) {
                 onSelect(choice.id)
@@ -233,30 +230,31 @@ private fun CoachingRow(choice: CoachingChoice, selected: Boolean, onClick: () -
     Surface(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(Radius.lg),
-        color = if (selected) AppTheme.colors.selectionContainer else AppTheme.colors.elevated,
+        shape = RoundedCornerShape(Radius.md),
+        color = AppTheme.colors.elevated,
+        border = selectionBorder(selected),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().height(Size.themePreview).padding(horizontal = Spacing.lg),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
-            Icon(choice.icon, null, tint = if (selected) AppTheme.colors.onSelectionContainer else AppTheme.colors.textSecondary)
+            Icon(choice.icon, null, tint = if (selected) AppTheme.colors.brandDeep else AppTheme.colors.textSecondary)
             Column(Modifier.weight(1f)) {
                 Text(
                     stringResource(choice.nameRes),
                     style = MaterialTheme.typography.bodyLarge,
-                    color = if (selected) AppTheme.colors.onSelectionContainer else AppTheme.colors.text,
+                    color = AppTheme.colors.text,
                 )
                 choice.modeRes?.let { modeRes ->
                     Text(
                         stringResource(modeRes),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (selected) AppTheme.colors.onSelectionContainer else AppTheme.colors.textSecondary,
+                        color = AppTheme.colors.textSecondary,
                     )
                 }
             }
-            if (selected) Icon(Icons.Filled.CheckCircle, null, tint = AppTheme.colors.onSelectionContainer)
+            if (selected) Icon(Icons.Filled.CheckCircle, null, tint = AppTheme.colors.brandDeep)
         }
     }
 }
@@ -315,7 +313,7 @@ internal fun OnboardingCommitmentsStep(
             }
         }
         if (state.commitments.isEmpty()) {
-            Surface(shape = RoundedCornerShape(Radius.lg), border = BorderStroke(Stroke.hairline, AppTheme.colors.border), color = Color.Transparent) {
+            Surface(shape = RoundedCornerShape(Radius.md), border = BorderStroke(Stroke.hairline, AppTheme.colors.border), color = Color.Transparent) {
                 Row(Modifier.padding(Spacing.lg), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Icon(Icons.Filled.EventAvailable, null)
                     Text(stringResource(R.string.onboarding_commitments_empty))
@@ -371,7 +369,7 @@ private fun CommitmentCard(
     val label = commitment.customLabel ?: defaultLabel
     var showRename by remember(commitment.id) { mutableStateOf(false) }
     var draftLabel by remember(commitment.id) { mutableStateOf(label) }
-    Surface(shape = RoundedCornerShape(Radius.lg), color = AppTheme.colors.elevated) {
+    Surface(shape = RoundedCornerShape(Radius.md), color = AppTheme.colors.elevated) {
         Column(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Groups, null, tint = AppTheme.colors.brand)
@@ -417,14 +415,14 @@ private fun CommitmentCard(
                                 contentDescription = dayName
                             },
                         shape = CircleShape,
-                        color = if (selected) AppTheme.colors.selectionContainer else Color.Transparent,
+                        color = if (selected) AppTheme.colors.brandDeep else Color.Transparent,
                         border = if (selected) null else BorderStroke(Stroke.hairline, AppTheme.colors.border),
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
                                 stringResource(labelRes),
                                 style = MaterialTheme.typography.labelLarge,
-                                color = if (selected) AppTheme.colors.onSelectionContainer else AppTheme.colors.textSecondary,
+                                color = if (selected) AppTheme.colors.onBrand else AppTheme.colors.textSecondary,
                             )
                         }
                     }
@@ -581,9 +579,7 @@ internal fun OnboardingTargetDateStep(
                 Text(targetDate.format(formatter), style = MaterialTheme.typography.titleLarge)
                 Text(stringResource(R.string.onboarding_date_personal_target), style = MaterialTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
             }
-            Surface(shape = CircleShape, color = AppTheme.colors.selectionContainer) {
-                Text(pluralStringResource(R.plurals.onboarding_date_days_chip, days, days), modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm), style = MaterialTheme.typography.labelLarge)
-            }
+            Text(pluralStringResource(R.plurals.onboarding_date_days_chip, days, days), style = MaterialTheme.typography.titleMedium, color = AppTheme.colors.text)
         }
         ExamDateRow(examDate, examDateOfficial, examDateIsConfigured, onExamDate)
         DatePicker(
@@ -648,23 +644,13 @@ private fun ExamDateRow(
     }
 }
 
-/**
- * "Which class / attempt?", then "Mark chapters you've already finished": tick a whole subject or class and
- * untick the exceptions. A dropper starts with everything ticked.
- */
+/** "Which class / attempt?" A dropper starts with the syllabus marked finished once. */
 @Composable
 internal fun OnboardingStartStep(
     state: OnboardingUiState,
     onSelectStartingPoint: (StartingPoint) -> Unit,
-    onToggleSubject: (String) -> Unit,
-    onToggleChapter: (String) -> Unit,
-    onToggleClass: (Int) -> Unit,
 ) {
-    var expandedSubjectId by remember { mutableStateOf<String?>(null) }
-    val allChapters = state.syllabusSubjects.flatMap { it.chapters }
-    val finishedCount = allChapters.count { it.id in state.coveredChapterIds }
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        AppearanceLabel(R.string.onboarding_start_question)
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         listOf(
             Triple(StartingPoint.CLASS_11, R.string.onboarding_start_class_11, R.string.onboarding_start_class_11_detail),
             Triple(StartingPoint.CLASS_12, R.string.onboarding_start_class_12, R.string.onboarding_start_class_12_detail),
@@ -676,82 +662,9 @@ internal fun OnboardingStartStep(
                 onClick = { onSelectStartingPoint(point) },
                 showUnselectedIndicator = true,
                 trailing = {
-                    Text(stringResource(detail), style = MaterialTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
+                    Text(stringResource(detail), style = MaterialTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
                 },
             )
-        }
-        if (state.startingPoint != null && allChapters.isNotEmpty()) {
-            Spacer(Modifier.height(Spacing.md))
-            AppearanceLabel(R.string.onboarding_finished_title)
-            Text(
-                pluralStringResource(R.plurals.onboarding_finished_summary, allChapters.size, finishedCount, allChapters.size),
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-            )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                listOf(11, 12).forEach { classNumber ->
-                    val ids = allChapters.filter { it.classNumber == classNumber }.map { it.id }
-                    if (ids.isNotEmpty()) {
-                        FilterChip(
-                            selected = ids.all { it in state.coveredChapterIds },
-                            onClick = { onToggleClass(classNumber) },
-                            label = { Text(stringResource(R.string.onboarding_finished_all_class, classNumber)) },
-                            modifier = Modifier.heightIn(min = Size.touchTarget),
-                        )
-                    }
-                }
-            }
-            state.syllabusSubjects.forEach { subject ->
-                val ids = subject.chapters.map { it.id }
-                val done = ids.count { it in state.coveredChapterIds }
-                val all = ids.isNotEmpty() && done == ids.size
-                Surface(
-                    shape = RoundedCornerShape(Radius.lg),
-                    border = BorderStroke(Stroke.hairline, AppTheme.colors.border),
-                    color = AppTheme.colors.elevated,
-                ) {
-                    Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.xs, top = Spacing.sm, bottom = Spacing.sm),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Text(subject.name, style = MaterialTheme.typography.titleMedium)
-                                Text(
-                                    stringResource(R.string.onboarding_finished_subject_count, done, ids.size),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = AppTheme.colors.textSecondary,
-                                )
-                            }
-                            TextButton(onClick = { onToggleSubject(subject.id) }, modifier = Modifier.heightIn(min = Size.touchTarget)) {
-                                Text(stringResource(if (all) R.string.onboarding_finished_clear else R.string.onboarding_finished_all))
-                            }
-                            IconButton(onClick = { expandedSubjectId = if (expandedSubjectId == subject.id) null else subject.id }) {
-                                Icon(
-                                    if (expandedSubjectId == subject.id) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                                    contentDescription = stringResource(
-                                        if (expandedSubjectId == subject.id) R.string.onboarding_syllabus_collapse_subject
-                                        else R.string.onboarding_syllabus_expand_subject,
-                                        subject.name,
-                                    ),
-                                )
-                            }
-                        }
-                        if (expandedSubjectId == subject.id) {
-                            subject.chapters.forEach { chapter ->
-                                OnboardingSelectableCard(
-                                    title = chapter.name,
-                                    selected = chapter.id in state.coveredChapterIds,
-                                    onClick = { onToggleChapter(chapter.id) },
-                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-                                    showUnselectedIndicator = true,
-                                )
-                            }
-                            Box(Modifier.height(Spacing.sm))
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -767,20 +680,8 @@ internal fun OnboardingSyllabusStep(
     val selectedCount = state.selectedChapterIds.size
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         if (ExamCatalog.hasBundledSyllabus(state.examId)) {
-            Surface(shape = RoundedCornerShape(Radius.lg), color = AppTheme.colors.selectionContainer) {
-                Row(Modifier.padding(Spacing.lg), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Check, null)
-                    Column {
-                        Text(stringResource(R.string.onboarding_syllabus_ncert_ready), style = MaterialTheme.typography.titleSmall)
-                        Text(
-                            stringResource(R.string.onboarding_syllabus_selected_count, selectedCount, chapterCount),
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                }
-            }
             Text(
-                stringResource(R.string.onboarding_syllabus_choose_hint),
+                stringResource(R.string.onboarding_syllabus_selected_count, selectedCount, chapterCount),
                 style = MaterialTheme.typography.bodyMedium,
                 color = AppTheme.colors.textSecondary,
             )
@@ -789,7 +690,7 @@ internal fun OnboardingSyllabusStep(
                 val subjectSelectedCount = subjectIds.count { it in state.selectedChapterIds }
                 val allSubjectSelected = subjectIds.isNotEmpty() && subjectSelectedCount == subjectIds.size
                 Surface(
-                    shape = RoundedCornerShape(Radius.lg),
+                    shape = RoundedCornerShape(Radius.md),
                     border = BorderStroke(Stroke.hairline, AppTheme.colors.border),
                     color = AppTheme.colors.elevated,
                 ) {
@@ -847,8 +748,8 @@ internal fun OnboardingSyllabusStep(
                 }
             }
         } else {
-            Surface(shape = RoundedCornerShape(Radius.lg), border = BorderStroke(Stroke.hairline, AppTheme.colors.border), color = Color.Transparent) {
-                Text(stringResource(R.string.onboarding_syllabus_blank), modifier = Modifier.padding(Spacing.xl), style = MaterialTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+            Surface(shape = RoundedCornerShape(Radius.md), border = BorderStroke(Stroke.hairline, AppTheme.colors.border), color = Color.Transparent) {
+                Text(stringResource(R.string.onboarding_syllabus_blank), modifier = Modifier.padding(Spacing.lg), style = MaterialTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
             }
         }
     }
@@ -872,11 +773,11 @@ internal fun OnboardingHoursParityStep(
                     Surface(
                         onClick = { onSelectWork(shape.id) },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(Radius.lg),
-                        color = if (selected) AppTheme.colors.selectionContainer else Color.Transparent,
-                        border = if (selected) null else BorderStroke(Stroke.hairline, AppTheme.colors.border),
+                        shape = RoundedCornerShape(Radius.md),
+                        color = Color.Transparent,
+                        border = selectionBorder(selected) ?: BorderStroke(Stroke.hairline, AppTheme.colors.border),
                     ) {
-                        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+                        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             Text(stringResource(shape.labelRes), style = MaterialTheme.typography.labelLarge)
                             Text(
                                 stringResource(R.string.onboarding_shape_weekday_hours, planHour(shape.weekdayHours)),
@@ -905,16 +806,14 @@ internal fun OnboardingHoursParityStep(
             maximum = 16f,
             onChange = onWeekendChange,
         )
-        Surface(shape = RoundedCornerShape(Radius.lg), color = AppTheme.colors.elevated) {
+        Surface(shape = RoundedCornerShape(Radius.md), color = AppTheme.colors.elevated) {
             Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.onboarding_hours_each_week), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
-                Surface(shape = CircleShape, color = AppTheme.colors.selectionContainer) {
-                    Text(
-                        stringResource(R.string.onboarding_hours_weekly_value, planHour(weeklyHours)),
-                        modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
+                Text(
+                    stringResource(R.string.onboarding_hours_weekly_value, planHour(weeklyHours)),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = AppTheme.colors.text,
+                )
             }
         }
         if (capacityIssues.isNotEmpty()) CapacityIssuesCard(capacityIssues)
@@ -995,11 +894,11 @@ internal fun OnboardingPlanStep(
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     PlanStatRow(
                         stringResource(R.string.onboarding_plan_stat_learn),
-                        stringResource(R.string.onboarding_plan_hours_value, planHour(fit.learnMinutes / 60f), estimateLabel),
+                        stringResource(R.string.onboarding_plan_hours_value, planHour(fit.learnMinutes / 60f)),
                     )
                     PlanStatRow(
                         stringResource(R.string.onboarding_plan_stat_practice),
-                        stringResource(R.string.onboarding_plan_hours_value, planHour(fit.practiceMinutes / 60f), estimateLabel),
+                        stringResource(R.string.onboarding_plan_hours_value, planHour(fit.practiceMinutes / 60f)),
                     )
                     PlanStatRow(
                         stringResource(R.string.onboarding_plan_stat_revision),
@@ -1007,14 +906,6 @@ internal fun OnboardingPlanStep(
                             pluralStringResource(R.plurals.onboarding_plan_revision_days, fit.revisionWindowDays, fit.revisionWindowDays)
                         } else {
                             stringResource(R.string.onboarding_plan_revision_none)
-                        },
-                    )
-                    PlanStatRow(
-                        stringResource(R.string.onboarding_plan_stat_verdict),
-                        if (fit.fits) {
-                            stringResource(R.string.onboarding_plan_stat_fits)
-                        } else {
-                            stringResource(R.string.onboarding_plan_stat_short, planHour(fit.shortByMinutes / 60f), estimateLabel)
                         },
                     )
                 }
@@ -1076,10 +967,6 @@ internal fun OnboardingPlanStep(
                 modifier = Modifier.padding(start = Spacing.sm),
             )
         }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Icon(Icons.Filled.Settings, null, modifier = Modifier.size(Size.smallIcon), tint = AppTheme.colors.textSecondary)
-            Text(stringResource(R.string.onboarding_plan_settings_note), style = MaterialTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
-        }
         // §11.3: the usage-data disclosure, on the last step before the plan is made.
         Text(stringResource(R.string.onboarding_usage_data_note), style = MaterialTheme.typography.bodySmall, color = AppTheme.colors.textMuted)
     }
@@ -1132,7 +1019,7 @@ private fun FitOptions(
                     R.string.onboarding_plan_option_continue,
                 )
             }
-            Surface(shape = RoundedCornerShape(Radius.lg), color = AppTheme.colors.elevated) {
+            Surface(shape = RoundedCornerShape(Radius.md), color = AppTheme.colors.elevated) {
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md),
                     verticalAlignment = Alignment.CenterVertically,
@@ -1157,7 +1044,7 @@ private fun PlanSummaryRow(
     editing: Boolean,
     editor: @Composable () -> Unit,
 ) {
-    Surface(shape = RoundedCornerShape(Radius.lg), color = AppTheme.colors.elevated) {
+    Surface(shape = RoundedCornerShape(Radius.md), color = AppTheme.colors.elevated) {
         Column {
             Row(
                 modifier = Modifier.fillMaxWidth().height(Size.ctaHeight).padding(horizontal = Spacing.lg),

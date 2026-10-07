@@ -1,5 +1,8 @@
 package com.exam.assistant.feature.onboarding.components
 
+import androidx.compose.foundation.BorderStroke
+import com.exam.assistant.core.design.Stroke
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -43,12 +46,10 @@ internal fun OnboardingSelectableCard(
     val interactive = enabled
     val background = when {
         !interactive -> colors.surfaceControl
-        selected -> colors.selectionContainer
         else -> colors.elevated
     }
     val titleColor = when {
         !interactive -> colors.textDisabled
-        selected -> colors.onSelectionContainer
         else -> colors.text
     }
     Surface(
@@ -57,8 +58,9 @@ internal fun OnboardingSelectableCard(
         modifier = modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = Size.ctaHeight),
-        shape = RoundedCornerShape(Radius.lg),
+        shape = RoundedCornerShape(Radius.md),
         color = background,
+        border = selectionBorder(selected && interactive),
     ) {
         Row(
             modifier = Modifier
@@ -87,7 +89,7 @@ internal fun OnboardingSelectionIndicator(
         selected -> Icon(
             imageVector = Icons.Filled.CheckCircle,
             contentDescription = null,
-            tint = colors.onSelectionContainer,
+            tint = colors.brandDeep,
             modifier = Modifier.size(Size.selectionIndicator),
         )
         enabled -> Icon(
@@ -153,3 +155,8 @@ private fun HourPill(
 
 private fun formatHour(value: Float): String =
     if (value == value.toLong().toFloat()) value.toLong().toString() else value.toString()
+
+/** Selected = accent outline on the normal surface. Never a tinted fill with same-hue text. */
+@Composable
+internal fun selectionBorder(selected: Boolean): BorderStroke? =
+    if (selected) BorderStroke(Stroke.selected, AppTheme.colors.brandDeep) else null

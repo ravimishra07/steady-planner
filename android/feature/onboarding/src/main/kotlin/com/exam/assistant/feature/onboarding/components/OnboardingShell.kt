@@ -70,7 +70,7 @@ internal fun OnboardingShell(
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineLarge,
+                style = MaterialTheme.typography.headlineSmall,
                 color = colors.text,
                 modifier = Modifier.padding(bottom = Spacing.xxl),
             )

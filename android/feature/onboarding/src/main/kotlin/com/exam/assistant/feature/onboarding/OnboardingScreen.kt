@@ -241,9 +241,6 @@ fun OnboardingScreen(
             OnboardingStep.Start -> OnboardingStartStep(
                 state = state,
                 onSelectStartingPoint = onSelectStartingPoint,
-                onToggleSubject = onToggleFinishedSubject,
-                onToggleChapter = onToggleFinishedChapter,
-                onToggleClass = onToggleFinishedClass,
             )
             OnboardingStep.Syllabus -> OnboardingSyllabusStep(
                 state = state,
@@ -276,7 +273,7 @@ fun OnboardingScreen(
 internal fun CapacityIssuesCard(issues: List<CapacityIssue>) {
     Surface(
         modifier = Modifier.padding(top = Spacing.md),
-        shape = RoundedCornerShape(Radius.lg),
+        shape = RoundedCornerShape(Radius.md),
         color = AppTheme.colors.dangerContainer,
     ) {
         Column(Modifier.padding(Spacing.lg)) {

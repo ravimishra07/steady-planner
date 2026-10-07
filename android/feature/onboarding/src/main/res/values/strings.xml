@@ -3,7 +3,7 @@
     <string name="onboarding_commitments_time_range">%1$s to %2$s</string>
     <string name="onboarding_back">Back</string>
 
-    <string name="onboarding_appearance_title">Choose a theme</string>
+    <string name="onboarding_appearance_title">Theme</string>
     <string name="onboarding_appearance_accent">Accent</string>
     <string name="onboarding_appearance_background">Background</string>
     <string name="onboarding_accent_blue">Blue</string>
@@ -27,16 +27,16 @@
     <string name="onboarding_coaching_self">Mostly self-study</string>
     <string name="onboarding_coaching_self_mode">No fixed classes</string>
     <string name="onboarding_coaching_school">School or college</string>
-    <string name="onboarding_coaching_school_mode">Starts with a school-day schedule</string>
+    <string name="onboarding_coaching_school_mode">School-day schedule</string>
     <string name="onboarding_coaching_choice">Coaching-led</string>
-    <string name="onboarding_coaching_choice_mode">Starts with a coaching schedule</string>
+    <string name="onboarding_coaching_choice_mode">Coaching schedule</string>
 
-    <string name="onboarding_commitments_title">What\'s already fixed?</string>
-    <string name="onboarding_commitments_lede">Add classes, meals, travel, or anything else you can\'t move.</string>
-    <string name="onboarding_commitments_wake_after_sleep">Lights out must be after wake-up time.</string>
+    <string name="onboarding_commitments_title">Fixed times</string>
+    <string name="onboarding_commitments_lede">Classes, meals, travel.</string>
+    <string name="onboarding_commitments_wake_after_sleep">Lights out must be after wake-up.</string>
     <string name="onboarding_commitments_no_days">%1$s needs at least one day.</string>
     <string name="onboarding_commitments_invalid_range">%1$s must end after it starts.</string>
-    <string name="onboarding_commitments_outside_waking">%1$s sits outside your waking hours.</string>
+    <string name="onboarding_commitments_outside_waking">%1$s is outside waking hours.</string>
     <string name="onboarding_commitments_starts">Starts</string>
     <string name="onboarding_commitments_ends">Ends</string>
     <string name="onboarding_commitments_remove">Remove %1$s</string>
@@ -50,8 +50,8 @@
     <string name="onboarding_commitments_awake">Awake between</string>
     <string name="onboarding_commitments_up_at">Up at</string>
     <string name="onboarding_commitments_lights_out">Lights out</string>
-    <string name="onboarding_commitments_plan_around">We\'ll schedule study only in the gaps around these times. You can change them later.</string>
-    <string name="onboarding_commitments_empty">No fixed times added yet.</string>
+    <string name="onboarding_commitments_plan_around">Study fills the gaps.</string>
+    <string name="onboarding_commitments_empty">Nothing added</string>
     <string name="onboarding_commitment_school">School / college</string>
     <string name="onboarding_commitment_coaching">Coaching class</string>
     <string name="onboarding_commitment_lecture">Online lectures</string>
@@ -77,17 +77,17 @@
     <string name="onboarding_day_friday_full">Friday</string>
     <string name="onboarding_day_saturday_full">Saturday</string>
 
-    <string name="onboarding_date_title">Do you have a date you want to finish the syllabus by?</string>
+    <string name="onboarding_date_title">Finish-by date?</string>
     <string name="onboarding_mode_yes">Yes, I have a date</string>
-    <string name="onboarding_mode_yes_detail">We spread the remaining work over the days up to it and show the hours it needs against the hours you have.</string>
+    <string name="onboarding_mode_yes_detail">Plan to a date</string>
     <string name="onboarding_mode_not_yet">Not yet</string>
-    <string name="onboarding_mode_not_yet_detail">Set your daily hours only. We line up the next work and show a projected finish from your pace.</string>
+    <string name="onboarding_mode_not_yet_detail">Plan from daily hours</string>
     <string name="onboarding_exam_date_change">Change exam date</string>
     <string name="onboarding_ok">OK</string>
     <string name="onboarding_cancel">Cancel</string>
     <string name="onboarding_date_personal_target">Finish-by date</string>
     <string name="onboarding_date_exam_official">NEET exam: %1$s</string>
-    <string name="onboarding_date_exam_expected">NEET exam: expected %1$s (not yet announced)</string>
+    <string name="onboarding_date_exam_expected">NEET: %1$s (expected)</string>
     <plurals name="onboarding_date_days_chip">
         <item quantity="one">%1$d day</item>
         <item quantity="other">%1$d days</item>
@@ -99,29 +99,29 @@
     <string name="onboarding_shape_weekday_hours">%1$sh weekday</string>
     <string name="onboarding_shape_weekend_hours">%1$sh weekend</string>
 
-    <string name="onboarding_hours_title">Realistic study hours</string>
+    <string name="onboarding_hours_title">Study hours</string>
     <string name="onboarding_hours_weekdays">Weekdays</string>
     <string name="onboarding_hours_weekends">Weekends</string>
     <string name="onboarding_hours_value">%1$s hrs</string>
     <string name="onboarding_hours_decrease">Decrease %1$s study time</string>
     <string name="onboarding_hours_increase">Increase %1$s study time</string>
-    <string name="onboarding_hours_start_schedule">Choose a starting point</string>
+    <string name="onboarding_hours_start_schedule">Start from</string>
     <string name="onboarding_hours_each_week">Each week</string>
     <string name="onboarding_hours_weekly_value">%1$s hours</string>
-    <string name="onboarding_hours_do_not_fit">The hours do not fit yet</string>
-    <string name="onboarding_hours_weekday_free">Your tightest weekday has %1$s free hours.</string>
-    <string name="onboarding_hours_weekend_free">Your tightest weekend day has %1$s free hours.</string>
-    <string name="onboarding_hours_fix_hint">Lower the hours, or go back and change fixed commitments.</string>
+    <string name="onboarding_hours_do_not_fit">Hours don\'t fit</string>
+    <string name="onboarding_hours_weekday_free">Weekday: %1$s h free</string>
+    <string name="onboarding_hours_weekend_free">Weekend: %1$s h free</string>
+    <string name="onboarding_hours_fix_hint">Lower hours or edit fixed times.</string>
     <string name="onboarding_build_plan">Build my plan</string>
 
-    <string name="onboarding_start_title">Where are you starting from?</string>
+    <string name="onboarding_start_title">Which class?</string>
     <string name="onboarding_start_question">Which class / attempt?</string>
     <string name="onboarding_start_class_11">Class 11</string>
-    <string name="onboarding_start_class_11_detail">Most of the syllabus is still ahead of you.</string>
+    <string name="onboarding_start_class_11_detail">Starting fresh</string>
     <string name="onboarding_start_class_12">Class 12</string>
-    <string name="onboarding_start_class_12_detail">Class 11 is behind you; Class 12 is in progress.</string>
+    <string name="onboarding_start_class_12_detail">Class 11 done</string>
     <string name="onboarding_start_dropper">Dropper / repeater</string>
-    <string name="onboarding_start_dropper_detail">You have been through most of it once. We mark it finished and lean the plan on revision.</string>
+    <string name="onboarding_start_dropper_detail">Revision first</string>
     <string name="onboarding_finished_title">Chapters you have already finished</string>
     <plurals name="onboarding_finished_summary">
         <item quantity="one">%1$d of %2$d chapter marked finished. Tick a subject or class, then untick the exceptions.</item>
@@ -131,10 +131,10 @@
     <string name="onboarding_finished_subject_count">%1$d / %2$d finished</string>
     <string name="onboarding_finished_all">All finished</string>
     <string name="onboarding_finished_clear">Clear</string>
-    <string name="onboarding_syllabus_title">Choose what to cover</string>
+    <string name="onboarding_syllabus_title">Syllabus</string>
     <string name="onboarding_syllabus_custom_title">Your own syllabus</string>
     <string name="onboarding_syllabus_ncert_ready">NCERT syllabus is ready</string>
-    <string name="onboarding_syllabus_selected_count">Selection: %1$d / %2$d</string>
+    <string name="onboarding_syllabus_selected_count">%1$d of %2$d chapters</string>
     <string name="onboarding_syllabus_choose_hint">All chapters are included. Open a subject only if you want to remove something.</string>
     <string name="onboarding_syllabus_subject_selected">%1$d / %2$d</string>
     <string name="onboarding_syllabus_select_all">Select all</string>
@@ -143,16 +143,16 @@
     <string name="onboarding_syllabus_collapse_subject">Collapse %1$s</string>
     <string name="onboarding_syllabus_class">Class %1$d</string>
     <string name="onboarding_syllabus_other">Other chapters</string>
-    <string name="onboarding_syllabus_blank">Setup will take you to Organise next. A daily plan starts only after you add at least one chapter; the app will not invent work for an empty syllabus.</string>
+    <string name="onboarding_syllabus_blank">Add chapters next in Organise.</string>
 
     <string name="onboarding_plan_title">Your plan</string>
-    <string name="onboarding_plan_verdict_empty"><b>Add at least one chapter</b> before starting day 1. Open Syllabus, then Organise.</string>
-    <string name="onboarding_plan_fits">Your selected syllabus fits by <b>%1$s</b>.</string>
-    <string name="onboarding_plan_short">Short by about <b>%1$s h</b> %2$s before %3$s. Pick how to close the gap.</string>
-    <string name="onboarding_plan_steady">Steady plan: no finish-by date. We sequence the next work from your daily hours and show a projected finish as you go.</string>
+    <string name="onboarding_plan_verdict_empty">Add a chapter to start.</string>
+    <string name="onboarding_plan_fits">Fits by %1$s</string>
+    <string name="onboarding_plan_short">Short by %1$s h %2$s</string>
+    <string name="onboarding_plan_steady">No finish date. Finish shown from your pace.</string>
     <string name="onboarding_plan_projected_finish">Projected finish</string>
     <string name="onboarding_plan_projected_value">%1$s (estimate)</string>
-    <string name="onboarding_plan_projected_none">Add a little more time each day to see a projected finish date.</string>
+    <string name="onboarding_plan_projected_none">Add time to see a finish date.</string>
     <string name="onboarding_plan_estimate_label">(estimate)</string>
     <string name="onboarding_plan_at_your_pace">(at your pace)</string>
     <string name="onboarding_plan_stat_learn">Learn</string>
@@ -161,24 +161,24 @@
     <string name="onboarding_plan_stat_verdict">Before finish-by</string>
     <string name="onboarding_plan_stat_fits">Fits</string>
     <string name="onboarding_plan_stat_short">Short by %1$s h %2$s</string>
-    <string name="onboarding_plan_hours_value">~%1$s h %2$s</string>
+    <string name="onboarding_plan_hours_value">~%1$s h</string>
     <plurals name="onboarding_plan_revision_days">
-        <item quantity="one">%1$d day before the exam</item>
-        <item quantity="other">%1$d days before the exam</item>
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
     </plurals>
-    <string name="onboarding_plan_revision_none">None: finish-by is the exam date</string>
+    <string name="onboarding_plan_revision_none">None</string>
     <string name="onboarding_plan_options_title">How to fit it</string>
     <string name="onboarding_plan_option_add">Add %1$d min a day</string>
-    <string name="onboarding_plan_option_add_detail">Weekdays and weekends. Everything fits by %1$s.</string>
+    <string name="onboarding_plan_option_add_detail">Fits by %1$s</string>
     <plurals name="onboarding_plan_option_park">
         <item quantity="one">Park %1$d lowest-yield chapter</item>
         <item quantity="other">Park %1$d lowest-yield chapters</item>
     </plurals>
-    <string name="onboarding_plan_option_park_detail">Frees about %1$s h (estimate). Lowest past-paper yield first.</string>
+    <string name="onboarding_plan_option_park_detail">Frees ~%1$s h</string>
     <string name="onboarding_plan_option_move">Move finish-by to %1$s</string>
-    <string name="onboarding_plan_option_move_detail">The earliest date it all fits. Less time for revision.</string>
+    <string name="onboarding_plan_option_move_detail">Less revision time</string>
     <string name="onboarding_plan_option_accept">Accept about %1$d%% coverage</string>
-    <string name="onboarding_plan_option_accept_detail">Keep this plan. The rest stays unplanned.</string>
+    <string name="onboarding_plan_option_accept_detail">Rest stays unplanned</string>
     <string name="onboarding_plan_option_apply">Apply</string>
     <string name="onboarding_plan_option_continue">Continue</string>
     <string name="onboarding_plan_every_weekday">Every weekday</string>
@@ -191,7 +191,7 @@
     <string name="onboarding_plan_settings_note">You can edit your plan any time in Settings.</string>
     <string name="onboarding_plan_add_chapters">Add chapters</string>
     <string name="onboarding_start_day_one">Start day 1</string>
-    <string name="onboarding_finish_failed">Your plan could not be saved. Please try again.</string>
+    <string name="onboarding_finish_failed">Couldn\'t save. Try again.</string>
     <string name="onboarding_dismiss">Dismiss</string>
-    <string name="onboarding_usage_data_note">The app shares anonymous usage data and crash reports (Google Firebase) to improve. Your plan and progress stay on this phone. Turn it off any time in Settings → Privacy.</string>
+    <string name="onboarding_usage_data_note">Anonymous usage data on. Change in Settings.</string>
 </resources>

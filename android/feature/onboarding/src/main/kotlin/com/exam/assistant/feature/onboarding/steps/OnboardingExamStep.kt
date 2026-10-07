@@ -41,11 +41,7 @@ internal fun OnboardingExamStep(
                             else R.string.onboarding_exam_add_chapters,
                         ),
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (selected) {
-                            AppTheme.colors.onSelectionContainer
-                        } else {
-                            AppTheme.colors.textSecondary
-                        },
+                        color = AppTheme.colors.textSecondary,
                     )
                 },
             )
