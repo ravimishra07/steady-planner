@@ -32,5 +32,4 @@ dependencies {
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.lifecycle.viewmodel.compose)
 
-    testImplementation(libs.junit)
 }

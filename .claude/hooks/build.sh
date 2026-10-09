@@ -5,6 +5,8 @@ files=$( { git diff HEAD --name-only -- android; git ls-files -o --exclude-stand
 [ -z "$files" ] && exit 0
 sum=$(cat $files 2>/dev/null | md5 -q); stamp=.claude/.build-ok
 [ "$sum" = "$(cat $stamp 2>/dev/null)" ] && exit 0
+# Another build running (background assemble, IDE) → skip; concurrent runs corrupt KSP caches.
+pgrep -f gradle-wrapper.jar >/dev/null && exit 0
 export JAVA_HOME=$(/usr/libexec/java_home -v 21)
 out=$(cd android && ./gradlew -q --console=plain compileDebugKotlin :domain:compileKotlin 2>&1)
 [ $? -eq 0 ] && { echo "$sum" > $stamp; exit 0; }

@@ -4,9 +4,8 @@ Kotlin + Jetpack Compose, Android only.
 
 `:domain` is a plain Kotlin/JVM Gradle module with no Android dependency. That is
 ordinary clean architecture, not a KMP construct — there is no `commonMain` here.
-It earns its place three ways: JVM-only tests run in milliseconds instead of
-needing Robolectric, the build physically prevents `Context` leaking into the
-scheduler, and it skips resource and manifest processing so it compiles faster.
+It earns its place two ways: the build physically prevents `Context` leaking
+into the scheduler, and it skips resource and manifest processing so it compiles faster.
 That it could later become a KMP source set is a free side effect, not the
 reason for it.
 

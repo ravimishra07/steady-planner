@@ -32,5 +32,4 @@ dependencies {
     implementation(libs.room.ktx)
     implementation(libs.billing.ktx)
     ksp(libs.room.compiler)
-    testImplementation(libs.junit)
 }
