@@ -356,7 +356,7 @@ An agent doing any of these has broken the architecture:
 - Blocking the critical path on remote config, network, or analytics
 - `Dispatchers.IO` / `Dispatchers.Default` written inline in a ViewModel or composable
 - `GlobalScope`
-- `runBlocking` anywhere outside tests
+- `runBlocking` anywhere
 - A feature module importing another feature module
 - Android imports inside `:domain`
 - Hardcoded colours, font sizes, radii or spacing in UI code
@@ -386,7 +386,7 @@ open -R app/build/outputs/apk/debug/app-debug.apk
 Never suggest enabling Developer options or wireless debugging — that breaks
 banking apps on the device. No emulator, no adb.
 
-Claim only what the build proves — it compiles, tests pass, APK size — and
+Claim only what the build proves — it compiles, APK size — and
 never that a screen "works" without having seen it.
 
 `gradle/wrapper/gradle-wrapper.properties` points at the `-all` distribution
