@@ -1,0 +1,870 @@
+{
+ "generatedFrom": "docs/research/pyq_weightage_draft.json",
+ "dataStatus": "draft-unverified",
+ "years": [
+  2021,
+  2025
+ ],
+ "method": "Paper 'main' only, years 2021-2025. A source is one published page for one year; rows a page lists for the same chapter (componentOfMerged) are summed first. Within a year, a source whose whole chapter table is identical to another source's is a copy and only one copy is kept. Per chapter and year the value is the median across the remaining sources. Chapter score = mean of its yearly medians; fewer than 2 years gives NO_DATA. Per subject, chapters with data are ranked by score and split into terciles (top third HIGH, middle MEDIUM, bottom LOW; ties share the best rank's band). Counts are as stated by each source and are unverified; nothing is projected or expected.",
+ "copiesDropped": 11,
+ "chapters": {
+  "neet.botany.11.anatomy_of_flowering_plants": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 2.6,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.botany.11.biological_classification": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 1.2,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.botany.11.biomolecules": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 3.7,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.botany.11.cell_cycle_and_cell_division": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 4.2,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.botany.11.cell_the_unit_of_life": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 3.3,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.botany.11.morphology_of_flowering_plants": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 3.1,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.botany.11.photosynthesis_in_higher_plants": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 2.7,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.botany.11.plant_growth_and_development": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 2.5,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.botany.11.plant_kingdom": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 3.4,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.botany.11.respiration_in_plants": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 1.5,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.botany.11.the_living_world": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 0.5,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "Vedantu"
+   ]
+  },
+  "neet.botany.12.biodiversity_and_conservation": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 2.4,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW"
+   ]
+  },
+  "neet.botany.12.biotechnology_and_its_applications": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 3.7,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.botany.12.biotechnology_principles_and_processes": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 5.5,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.botany.12.ecosystem": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 2.7,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.botany.12.evolution": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 2.2,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.botany.12.molecular_basis_of_inheritance": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 7.6,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.botany.12.organisms_and_populations": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 3.2,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.botany.12.principles_of_inheritance_and_variation": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 4.2,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.botany.12.sexual_reproduction_in_flowering_plants": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 3.5,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.chemistry.11.chemical_bonding_and_molecular_structure": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 2.7,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.chemistry.11.classification_of_elements_and_periodicity_in_properties": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 1.2,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.chemistry.11.equilibrium": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 2.2,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.chemistry.11.hydrocarbons": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 2.7,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.chemistry.11.organic_chemistry_some_basic_principles_and_techniques": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 2.7,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.chemistry.11.redox_reactions": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 1.0,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.chemistry.11.some_basic_concepts_of_chemistry": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 1.6,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.chemistry.11.structure_of_atom": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 1.7,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.chemistry.11.thermodynamics": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 1.8,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.chemistry.12.alcohols_phenols_and_ethers": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 1.9,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.chemistry.12.aldehydes_ketones_and_carboxylic_acids": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 3.3,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.chemistry.12.amines": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 2.0,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.chemistry.12.biomolecules": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 1.2,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.chemistry.12.chemical_kinetics": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 2.4,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.chemistry.12.coordination_compounds": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 2.8,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.chemistry.12.electrochemistry": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 2.0,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.chemistry.12.haloalkanes_and_haloarenes": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 1.8,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.chemistry.12.solutions": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 1.6,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.chemistry.12.the_d_and_f_block_elements": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 1.8,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.11.gravitation": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 2.3,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.11.kinetic_theory": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 0.9,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.11.laws_of_motion": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 1.4,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.11.mechanical_properties_of_fluids": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 1.4,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.11.mechanical_properties_of_solids": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 0.8,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW"
+   ]
+  },
+  "neet.physics.11.motion_in_a_plane": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 1.0,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.11.motion_in_a_straight_line": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 1.7,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.11.oscillations": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 1.6,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.11.system_of_particles_and_rotational_motion": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 2.3,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.11.thermal_properties_of_matter": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 0.2,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.11.thermodynamics": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 1.1,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.11.units_and_measurements": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 2.8,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.11.waves": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 0.6,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.11.work_energy_and_power": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 1.2,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.12.alternating_current": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 2.0,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.12.atoms": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 1.4,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.12.current_electricity": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 3.7,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.12.dual_nature_of_radiation_and_matter": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 1.8,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.12.electric_charges_and_fields": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 1.4,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.12.electromagnetic_induction": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 1.3,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.12.electromagnetic_waves": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 1.9,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.12.electrostatic_potential_and_capacitance": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 3.2,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.12.magnetism_and_matter": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 0.9,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW"
+   ]
+  },
+  "neet.physics.12.moving_charges_and_magnetism": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 2.6,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.12.nuclei": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 1.4,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW"
+   ]
+  },
+  "neet.physics.12.ray_optics_and_optical_instruments": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 2.8,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.12.semiconductor_electronics": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 3.0,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.physics.12.wave_optics": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 1.2,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.zoology.11.animal_kingdom": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 3.9,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.zoology.11.body_fluids_and_circulation": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 1.9,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.zoology.11.breathing_and_exchange_of_gases": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 1.7,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.zoology.11.chemical_coordination_and_integration": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 1.9,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW"
+   ]
+  },
+  "neet.zoology.11.excretory_products_and_their_elimination": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 1.1,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW"
+   ]
+  },
+  "neet.zoology.11.locomotion_and_movement": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 2.2,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.zoology.11.neural_control_and_coordination": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 0.9,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Collegedunia",
+    "PW"
+   ]
+  },
+  "neet.zoology.11.structural_organisation_in_animals": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 3.8,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.zoology.12.human_health_and_disease": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 3.6,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.zoology.12.human_reproduction": {
+   "band": "HIGH",
+   "meanQuestionsPerYear": 3.7,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.zoology.12.microbes_in_human_welfare": {
+   "band": "LOW",
+   "meanQuestionsPerYear": 1.7,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  },
+  "neet.zoology.12.reproductive_health": {
+   "band": "MEDIUM",
+   "meanQuestionsPerYear": 2.1,
+   "yearsUsed": 5,
+   "sourceNames": [
+    "Careers360",
+    "Collegedunia",
+    "PW",
+    "Vedantu"
+   ]
+  }
+ }
+}
