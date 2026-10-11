@@ -3,31 +3,33 @@ package com.exam.assistant.feature.focus
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.exam.assistant.core.data.FocusStore
+import com.exam.assistant.core.data.FocusController
+import com.exam.assistant.core.data.FocusTransition
 import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.SettingsStore
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.PlanRepository
-import com.exam.assistant.core.data.repo.StudySessionRepository
+import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
+import com.exam.assistant.core.data.repo.StudySessionRepository
+import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.domain.BlockTag
 import com.exam.assistant.domain.FocusBlockRef
 import com.exam.assistant.domain.FocusSession
 import com.exam.assistant.domain.FocusStatus
+import com.exam.assistant.domain.FOCUS_LENGTH_MAX_MINUTES
+import com.exam.assistant.domain.FOCUS_LENGTH_MIN_MINUTES
 import com.exam.assistant.domain.StudyActivityType
 import com.exam.assistant.domain.StudySession
-import com.exam.assistant.domain.StudySessionSegment
-import com.exam.assistant.domain.StudySessionStatus
 import com.exam.assistant.domain.StudyOutcome
+import com.exam.assistant.domain.StudyPreferences
 import com.exam.assistant.domain.StudyPlanBlock
 import com.exam.assistant.domain.PlanBlockStatus
+import com.exam.assistant.domain.chapterOf
 import com.exam.assistant.domain.findNode
+import com.exam.assistant.domain.leafIds
 import com.exam.assistant.domain.findSubjectOf
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
-import java.util.UUID
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,21 +38,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 class FocusViewModel(
-    private val focusStore: FocusStore,
+    private val focusController: FocusController,
     private val settingsStore: SettingsStore,
     private val examPackRepository: ExamPackRepository,
     private val attemptRepository: AttemptRepository,
     private val planRepository: PlanRepository,
     private val studySessionRepository: StudySessionRepository,
     private val rollingPlanRepository: RollingPlanRepository,
-    private val appScope: CoroutineScope,
-    /** Told, never asked — Focus Lock reacts to the session lifecycle, it doesn't own it. */
-    private val onFocusLockStart: () -> Unit = {},
-    private val onFocusLockStop: () -> Unit = {},
+    private val studyPreferenceRepository: StudyPreferenceRepository,
+    private val topicProgressRepository: TopicProgressRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(FocusUiState())
@@ -63,107 +61,130 @@ class FocusViewModel(
     private var lastCheckpointFocusedSeconds = 0
     private var selectedBlock: FocusBlockRef? = null
     private var lastCompletedSessionId: String? = null
+    /** A length picked on this screen; wins over a planned block's length until the session starts. */
+    private var lengthOverrideMinutes: Int? = null
 
     init {
+        // Every change — from this screen, a notification action or the end alarm — arrives here.
+        viewModelScope.launch {
+            focusController.transitions.collect { applyTransition(it) }
+        }
+        viewModelScope.launch {
+            _state.update { it.copy(askNotificationPermission = !settingsStore.notificationPromptShown()) }
+        }
         refresh()
     }
 
+    /** Re-reads the clock from ends_at; called on creation and every time the screen resumes. */
     fun refresh() {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
-            val stored = focusStore.load()
+            val stored = focusController.load()
             if (stored.isExpiredAt(now)) {
-                completeExpiredSession(now)
+                focusController.completeIfExpired(now)
                 return@launch
             }
-            val session = stored.withClockAt(now)
+            var session = stored.withClockAt(now)
+            if (session.status == FocusStatus.IDLE) {
+                // The idle timer shows the one stored session length, even if Settings changed it since.
+                val preferred = preferredSessionSec()
+                if (session.durationSec != preferred) {
+                    session = session.copy(durationSec = preferred, remainingSec = preferred)
+                    focusController.setIdle(session)
+                    return@launch
+                }
+            }
+            if (session.status == FocusStatus.DONE && lastCompletedSessionId == null) {
+                // Completed by the alarm while this screen was gone: still offer the outcome and learn prompt.
+                focusController.consumeCompletion()?.let { completed ->
+                    lastCompletedSessionId = completed.id
+                    val prompt = learnPromptFor(completed)
+                    _state.update { it.copy(learnPrompt = prompt) }
+                }
+            }
             applySession(session)
             if (session.status == FocusStatus.RUNNING || session.status == FocusStatus.PAUSED) {
-                syncNormalizedSession(session, now)
+                focusController.syncLive(now)
             }
             startTickerIfNeeded(session)
-            // Recovery path: if our process (and possibly the service) was killed mid-session,
-            // re-derive Focus Lock's active state from the session rather than trusting memory.
-            if (session.status == FocusStatus.RUNNING || session.status == FocusStatus.PAUSED) {
-                onFocusLockStart()
-            }
         }
+    }
+
+    /** Records that the notification permission prompt has been shown once. */
+    fun markNotificationPromptShown() {
+        _state.update { it.copy(askNotificationPermission = false) }
+        viewModelScope.launch { settingsStore.setNotificationPromptShown() }
     }
 
     fun startSession() {
         viewModelScope.launch {
             val block = selectedBlock ?: nextBlock()
-            val duration = block?.id
-                ?.let { id -> planRepository.byId(id) }
-                ?.plannedMinutes
-                ?.times(60)
-                ?: settingsStore.focusDurationSec()
+            val duration = lengthOverrideMinutes?.times(60)
+                ?: block?.id
+                    ?.let { id -> planRepository.byId(id) }
+                    ?.plannedMinutes
+                    ?.times(60)
+                ?: preferredSessionSec()
             selectedBlock = null
-            val session = FocusSession(
-                status = FocusStatus.RUNNING,
-                durationSec = duration,
-                remainingSec = duration,
-                endsAtMs = System.currentTimeMillis() + duration * 1000L,
-                block = block,
-                completedToday = focusStore.load().completedToday,
+            lengthOverrideMinutes = null
+            focusController.start(
+                FocusSession(
+                    status = FocusStatus.RUNNING,
+                    durationSec = duration,
+                    remainingSec = duration,
+                    endsAtMs = System.currentTimeMillis() + duration * 1000L,
+                    block = block,
+                    completedToday = focusController.load().completedToday,
+                ),
             )
-            focusStore.save(session)
-            ensureNormalizedSession(session)
-            applySession(session)
-            startTickerIfNeeded(session)
-            onFocusLockStart()
         }
     }
 
     fun pause() {
-        viewModelScope.launch {
-            val now = System.currentTimeMillis()
-            val stored = focusStore.load()
-            if (stored.isExpiredAt(now)) {
-                completeExpiredSession(now)
-                return@launch
-            }
-            val current = stored.withClockAt(now)
-            if (current.status != FocusStatus.RUNNING) return@launch
-            val session = current.copy(status = FocusStatus.PAUSED, endsAtMs = null)
-            focusStore.save(session)
-            syncNormalizedSession(session, now)
-            applySession(session)
-            stopTicker()
-        }
+        viewModelScope.launch { focusController.pause() }
     }
 
     fun resume() {
-        viewModelScope.launch {
-            val current = focusStore.load()
-            if (current.status != FocusStatus.PAUSED) return@launch
-            val session = current.copy(
-                status = FocusStatus.RUNNING,
-                endsAtMs = System.currentTimeMillis() + current.remainingSec * 1000L,
-            )
-            focusStore.save(session)
-            syncNormalizedSession(session)
-            applySession(session)
-            startTickerIfNeeded(session)
-            onFocusLockStart()
-        }
+        viewModelScope.launch { focusController.resume() }
     }
 
     fun requestStop() {
         _state.update { it.copy(showStopDialog = true) }
     }
 
+    /**
+     * The length chips on the idle screen (§6.4): a preset or a custom 5–180 min. The choice is
+     * used for the next start, even on a planned block, and saved as the default everywhere.
+     */
     fun setDuration(minutes: Int) {
-        if (minutes !in setOf(25, 50, 90)) return
+        if (minutes !in FOCUS_LENGTH_MIN_MINUTES..FOCUS_LENGTH_MAX_MINUTES) return
+        lengthOverrideMinutes = minutes
+        _state.update { it.copy(durationMinutes = minutes) }
         viewModelScope.launch {
-            settingsStore.setFocusDurationSec(minutes * 60)
-            val current = focusStore.load()
+            savePreferredSessionMinutes(minutes)
+            val current = focusController.load()
             if (current.status == FocusStatus.IDLE) {
-                val updated = current.copy(durationSec = minutes * 60, remainingSec = minutes * 60)
-                focusStore.save(updated)
-                applySession(updated)
+                focusController.setIdle(current.copy(durationSec = minutes * 60, remainingSec = minutes * 60))
             }
         }
+    }
+
+    /**
+     * Session length has one home: [StudyPreferences.preferredSessionMinutes], which is also what
+     * Settings edits and the planner reads. [SettingsStore] is only the fallback before any plan exists.
+     */
+    private suspend fun preferredSessionSec(): Int {
+        val minutes = attemptRepository.activeAttempt()
+            ?.let { studyPreferenceRepository.forAttempt(it.id)?.preferredSessionMinutes }
+        return minutes?.times(60) ?: settingsStore.focusDurationSec()
+    }
+
+    private suspend fun savePreferredSessionMinutes(minutes: Int) {
+        // Settings and Focus write the same stores (§6.4).
+        settingsStore.setFocusDurationSec(minutes * 60)
+        val attempt = attemptRepository.activeAttempt() ?: return
+        val current = studyPreferenceRepository.forAttempt(attempt.id) ?: StudyPreferences(attemptId = attempt.id)
+        studyPreferenceRepository.upsert(current.copy(preferredSessionMinutes = minutes))
     }
 
     fun selectQueueItem(id: String) {
@@ -173,7 +194,7 @@ class FocusViewModel(
             selectedBlock = chosenBlock
             _state.update {
                 it.copy(
-                    durationMinutes = chosen.plannedMinutes,
+                    durationMinutes = lengthOverrideMinutes ?: chosen.plannedMinutes,
                     blockTitle = chosenBlock.title,
                     blockSubtitle = chosenBlock.subtitle,
                     blockTag = chosenBlock.tag,
@@ -185,25 +206,7 @@ class FocusViewModel(
     }
 
     fun extendFiveMinutes() {
-        viewModelScope.launch {
-            val now = System.currentTimeMillis()
-            val stored = focusStore.load()
-            if (stored.isExpiredAt(now)) {
-                completeExpiredSession(now)
-                return@launch
-            }
-            val current = stored.withClockAt(now)
-            if (current.status != FocusStatus.RUNNING && current.status != FocusStatus.PAUSED) return@launch
-            val updated = current.copy(
-                durationSec = current.durationSec + 5 * 60,
-                remainingSec = current.remainingSec + 5 * 60,
-                endsAtMs = current.endsAtMs?.plus(5 * 60_000L),
-            )
-            focusStore.save(updated)
-            applySession(updated)
-            syncNormalizedSession(updated, now)
-            if (updated.status == FocusStatus.RUNNING) startTickerIfNeeded(updated)
-        }
+        viewModelScope.launch { focusController.extend(FocusController.EXTEND_SECONDS) }
     }
 
     fun dismissStopDialog() {
@@ -218,126 +221,93 @@ class FocusViewModel(
         }
     }
 
+    /** "Yes" on the learned prompt: the same write as ticking Learned on the Syllabus screen. */
+    fun markChapterLearned() {
+        val prompt = _state.value.learnPrompt ?: return
+        _state.update { it.copy(learnPrompt = null) }
+        viewModelScope.launch {
+            val attempt = attemptRepository.activeAttempt() ?: return@launch
+            val chapter = examPackRepository.examPackFor(attempt.examId, attempt.id).chapterOf(prompt.chapterId) ?: return@launch
+            val nowMs = System.currentTimeMillis()
+            topicProgressRepository.setCovered(attempt.id, chapter.leafIds(), covered = true, nowMs = nowMs)
+            rollingPlanRepository.replenish(nowMs = nowMs)
+        }
+    }
+
+    fun dismissLearnPrompt() {
+        _state.update { it.copy(learnPrompt = null) }
+    }
+
+    /** Only a completed Learn session on a chapter that is not yet fully covered earns the prompt. */
+    private suspend fun learnPromptFor(session: StudySession?): LearnPrompt? {
+        if (session == null || session.activityType != StudyActivityType.LEARN) return null
+        // A titled session on a chapter is a coaching backlog lecture (§5.4), not Learn on the chapter.
+        if (session.customTitle != null) return null
+        val nodeId = session.nodeId ?: return null
+        val attempt = attemptRepository.activeAttempt() ?: return null
+        val chapter = examPackRepository.examPackFor(attempt.examId, attempt.id).chapterOf(nodeId) ?: return null
+        val covered = topicProgressRepository.allOnce(attempt.id)
+            .filter { it.status == com.exam.assistant.domain.TopicProgressStatus.COVERED }
+            .map { it.nodeId }
+            .toSet()
+        if (chapter.leafIds().all { it in covered }) return null
+        return LearnPrompt(chapterId = chapter.id, chapterTitle = chapter.title)
+    }
+
     fun savePartialAndStop() {
         viewModelScope.launch {
-            sessionMutationMutex.withLock {
-                val now = System.currentTimeMillis()
-                val current = focusStore.load()
-                if (current.isExpiredAt(now)) {
-                    completeSessionLocked(current, now)
-                    return@withLock
-                }
-                if (current.status != FocusStatus.RUNNING && current.status != FocusStatus.PAUSED) return@withLock
-                val snapshot = current.withClockAt(now)
-                persistPartialSession(snapshot, now)
-                finishStoppedSession(snapshot)
-            }
+            focusController.stopSavingPartial()
+            dismissStopDialog()
         }
     }
 
     fun discardAndStop() {
         viewModelScope.launch {
-            sessionMutationMutex.withLock {
-                val now = System.currentTimeMillis()
-                val current = focusStore.load()
-                if (current.isExpiredAt(now)) {
-                    completeSessionLocked(current, now)
-                    return@withLock
-                }
-                if (current.status != FocusStatus.RUNNING && current.status != FocusStatus.PAUSED) return@withLock
-                abandonNormalizedSession(now)
-                finishStoppedSession(current)
-            }
+            focusController.stopDiscarding()
+            dismissStopDialog()
         }
     }
 
     fun startAnother() {
         viewModelScope.launch {
-            val current = focusStore.load()
-            val session = current.copy(
-                status = FocusStatus.IDLE,
-                remainingSec = current.durationSec,
-                endsAtMs = null,
-                block = nextBlock(),
+            val current = focusController.load()
+            focusController.setIdle(
+                current.copy(
+                    status = FocusStatus.IDLE,
+                    remainingSec = current.durationSec,
+                    endsAtMs = null,
+                    block = nextBlock(),
+                ),
             )
-            focusStore.save(session)
-            applySession(session)
-            stopTicker()
             startSession()
         }
     }
 
     fun resetToIdle() {
         viewModelScope.launch {
-            val current = focusStore.load()
-            val session = current.copy(
-                status = FocusStatus.IDLE,
-                remainingSec = current.durationSec,
-                endsAtMs = null,
-                block = nextBlock(),
+            val current = focusController.load()
+            focusController.setIdle(
+                current.copy(
+                    status = FocusStatus.IDLE,
+                    remainingSec = current.durationSec,
+                    endsAtMs = null,
+                    block = nextBlock(),
+                ),
             )
-            focusStore.save(session)
-            applySession(session)
-            stopTicker()
         }
     }
 
-    private suspend fun completeExpiredSession(nowMs: Long) {
-        sessionMutationMutex.withLock {
-            val current = focusStore.load()
-            if (!current.isExpiredAt(nowMs)) return@withLock
-            completeSessionLocked(current, nowMs)
+    private suspend fun applyTransition(transition: FocusTransition) {
+        if (transition.didComplete) {
+            focusController.consumeCompletion()
+            lastCompletedSessionId = transition.completed?.id
+            val prompt = learnPromptFor(transition.completed)
+            _state.update { it.copy(learnPrompt = prompt, outcome = null) }
+            dismissStopDialog()
         }
-    }
-
-    private suspend fun completeSessionLocked(current: FocusSession, nowMs: Long) {
-        ensureNormalizedSession(current, nowMs)
-        lastCompletedSessionId = completeNormalizedSession(current.durationSec, nowMs)?.id
-        rollingPlanRepository.replenish(nowMs = nowMs)
-        val session = current.copy(
-            status = FocusStatus.DONE,
-            remainingSec = 0,
-            endsAtMs = null,
-            completedToday = current.completedToday + 1,
-        )
-        focusStore.save(session)
+        val session = transition.session.withClockAt(System.currentTimeMillis())
         applySession(session)
-        stopTicker()
-        dismissStopDialog()
-        onFocusLockStop()
-    }
-
-    private suspend fun finishStoppedSession(current: FocusSession) {
-        val session = current.copy(
-            status = FocusStatus.IDLE,
-            remainingSec = current.durationSec,
-            endsAtMs = null,
-            block = null,
-        )
-        focusStore.save(session)
-        applySession(session)
-        stopTicker()
-        dismissStopDialog()
-        onFocusLockStop()
-    }
-
-    private suspend fun persistPartialSession(focus: FocusSession, nowMs: Long) {
-        val attempt = attemptRepository.activeAttempt() ?: return
-        var active = studySessionRepository.activeSession(attempt.id)
-        if (active == null) {
-            ensureNormalizedSession(focus, nowMs)
-            active = studySessionRepository.activeSession(attempt.id) ?: return
-        }
-        val focusedSeconds = focus.focusedSecondsAt(nowMs)
-        if (focusedSeconds > 0) {
-            studySessionRepository.completePartialSession(
-                active.copy(focusedSeconds = focusedSeconds.coerceAtLeast(active.focusedSeconds)),
-                nowMs,
-            )
-        } else {
-            studySessionRepository.abandonSession(active, nowMs)
-        }
-        rollingPlanRepository.replenish(nowMs = nowMs)
+        startTickerIfNeeded(session)
     }
 
     private suspend fun nextBlock(): FocusBlockRef? {
@@ -354,94 +324,13 @@ class FocusViewModel(
 
     private suspend fun resolveBlock(block: StudyPlanBlock): FocusBlockRef {
         val attempt = attemptRepository.activeAttempt()
-        val pack = attempt?.let { examPackRepository.examPackFor(it.examId) }
+        val pack = attempt?.let { examPackRepository.examPackFor(it.examId, it.id) }
         val node = block.nodeId?.let { pack?.findNode(it) }
         val subject = block.nodeId?.let { pack?.findSubjectOf(it) }
         return block.toFocusBlock(
-            title = node?.title ?: block.customTitle ?: "Study session",
+            title = block.customTitle ?: node?.title ?: "Study session",
             subtitle = subject?.name.orEmpty(),
         )
-    }
-
-    private suspend fun ensureNormalizedSession(
-        focus: FocusSession,
-        nowMs: Long = System.currentTimeMillis(),
-    ) {
-        if (focus.status != FocusStatus.RUNNING && focus.status != FocusStatus.PAUSED) return
-        val attempt = attemptRepository.activeAttempt() ?: return
-        val existing = studySessionRepository.activeSession(attempt.id)
-        if (existing != null) return
-        val block = focus.block
-        val planBlock = block?.let { planRepository.byId(it.id) }
-        val focusedSeconds = focus.focusedSecondsAt(nowMs)
-        val startedAt = focus.endsAtMs
-            ?.minus(focus.durationSec * 1_000L)
-            ?: (nowMs - focusedSeconds * 1_000L)
-        val timeZoneId = ZoneId.systemDefault()
-        val session = StudySession(
-            id = "focus_${UUID.randomUUID()}",
-            attemptId = attempt.id,
-            nodeId = block?.nodeKey?.ifBlank { planBlock?.nodeId },
-            subjectId = planBlock?.subjectId,
-            planBlockId = planBlock?.id,
-            activityType = if (block?.isRevision == true) StudyActivityType.REVISION else planBlock?.activityType ?: StudyActivityType.LEARN,
-            startedAtEpochMs = startedAt,
-            endedAtEpochMs = null,
-            studyDate = Instant.ofEpochMilli(startedAt).atZone(timeZoneId).toLocalDate(),
-            timeZoneId = timeZoneId.id,
-            focusedSeconds = focusedSeconds,
-            pausedSeconds = 0,
-            status = if (focus.status == FocusStatus.PAUSED) StudySessionStatus.PAUSED else StudySessionStatus.RUNNING,
-            focusLockUsed = false,
-            interruptionCount = 0,
-            customTitle = if (planBlock?.nodeId == null) block?.title ?: "Focus session" else null,
-            createdAtEpochMs = nowMs,
-            updatedAtEpochMs = nowMs,
-        )
-        studySessionRepository.startSession(
-            session,
-            StudySessionSegment(
-                id = "${session.id}_0",
-                sessionId = session.id,
-                nodeId = session.nodeId,
-                subjectId = session.subjectId,
-                startedAtEpochMs = startedAt,
-                endedAtEpochMs = null,
-                focusedSeconds = 0,
-                order = 0,
-            ),
-        )
-    }
-
-    private suspend fun syncNormalizedSession(focus: FocusSession, nowMs: Long = System.currentTimeMillis()) {
-        val attempt = attemptRepository.activeAttempt() ?: return
-        val active = studySessionRepository.activeSession(attempt.id) ?: run {
-            ensureNormalizedSession(focus, nowMs)
-            return
-        }
-        studySessionRepository.updateRunning(
-            active.copy(
-                focusedSeconds = focus.focusedSecondsAt(nowMs).coerceAtLeast(active.focusedSeconds),
-                status = if (focus.status == FocusStatus.PAUSED) StudySessionStatus.PAUSED else StudySessionStatus.RUNNING,
-                updatedAtEpochMs = nowMs,
-            ),
-        )
-    }
-
-    private suspend fun completeNormalizedSession(focusedSeconds: Int, nowMs: Long): StudySession? {
-        val attempt = attemptRepository.activeAttempt() ?: return null
-        val active = studySessionRepository.activeSession(attempt.id) ?: return null
-        return studySessionRepository.completeSession(
-            active.copy(focusedSeconds = focusedSeconds.coerceAtLeast(active.focusedSeconds)),
-            today = active.studyDate,
-            nowMs = nowMs,
-        )
-    }
-
-    private suspend fun abandonNormalizedSession(nowMs: Long) {
-        val attempt = attemptRepository.activeAttempt() ?: return
-        val active = studySessionRepository.activeSession(attempt.id) ?: return
-        studySessionRepository.abandonSession(active, nowMs)
     }
 
     private fun applySession(session: FocusSession) {
@@ -461,6 +350,7 @@ class FocusViewModel(
                 blockTag = block?.tag,
                 hasBlock = block != null,
                 outcome = if (clocked.status == FocusStatus.DONE) it.outcome else null,
+                learnPrompt = if (clocked.status == FocusStatus.DONE) it.learnPrompt else null,
             )
         }
         if (block == null && clocked.status == FocusStatus.IDLE) {
@@ -473,7 +363,8 @@ class FocusViewModel(
                         blockSubtitle = next?.subtitle.orEmpty(),
                         blockTag = next?.tag,
                         hasBlock = next != null,
-                        durationMinutes = next?.let { row -> sessions.firstOrNull { it.first.id == row.id }?.first?.plannedMinutes }
+                        durationMinutes = lengthOverrideMinutes
+                            ?: next?.let { row -> sessions.firstOrNull { it.first.id == row.id }?.first?.plannedMinutes }
                             ?: it.durationMinutes,
                         queue = sessions
                             .filterNot { row -> row.first.id == next?.id }
@@ -498,74 +389,63 @@ class FocusViewModel(
     }
 
     private fun startTickerIfNeeded(session: FocusSession) {
-        if (session.status != FocusStatus.RUNNING) {
-            stopTicker()
-            return
-        }
+        stopTicker()
+        if (session.status != FocusStatus.RUNNING) return
         lastCheckpointFocusedSeconds = session.focusedSecondsAt(System.currentTimeMillis())
-        processTickerJob?.cancel()
-        val job = appScope.launch {
+        // The UI clock only. Completion is guaranteed by the end alarm and by refresh().
+        tickerJob = viewModelScope.launch {
             while (isActive) {
                 delay(1000)
                 val now = System.currentTimeMillis()
                 if (session.isExpiredAt(now)) {
-                    completeExpiredSession(now)
+                    _remainingSeconds.value = 0
+                    focusController.completeIfExpired(now)
                     break
                 }
                 val snapshot = session.withClockAt(now)
                 _remainingSeconds.value = snapshot.remainingSec
                 val focusedSeconds = snapshot.focusedSecondsAt(now)
                 if (focusedSeconds - lastCheckpointFocusedSeconds >= CHECKPOINT_SECONDS) {
-                    val stored = focusStore.load()
-                    if (stored.status != FocusStatus.RUNNING || stored.endsAtMs != session.endsAtMs) break
-                    syncNormalizedSession(stored.withClockAt(now), now)
+                    focusController.checkpoint(session.endsAtMs, now)
                     lastCheckpointFocusedSeconds = focusedSeconds
                 }
             }
         }
-        tickerJob = job
-        processTickerJob = job
     }
 
     private fun stopTicker() {
-        val job = tickerJob
-        job?.cancel()
-        if (processTickerJob === job) processTickerJob = null
+        tickerJob?.cancel()
         tickerJob = null
     }
 
     class Factory(
-        private val focusStore: FocusStore,
+        private val focusController: FocusController,
         private val settingsStore: SettingsStore,
         private val examPackRepository: ExamPackRepository,
         private val attemptRepository: AttemptRepository,
         private val planRepository: PlanRepository,
         private val studySessionRepository: StudySessionRepository,
         private val rollingPlanRepository: RollingPlanRepository,
-        private val appScope: CoroutineScope,
-        private val onFocusLockStart: () -> Unit = {},
-        private val onFocusLockStop: () -> Unit = {},
+        private val studyPreferenceRepository: StudyPreferenceRepository,
+        private val topicProgressRepository: TopicProgressRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             FocusViewModel(
-                focusStore,
+                focusController,
                 settingsStore,
                 examPackRepository,
                 attemptRepository,
                 planRepository,
                 studySessionRepository,
                 rollingPlanRepository,
-                appScope,
-                onFocusLockStart,
-                onFocusLockStop,
+                studyPreferenceRepository,
+                topicProgressRepository,
             ) as T
     }
 
     private companion object {
         const val CHECKPOINT_SECONDS = 60
-        val sessionMutationMutex = Mutex()
-        var processTickerJob: Job? = null
     }
 }
 

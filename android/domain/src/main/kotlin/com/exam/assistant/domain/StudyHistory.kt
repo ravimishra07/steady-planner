@@ -39,10 +39,23 @@ data class StudySession(
 
     val outcome: StudyOutcome? = null,
 
+    /**
+     * For a completed REVISION: the date the revision was due when it was done.
+     * Null for Learn sessions, partial saves and sessions completed before this
+     * was recorded — "revision on time" ignores those rather than guessing.
+     */
+    val dueDateAtCompletion: LocalDate? = null,
+
+    /** The topic's revision interval before this session completed; null if it had no schedule yet. */
+    val priorIntervalDays: Int? = null,
+
     val customTitle: String?,
 
     val createdAtEpochMs: Long,
     val updatedAtEpochMs: Long,
+
+    /** Logged by hand ("Log study I did offline", §6.3) rather than timed. Counted like any session. */
+    val isManual: Boolean = false,
 )
 
 enum class StudySessionStatus {

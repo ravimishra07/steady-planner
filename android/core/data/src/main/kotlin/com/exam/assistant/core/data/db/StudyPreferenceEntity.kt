@@ -27,6 +27,7 @@ data class StudyPreferencesEntity(
     val autoRescheduleMissed: Boolean,
     val autoScheduleRevision: Boolean,
     val defaultStudyPlace: String?,
+    val allowLearnInRevisionPhase: Boolean,
 )
 
 fun StudyPreferencesEntity.toDomain() = StudyPreferences(
@@ -41,6 +42,7 @@ fun StudyPreferencesEntity.toDomain() = StudyPreferences(
     autoRescheduleMissed = autoRescheduleMissed,
     autoScheduleRevision = autoScheduleRevision,
     defaultStudyPlace = defaultStudyPlace,
+    allowLearnInRevisionPhase = allowLearnInRevisionPhase,
 )
 
 fun StudyPreferences.toEntity() = StudyPreferencesEntity(
@@ -55,6 +57,7 @@ fun StudyPreferences.toEntity() = StudyPreferencesEntity(
     autoRescheduleMissed = autoRescheduleMissed,
     autoScheduleRevision = autoScheduleRevision,
     defaultStudyPlace = defaultStudyPlace,
+    allowLearnInRevisionPhase = allowLearnInRevisionPhase,
 )
 
 @Entity(tableName = "subject_study_preference", primaryKeys = ["attemptId", "subjectId"])

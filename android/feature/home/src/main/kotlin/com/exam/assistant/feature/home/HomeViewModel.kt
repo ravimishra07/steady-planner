@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.AvailabilityRepository
+import com.exam.assistant.core.data.repo.ChapterStageRepository
 import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.RevisionRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.data.repo.StudySessionRepository
+import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.domain.DAY_TIMELINE_START
 import com.exam.assistant.domain.DayTimelineEntry
@@ -25,15 +27,25 @@ import com.exam.assistant.domain.PlanBlockStatus
 import com.exam.assistant.domain.ExamPack
 import com.exam.assistant.domain.SyllabusSection
 import com.exam.assistant.domain.SyllabusTopicNode
-import com.exam.assistant.domain.TopicProgressStatus
+import com.exam.assistant.domain.RevisionState
 import com.exam.assistant.domain.WeeklyAvailability
 import com.exam.assistant.domain.AvailabilityOverride
 import com.exam.assistant.domain.effectiveWindowsFor
+import com.exam.assistant.domain.averageDailyMinutes
+import com.exam.assistant.domain.coachingBacklogMetrics
 import com.exam.assistant.domain.findNode
+import com.exam.assistant.domain.chapterOf
 import com.exam.assistant.domain.findSubjectOf
 import com.exam.assistant.domain.StudyPlacementIssue
 import com.exam.assistant.domain.buildDayTimeline
-import com.exam.assistant.domain.computeSyllabusProgress
+import com.exam.assistant.domain.daysToExam
+import com.exam.assistant.domain.nextRevisionDueIfCompleted
+import com.exam.assistant.domain.shouldStartFresh
+import com.exam.assistant.domain.streakBroken
+import com.exam.assistant.domain.studiedMinutesByDate
+import com.exam.assistant.domain.studyDates
+import com.exam.assistant.domain.syllabusMetrics
+import com.exam.assistant.domain.targetStates
 import com.exam.assistant.domain.currentMinuteOfDay
 import com.exam.assistant.domain.findNextFreeSlot
 import com.exam.assistant.domain.planMissedDayRecovery
@@ -66,6 +78,8 @@ class HomeViewModel(
     private val studyPreferenceRepository: StudyPreferenceRepository,
     private val revisionRepository: RevisionRepository,
     private val rollingPlanRepository: RollingPlanRepository,
+    private val targetSyllabusRepository: TargetSyllabusRepository,
+    private val chapterStageRepository: ChapterStageRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeUiState())
@@ -81,7 +95,9 @@ class HomeViewModel(
     private var attemptId: String? = null
     private var planBlocks: List<StudyPlanBlock> = emptyList()
     private var history: List<StudySession> = emptyList()
-    private var dueRevisions: List<com.exam.assistant.domain.RevisionSuggestion> = emptyList()
+    private var revisionStates: Map<String, RevisionState> = emptyMap()
+    /** Focused minutes per day, from StudySession: the only source for "studied". */
+    private var studiedByDate: Map<LocalDate, Int> = emptyMap()
     private var weekdayHours = 4f
     private var weekendHours = 7f
     private var wakeMinute = DAY_TIMELINE_START
@@ -107,7 +123,7 @@ class HomeViewModel(
         viewModelScope.launch {
             val attempt = attemptRepository.activeAttempt()
             attemptId = attempt?.id
-            pack = attempt?.let { examPackRepository.examPackFor(it.examId) }
+            pack = attempt?.let { examPackRepository.examPackFor(it.examId, it.id) }
             sections = pack?.toPickerSections().orEmpty()
             val preferences = attempt?.let { studyPreferenceRepository.forAttempt(it.id) }
             weekdayHours = preferences?.weekdayTargetMinutes?.div(60f) ?: 4f
@@ -117,28 +133,25 @@ class HomeViewModel(
             wakeMinute = weeklyAvailability.minOfOrNull { it.startMinuteOfDay } ?: DAY_TIMELINE_START
             sleepMinute = weeklyAvailability.maxOfOrNull { it.endMinuteOfDay } ?: com.exam.assistant.domain.DAY_TIMELINE_END
             val today = LocalDate.now()
+            // Daily top-up back to the 21 day horizon, before the day is read.
+            if (attempt != null) runCatching { rollingPlanRepository.topUpIfNewDay(today) }
+            revisionStates = attempt?.let { revisionRepository.allFor(it.id) }.orEmpty().associateBy { it.nodeId }
             if (attempt != null) reloadCanonical(attempt.id)
-            dueRevisions = if (attempt != null) {
-                revisionRepository.dueBy(attempt.id, today).mapNotNull { revision ->
-                    val node = pack?.findNode(revision.nodeId) ?: return@mapNotNull null
-                    val subject = pack?.findSubjectOf(revision.nodeId) ?: return@mapNotNull null
-                    com.exam.assistant.domain.RevisionSuggestion(
-                        nodeKey = revision.nodeId,
-                        title = node.title,
-                        sectionName = subject.name,
-                        subjectId = subject.id,
-                        studiedOn = revision.lastReviewedAtEpochMs?.let {
-                            Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
-                        } ?: today,
-                    )
-                }
-            } else emptyList()
-            val covered = attempt?.let { active ->
-                topicProgressRepository.allOnce(active.id)
-                    .filter { it.status == TopicProgressStatus.COVERED }
-                    .mapTo(mutableSetOf()) { it.nodeId }
-            }.orEmpty()
-            val syllabusProgress = computeSyllabusProgress(sections, covered)
+            val fit = attempt?.let { runCatching { rollingPlanRepository.planFit(withOptions = false) }.getOrNull() }
+                ?.takeIf { !it.fits }
+            val missed = attempt?.let { runCatching { rollingPlanRepository.missedPrompt(today) }.getOrNull() }
+            val fresh = missed != null && shouldStartFresh(missed.days, streakBroken(studyDates(history), today))
+            val startedFresh = attempt?.let { runCatching { rollingPlanRepository.startedFreshOn(today) }.getOrNull() } == true
+            val syllabus = if (attempt != null && pack != null) {
+                syllabusMetrics(
+                    pack = pack!!,
+                    overrides = targetStates(targetSyllabusRepository.overridesFor(attempt.id)),
+                    progress = topicProgressRepository.allOnce(attempt.id),
+                )
+            } else {
+                null
+            }
+            val coaching = attempt?.let { runCatching { coachingToday(it.id, today) }.getOrNull() }
             val running = allSessions
                 .filter { it.date == today }
                 .firstOrNull { it.runningEndsAtMs != null && !it.completed }
@@ -147,8 +160,13 @@ class HomeViewModel(
                     loading = false,
                     hasPlan = attempt != null,
                     sections = sections,
-                    daysUntilExam = attempt?.let { java.time.temporal.ChronoUnit.DAYS.between(today, it.targetCompletionDate).toInt().coerceAtLeast(0) } ?: 0,
-                    syllabusPercent = syllabusProgress.percent,
+                    daysUntilExam = attempt?.let { daysToExam(it, today) } ?: 0,
+                    syllabusPercent = syllabus?.overall?.percent ?: 0,
+                    planFit = fit?.let { PlanFitUi(it.shortByMinutes, it.finishBy, it.calibrated) },
+                    missedBlocks = missed?.takeIf { !fresh }?.let { MissedBlocksUi(it.count, it.since) },
+                    freshStart = missed?.takeIf { fresh }?.let { FreshStartUi(it.since) },
+                    startedFreshToday = startedFresh,
+                    coaching = coaching,
                     activeSprint = running?.let { session ->
                         val endsAt = session.runningEndsAtMs ?: return@let null
                         val left = ((endsAt - System.currentTimeMillis()) / 1000).toInt()
@@ -168,6 +186,7 @@ class HomeViewModel(
         val today = LocalDate.now()
         planBlocks = planRepository.planBetween(id, today.minusYears(2), today.plusYears(2))
         history = studySessionRepository.between(id, today.minusYears(2), today.plusYears(2))
+        studiedByDate = studiedMinutesByDate(history)
         val sessionsByBlock = history.filter { it.planBlockId != null }.associateBy { it.planBlockId }
         val currentPack = pack
         allSessions = planBlocks
@@ -176,22 +195,118 @@ class HomeViewModel(
                 val actual = sessionsByBlock[block.id]
                 val node = block.nodeId?.let { currentPack?.findNode(it) }
                 val subject = block.nodeId?.let { currentPack?.findSubjectOf(it) }
+                val isRevision = block.activityType == StudyActivityType.REVISION
+                // A revision block names its chapter (§7.2); renames come with the pack.
+                val chapter = if (isRevision) block.nodeId?.let { currentPack?.chapterOf(it) } else null
                 StudySessionRecord(
                     id = block.id,
                     date = block.scheduledDate,
                     startMinuteOfDay = block.startMinuteOfDay,
                     durationMinutes = block.plannedMinutes,
                     nodeKey = block.nodeId.orEmpty(),
-                    title = node?.title ?: block.customTitle ?: "Study session",
+                    title = block.customTitle ?: chapter?.title ?: node?.title ?: "Study session",
                     sectionName = subject?.name.orEmpty(),
                     subjectId = block.subjectId.orEmpty(),
-                    isRevision = block.activityType == StudyActivityType.REVISION,
+                    isRevision = isRevision,
+                    revisionCount = if (isRevision) block.nodeId?.let { revisionStates[it]?.revisionCount } ?: 0 else 0,
                     completed = block.status == PlanBlockStatus.COMPLETED || actual?.status == StudySessionStatus.COMPLETED,
-                    focusedMinutes = actual?.focusedSeconds?.div(60),
                     runningEndsAtMs = actual?.takeIf { it.status == StudySessionStatus.RUNNING }
                         ?.let { it.startedAtEpochMs + block.plannedMinutes * 60_000L },
                 )
             }
+    }
+
+    /** "Yes": skip the missed blocks, put their work back in the queue and plan the next days again. */
+    fun rebalanceMissed() {
+        val prompt = _state.value.missedBlocks ?: return
+        _state.update { it.copy(missedBlocks = null) }
+        viewModelScope.launch {
+            rollingPlanRepository.rebalanceMissed(since = prompt.since)
+            attemptId?.let { reloadCanonical(it) }
+            val fit = rollingPlanRepository.planFit(withOptions = false)?.takeIf { !it.fits }
+            _state.update {
+                it.copy(planFit = fit?.let { f -> PlanFitUi(f.shortByMinutes, f.finishBy, f.calibrated) }).rebuild()
+            }
+        }
+    }
+
+    /**
+     * "Start fresh from today": every missed block becomes SKIPPED, the plan is made again from
+     * today and the missed state is cleared. Nothing afterwards counts what was missed.
+     */
+    fun startFresh() {
+        val prompt = _state.value.freshStart ?: return
+        _state.update { it.copy(freshStart = null, missedBlocks = null, startedFreshToday = true).rebuild() }
+        viewModelScope.launch {
+            rollingPlanRepository.startFresh(since = prompt.since)
+            attemptId?.let { reloadCanonical(it) }
+            val fit = rollingPlanRepository.planFit(withOptions = false)?.takeIf { !it.fits }
+            _state.update {
+                it.copy(planFit = fit?.let { f -> PlanFitUi(f.shortByMinutes, f.finishBy, f.calibrated) }).rebuild()
+            }
+        }
+    }
+
+    /**
+     * "Taught in class today": the batch is at [chapterId], lecture [lecture]. Backlog and the
+     * plan's backlog share follow at once.
+     */
+    fun logClassToday(chapterId: String, lecture: Int) {
+        val id = attemptId ?: return
+        viewModelScope.launch {
+            chapterStageRepository.setBatchPosition(id, chapterId, lecture, System.currentTimeMillis())
+            rollingPlanRepository.replenish()
+            reloadCanonical(id)
+            val coaching = runCatching { coachingToday(id, LocalDate.now()) }.getOrNull()
+            _state.update { it.copy(coaching = coaching).rebuild() }
+        }
+    }
+
+    /** One tap: the batch moved on one lecture in the same chapter. */
+    fun nextLectureToday() {
+        val coaching = _state.value.coaching ?: return
+        val chapterId = coaching.batchChapterId ?: return
+        logClassToday(chapterId, coaching.batchLecture + 1)
+    }
+
+    private suspend fun coachingToday(attemptId: String, today: LocalDate): CoachingTodayUi? {
+        val examPack = pack ?: return null
+        val counts = chapterStageRepository.coachingFor(attemptId)
+        val position = chapterStageRepository.batchPosition(attemptId)
+        if (counts.isEmpty() && position == null) return null
+        val preferences = studyPreferenceRepository.forAttempt(attemptId)
+        val split = rollingPlanRepository.liveBacklogSplit()
+        val metrics = coachingBacklogMetrics(
+            coaching = counts,
+            position = position,
+            pack = examPack,
+            dailyMinutes = averageDailyMinutes(
+                preferences?.weekdayTargetMinutes ?: DEFAULT_WEEKDAY_MINUTES,
+                preferences?.weekendTargetMinutes ?: DEFAULT_WEEKEND_MINUTES,
+            ),
+            liveSplitPct = split,
+            today = today,
+        )
+        val chapters = examPack.subjects.flatMap { subject ->
+            subject.nodes.map { CoachingChapterOption(it.id, it.title, subject.id, subject.name) }
+        }
+        return CoachingTodayUi(
+            batchChapterId = position?.chapterId,
+            batchChapterTitle = position?.let { at -> chapters.firstOrNull { it.chapterId == at.chapterId }?.title },
+            batchLecture = position?.lecture ?: 0,
+            chapters = chapters,
+            backlog = examPack.subjects.mapNotNull { subject ->
+                metrics.bySubject[subject.id]?.let { CoachingBacklogRowUi(subject.name, it.lectures, it.dpps) }
+            },
+            clearDate = metrics.clearDate,
+            liveSplit = split,
+        )
+    }
+
+    /** "Not now": hidden for the rest of today. */
+    fun dismissMissedBlocks() {
+        _state.update { it.copy(missedBlocks = null, freshStart = null) }
+        viewModelScope.launch { rollingPlanRepository.dismissMissedPrompt() }
     }
 
     fun selectDate(date: LocalDate) {
@@ -312,22 +427,16 @@ class HomeViewModel(
                     topicPath = topicPath,
                     activityType = if (isRevision) StudyActivityType.REVISION else StudyActivityType.LEARN,
                 ),
+                pendingRevisionDue = nextRevisionDue(nodeKey, if (isRevision) StudyActivityType.REVISION else StudyActivityType.LEARN),
                 sheet = HomeSheet.PickDuration,
                 placementIssue = null,
             )
         }
     }
 
-    fun pickRevision(suggestion: com.exam.assistant.domain.RevisionSuggestion) {
-        pickTopic(
-            nodeKey = suggestion.nodeKey,
-            title = suggestion.title,
-            sectionName = suggestion.sectionName,
-            subjectId = suggestion.subjectId,
-            topicPath = suggestion.sectionName,
-            isRevision = true,
-        )
-    }
+    private fun nextRevisionDue(nodeKey: String, type: StudyActivityType): LocalDate? =
+        nodeKey.takeIf(String::isNotBlank)
+            ?.let { nextRevisionDueIfCompleted(revisionStates[it], type, LocalDate.now()) }
 
     fun setDurationMinutes(minutes: Int) {
         _state.update { it.copy(selectedDurationMinutes = minutes, placementIssue = null) }
@@ -336,7 +445,10 @@ class HomeViewModel(
     fun setActivityType(type: StudyActivityType) {
         if (type !in setOf(StudyActivityType.LEARN, StudyActivityType.PRACTICE, StudyActivityType.REVISION, StudyActivityType.MOCK_TEST)) return
         _state.update { current ->
-            current.copy(pendingTopic = current.pendingTopic?.copy(activityType = type))
+            current.copy(
+                pendingTopic = current.pendingTopic?.copy(activityType = type),
+                pendingRevisionDue = current.pendingTopic?.let { nextRevisionDue(it.nodeKey, type) },
+            )
         }
     }
 
@@ -698,7 +810,6 @@ class HomeViewModel(
                 monthDays = emptyList(),
                 monthTitle = "",
                 dayTimeline = emptyList(),
-                revisionItems = emptyList(),
                 completedTodayMinutes = 0,
                 plannedTodayMinutes = 0,
                 completionPercent = 0,
@@ -710,7 +821,7 @@ class HomeViewModel(
         val today = LocalDate.now()
         val daySessions = allSessions.filter { it.date == selectedDate }
         val budgetMinutes = todayBudgetMinutes(weekdayHours, weekendHours, selectedDate)
-        val doneMins = daySessions.filter { it.completed }.sumOf { it.durationMinutes }
+        val doneMins = studiedByDate[selectedDate] ?: 0
         val percent = if (budgetMinutes > 0) {
             min(100, ((doneMins.toFloat() / budgetMinutes) * 100).toInt())
         } else {
@@ -726,15 +837,9 @@ class HomeViewModel(
         } else {
             emptyList()
         }
-        val revisions = if (selectedIsToday && missedSessions.isEmpty()) {
-            dueRevisions
-        } else {
-            emptyList()
-        }
         val builtTimeline = buildDayTimeline(
             sessions = daySessions,
             sections = sections,
-            pendingRevisions = revisions,
             date = selectedDate,
             today = today,
             nowMinuteOfDay = nowMinute,
@@ -745,7 +850,8 @@ class HomeViewModel(
         val plannedMinutes = builtTimeline.sumOf { entry ->
             (entry as? DayTimelineEntry.Study)?.block?.durationMinutes ?: 0
         }
-        val nextMissed = missedSessions.firstOrNull()
+        // After "Start fresh" nothing on Today counts what was missed.
+        val nextMissed = missedSessions.firstOrNull()?.takeIf { !startedFreshToday }
         val recovery = nextMissed?.let { session ->
             val availableTodayMinutes = builtTimeline
                 .filterIsInstance<DayTimelineEntry.Gap>()
@@ -770,9 +876,7 @@ class HomeViewModel(
 
         fun dayUi(date: LocalDate): WeekDayUi {
             val dayBudget = todayBudgetMinutes(weekdayHours, weekendHours, date)
-            val dayDone = allSessions
-                .filter { it.date == date && it.completed }
-                .sumOf { it.durationMinutes }
+            val dayDone = studiedByDate[date] ?: 0
             return WeekDayUi(
                 date = date,
                 dayOfMonth = date.dayOfMonth,
@@ -798,10 +902,10 @@ class HomeViewModel(
             dayBudgetMinutes = budgetMinutes,
             completionPercent = percent,
             dayTimeline = builtTimeline,
-            revisionItems = revisions,
             completedTodayMinutes = doneMins,
             plannedTodayMinutes = plannedMinutes,
             missedDayRecovery = recovery,
+            canOpenDayLog = selectedDate < today && doneMins > 0,
         )
     }
 
@@ -815,6 +919,8 @@ class HomeViewModel(
         private val studyPreferenceRepository: StudyPreferenceRepository,
         private val revisionRepository: RevisionRepository,
         private val rollingPlanRepository: RollingPlanRepository,
+        private val targetSyllabusRepository: TargetSyllabusRepository,
+        private val chapterStageRepository: ChapterStageRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
@@ -828,6 +934,8 @@ class HomeViewModel(
                 studyPreferenceRepository,
                 revisionRepository,
                 rollingPlanRepository,
+                targetSyllabusRepository,
+                chapterStageRepository,
             ) as T
     }
 }
@@ -850,3 +958,6 @@ private fun ExamPack.toPickerSections(): List<SyllabusSection> = subjects.map { 
         },
     )
 }
+
+private const val DEFAULT_WEEKDAY_MINUTES = 4 * 60
+private const val DEFAULT_WEEKEND_MINUTES = 7 * 60

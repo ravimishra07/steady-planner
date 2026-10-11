@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material3.AlertDialog
@@ -61,6 +62,7 @@ import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
+import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.design.AppCard
 import com.exam.assistant.core.design.AppCardTone
 import com.exam.assistant.core.design.AppTheme
@@ -70,6 +72,8 @@ import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.core.design.Stroke
 import com.exam.assistant.domain.PlanningOrder
+import com.exam.assistant.domain.PriorityBand
+import com.exam.assistant.domain.yieldRank
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -84,12 +88,13 @@ fun OrganiseRoute(
     planRepository: PlanRepository,
     studyPreferenceRepository: StudyPreferenceRepository,
     rollingPlanRepository: RollingPlanRepository,
+    topicProgressRepository: TopicProgressRepository,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: OrganiseViewModel = viewModel(
         factory = OrganiseViewModel.Factory(
             examPackRepository, attemptRepository, targetSyllabusRepository, planRepository,
-            studyPreferenceRepository, rollingPlanRepository,
+            studyPreferenceRepository, rollingPlanRepository, topicProgressRepository,
         ),
     ),
 ) {
@@ -107,6 +112,7 @@ fun OrganiseRoute(
         onToggleIncluded = viewModel::toggleIncluded,
         onAddChapter = viewModel::addChapter,
         onRemoveChapter = viewModel::removeChapter,
+        onRenameChapter = viewModel::renameChapter,
         onOrder = viewModel::setOrder,
         onDiscard = viewModel::discard,
         onApply = viewModel::apply,
@@ -122,11 +128,13 @@ fun OrganiseScreen(
     onToggleIncluded: (String) -> Unit,
     onAddChapter: (String, Float, String) -> Unit,
     onRemoveChapter: (String) -> Unit,
+    onRenameChapter: (String, String?) -> Unit,
     onOrder: (PlanningOrder) -> Unit,
     onDiscard: () -> Unit,
     onApply: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var renameRow by remember { mutableStateOf<OrganiseChapterRow?>(null) }
     var view by remember { mutableStateOf(OrganiseView.PLAN) }
     var addOpen by remember { mutableStateOf(false) }
     var previewOpen by remember { mutableStateOf(false) }
@@ -209,10 +217,20 @@ fun OrganiseScreen(
                         onToggleIncluded = onToggleIncluded,
                         onAdd = { addOpen = true },
                         onRemove = onRemoveChapter,
+                        onRename = { renameRow = it },
                     )
                 }
             }
         }
+    }
+
+    renameRow?.let { row ->
+        RenameChapterDialog(
+            currentName = row.title,
+            originalName = row.originalTitle,
+            onSave = { name -> onRenameChapter(row.id, name) },
+            onDismiss = { renameRow = null },
+        )
     }
 
     if (addOpen) {
@@ -229,7 +247,7 @@ fun OrganiseScreen(
                     )
                     AppValueStepper(
                         label = stringResource(R.string.organise_estimated_hours),
-                        value = stringResource(R.string.organise_hours_short, newHours),
+                        value = stringResource(R.string.organise_hours_estimate, newHours),
                         decreaseContentDescription = stringResource(R.string.organise_decrease_hours),
                         increaseContentDescription = stringResource(R.string.organise_increase_hours),
                         onDecrease = { newHours = (newHours - .5f).coerceAtLeast(.5f) },
@@ -262,7 +280,11 @@ fun OrganiseScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     DeltaRow(stringResource(R.string.organise_chapters_in_play), state.beforeIncludedCount.toString(), state.includedCount.toString())
-                    DeltaRow(stringResource(R.string.organise_hours_left), "—", stringResource(R.string.organise_hours_short, state.totalMinutes / 60f))
+                    DeltaRow(
+                        stringResource(R.string.organise_hours_left),
+                        stringResource(R.string.organise_hours_estimate, state.beforeRemainingMinutes / 60f),
+                        stringResource(R.string.organise_hours_estimate, state.remainingMinutes / 60f),
+                    )
                     if (state.saveFailed) Text(stringResource(R.string.organise_save_failed), color = colors.error)
                 }
             },
@@ -405,7 +427,7 @@ private fun PlanPreview(state: OrganiseUiState) {
                             R.plurals.organise_timeline_body,
                             state.includedCount,
                             state.includedCount,
-                            state.totalMinutes / 60f,
+                            state.remainingMinutes / 60f,
                         ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.textSecondary,
@@ -428,12 +450,22 @@ private fun SyllabusDraft(
     onToggleIncluded: (String) -> Unit,
     onAdd: () -> Unit,
     onRemove: (String) -> Unit,
+    onRename: (OrganiseChapterRow) -> Unit,
 ) {
     val colors = AppTheme.colors
+    val pyqFirstYear = state.pyqFirstYear
+    val pyqLastYear = state.pyqLastYear
+    var priorityDetail by remember { mutableStateOf<PriorityDetail?>(null) }
+    priorityDetail?.let { detail ->
+        PriorityDetailDialog(detail, pyqFirstYear, pyqLastYear, onDismiss = { priorityDetail = null })
+    }
     val selectedRows = state.chapters.filter { it.subjectId == state.selectedSubjectId }.let { rows ->
         when (order) {
             PlanningOrder.DEFAULT -> rows
             PlanningOrder.SHORTEST_FIRST -> rows.sortedBy { it.estimatedMinutes }
+            PlanningOrder.HIGH_YIELD_FIRST -> rows.sortedWith(
+                compareBy({ (it.priority?.band ?: PriorityBand.NO_DATA).yieldRank() }, { -(it.priority?.meanQuestionsPerYear ?: 0.0) }),
+            )
         }
     }
     LazyColumn(
@@ -455,6 +487,7 @@ private fun SyllabusDraft(
             Text(stringResource(R.string.organise_order), style = MaterialTheme.typography.titleMedium)
             LazyRow(Modifier.padding(top = Spacing.sm), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 item { FilterChip(order == PlanningOrder.DEFAULT, { onOrder(PlanningOrder.DEFAULT) }, { Text(stringResource(R.string.organise_order_default)) }) }
+                item { FilterChip(order == PlanningOrder.HIGH_YIELD_FIRST, { onOrder(PlanningOrder.HIGH_YIELD_FIRST) }, { Text(stringResource(R.string.organise_order_high_yield)) }) }
                 item { FilterChip(order == PlanningOrder.SHORTEST_FIRST, { onOrder(PlanningOrder.SHORTEST_FIRST) }, { Text(stringResource(R.string.organise_order_shortest)) }) }
             }
             Text(stringResource(R.string.organise_order_hint), style = MaterialTheme.typography.bodySmall, color = colors.textSecondary, modifier = Modifier.padding(top = Spacing.sm))
@@ -481,10 +514,21 @@ private fun SyllabusDraft(
                     Column(Modifier.weight(1f).padding(horizontal = Spacing.md)) {
                         Text(row.title, style = MaterialTheme.typography.bodyLarge, color = if (row.excluded) colors.textMuted else colors.text)
                         Text(
-                            if (row.excluded) stringResource(R.string.syllabus_parked) else stringResource(R.string.organise_hours_short, row.estimatedMinutes / 60f),
+                            if (row.excluded) stringResource(R.string.syllabus_parked) else stringResource(R.string.organise_hours_estimate, row.estimatedMinutes / 60f),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.textSecondary,
                         )
+                        row.priority?.let { priority ->
+                            PriorityLabel(
+                                priority = priority,
+                                firstYear = pyqFirstYear,
+                                lastYear = pyqLastYear,
+                                onClick = { priorityDetail = PriorityDetail(row.title, priority) },
+                            )
+                        }
+                    }
+                    IconButton(onClick = { onRename(row) }) {
+                        Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.syllabus_chapter_rename), tint = colors.textSecondary)
                     }
                     if (row.custom) IconButton(onClick = { onRemove(row.id) }) {
                         Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.organise_delete_chapter), tint = colors.error)

@@ -10,6 +10,7 @@ import com.exam.assistant.core.data.StudySessionStore
 import com.exam.assistant.core.data.db.PrepTrackerDatabase
 import com.exam.assistant.core.data.db.toEntity
 import com.exam.assistant.core.data.decodedCommitments
+import com.exam.assistant.domain.DEFAULT_NEET_EXAM_DATE
 import com.exam.assistant.domain.ExamAttempt
 import com.exam.assistant.domain.ExamAttemptStatus
 import com.exam.assistant.domain.ExamPack
@@ -79,7 +80,7 @@ class MigrationRepository(
                         id = attemptId,
                         examId = NEET_EXAM_ID,
                         syllabusVersion = pack.syllabusVersion,
-                        examDate = targetDate,
+                        examDate = maxOf(targetDate, LocalDate.parse(DEFAULT_NEET_EXAM_DATE)),
                         targetCompletionDate = targetDate,
                         createdAtEpochMs = now,
                         updatedAtEpochMs = now,

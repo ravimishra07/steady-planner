@@ -4,19 +4,35 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.exam.assistant.core.data.ExamPackRepository
+import com.exam.assistant.core.data.ProRepository
+import com.exam.assistant.core.data.StageLabelStore
+import com.exam.assistant.core.data.repo.ChapterStageRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
+import com.exam.assistant.domain.ChapterCoaching
+import com.exam.assistant.domain.ChapterPriority
+import com.exam.assistant.domain.ChapterStage
+import com.exam.assistant.domain.ChapterStageMark
+import com.exam.assistant.domain.RevisionState
+import com.exam.assistant.domain.StageLabels
+import com.exam.assistant.domain.chapterRevisionCount
 import com.exam.assistant.domain.ExamPack
+import com.exam.assistant.domain.PyqPriorityTable
 import com.exam.assistant.domain.SyllabusNode
-import com.exam.assistant.domain.TopicProgressStatus
+import com.exam.assistant.domain.SyllabusMetrics
+import com.exam.assistant.domain.TopicProgress
+import com.exam.assistant.domain.coverage
+import com.exam.assistant.domain.syllabusMetrics
+import com.exam.assistant.domain.targetStates
 import com.exam.assistant.domain.findNode
 import com.exam.assistant.domain.leafIds
 import com.exam.assistant.domain.totalMinutes
 import com.exam.assistant.domain.TargetNodeState
 import com.exam.assistant.domain.isNodeEffectivelyExcluded
-import com.exam.assistant.domain.effectiveTargetLeafIds
+import com.exam.assistant.domain.cleanChapterTitle
+import com.exam.assistant.domain.withChapterTitles
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,41 +52,67 @@ class SyllabusViewModel(
     private val attemptRepository: AttemptRepository,
     private val targetSyllabusRepository: TargetSyllabusRepository,
     private val rollingPlanRepository: RollingPlanRepository,
+    private val chapterStageRepository: ChapterStageRepository,
+    private val stageLabelStore: StageLabelStore,
+    private val proRepository: ProRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SyllabusUiState())
     val state: StateFlow<SyllabusUiState> = _state.asStateFlow()
 
     private var pack: ExamPack? = null
+    /** The pack with bundled titles, for "Reset to original name". */
+    private var basePack: ExamPack? = null
+    private var chapterTitles: Map<String, String> = emptyMap()
     private var attemptId: String? = null
-    private var coveredNodeIds: Set<String> = emptySet()
+    private var progress: List<TopicProgress> = emptyList()
+    private var metrics: SyllabusMetrics? = null
+    private val coveredNodeIds: Set<String> get() = metrics?.coveredIds.orEmpty()
     private var openNodeIds: Set<String> = emptySet()
     private var targetOverrides: Map<String, TargetNodeState> = emptyMap()
     private var classGroupLeafIds: Map<String, List<String>> = emptyMap()
     private var defaultExpansionSeeded = false
+    private var priorityTable: PyqPriorityTable = PyqPriorityTable.EMPTY
+    private var priorityLoaded = false
+    private var stageMarks: Map<String, Map<ChapterStage, ChapterStageMark>> = emptyMap()
+    private var revisionStates: Map<String, RevisionState> = emptyMap()
+    private var stageLabels = StageLabels()
+    private var coaching: Map<String, ChapterCoaching> = emptyMap()
 
     init {
         refresh()
+        viewModelScope.launch { proRepository.unlocked.collect { unlocked -> _state.update { it.copy(proUnlocked = unlocked) } } }
     }
 
     fun refresh() {
         viewModelScope.launch {
             val attempt = attemptRepository.activeAttempt()
             attemptId = attempt?.id
-            pack = attempt?.let { examPackRepository.examPackFor(it.examId) }
+            basePack = attempt?.let { examPackRepository.examPackFor(it.examId) }
+            chapterTitles = attempt?.let { examPackRepository.chapterTitles(it.id) }.orEmpty()
+            pack = basePack?.withChapterTitles(chapterTitles)
             targetOverrides = attempt?.let { active ->
-                targetSyllabusRepository.overridesFor(active.id).associate { it.nodeId to it.state }
+                targetStates(targetSyllabusRepository.overridesFor(active.id))
             }.orEmpty()
             reloadProgress()
+            if (!priorityLoaded) {
+                // Off the first-paint path: the tree shows first, the yield labels fill in after.
+                priorityTable = examPackRepository.pyqPriorities()
+                priorityLoaded = true
+                rebuild()
+            }
         }
     }
 
     private suspend fun reloadProgress() {
         val id = attemptId ?: run { rebuild(); return }
-        coveredNodeIds = topicProgressRepository.allOnce(id)
-            .filter { it.status == TopicProgressStatus.COVERED }
-            .map { it.nodeId }
-            .toSet()
+        progress = topicProgressRepository.allOnce(id)
+        stageMarks = chapterStageRepository.marksFor(id)
+            .groupBy { it.chapterId }
+            .mapValues { (_, marks) -> marks.associateBy { it.stage } }
+        revisionStates = chapterStageRepository.revisionStatesFor(id)
+        coaching = chapterStageRepository.coachingFor(id).associateBy { it.chapterId }
+        stageLabels = stageLabelStore.load()
         rebuild()
     }
 
@@ -101,8 +143,102 @@ class SyllabusViewModel(
         }
     }
 
+    /**
+     * One tap on a chapter's stage chip. Learned is the chapter's covered tick, so it takes the
+     * same path as the status dot; Revised adds one; every other stage toggles.
+     */
+    fun tapStage(chapterId: String, stage: ChapterStage) {
+        if (stage == ChapterStage.LEARNED) {
+            toggleTick(chapterId)
+            return
+        }
+        val id = attemptId ?: return
+        viewModelScope.launch {
+            val nowMs = System.currentTimeMillis()
+            if (stage == ChapterStage.REVISED) {
+                chapterStageRepository.adjustCount(id, chapterId, stage, delta = 1, nowMs = nowMs)
+            } else {
+                chapterStageRepository.toggle(id, chapterId, stage, nowMs)
+            }
+            reloadProgress()
+        }
+    }
+
+    /** Long-press on Revised takes back one hand-logged revision. Focus revisions are not touched. */
+    fun undoRevision(chapterId: String) {
+        val id = attemptId ?: return
+        viewModelScope.launch {
+            chapterStageRepository.adjustCount(id, chapterId, ChapterStage.REVISED, delta = -1, nowMs = System.currentTimeMillis())
+            reloadProgress()
+        }
+    }
+
+    /** Renames a chapter everywhere (§5.2). Null, blank or the original title resets it. */
+    fun renameChapter(chapterId: String, title: String?) {
+        val id = attemptId ?: return
+        val original = basePack?.findNode(chapterId)?.title ?: return
+        viewModelScope.launch {
+            examPackRepository.renameChapter(id, chapterId, cleanChapterTitle(title, original))
+            chapterTitles = examPackRepository.chapterTitles(id)
+            pack = basePack?.withChapterTitles(chapterTitles)
+            rebuild()
+            // Backlog blocks carry the chapter's name; replan so they pick up the new one.
+            rollingPlanRepository.replenish()
+        }
+    }
+
+    /** Park or unpark a chapter: the same exclusion Organise writes, then the plan refills. */
+    fun toggleParked(chapterId: String) {
+        val id = attemptId ?: return
+        viewModelScope.launch {
+            val nowMs = System.currentTimeMillis()
+            if (targetOverrides[chapterId] == TargetNodeState.EXCLUDED) {
+                targetSyllabusRepository.clearOverride(id, chapterId)
+            } else {
+                targetSyllabusRepository.setState(id, chapterId, TargetNodeState.EXCLUDED, nowMs)
+            }
+            targetOverrides = targetStates(targetSyllabusRepository.overridesFor(id))
+            rollingPlanRepository.replenish(nowMs = nowMs)
+            rebuild()
+        }
+    }
+
+    /** Saves a chapter's coaching lecture/DPP counts (§5.4); the backlog share of the plan follows. */
+    fun saveCoaching(counts: ChapterCoaching) {
+        val id = attemptId ?: return
+        viewModelScope.launch {
+            chapterStageRepository.saveCoaching(id, counts)
+            rollingPlanRepository.replenish()
+            reloadProgress()
+        }
+    }
+
+    fun saveStageLabels(labels: StageLabels) {
+        viewModelScope.launch {
+            // Renaming and hiding are free; adding the custom stage is Pro. One added while Pro stays editable.
+            val allowed = if (stageLabels.customLabel == null && !proRepository.unlockedOnce()) labels.copy(customLabel = null) else labels
+            stageLabelStore.save(allowed)
+            stageLabels = stageLabelStore.load()
+            rebuild()
+        }
+    }
+
+    private fun stageChipsFor(node: SyllabusNode, learned: Boolean): List<StageChipUi> {
+        val marks = stageMarks[node.id].orEmpty()
+        return stageLabels.visibleStages().map { stage ->
+            val count = when (stage) {
+                ChapterStage.LEARNED -> if (learned) 1 else 0
+                ChapterStage.REVISED -> chapterRevisionCount(node, revisionStates, marks[stage]?.count ?: 0)
+                else -> if (stage in marks) 1 else 0
+            }
+            StageChipUi(stage = stage, customLabel = stageLabels.labelFor(stage), count = count)
+        }
+    }
+
     private fun rebuild() {
         val examPack = pack ?: return
+        val canonical = syllabusMetrics(examPack, targetOverrides, progress)
+        metrics = canonical
         if (!defaultExpansionSeeded) {
             examPack.subjects.firstOrNull()?.let { subject ->
                 openNodeIds = openNodeIds + subjectCardKey(subject.id)
@@ -141,12 +277,10 @@ class SyllabusViewModel(
             }
 
             val allLeaves = subject.leafIds()
-            val includedLeaves = examPack.effectiveTargetLeafIds(targetOverrides).intersect(allLeaves.toSet())
+            val includedLeaves = canonical.targetLeafIds.intersect(allLeaves.toSet())
             val nextLeafId = includedLeaves.firstOrNull { it !in coveredNodeIds }
             val nextLeaf = nextLeafId?.let(examPack::findNode)
-            val doneCount = allLeaves.count { it in coveredNodeIds }
-            val percent = if (allLeaves.isNotEmpty()) doneCount * 100 / allLeaves.size else 0
-            val doneMinutes = subject.nodes.sumOf { doneMinutesFor(it) }
+            val percent = canonical.bySubject[subject.id]?.percent ?: 0
             val excludedCount = subject.nodes.count { node ->
                 isNodeEffectivelyExcluded(node.id, emptyList(), targetOverrides)
             }
@@ -156,7 +290,6 @@ class SyllabusViewModel(
                 name = subject.name,
                 subjectId = subject.id,
                 percent = percent,
-                timeSpentMinutes = doneMinutes,
                 expanded = cardKey in openNodeIds,
                 rows = rows,
                 firstTopicKey = nextLeafId,
@@ -176,19 +309,16 @@ class SyllabusViewModel(
         }
         classGroupLeafIds = rebuiltClassGroups
 
-        val allLeavesGlobal = examPack.leafIds()
-        val doneGlobal = allLeavesGlobal.count { it in coveredNodeIds }
-        val percentGlobal = if (allLeavesGlobal.isNotEmpty()) doneGlobal * 100 / allLeavesGlobal.size else 0
-        val totalDoneMinutesGlobal = examPack.subjects.sumOf { subject -> subject.nodes.sumOf { doneMinutesFor(it) } }
-
         _state.update {
             SyllabusUiState(
                 loading = false,
                 subjects = subjects,
                 allCount = subjects.size,
                 dueCount = subjects.count { it.percent < 100 },
-                completedPercent = percentGlobal,
-                timeSpentMinutes = totalDoneMinutesGlobal,
+                completedPercent = canonical.overall.percent,
+                pyqFirstYear = priorityTable.firstYear,
+                pyqLastYear = priorityTable.lastYear,
+                stageLabels = stageLabels,
             )
         }
     }
@@ -216,7 +346,7 @@ class SyllabusViewModel(
             hasChildren = chapters.isNotEmpty(),
             expanded = key in openNodeIds,
             tickState = tickState,
-            percent = if (leaves.isEmpty()) 0 else doneCount * 100 / leaves.size,
+            percent = coverage(leaves.toSet(), coveredNodeIds).percent,
             doneLeafCount = doneCount,
             totalLeafCount = leaves.size,
             ancestorContinues = emptyList(),
@@ -250,14 +380,6 @@ class SyllabusViewModel(
     private fun classNumberFor(node: SyllabusNode): Int? =
         node.id.split('.').getOrNull(2)?.toIntOrNull()
 
-    /** Minutes credited proportionally to how much of this node's leaf set is covered. */
-    private fun doneMinutesFor(node: SyllabusNode): Int {
-        val leaves = node.leafIds()
-        if (leaves.isEmpty()) return 0
-        val done = leaves.count { it in coveredNodeIds }
-        return (node.totalMinutes() * done) / leaves.size
-    }
-
     private fun buildRows(
         node: SyllabusNode,
         ancestorContinues: List<Boolean>,
@@ -268,7 +390,7 @@ class SyllabusViewModel(
     ): List<SyllabusTreeRow> {
         val leaves = node.leafIds()
         val doneCount = leaves.count { it in coveredNodeIds }
-        val percent = if (leaves.isEmpty()) 0 else doneCount * 100 / leaves.size
+        val percent = coverage(leaves.toSet(), coveredNodeIds).percent
         val tickState = when {
             leaves.isEmpty() -> com.exam.assistant.domain.SyllabusTickState.NONE
             doneCount == 0 -> com.exam.assistant.domain.SyllabusTickState.NONE
@@ -293,6 +415,20 @@ class SyllabusViewModel(
             topicPath = sectionName,
             classNumber = node.id.split('.').getOrNull(2)?.toIntOrNull(),
             excluded = isNodeEffectivelyExcluded(node.id, ancestorIds, targetOverrides),
+            priority = if (ancestorIds.isEmpty() && priorityLoaded) priorityTable.forChapter(node.id) else null,
+            isChapter = ancestorIds.isEmpty(),
+            coaching = if (ancestorIds.isEmpty()) coaching[node.id] else null,
+            renamed = ancestorIds.isEmpty() && node.id in chapterTitles,
+            originalName = if (ancestorIds.isEmpty() && node.id in chapterTitles) {
+                basePack?.findNode(node.id)?.title.orEmpty()
+            } else {
+                node.title
+            },
+            stageChips = if (ancestorIds.isEmpty()) {
+                stageChipsFor(node, learned = tickState == com.exam.assistant.domain.SyllabusTickState.ALL)
+            } else {
+                emptyList()
+            },
         )
         if (node.children.isEmpty() || node.id !in openNodeIds) {
             return listOf(row)
@@ -317,9 +453,21 @@ class SyllabusViewModel(
         private val attemptRepository: AttemptRepository,
         private val targetSyllabusRepository: TargetSyllabusRepository,
         private val rollingPlanRepository: RollingPlanRepository,
+        private val chapterStageRepository: ChapterStageRepository,
+        private val stageLabelStore: StageLabelStore,
+        private val proRepository: ProRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            SyllabusViewModel(examPackRepository, topicProgressRepository, attemptRepository, targetSyllabusRepository, rollingPlanRepository) as T
+            SyllabusViewModel(
+                examPackRepository,
+                topicProgressRepository,
+                attemptRepository,
+                targetSyllabusRepository,
+                rollingPlanRepository,
+                chapterStageRepository,
+                stageLabelStore,
+                proRepository,
+            ) as T
     }
 }

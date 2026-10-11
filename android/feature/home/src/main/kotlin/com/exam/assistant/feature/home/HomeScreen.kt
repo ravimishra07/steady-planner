@@ -11,11 +11,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.AvailabilityRepository
+import com.exam.assistant.core.data.repo.ChapterStageRepository
 import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.RevisionRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.data.repo.StudySessionRepository
+import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.domain.PendingSyllabusPick
 import com.exam.assistant.domain.StudySessionRecord
@@ -32,8 +34,12 @@ fun HomeRoute(
     studyPreferenceRepository: StudyPreferenceRepository,
     revisionRepository: RevisionRepository,
     rollingPlanRepository: RollingPlanRepository,
+    targetSyllabusRepository: TargetSyllabusRepository,
+    chapterStageRepository: ChapterStageRepository,
     onSetupPlan: () -> Unit,
+    onAdjustPlan: () -> Unit,
     onEditPlan: () -> Unit,
+    onOpenDay: (java.time.LocalDate) -> Unit,
     onStartFocus: suspend (StudySessionRecord) -> Unit,
     pendingSyllabusPick: StateFlow<PendingSyllabusPick?>,
     onConsumedSyllabusPick: () -> Unit,
@@ -49,6 +55,8 @@ fun HomeRoute(
             studyPreferenceRepository,
             revisionRepository,
             rollingPlanRepository,
+            targetSyllabusRepository,
+            chapterStageRepository,
         ),
     ),
 ) {
@@ -73,7 +81,14 @@ fun HomeRoute(
     HomeScreen(
         state = state,
         onSetupPlan = onSetupPlan,
+        onAdjustPlan = onAdjustPlan,
+        onRebalanceMissed = viewModel::rebalanceMissed,
+        onStartFresh = viewModel::startFresh,
+        onDismissMissed = viewModel::dismissMissedBlocks,
+        onLogClass = viewModel::logClassToday,
+        onNextLecture = viewModel::nextLectureToday,
         onEditPlan = onEditPlan,
+        onOpenDay = onOpenDay,
         onSelectDate = viewModel::selectDate,
         onToggleCalendarExpanded = viewModel::toggleCalendarExpanded,
         onOpenAdd = viewModel::openAddStudy,
@@ -83,7 +98,6 @@ fun HomeRoute(
         onOpenPickerSubtopics = viewModel::openPickerSubtopics,
         onSetPickerQuery = viewModel::setPickerQuery,
         onPickTopic = viewModel::pickTopic,
-        onPickRevision = viewModel::pickRevision,
         onSetDuration = viewModel::setDurationMinutes,
         onSetActivityType = viewModel::setActivityType,
         onSetScheduledMinute = viewModel::setScheduledEndMinuteOfDay,
@@ -105,7 +119,14 @@ fun HomeRoute(
 fun HomeScreen(
     state: HomeUiState,
     onSetupPlan: () -> Unit,
+    onAdjustPlan: () -> Unit,
+    onRebalanceMissed: () -> Unit,
+    onStartFresh: () -> Unit,
+    onDismissMissed: () -> Unit,
+    onLogClass: (String, Int) -> Unit,
+    onNextLecture: () -> Unit,
     onEditPlan: () -> Unit,
+    onOpenDay: (java.time.LocalDate) -> Unit,
     onSelectDate: (java.time.LocalDate) -> Unit,
     onToggleCalendarExpanded: () -> Unit,
     onOpenAdd: () -> Unit,
@@ -115,7 +136,6 @@ fun HomeScreen(
     onOpenPickerSubtopics: (List<Int>) -> Unit,
     onSetPickerQuery: (String) -> Unit,
     onPickTopic: (String, String, String, String, String) -> Unit,
-    onPickRevision: (com.exam.assistant.domain.RevisionSuggestion) -> Unit,
     onSetDuration: (Int) -> Unit,
     onSetActivityType: (com.exam.assistant.domain.StudyActivityType) -> Unit,
     onSetScheduledMinute: (Int) -> Unit,
@@ -136,7 +156,14 @@ fun HomeScreen(
             state.loading -> Unit
             state.hasPlan -> HomeStudyContent(
                 state = state,
+                onAdjustPlan = onAdjustPlan,
+                onRebalanceMissed = onRebalanceMissed,
+                onStartFresh = onStartFresh,
+                onDismissMissed = onDismissMissed,
+                onLogClass = onLogClass,
+                onNextLecture = onNextLecture,
                 onEditPlan = onEditPlan,
+                onOpenDay = onOpenDay,
                 onSelectDate = onSelectDate,
                 onToggleCalendarExpanded = onToggleCalendarExpanded,
                 onOpenAdd = onOpenAdd,
@@ -146,7 +173,6 @@ fun HomeScreen(
                 onOpenPickerSubtopics = onOpenPickerSubtopics,
                 onSetPickerQuery = onSetPickerQuery,
                 onPickTopic = onPickTopic,
-                onPickRevision = onPickRevision,
                 onSetDuration = onSetDuration,
                 onSetActivityType = onSetActivityType,
                 onSetScheduledMinute = onSetScheduledMinute,

@@ -26,5 +26,4 @@ dependencies {
     implementation(libs.compose.material.icons)
     api(libs.compose.ui.tooling.preview)
     debugImplementation(libs.compose.ui.tooling)
-    testImplementation(libs.junit)
 }

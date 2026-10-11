@@ -1,6 +1,15 @@
 package com.exam.assistant.feature.focus
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +28,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.MoreTime
@@ -55,105 +62,101 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.exam.assistant.core.data.FocusLockCapabilityChecker
-import com.exam.assistant.core.data.FocusLockStore
-import com.exam.assistant.core.data.FocusStore
-import com.exam.assistant.core.data.InstalledAppProvider
+import com.exam.assistant.core.data.FocusController
 import com.exam.assistant.core.data.ExamPackRepository
 import com.exam.assistant.core.data.SettingsStore
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.PlanRepository
+import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.data.repo.StudySessionRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
+import com.exam.assistant.core.data.repo.TopicProgressRepository
+import com.exam.assistant.core.design.LengthPicker
+import com.exam.assistant.core.design.LengthPickerLabels
+import com.exam.assistant.domain.FOCUS_LENGTH_MAX_MINUTES
+import com.exam.assistant.domain.FOCUS_LENGTH_MIN_MINUTES
+import com.exam.assistant.domain.FOCUS_LENGTH_PRESETS_MINUTES
+import com.exam.assistant.domain.focusLengthMinutesOrNull
 import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.core.design.Stroke
 import com.exam.assistant.domain.BlockTag
-import com.exam.assistant.domain.FocusLockDisplayState
 import com.exam.assistant.domain.FocusStatus
 import com.exam.assistant.domain.StudyOutcome
 import com.exam.assistant.domain.formatFocusClock
 import androidx.annotation.StringRes
-import kotlinx.coroutines.CoroutineScope
 
 @Composable
 fun FocusRoute(
-    focusStore: FocusStore,
+    focusController: FocusController,
     settingsStore: SettingsStore,
     examPackRepository: ExamPackRepository,
     attemptRepository: AttemptRepository,
     planRepository: PlanRepository,
     studySessionRepository: StudySessionRepository,
     rollingPlanRepository: RollingPlanRepository,
-    focusLockStore: FocusLockStore,
-    focusLockCapabilityChecker: FocusLockCapabilityChecker,
-    installedAppProvider: InstalledAppProvider,
-    appScope: CoroutineScope,
+    studyPreferenceRepository: StudyPreferenceRepository,
+    topicProgressRepository: TopicProgressRepository,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
-    onFocusLockStart: () -> Unit = {},
-    onFocusLockStop: () -> Unit = {},
     viewModel: FocusViewModel = viewModel(
         factory = FocusViewModel.Factory(
-            focusStore,
+            focusController,
             settingsStore,
             examPackRepository,
             attemptRepository,
             planRepository,
             studySessionRepository,
             rollingPlanRepository,
-            appScope,
-            onFocusLockStart,
-            onFocusLockStop,
-        ),
-    ),
-    focusLockViewModel: FocusLockViewModel = viewModel(
-        factory = FocusLockViewModel.Factory(
-            focusLockStore,
-            focusLockCapabilityChecker,
-            installedAppProvider,
-            focusStore,
+            studyPreferenceRepository,
+            topicProgressRepository,
         ),
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val remaining by viewModel.remainingSeconds.collectAsStateWithLifecycle()
-    val lockState by focusLockViewModel.state.collectAsStateWithLifecycle()
+    // Coming back to the app re-reads the clock from ends_at.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refresh() }
 
-    LaunchedEffect(state.status) { focusLockViewModel.refresh() }
+    // Asked once, at the first Focus start. The timer starts whatever the answer is.
+    val context = LocalContext.current
+    val notificationPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { viewModel.startSession() }
+    val onStart: () -> Unit = {
+        val needsAsk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            state.askNotificationPermission &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        if (needsAsk) {
+            viewModel.markNotificationPromptShown()
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            viewModel.startSession()
+        }
+    }
 
     FocusScreen(
         state = state,
         remainingSeconds = remaining,
-        lockState = lockState,
         onClose = onClose,
-        onStart = viewModel::startSession,
+        onStart = onStart,
         onPause = viewModel::pause,
         onResume = viewModel::resume,
         onExtend = viewModel::extendFiveMinutes,
-        onSetDuration = viewModel::setDuration,
         onSelectQueueItem = viewModel::selectQueueItem,
+        onDuration = viewModel::setDuration,
         onRequestStop = viewModel::requestStop,
         onSavePartialAndStop = viewModel::savePartialAndStop,
         onDiscardAndStop = viewModel::discardAndStop,
         onDismissStop = viewModel::dismissStopDialog,
         onStartAnother = viewModel::startAnother,
         onOutcome = viewModel::recordOutcome,
+        onMarkLearned = viewModel::markChapterLearned,
+        onDismissLearnPrompt = viewModel::dismissLearnPrompt,
         onBackToday = onClose,
-        onToggleFocusLockEnabled = focusLockViewModel::setEnabled,
-        onStartFocusLockSetup = focusLockViewModel::startSetup,
-        onOpenManageApps = focusLockViewModel::openManageApps,
-        onDismissFocusLockSetup = focusLockViewModel::dismissSetup,
-        onAdvanceToPermissions = focusLockViewModel::advanceToPermissions,
-        onAdvanceToAppPicker = focusLockViewModel::advanceToAppPicker,
-        onRefreshCapabilities = focusLockViewModel::refreshCapabilities,
-        onToggleApp = focusLockViewModel::toggleAppSelected,
-        onSelectAllApps = focusLockViewModel::selectAllApps,
-        onClearAppSelection = focusLockViewModel::clearAppSelection,
-        onSaveAndEnableFocusLock = focusLockViewModel::saveAndEnable,
-        onAppSearchQueryChange = focusLockViewModel::setAppSearchQuery,
         modifier = modifier,
     )
 }
@@ -162,33 +165,22 @@ fun FocusRoute(
 fun FocusScreen(
     state: FocusUiState,
     remainingSeconds: Int,
-    lockState: FocusLockUiState,
     onClose: () -> Unit,
     onStart: () -> Unit,
     onPause: () -> Unit,
     onResume: () -> Unit,
     onExtend: () -> Unit,
-    onSetDuration: (Int) -> Unit,
     onSelectQueueItem: (String) -> Unit,
     onRequestStop: () -> Unit,
+    onDuration: (Int) -> Unit,
     onSavePartialAndStop: () -> Unit,
     onDiscardAndStop: () -> Unit,
     onDismissStop: () -> Unit,
     onStartAnother: () -> Unit,
     onOutcome: (StudyOutcome) -> Unit,
+    onMarkLearned: () -> Unit,
+    onDismissLearnPrompt: () -> Unit,
     onBackToday: () -> Unit,
-    onToggleFocusLockEnabled: (Boolean) -> Unit,
-    onStartFocusLockSetup: () -> Unit,
-    onOpenManageApps: () -> Unit,
-    onDismissFocusLockSetup: () -> Unit,
-    onAdvanceToPermissions: () -> Unit,
-    onAdvanceToAppPicker: () -> Unit,
-    onRefreshCapabilities: () -> Unit,
-    onToggleApp: (String) -> Unit,
-    onSelectAllApps: () -> Unit,
-    onClearAppSelection: () -> Unit,
-    onSaveAndEnableFocusLock: () -> Unit,
-    onAppSearchQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
@@ -202,7 +194,6 @@ fun FocusScreen(
         return
     }
 
-    val showingSetup = state.status == FocusStatus.IDLE && lockState.setupStep != FocusLockSetupStep.None
     if (state.showStopDialog) {
         AlertDialog(
             onDismissRequest = onDismissStop,
@@ -234,14 +225,12 @@ fun FocusScreen(
         )
     }
 
-    if (state.status == FocusStatus.IDLE && !showingSetup) {
+    if (state.status == FocusStatus.IDLE) {
         FocusIdleScreen(
             state = state,
-            lockState = lockState,
             onStart = onStart,
             onSelectQueueItem = onSelectQueueItem,
-            onToggleFocusLockEnabled = onToggleFocusLockEnabled,
-            onStartFocusLockSetup = onStartFocusLockSetup,
+            onDuration = onDuration,
             modifier = modifier,
         )
         return
@@ -272,67 +261,6 @@ fun FocusScreen(
             IconButton(onClick = onClose, modifier = Modifier.size(Size.touchTarget)) {
                 Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.focus_close))
             }
-        }
-
-        if (showingSetup) {
-            FocusLockSetupFlow(
-                state = lockState,
-                onDismiss = onDismissFocusLockSetup,
-                onAdvanceToPermissions = onAdvanceToPermissions,
-                onAdvanceToAppPicker = onAdvanceToAppPicker,
-                onRefreshCapabilities = onRefreshCapabilities,
-                onToggleApp = onToggleApp,
-                onSelectAll = onSelectAllApps,
-                onClearAll = onClearAppSelection,
-                onSaveAndEnable = onSaveAndEnableFocusLock,
-                onSearchQueryChange = onAppSearchQueryChange,
-                modifier = Modifier.weight(1f).padding(bottom = Spacing.lg),
-            )
-            return@Column
-        }
-
-        if (state.status == FocusStatus.IDLE) {
-            FocusLockCard(
-                state = lockState,
-                onToggleEnabled = onToggleFocusLockEnabled,
-                onStartSetup = onStartFocusLockSetup,
-                onOpenManageApps = onOpenManageApps,
-                onFixSetup = onStartFocusLockSetup,
-            )
-            Spacer(modifier = Modifier.height(Spacing.lg))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                listOf(25, 50, 90).forEach { minutes ->
-                    Surface(
-                        onClick = { onSetDuration(minutes) },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(Radius.pill),
-                        color = if (state.durationMinutes == minutes) colors.brandDeep else colors.surfaceControl,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.focus_length_minutes, minutes),
-                            color = if (state.durationMinutes == minutes) colors.onBrand else colors.text,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(vertical = Spacing.sm),
-                        )
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(Spacing.md))
-        } else if (lockState.display is FocusLockDisplayState.Active) {
-            val blockedCount = (lockState.display as FocusLockDisplayState.Active).blockedCount
-            Text(
-                text = pluralStringResource(
-                    R.plurals.focus_lock_status_line_active,
-                    blockedCount,
-                    blockedCount,
-                ),
-                style = MaterialTheme.typography.labelMedium,
-                color = colors.brandSoft,
-                modifier = Modifier.padding(bottom = Spacing.md),
-            )
         }
 
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.lg)) {
@@ -472,6 +400,22 @@ fun FocusScreen(
                         .padding(bottom = Spacing.lg),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
+                    state.learnPrompt?.let { prompt ->
+                        Text(stringResource(R.string.focus_learned_prompt), style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            text = prompt.chapterTitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.textSecondary,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                            FilledTonalButton(onClick = onMarkLearned, modifier = Modifier.weight(1f)) {
+                                Text(stringResource(R.string.focus_learned_yes))
+                            }
+                            TextButton(onClick = onDismissLearnPrompt, modifier = Modifier.weight(1f)) {
+                                Text(stringResource(R.string.focus_learned_not_yet))
+                            }
+                        }
+                    }
                     Text(stringResource(R.string.focus_outcome_prompt), style = MaterialTheme.typography.titleSmall)
                     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         listOf(
@@ -527,17 +471,14 @@ fun FocusScreen(
 @Composable
 private fun FocusIdleScreen(
     state: FocusUiState,
-    lockState: FocusLockUiState,
     onStart: () -> Unit,
     onSelectQueueItem: (String) -> Unit,
-    onToggleFocusLockEnabled: (Boolean) -> Unit,
-    onStartFocusLockSetup: () -> Unit,
+    onDuration: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
     var browsing by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
-    val shieldOn = lockState.display !is FocusLockDisplayState.Off
     val options = buildList {
         if (state.hasBlock) {
             add(
@@ -588,35 +529,6 @@ private fun FocusIdleScreen(
                     style = MaterialTheme.typography.titleLarge,
                     color = colors.text,
                 )
-                Surface(
-                    onClick = {
-                        if (shieldOn) onToggleFocusLockEnabled(false) else onStartFocusLockSetup()
-                    },
-                    shape = CircleShape,
-                    color = if (shieldOn) colors.selectionContainer else colors.surface,
-                    contentColor = if (shieldOn) colors.onSelectionContainer else colors.textSecondary,
-                    border = if (shieldOn) null else BorderStroke(Stroke.hairline, colors.outlineVariant),
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .height(Size.compactControl)
-                            .padding(horizontal = Spacing.md),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    ) {
-                        Icon(
-                            imageVector = if (shieldOn) Icons.Filled.Lock else Icons.Filled.LockOpen,
-                            contentDescription = null,
-                            modifier = Modifier.size(Size.smallIcon),
-                        )
-                        Text(
-                            text = stringResource(
-                                if (shieldOn) R.string.focus_shield_preview else R.string.focus_shield_off,
-                            ),
-                            style = MaterialTheme.typography.labelMedium,
-                        )
-                    }
-                }
                 IconButton(
                     onClick = { query = ""; browsing = true },
                     modifier = Modifier.size(Size.timeField),
@@ -702,6 +614,28 @@ private fun FocusIdleScreen(
                 }
             }
         }
+
+        val minutesLabel = stringResource(R.string.focus_length_minutes)
+        Text(
+            text = stringResource(R.string.focus_length),
+            style = MaterialTheme.typography.titleSmall,
+            color = colors.textSecondary,
+            modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.xs),
+        )
+        LengthPicker(
+            presets = FOCUS_LENGTH_PRESETS_MINUTES,
+            selectedMinutes = state.durationMinutes,
+            onSelect = onDuration,
+            parseCustom = ::focusLengthMinutesOrNull,
+            labels = LengthPickerLabels(
+                minutes = { minutesLabel.format(it) },
+                custom = stringResource(R.string.focus_length_custom),
+                dialogTitle = stringResource(R.string.focus_length_custom_title),
+                fieldLabel = stringResource(R.string.focus_length_custom_field, FOCUS_LENGTH_MIN_MINUTES, FOCUS_LENGTH_MAX_MINUTES),
+                ok = stringResource(R.string.focus_length_ok),
+                cancel = stringResource(R.string.focus_length_cancel),
+            ),
+        )
 
         if (state.queue.isNotEmpty()) {
             val left = state.queue.count { !it.completed } + if (state.hasBlock) 1 else 0

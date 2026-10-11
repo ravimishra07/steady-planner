@@ -23,7 +23,24 @@ data class ExamAttempt(
     val updatedAtEpochMs: Long,
 
     val status: ExamAttemptStatus,
+
+    /** Deadline mode is the default; steady mode has no finish-by pressure. */
+    val planMode: PlanMode = PlanMode.DEADLINE,
+
+    /** Where the student starts (PRODUCTION_V1_PLAN §3.3). Null for attempts made before it was asked. */
+    val startingPoint: StartingPoint? = null,
 )
+
+/** "Which class / attempt?" A dropper has already been through most of the syllabus once. */
+enum class StartingPoint {
+    CLASS_11,
+    CLASS_12,
+    DROPPER,
+    ;
+
+    /** Droppers default to most chapters done once, and the plan leans on revision. */
+    val revisionShaped: Boolean get() = this == DROPPER
+}
 
 enum class ExamAttemptStatus {
     ACTIVE,
@@ -42,3 +59,7 @@ data class UserProfile(
     val localeTag: String,
     val createdAtEpochMs: Long,
 )
+
+/** Chapters a student of this kind has usually been through once: all of them for a dropper, none otherwise. */
+fun StartingPoint.defaultFinishedChapterIds(pack: ExamPack): Set<String> =
+    if (this == StartingPoint.DROPPER) pack.chapters().mapTo(mutableSetOf()) { it.id } else emptySet()

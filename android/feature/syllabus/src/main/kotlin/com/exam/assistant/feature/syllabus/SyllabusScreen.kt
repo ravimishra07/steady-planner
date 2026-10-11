@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.LocalFlorist
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -70,6 +71,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.exam.assistant.core.data.ExamPackRepository
+import com.exam.assistant.core.data.ProRepository
+import com.exam.assistant.core.data.StageLabelStore
+import com.exam.assistant.core.data.repo.ChapterStageRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
@@ -83,7 +87,11 @@ import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.core.design.Stroke
+import com.exam.assistant.domain.ChapterCoaching
+import com.exam.assistant.domain.ChapterStage
 import com.exam.assistant.domain.PendingSyllabusPick
+import com.exam.assistant.domain.StageLabels
+import com.exam.assistant.domain.minutesToHours
 import com.exam.assistant.domain.SyllabusTickState
 import kotlinx.coroutines.launch
 
@@ -94,11 +102,24 @@ fun SyllabusRoute(
     attemptRepository: AttemptRepository,
     targetSyllabusRepository: TargetSyllabusRepository,
     rollingPlanRepository: RollingPlanRepository,
+    chapterStageRepository: ChapterStageRepository,
+    stageLabelStore: StageLabelStore,
+    proRepository: ProRepository,
     onStartTopic: (PendingSyllabusPick) -> Unit,
     onOrganise: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenPaywall: () -> Unit = {},
     viewModel: SyllabusViewModel = viewModel(
-        factory = SyllabusViewModel.Factory(examPackRepository, topicProgressRepository, attemptRepository, targetSyllabusRepository, rollingPlanRepository),
+        factory = SyllabusViewModel.Factory(
+            examPackRepository,
+            topicProgressRepository,
+            attemptRepository,
+            targetSyllabusRepository,
+            rollingPlanRepository,
+            chapterStageRepository,
+            stageLabelStore,
+            proRepository,
+        ),
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -107,8 +128,15 @@ fun SyllabusRoute(
         state = state,
         onToggleExpand = viewModel::toggleExpand,
         onToggleTick = viewModel::toggleTick,
+        onTapStage = viewModel::tapStage,
+        onUndoRevision = viewModel::undoRevision,
+        onSaveStageLabels = viewModel::saveStageLabels,
+        onRenameChapter = viewModel::renameChapter,
+        onToggleParked = viewModel::toggleParked,
+        onSaveCoaching = viewModel::saveCoaching,
         onStartTopic = onStartTopic,
         onOrganise = onOrganise,
+        onOpenPaywall = onOpenPaywall,
         modifier = modifier,
     )
 }
@@ -121,12 +149,31 @@ fun SyllabusScreen(
     state: SyllabusUiState,
     onToggleExpand: (String) -> Unit,
     onToggleTick: (String) -> Unit,
+    onTapStage: (String, ChapterStage) -> Unit,
+    onUndoRevision: (String) -> Unit,
+    onSaveStageLabels: (StageLabels) -> Unit,
+    onRenameChapter: (String, String?) -> Unit,
+    onToggleParked: (String) -> Unit,
+    onSaveCoaching: (ChapterCoaching) -> Unit,
     onStartTopic: (PendingSyllabusPick) -> Unit,
     onOrganise: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenPaywall: () -> Unit = {},
 ) {
+    var coachingRow by remember { mutableStateOf<SyllabusTreeRow?>(null) }
+    var stageLabelsOpen by remember { mutableStateOf(false) }
+    var renameRow by remember { mutableStateOf<SyllabusTreeRow?>(null) }
+    val onChapterAction: (SyllabusTreeRow, ChapterAction) -> Unit = { row, action ->
+        when (action) {
+            ChapterAction.RENAME -> renameRow = row
+            ChapterAction.RESET_NAME -> onRenameChapter(row.key, null)
+            ChapterAction.PARK -> onToggleParked(row.key)
+            ChapterAction.COACHING -> coachingRow = row
+        }
+    }
     var filters by remember { mutableStateOf<Set<SyllabusFilter>>(emptySet()) }
     var filtersOpen by remember { mutableStateOf(false) }
+    var priorityDetail by remember { mutableStateOf<PriorityDetail?>(null) }
     var selectedSubjectKey by remember(state.subjects) {
         mutableStateOf(state.subjects.firstOrNull()?.key)
     }
@@ -159,6 +206,13 @@ fun SyllabusScreen(
                     Icon(
                         imageVector = Icons.Filled.FilterAlt,
                         contentDescription = stringResource(R.string.syllabus_filter),
+                        tint = colors.textSecondary,
+                    )
+                }
+                IconButton(onClick = { stageLabelsOpen = true }) {
+                    Icon(
+                        imageVector = Icons.Filled.Tune,
+                        contentDescription = stringResource(R.string.syllabus_stage_labels_title),
                         tint = colors.textSecondary,
                     )
                 }
@@ -203,13 +257,60 @@ fun SyllabusScreen(
                                 subject = subject,
                                 onToggleExpand = onToggleExpand,
                                 onToggleTick = onToggleTick,
+                                onTapStage = onTapStage,
+                                onUndoRevision = onUndoRevision,
                                 onStartTopic = onStartTopic,
                                 filters = filters,
+                                pyqFirstYear = state.pyqFirstYear,
+                                pyqLastYear = state.pyqLastYear,
+                                onPriorityClick = { priorityDetail = it },
+                                onChapterAction = onChapterAction,
                             )
                         }
                     }
                 }
             }
+        }
+
+        priorityDetail?.let { detail ->
+            PriorityDetailDialog(
+                detail = detail,
+                firstYear = state.pyqFirstYear,
+                lastYear = state.pyqLastYear,
+                onDismiss = { priorityDetail = null },
+            )
+        }
+
+        coachingRow?.let { row ->
+            CoachingDialog(
+                chapterId = row.key,
+                chapterName = row.name,
+                initial = row.coaching,
+                onSave = onSaveCoaching,
+                onDismiss = { coachingRow = null },
+            )
+        }
+
+        renameRow?.let { row ->
+            RenameChapterDialog(
+                currentName = row.name,
+                originalName = row.originalName,
+                onSave = { name -> onRenameChapter(row.key, name) },
+                onDismiss = { renameRow = null },
+            )
+        }
+
+        if (stageLabelsOpen) {
+            StageLabelsDialog(
+                labels = state.stageLabels,
+                customLocked = !state.proUnlocked && state.stageLabels.customLabel == null,
+                onUnlockCustom = {
+                    stageLabelsOpen = false
+                    onOpenPaywall()
+                },
+                onSave = onSaveStageLabels,
+                onDismiss = { stageLabelsOpen = false },
+            )
         }
 
         if (filtersOpen && selectedSubject != null) {
@@ -494,8 +595,14 @@ private fun SubjectCard(
     subject: SyllabusSubjectCard,
     onToggleExpand: (String) -> Unit,
     onToggleTick: (String) -> Unit,
+    onTapStage: (String, ChapterStage) -> Unit,
+    onUndoRevision: (String) -> Unit,
     onStartTopic: (PendingSyllabusPick) -> Unit,
     filters: Set<SyllabusFilter>,
+    pyqFirstYear: Int,
+    pyqLastYear: Int,
+    onPriorityClick: (PriorityDetail) -> Unit,
+    onChapterAction: (SyllabusTreeRow, ChapterAction) -> Unit,
 ) {
     val colors = AppTheme.colors
     AppCard(
@@ -535,7 +642,7 @@ private fun SubjectCard(
                             subject.totalChapterCount,
                             subject.doneChapterCount,
                             subject.totalChapterCount,
-                            subject.totalEstimatedMinutes / 60,
+                            minutesToHours(subject.totalEstimatedMinutes),
                             subject.questions,
                         ),
                         style = MaterialTheme.typography.bodyMedium,
@@ -595,7 +702,13 @@ private fun SubjectCard(
                             row = row,
                             onToggleExpand = onToggleExpand,
                             onToggleTick = onToggleTick,
+                            onTapStage = onTapStage,
+                            onUndoRevision = onUndoRevision,
                             onStartTopic = onStartTopic,
+                            pyqFirstYear = pyqFirstYear,
+                            pyqLastYear = pyqLastYear,
+                            onPriorityClick = onPriorityClick,
+                            onChapterAction = onChapterAction,
                         )
                     }
                 }
@@ -618,7 +731,13 @@ private fun SyllabusRowView(
     row: SyllabusTreeRow,
     onToggleExpand: (String) -> Unit,
     onToggleTick: (String) -> Unit,
+    onTapStage: (String, ChapterStage) -> Unit,
+    onUndoRevision: (String) -> Unit,
     onStartTopic: (PendingSyllabusPick) -> Unit,
+    pyqFirstYear: Int,
+    pyqLastYear: Int,
+    onPriorityClick: (PriorityDetail) -> Unit,
+    onChapterAction: (SyllabusTreeRow, ChapterAction) -> Unit,
 ) {
     val colors = AppTheme.colors
     val muted = row.tickState == SyllabusTickState.ALL || row.excluded
@@ -671,6 +790,14 @@ private fun SyllabusRowView(
                     color = colors.textMuted,
                 )
             }
+            row.priority?.let { priority ->
+                PriorityLabel(
+                    priority = priority,
+                    firstYear = pyqFirstYear,
+                    lastYear = pyqLastYear,
+                    onClick = { onPriorityClick(PriorityDetail(rowName, priority)) },
+                )
+            }
             if (row.depth <= 1) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -703,12 +830,40 @@ private fun SyllabusRowView(
                     )
                 }
             }
+            row.coaching?.let { counts ->
+                Text(
+                    text = stringResource(
+                        R.string.coaching_row_summary,
+                        counts.lecturesDone, counts.lectures, counts.dppsDone, counts.dpps,
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = colors.textSecondary,
+                    modifier = Modifier.padding(top = Spacing.xs),
+                )
+            }
+            if (row.stageChips.isNotEmpty() && !row.excluded) {
+                StageChipRow(
+                    chapterId = row.key,
+                    chips = row.stageChips,
+                    onTapStage = onTapStage,
+                    onUndoRevision = onUndoRevision,
+                    modifier = Modifier.padding(top = Spacing.sm),
+                )
+            }
         }
 
         StatusDot(
             state = row.tickState,
             onClick = { onToggleTick(row.key) },
         )
+        if (row.isChapter) {
+            ChapterMenuButton(
+                renamed = row.renamed,
+                parked = row.excluded,
+                showCoaching = true,
+                onAction = { action -> onChapterAction(row, action) },
+            )
+        }
         if (!row.hasChildren) {
             Spacer(Modifier.width(Spacing.sm))
             PlayButton(

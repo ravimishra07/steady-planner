@@ -112,6 +112,9 @@ interface RevisionStateDao {
     @Query("SELECT * FROM revision_state WHERE attemptId = :attemptId AND nextDueDateEpochDay <= :epochDay AND enabled = 1")
     suspend fun dueBy(attemptId: String, epochDay: Long): List<RevisionStateEntity>
 
+    @Query("SELECT * FROM revision_state WHERE attemptId = :attemptId AND enabled = 1")
+    suspend fun allEnabled(attemptId: String): List<RevisionStateEntity>
+
     @Query("DELETE FROM revision_state WHERE attemptId = :attemptId")
     suspend fun deleteForAttempt(attemptId: String)
 }

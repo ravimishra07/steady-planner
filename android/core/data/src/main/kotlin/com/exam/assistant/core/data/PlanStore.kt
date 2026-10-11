@@ -12,7 +12,8 @@ import com.exam.assistant.core.common.AppDispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
-private val Context.planDataStore by preferencesDataStore(name = "plan")
+// Internal so BackupRepository can export and restore it (one DataStore per file per process).
+internal val Context.planDataStore by preferencesDataStore(name = "plan")
 
 /**
  * Whether a plan exists and the fields onboarding saves.

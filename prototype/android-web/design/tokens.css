@@ -1,0 +1,253 @@
+/* tokens.css — core/design Tokens.kt + Type.kt as CSS custom properties. 1dp = 1px, 1sp = 1px.
+ * Names: --space-<Spacing>, --radius-<Radius>, --elev-<Elevation>, --opacity-<Opacity>, --stroke-<Stroke>,
+ * --font-<FontSize>, --size-<Size>, --tp-<ThemePreviewMetrics>, --cal-<CalendarMetrics>, --tl-<TimelineMetrics>.
+ * Type: .t-<style> classes and --type-<style>-{size,line,weight,tracking} for every AppType entry (incl. aliases).
+ * Colours live in design/colors.js (--c-<field>, written by applyTheme). */
+
+/* ---- Roboto (vendored, platform/fonts) ---- */
+@font-face { font-family: 'Roboto'; font-style: normal; font-weight: 400; font-display: block;
+  src: url(../platform/fonts/roboto-latin-400-normal.woff2) format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Roboto'; font-style: normal; font-weight: 500; font-display: block;
+  src: url(../platform/fonts/roboto-latin-500-normal.woff2) format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Roboto'; font-style: normal; font-weight: 600; font-display: block;
+  src: url(../platform/fonts/roboto-latin-600-normal.woff2) format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Roboto'; font-style: normal; font-weight: 700; font-display: block;
+  src: url(../platform/fonts/roboto-latin-700-normal.woff2) format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Roboto'; font-style: normal; font-weight: 400; font-display: block;
+  src: url(../platform/fonts/roboto-latin-ext-400-normal.woff2) format('woff2');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: 'Roboto'; font-style: normal; font-weight: 500; font-display: block;
+  src: url(../platform/fonts/roboto-latin-ext-500-normal.woff2) format('woff2');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: 'Roboto'; font-style: normal; font-weight: 600; font-display: block;
+  src: url(../platform/fonts/roboto-latin-ext-600-normal.woff2) format('woff2');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: 'Roboto'; font-style: normal; font-weight: 700; font-display: block;
+  src: url(../platform/fonts/roboto-latin-ext-700-normal.woff2) format('woff2');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+
+:root {
+  --font-family: 'Roboto', system-ui, sans-serif;
+
+  /* Spacing */
+  --space-none: 0px; --space-xxs: 2px; --space-xs: 4px; --space-icon: 6px; --space-sm: 8px; --space-md: 12px;
+  --space-ml: 14px; --space-lg: 16px; --space-xl: 20px; --space-xxl: 24px; --space-xxxl: 32px;
+  --space-screen: 20px; --space-section: 20px;
+
+  /* Radius */
+  --radius-extraSmall: 4px; --radius-small: 8px; --radius-medium: 12px; --radius-large: 16px;
+  --radius-extraLarge: 28px; --radius-summary: 24px; --radius-group: 20px; --radius-full: 9999px;
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-pill: 9999px;
+
+  /* Elevation (dp values) */
+  --elev-cardTonal: 1px; --elev-cardShadow: 1px; --elev-raisedTonal: 2px; --elev-raisedShadow: 3px;
+  --elev-floatingTonal: 3px; --elev-floatingShadow: 6px;
+  /* Android shadow approximations per dp (M3 elevation levels 0-5: 0,1,3,6,8,12dp). */
+  --shadow-0: none;
+  --shadow-1: 0 1px 2px 0 rgba(0,0,0,.30), 0 1px 3px 1px rgba(0,0,0,.15);
+  --shadow-3: 0 1px 2px 0 rgba(0,0,0,.30), 0 2px 6px 2px rgba(0,0,0,.15);
+  --shadow-6: 0 1px 3px 0 rgba(0,0,0,.30), 0 4px 8px 3px rgba(0,0,0,.15);
+  --shadow-8: 0 2px 3px 0 rgba(0,0,0,.30), 0 6px 10px 4px rgba(0,0,0,.15);
+  --shadow-12: 0 4px 4px 0 rgba(0,0,0,.30), 0 8px 12px 6px rgba(0,0,0,.15);
+  --shadow-cardShadow: var(--shadow-1); --shadow-raisedShadow: var(--shadow-3); --shadow-floatingShadow: var(--shadow-6);
+
+  /* Opacity */
+  --opacity-modalScrim: 0.32;
+
+  /* Stroke */
+  --stroke-hairline: 1px; --stroke-emphasis: 1.5px; --stroke-selected: 2px; --stroke-tabIndicator: 3px;
+
+  /* FontSize (sp) */
+  --font-xxs: 9px; --font-xs2: 10px; --font-xs: 11px; --font-sm: 12px; --font-sub: 13px; --font-md: 14px;
+  --font-callout: 15px; --font-lg: 16px; --font-headline: 17px; --font-subtitle: 18px; --font-xl: 20px;
+  --font-xxl: 22px; --font-title: 28px; --font-hero: 34px; --font-mega: 48px; --font-countdown: 52px; --font-display: 56px;
+
+  /* Size */
+  --size-touchTarget: 48px; --size-topAppBarHeight: 64px; --size-tabBarHeight: 56px; --size-ctaHeight: 56px;
+  --size-progressHeight: 4px; --size-compactControl: 32px; --size-timeField: 40px; --size-dayControl: 36px;
+  --size-selectionIndicator: 22px; --size-standardIcon: 24px; --size-smallIcon: 18px; --size-compactIcon: 16px;
+  --size-swatch: 40px; --size-planBar: 12px; --size-summaryTrack: 10px; --size-legendDot: 10px;
+  --size-focusDial: 240px; --size-focusControl: 76px; --size-focusTagHorizontal: 10px; --size-focusTagVertical: 2px;
+  --size-progressRing: 112px; --size-progressRingStroke: 8px; --size-progressChart: 96px;
+  --size-syllabusRing: 56px; --size-syllabusRingStroke: 5px; --size-syllabusPrimaryAction: 56px;
+  --size-syllabusRowAction: 48px; --size-syllabusStatus: 48px; --size-syllabusSubjectTabHeight: 64px;
+  --size-syllabusRowMinHeight: 56px; --size-syllabusBranchIndent: 32px; --size-syllabusRailOffset: 10px;
+  --size-syllabusHookTop: 18px; --size-syllabusHookHeight: 12px; --size-syllabusHookWidth: 20px;
+  --size-syllabusFilterPopupWidth: 320px; --size-syllabusFilterPopupTop: 52px;
+  --size-organiseDayWidth: 50px; --size-organiseDayHeight: 72px; --size-onboardingInput: 46px; --size-lockStep: 28px;
+  --size-progressChartTall: 156px; --size-progressBar: 6px; --size-bottomClearance: 80px; --size-themeSwatch: 48px;
+  --size-themePreview: 72px; --size-appearanceModeSwatch: 36px; --size-appearanceRow: 64px; --size-accentDot: 36px;
+  --size-accentCheck: 20px; --size-textField: 56px; --size-listRow: 56px; --size-pagerDot: 6px;
+  --size-pagerDotActive: 16px; --size-dialogListMaxHeight: 280px;
+
+  /* ThemePreviewMetrics (fractions are unitless) */
+  --tp-pageWidth: 144px; --tp-pageSpacing: 12px; --tp-aspectRatio: calc(360 / 780); --tp-corner: 12px;
+  --tp-ringWidth: 2px; --tp-ringGap: 2px; --tp-minScale: 0.82; --tp-minAlpha: 0.55;
+  --tp-topPadding: 16px; --tp-sideMargin: 10px; --tp-headerHeight: 10px; --tp-headerWidth: 0.62;
+  --tp-lineTop: 6px; --tp-lineHeight: 6px; --tp-lineWidth: 0.38; --tp-heroTop: 16px; --tp-heroHeight: 88px;
+  --tp-heroCorner: 8px; --tp-heroPadding: 12px; --tp-heroBarHeight: 6px; --tp-heroAccentWidth: 0.72;
+  --tp-heroInkWidth: 0.48; --tp-itemTop: 8px; --tp-itemHeight: 36px; --tp-itemCorner: 8px; --tp-itemPadding: 10px;
+  --tp-itemGap: 8px; --tp-itemRing: 12px; --tp-itemRingStroke: 2px; --tp-itemBarHeight: 5px;
+  --tp-itemBarWidth: 0.62; --tp-itemBarShortWidth: 0.46; --tp-navHeight: 40px; --tp-navIcon: 10px;
+  --tp-navIconCorner: 3px; --tp-navActiveWidth: 22px;
+  --tp-inkStrong: 0.6; --tp-inkSoft: 0.45; --tp-inkFill: 0.09; --tp-inkNav: 0.07;
+
+  /* CalendarMetrics */
+  --cal-monthControlHeight: 40px; --cal-dayCorner: 22px; --cal-dayTopPadding: 8px; --cal-dayBottomPadding: 10px;
+  --cal-dayGap: 6px; --cal-gridGap: 2px; --cal-meterWidth: 20px; --cal-meterHeight: 3px;
+
+  /* TimelineMetrics */
+  --tl-railWidth: 52px; --tl-lineWidth: 2px; --tl-nodeSize: 10px; --tl-minimumBlockHeight: 64px;
+  --tl-minimumDrawWidth: 2px; --tl-nowLineOvershoot: 2px; --tl-microOffset: 1px; --tl-dash: 5px;
+  --tl-compactRail: 20px; --tl-tinyIcon: 13px; --tl-smallAction: 24px; --tl-trailingAction: 68px;
+
+  /* Type.kt — M3 scale (size / lineHeight / weight / letterSpacing in sp) */
+  --type-displayLarge-size: 57px; --type-displayLarge-line: 64px; --type-displayLarge-weight: 400; --type-displayLarge-tracking: -0.25px;
+  --type-displayMedium-size: 45px; --type-displayMedium-line: 52px; --type-displayMedium-weight: 400; --type-displayMedium-tracking: 0px;
+  --type-displaySmall-size: 36px; --type-displaySmall-line: 44px; --type-displaySmall-weight: 400; --type-displaySmall-tracking: 0px;
+  --type-headlineLarge-size: 32px; --type-headlineLarge-line: 40px; --type-headlineLarge-weight: 400; --type-headlineLarge-tracking: 0px;
+  --type-headlineMedium-size: 28px; --type-headlineMedium-line: 36px; --type-headlineMedium-weight: 400; --type-headlineMedium-tracking: 0px;
+  --type-headlineSmall-size: 24px; --type-headlineSmall-line: 32px; --type-headlineSmall-weight: 400; --type-headlineSmall-tracking: 0px;
+  --type-titleLarge-size: 22px; --type-titleLarge-line: 28px; --type-titleLarge-weight: 400; --type-titleLarge-tracking: 0px;
+  --type-titleMedium-size: 16px; --type-titleMedium-line: 24px; --type-titleMedium-weight: 500; --type-titleMedium-tracking: 0.15px;
+  --type-titleSmall-size: 14px; --type-titleSmall-line: 20px; --type-titleSmall-weight: 500; --type-titleSmall-tracking: 0.1px;
+  --type-bodyLarge-size: 16px; --type-bodyLarge-line: 24px; --type-bodyLarge-weight: 400; --type-bodyLarge-tracking: 0.5px;
+  --type-bodyMedium-size: 14px; --type-bodyMedium-line: 20px; --type-bodyMedium-weight: 400; --type-bodyMedium-tracking: 0.25px;
+  --type-bodySmall-size: 12px; --type-bodySmall-line: 16px; --type-bodySmall-weight: 400; --type-bodySmall-tracking: 0.4px;
+  --type-labelLarge-size: 14px; --type-labelLarge-line: 20px; --type-labelLarge-weight: 500; --type-labelLarge-tracking: 0.1px;
+  --type-labelMedium-size: 12px; --type-labelMedium-line: 16px; --type-labelMedium-weight: 500; --type-labelMedium-tracking: 0.5px;
+  --type-labelSmall-size: 11px; --type-labelSmall-line: 16px; --type-labelSmall-weight: 500; --type-labelSmall-tracking: 0.5px;
+
+  /* M3 motion (MotionTokens) */
+  --motion-short1: 50ms; --motion-short2: 100ms; --motion-short3: 150ms; --motion-short4: 200ms;
+  --motion-medium1: 250ms; --motion-medium2: 300ms; --motion-medium3: 350ms; --motion-medium4: 400ms;
+  --motion-long1: 450ms; --motion-long2: 500ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-standardDecelerate: cubic-bezier(0, 0, 0, 1);
+  --ease-standardAccelerate: cubic-bezier(0.3, 0, 1, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasizedDecelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --ease-emphasizedAccelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --ease-legacy: cubic-bezier(0.4, 0, 0.2, 1);  /* FastOutSlowIn */
+
+  /* M3 state layers */
+  --state-hover: 0.08; --state-focus: 0.1; --state-pressed: 0.1; --state-dragged: 0.16;
+  --disabled-content: 0.38; --disabled-container: 0.12;
+}
+
+/* ---- Type classes (AppType). Aliases resolve to the same scale as Type.kt. ---- */
+.t-displayLarge, .t-display, .t-countdown, .t-mega { font: 400 57px/64px var(--font-family); letter-spacing: -0.25px; }
+.t-displayMedium { font: 400 45px/52px var(--font-family); letter-spacing: 0; }
+.t-displaySmall, .t-hero { font: 400 36px/44px var(--font-family); letter-spacing: 0; }
+.t-headlineLarge, .t-title { font: 400 32px/40px var(--font-family); letter-spacing: 0; }
+.t-headlineMedium, .t-xxl { font: 400 28px/36px var(--font-family); letter-spacing: 0; }
+.t-headlineSmall, .t-xl { font: 400 24px/32px var(--font-family); letter-spacing: 0; }
+.t-titleLarge, .t-subtitle { font: 400 22px/28px var(--font-family); letter-spacing: 0; }
+.t-titleMedium, .t-headline { font: 500 16px/24px var(--font-family); letter-spacing: 0.15px; }
+.t-titleSmall { font: 500 14px/20px var(--font-family); letter-spacing: 0.1px; }
+.t-bodyLarge, .t-lgRegular { font: 400 16px/24px var(--font-family); letter-spacing: 0.5px; }
+.t-lg { font: 500 16px/24px var(--font-family); letter-spacing: 0.5px; }
+.t-bodyMedium, .t-md { font: 400 14px/20px var(--font-family); letter-spacing: 0.25px; }
+.t-bodySmall, .t-sub, .t-sm { font: 400 12px/16px var(--font-family); letter-spacing: 0.4px; }
+.t-labelLarge, .t-callout { font: 500 14px/20px var(--font-family); letter-spacing: 0.1px; }
+.t-labelMedium, .t-tabLabel { font: 500 12px/16px var(--font-family); letter-spacing: 0.5px; }
+.t-labelSmall, .t-eyebrow, .t-micro { font: 500 11px/16px var(--font-family); letter-spacing: 0.5px; }
+/* FontWeight overrides (Text(fontWeight = ...)) */
+.fw-normal { font-weight: 400 !important; } .fw-medium { font-weight: 500 !important; }
+.fw-semibold { font-weight: 600 !important; } .fw-bold { font-weight: 700 !important; }
+/* maxLines + TextOverflow.Ellipsis */
+.ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.lines-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-width: 0; }
+.lines-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; min-width: 0; }
+
+/* ---- Base reset ---- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  font-family: var(--font-family);
+  font-size: 16px; line-height: 24px; letter-spacing: 0.5px; /* MaterialTheme LocalTextStyle = bodyLarge */
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent;
+}
+h1, h2, h3, h4, h5, h6, p, figure, ul, ol { margin: 0; padding: 0; font: inherit; }
+ul, ol { list-style: none; }
+button, input, textarea, select { font: inherit; color: inherit; letter-spacing: inherit; margin: 0; }
+button { background: none; border: 0; padding: 0; cursor: pointer; text-align: inherit; }
+button:disabled { cursor: default; }
+a { color: inherit; text-decoration: none; }
+img, svg { display: block; }
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--c-secondary); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+/* Compose layout primitives */
+.col { display: flex; flex-direction: column; min-width: 0; }
+.row { display: flex; flex-direction: row; align-items: flex-start; min-width: 0; }
+.row.center-v, .center-v { align-items: center; }
+.box { position: relative; display: grid; }
+.box > * { grid-area: 1 / 1; }
+.fill-w { width: 100%; align-self: stretch; }
+.fill-h { height: 100%; }
+.fill { width: 100%; height: 100%; }
+.weight { flex: 1 1 0; min-width: 0; min-height: 0; }
+.wrap { flex: 0 0 auto; }
+.scroll-y { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: none; }
+.scroll-x { overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none; }
+/* WindowInsets consumption (components.js consumeInsets): children of a consuming element see the inset as 0;
+ * the element's own padding keeps the inherited value. */
+.consumes-inset-top > * { --inset-top: 0px; }
+.consumes-inset-bottom > * { --inset-bottom: 0px; }
+.scroll-y::-webkit-scrollbar, .scroll-x::-webkit-scrollbar { display: none; }
+/* verticalScroll / horizontalScroll / Lazy lists measure children with an unbounded main axis: they never
+ * shrink. :where() keeps specificity 0 so an explicit class (.weight) or inline flex still wins. Children of a
+ * display:contents observe() host inside the scroller are flex items of the scroller too. */
+:where(.scroll-y, .scroll-x) > *,
+:where(.scroll-y, .scroll-x) > :where([data-render-root][style*="contents"]) > * { flex-shrink: 0; }
+
+/* Modifier.border / BorderStroke (components.js applyBorder): drawn inside the bounds, above the content, no layout. */
+.border-stroke::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 1;
+  border: var(--border-stroke-width, 1px) solid var(--border-stroke-color, currentColor);
+}
+
+/* ---- M3 state layer + ripple (platform: indication) ----
+ * .state-layer on any interactive element: hover 8%, pressed 10% of currentColor (content colour).
+ * The ripple circle is injected by components.js (attachRipple). */
+.state-layer { position: relative; isolation: isolate; overflow: hidden; cursor: pointer; user-select: none; -webkit-user-select: none; }
+.state-layer::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; background: currentColor;
+  opacity: 0; pointer-events: none; z-index: -1; transition: opacity 15ms linear;
+}
+@media (hover: hover) { .state-layer:not([aria-disabled="true"]):hover::before { opacity: var(--state-hover); } }
+.state-layer:not([aria-disabled="true"]):focus-visible::before { opacity: var(--state-focus); }
+.state-layer[aria-disabled="true"] { cursor: default; }
+.state-layer.no-indication::before { display: none; }
+.ripple {
+  position: absolute; border-radius: 50%; background: currentColor; pointer-events: none; z-index: -1;
+  transform: scale(0); opacity: var(--state-pressed);
+  transition: transform 225ms var(--ease-legacy), opacity 150ms linear;
+}
+.ripple.unbounded { z-index: 0; }
+
+/* Touch target (Modifier.minimumInteractiveComponentSize): layout ≥48dp, visual centred.
+ * An explicit size on the composable (Modifier.size/height/width) wins over the 48dp layout minimum — the
+ * caller's css sets min-width/min-height to 0 on that axis (components.js touchTarget) — and the touch area is
+ * still expanded to 48dp by the invisible ::after hit box (clicks on it are forwarded to the control), like
+ * Compose's minimumTouchTargetSize: it reaches outside the layout bounds without taking space.
+ * flex: 0 0 auto by default; .weight on the wrapper keeps Modifier.weight(1f). */
+.touch-target {
+  display: inline-grid; place-items: center; min-width: var(--size-touchTarget); min-height: var(--size-touchTarget);
+  flex: 0 0 auto; position: relative; isolation: isolate;
+}
+.touch-target.weight { flex: 1 1 0; }
+.touch-target > * { min-width: 0; }
+.touch-target::after {
+  content: ''; position: absolute; left: 50%; top: 50%; z-index: -1;
+  width: max(100%, var(--size-touchTarget)); height: max(100%, var(--size-touchTarget));
+  transform: translate(-50%, -50%);
+}

@@ -1,7 +1,6 @@
 package com.exam.assistant.feature.home
 
 import com.exam.assistant.domain.DayTimelineEntry
-import com.exam.assistant.domain.RevisionSuggestion
 import com.exam.assistant.domain.SyllabusSection
 import com.exam.assistant.domain.StudyPlacementIssue
 import com.exam.assistant.domain.StudyActivityType
@@ -53,6 +52,50 @@ data class MissedDayRecoveryUi(
     val canStartNow: Boolean,
 )
 
+/** Deadline mode: part of the remaining work cannot be scheduled before finish-by. Estimate, until calibrated. */
+data class PlanFitUi(
+    val shortByMinutes: Int,
+    val finishBy: LocalDate,
+    val calibrated: Boolean,
+)
+
+/** "You missed N blocks. Rebalance the next days?" */
+data class MissedBlocksUi(
+    val count: Int,
+    val since: LocalDate,
+)
+
+/** "Start fresh from today". Carries no count on purpose: nothing on it says how much was missed. */
+data class FreshStartUi(
+    val since: LocalDate,
+)
+
+/** One chapter the student can say their batch taught today. */
+data class CoachingChapterOption(
+    val chapterId: String,
+    val title: String,
+    val subjectId: String,
+    val subjectName: String,
+)
+
+/** "Physics: 23 lectures, 41 DPPs behind". Numbers from Metrics.coachingBacklogMetrics. */
+data class CoachingBacklogRowUi(
+    val subjectName: String,
+    val lectures: Int,
+    val dpps: Int,
+)
+
+/** Coaching on Today (§4.5, §5.4). Null when the student has no counts and no batch position. */
+data class CoachingTodayUi(
+    val batchChapterId: String?,
+    val batchChapterTitle: String?,
+    val batchLecture: Int,
+    val chapters: List<CoachingChapterOption>,
+    val backlog: List<CoachingBacklogRowUi>,
+    val clearDate: LocalDate?,
+    val liveSplit: Int,
+)
+
 data class HomeUiState(
     val loading: Boolean = true,
     val hasPlan: Boolean = false,
@@ -66,7 +109,6 @@ data class HomeUiState(
     val dayBudgetMinutes: Int = 0,
     val completionPercent: Int = 0,
     val dayTimeline: List<DayTimelineEntry> = emptyList(),
-    val revisionItems: List<RevisionSuggestion> = emptyList(),
     val sections: List<SyllabusSection> = emptyList(),
     val sheet: HomeSheet = HomeSheet.None,
     val pickerLevel: StudyPickerLevel = StudyPickerLevel.Subjects,
@@ -74,6 +116,8 @@ data class HomeUiState(
     val pickerTopicPath: List<Int> = emptyList(),
     val pickerQuery: String = "",
     val pendingTopic: PendingTopic? = null,
+    /** When this topic's next revision falls due if the pending session is completed unrated; null for a custom topic. */
+    val pendingRevisionDue: LocalDate? = null,
     val selectedDurationMinutes: Int = 30,
     val customEndMinuteOfDay: Int? = null,
     val activeSprint: ActiveSprintUi? = null,
@@ -83,4 +127,13 @@ data class HomeUiState(
     val placementIssue: StudyPlacementIssue? = null,
     val daysUntilExam: Int = 0,
     val syllabusPercent: Int = 0,
+    val planFit: PlanFitUi? = null,
+    val missedBlocks: MissedBlocksUi? = null,
+    /** Two or more missed days, or a broken streak: one "Start fresh from today" card instead of the missed prompts. */
+    val freshStart: FreshStartUi? = null,
+    /** The student started fresh today: no catch-up count on Today for the rest of the day. */
+    val startedFreshToday: Boolean = false,
+    /** A past day with logged study is selected: Today links to "What you studied" for it. */
+    val canOpenDayLog: Boolean = false,
+    val coaching: CoachingTodayUi? = null,
 )

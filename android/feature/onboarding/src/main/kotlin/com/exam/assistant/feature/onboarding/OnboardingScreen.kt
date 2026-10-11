@@ -1,5 +1,6 @@
 package com.exam.assistant.feature.onboarding
 
+import com.exam.assistant.core.common.Analytics
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -11,9 +12,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -28,8 +32,26 @@ import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.common.AppDispatchers
 import com.exam.assistant.core.design.AccentPalette
+import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.BackgroundAppearance
-import kotlin.math.roundToInt
+import com.exam.assistant.core.design.Radius
+import com.exam.assistant.core.design.Spacing
+import com.exam.assistant.feature.onboarding.components.OnboardingShell
+import com.exam.assistant.feature.onboarding.model.OnboardingStep
+import com.exam.assistant.feature.onboarding.model.OnboardingUiState
+import com.exam.assistant.feature.onboarding.steps.OnboardingAccentPicker
+import com.exam.assistant.feature.onboarding.steps.OnboardingAppearanceStep
+import com.exam.assistant.feature.onboarding.steps.OnboardingCoachingStep
+import com.exam.assistant.feature.onboarding.steps.OnboardingCommitmentsStep
+import com.exam.assistant.feature.onboarding.steps.OnboardingHoursParityStep
+import com.exam.assistant.feature.onboarding.steps.OnboardingModeStep
+import com.exam.assistant.feature.onboarding.steps.OnboardingPlanStep
+import com.exam.assistant.feature.onboarding.steps.OnboardingStartStep
+import com.exam.assistant.feature.onboarding.steps.OnboardingSyllabusStep
+import com.exam.assistant.domain.PlanFitOption
+import com.exam.assistant.domain.PlanMode
+import com.exam.assistant.domain.StartingPoint
+import java.time.LocalDate
 
 @Composable
 fun OnboardingRoute(
@@ -43,12 +65,16 @@ fun OnboardingRoute(
     planRepository: PlanRepository,
     rollingPlanRepository: RollingPlanRepository,
     dispatchers: AppDispatchers,
+    examDate: LocalDate,
+    examDateOfficial: Boolean,
+    startAtPlan: Boolean,
     background: BackgroundAppearance,
     onBackground: (BackgroundAppearance) -> Unit,
     accentPalette: AccentPalette,
     onAccentPalette: (AccentPalette) -> Unit,
     onFinished: (openOrganise: Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    analytics: Analytics = Analytics.NoOp,
     viewModel: OnboardingViewModel = viewModel(
         factory = OnboardingViewModel.Factory(
             planStore,
@@ -61,6 +87,10 @@ fun OnboardingRoute(
             planRepository,
             rollingPlanRepository,
             dispatchers,
+            examDate,
+            examDateOfficial,
+            startAtPlan,
+            analytics,
         ),
     ),
 ) {
@@ -82,6 +112,7 @@ fun OnboardingRoute(
         capacityIssues = viewModel.capacityIssues(state),
         onBack = viewModel::back,
         onContinue = viewModel::continueFromCurrent,
+        onSkip = if (viewModel.canSkip(state)) viewModel::skipCurrent else null,
         onBackground = onBackground,
         onAccentPalette = onAccentPalette,
         onSelectCoaching = viewModel::selectCoaching,
@@ -94,11 +125,18 @@ fun OnboardingRoute(
         onWake = viewModel::setWakeMinute,
         onSleep = viewModel::setSleepMinute,
         onDate = viewModel::setTargetDate,
+        onMode = viewModel::setPlanMode,
+        onExamDate = viewModel::setExamDate,
         onSelectWork = viewModel::selectWork,
         onWeekdayChange = viewModel::setWeekdayHours,
         onWeekendChange = viewModel::setWeekendHours,
         onToggleTargetSubject = viewModel::toggleTargetSubject,
         onToggleTargetChapter = viewModel::toggleTargetChapter,
+        onSelectStartingPoint = viewModel::selectStartingPoint,
+        onToggleFinishedSubject = viewModel::toggleFinishedSubject,
+        onToggleFinishedChapter = viewModel::toggleFinishedChapter,
+        onToggleFinishedClass = viewModel::toggleFinishedClass,
+        onApplyFitOption = viewModel::applyFitOption,
         onDismissFinishError = viewModel::dismissFinishError,
         modifier = modifier,
     )
@@ -114,6 +152,7 @@ fun OnboardingScreen(
     capacityIssues: List<CapacityIssue>,
     onBack: () -> Unit,
     onContinue: () -> Unit,
+    onSkip: (() -> Unit)?,
     onBackground: (BackgroundAppearance) -> Unit,
     onAccentPalette: (AccentPalette) -> Unit,
     onSelectCoaching: (String) -> Unit,
@@ -125,12 +164,19 @@ fun OnboardingScreen(
     onCommitmentEnd: (String, Int) -> Unit,
     onWake: (Int) -> Unit,
     onSleep: (Int) -> Unit,
-    onDate: (java.time.LocalDate) -> Unit,
+    onDate: (LocalDate) -> Unit,
+    onMode: (PlanMode) -> Unit,
+    onExamDate: (LocalDate) -> Unit,
     onSelectWork: (String) -> Unit,
     onWeekdayChange: (Float) -> Unit,
     onWeekendChange: (Float) -> Unit,
     onToggleTargetSubject: (String) -> Unit,
     onToggleTargetChapter: (String) -> Unit,
+    onSelectStartingPoint: (StartingPoint) -> Unit,
+    onToggleFinishedSubject: (String) -> Unit,
+    onToggleFinishedChapter: (String) -> Unit,
+    onToggleFinishedClass: (Int) -> Unit,
+    onApplyFitOption: (PlanFitOption) -> Unit,
     onDismissFinishError: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -147,6 +193,7 @@ fun OnboardingScreen(
             OnboardingStep.Commitments -> R.string.onboarding_commitments_title
             OnboardingStep.Date -> R.string.onboarding_date_title
             OnboardingStep.Hours -> R.string.onboarding_hours_title
+            OnboardingStep.Start -> R.string.onboarding_start_title
             OnboardingStep.Syllabus -> if (state.useProvidedSyllabus) R.string.onboarding_syllabus_title else R.string.onboarding_syllabus_custom_title
             OnboardingStep.Plan -> R.string.onboarding_plan_title
         },
@@ -167,10 +214,16 @@ fun OnboardingScreen(
         continueEnabled = canContinue,
         onBack = onBack,
         onContinue = onContinue,
+        onSkip = onSkip,
         modifier = modifier,
+        bottomContent = if (state.step == OnboardingStep.Appearance) {
+            { OnboardingAccentPicker(accentPalette, onAccentPalette) }
+        } else {
+            null
+        },
     ) {
         when (state.step) {
-            OnboardingStep.Appearance -> OnboardingAppearanceStep(background, accentPalette, onBackground, onAccentPalette)
+            OnboardingStep.Appearance -> OnboardingAppearanceStep(background, accentPalette, onBackground)
             OnboardingStep.Coaching -> OnboardingCoachingStep(state.coachingId, onSelectCoaching)
             OnboardingStep.Commitments -> OnboardingCommitmentsStep(
                 state,
@@ -184,7 +237,7 @@ fun OnboardingScreen(
                 onWake,
                 onSleep,
             )
-            OnboardingStep.Date -> OnboardingTargetDateStep(state.targetDate, false, onDate)
+            OnboardingStep.Date -> OnboardingModeStep(state, onMode, onDate, onExamDate)
             OnboardingStep.Hours -> {
                 OnboardingHoursParityStep(
                     state = state,
@@ -194,21 +247,23 @@ fun OnboardingScreen(
                     onWeekendChange = onWeekendChange,
                 )
             }
+            OnboardingStep.Start -> OnboardingStartStep(
+                state = state,
+                onSelectStartingPoint = onSelectStartingPoint,
+            )
             OnboardingStep.Syllabus -> OnboardingSyllabusStep(
                 state = state,
                 onToggleSubject = onToggleTargetSubject,
                 onToggleChapter = onToggleTargetChapter,
             )
-            OnboardingStep.Plan -> state.cushion?.let {
-                OnboardingPlanStep(
-                    state = state,
-                    cushion = it,
-                    onWeekdayChange = onWeekdayChange,
-                    onWeekendChange = onWeekendChange,
-                    onDate = onDate,
-                )
-            }
-                ?: CircularProgressIndicator()
+            OnboardingStep.Plan -> OnboardingPlanStep(
+                state = state,
+                onWeekdayChange = onWeekdayChange,
+                onWeekendChange = onWeekendChange,
+                onDate = onDate,
+                onExamDate = onExamDate,
+                onApplyFitOption = onApplyFitOption,
+            )
         }
     }
 
@@ -225,13 +280,13 @@ fun OnboardingScreen(
 
 @Composable
 internal fun CapacityIssuesCard(issues: List<CapacityIssue>) {
-    androidx.compose.material3.Surface(
-        modifier = Modifier.padding(top = com.exam.assistant.core.design.Spacing.md),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(com.exam.assistant.core.design.Radius.lg),
-        color = com.exam.assistant.core.design.AppTheme.colors.dangerContainer,
+    Surface(
+        modifier = Modifier.padding(top = Spacing.md),
+        shape = RoundedCornerShape(Radius.md),
+        color = AppTheme.colors.dangerContainer,
     ) {
-        androidx.compose.foundation.layout.Column(Modifier.padding(com.exam.assistant.core.design.Spacing.lg)) {
-            Text(stringResource(R.string.onboarding_hours_do_not_fit), style = androidx.compose.material3.MaterialTheme.typography.titleSmall)
+        Column(Modifier.padding(Spacing.lg)) {
+            Text(stringResource(R.string.onboarding_hours_do_not_fit), style = MaterialTheme.typography.titleSmall)
             issues.forEach { issue ->
                 val value = when (issue) {
                     is CapacityIssue.Weekday -> stringResource(R.string.onboarding_hours_weekday_free, formatHours(issue.freeHours))

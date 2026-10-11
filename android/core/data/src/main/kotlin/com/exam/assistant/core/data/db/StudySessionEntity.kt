@@ -1,5 +1,6 @@
 package com.exam.assistant.core.data.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Entity
 import androidx.room.Index
@@ -46,9 +47,13 @@ data class StudySessionEntity(
     val focusLockUsed: Boolean,
     val interruptionCount: Int,
     val outcome: String?,
+    val dueDateAtCompletionEpochDay: Long?,
+    val priorIntervalDays: Int?,
     val customTitle: String?,
     val createdAtEpochMs: Long,
     val updatedAtEpochMs: Long,
+    /** Logged by hand rather than timed (§6.3). */
+    @ColumnInfo(defaultValue = "0") val isManual: Boolean = false,
 )
 
 fun StudySessionEntity.toDomain() = StudySession(
@@ -68,9 +73,12 @@ fun StudySessionEntity.toDomain() = StudySession(
     focusLockUsed = focusLockUsed,
     interruptionCount = interruptionCount,
     outcome = outcome?.let(StudyOutcome::valueOf),
+    dueDateAtCompletion = dueDateAtCompletionEpochDay?.let(LocalDate::ofEpochDay),
+    priorIntervalDays = priorIntervalDays,
     customTitle = customTitle,
     createdAtEpochMs = createdAtEpochMs,
     updatedAtEpochMs = updatedAtEpochMs,
+    isManual = isManual,
 )
 
 fun StudySession.toEntity() = StudySessionEntity(
@@ -90,9 +98,12 @@ fun StudySession.toEntity() = StudySessionEntity(
     focusLockUsed = focusLockUsed,
     interruptionCount = interruptionCount,
     outcome = outcome?.name,
+    dueDateAtCompletionEpochDay = dueDateAtCompletion?.toEpochDay(),
+    priorIntervalDays = priorIntervalDays,
     customTitle = customTitle,
     createdAtEpochMs = createdAtEpochMs,
     updatedAtEpochMs = updatedAtEpochMs,
+    isManual = isManual,
 )
 
 @Entity(
@@ -135,6 +146,7 @@ fun StudySessionSegment.toEntity() = StudySessionSegmentEntity(
 data class DaySum(val studyDateEpochDay: Long, val totalSeconds: Int, val sessionCount: Int)
 data class SubjectSum(val subjectId: String?, val totalSeconds: Int)
 data class NodeFocusedSum(val nodeId: String, val totalSeconds: Int)
+data class NodeCount(val nodeId: String, val total: Int)
 
 @Dao
 interface StudySessionDao {
@@ -176,15 +188,42 @@ interface StudySessionDao {
     )
     suspend fun subjectSums(attemptId: String, startEpochDay: Long, endEpochDay: Long): List<SubjectSum>
 
+    /** Learn minutes per node. Titled sessions on a node are coaching backlog lectures (§5.4) and stay out. */
     @Query(
         "SELECT nodeId, SUM(focusedSeconds) AS totalSeconds FROM study_session " +
             "WHERE attemptId = :attemptId AND status = 'COMPLETED' AND activityType = 'LEARN' " +
-            "AND nodeId IS NOT NULL GROUP BY nodeId",
+            "AND nodeId IS NOT NULL AND customTitle IS NULL GROUP BY nodeId",
     )
     suspend fun completedLearnSumsByNode(attemptId: String): List<NodeFocusedSum>
 
+    /** How many completed sessions on each node the student rated STRUGGLED. Drives revision-phase weakness. */
+    @Query(
+        "SELECT nodeId, COUNT(*) AS total FROM study_session " +
+            "WHERE attemptId = :attemptId AND status = 'COMPLETED' AND outcome = 'STRUGGLED' " +
+            "AND nodeId IS NOT NULL GROUP BY nodeId",
+    )
+    suspend fun struggledCountsByNode(attemptId: String): List<NodeCount>
+
+    @Query(
+        "SELECT DISTINCT nodeId FROM study_session WHERE attemptId = :attemptId AND status = 'COMPLETED' " +
+            "AND activityType = :activityType AND focusedSeconds > 0 AND nodeId IS NOT NULL",
+    )
+    suspend fun completedNodeIdsOfType(attemptId: String, activityType: String): List<String>
+
     @Query("SELECT MIN(studyDateEpochDay) FROM study_session WHERE attemptId = :attemptId AND status = 'COMPLETED'")
     suspend fun earliestStudyDate(attemptId: String): Long?
+
+    @Query("DELETE FROM study_session WHERE id = :id")
+    suspend fun deleteById(id: String)
+
+    @Query("DELETE FROM study_session_segment WHERE sessionId = :sessionId")
+    suspend fun deleteSegmentsFor(sessionId: String)
+
+    @Transaction
+    suspend fun deleteSession(id: String) {
+        deleteSegmentsFor(id)
+        deleteById(id)
+    }
 
     @Query("DELETE FROM study_session WHERE attemptId = :attemptId")
     suspend fun deleteForAttempt(attemptId: String)

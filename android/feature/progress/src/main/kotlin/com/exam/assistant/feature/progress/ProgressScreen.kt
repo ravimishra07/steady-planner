@@ -33,6 +33,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import kotlin.math.roundToInt
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -49,10 +50,17 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.exam.assistant.core.data.StudySessionStore
-import com.exam.assistant.core.data.SyllabusRepository
 import com.exam.assistant.core.data.SyllabusStore
 import com.exam.assistant.core.data.ExamPackRepository
+import com.exam.assistant.core.data.ProRepository
+import com.exam.assistant.core.design.ProLockCard
+import com.exam.assistant.core.design.ProLockIcon
 import com.exam.assistant.core.data.repo.AttemptRepository
+import com.exam.assistant.core.data.repo.AvailabilityRepository
+import com.exam.assistant.core.data.repo.ChapterStageRepository
+import com.exam.assistant.core.data.repo.MockTestRepository
+import androidx.compose.material3.OutlinedButton
+import com.exam.assistant.core.data.repo.RevisionRepository
 import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.StudySessionRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
@@ -84,24 +92,45 @@ fun ProgressRoute(
     targetSyllabusRepository: TargetSyllabusRepository,
     rollingPlanRepository: RollingPlanRepository,
     studyPreferenceRepository: StudyPreferenceRepository,
+    revisionRepository: RevisionRepository,
+    availabilityRepository: AvailabilityRepository,
+    chapterStageRepository: ChapterStageRepository,
+    mockTestRepository: MockTestRepository,
+    proRepository: ProRepository,
     modifier: Modifier = Modifier,
+    onOpenPaywall: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     onGoToday: () -> Unit = {},
+    onOpenDay: (java.time.LocalDate) -> Unit = {},
+    onLogStudy: () -> Unit = {},
+    onOpenTests: () -> Unit = {},
     viewModel: ProgressViewModel = viewModel(
         factory = ProgressViewModel.Factory(
             examPackRepository, attemptRepository, planRepository, studySessionRepository,
             topicProgressRepository, targetSyllabusRepository,
             rollingPlanRepository, studyPreferenceRepository,
+            revisionRepository, availabilityRepository, chapterStageRepository, mockTestRepository,
+            proRepository,
         ),
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.refresh() }
+    androidx.compose.runtime.LaunchedEffect(state.showSoftPrompt) {
+        if (state.showSoftPrompt) {
+            viewModel.onSoftPromptShown()
+            onOpenPaywall()
+        }
+    }
     ProgressScreen(
         state = state,
         onPeriodSelected = viewModel::selectPeriod,
+        onOpenPaywall = onOpenPaywall,
         onOpenSettings = onOpenSettings,
         onGoToday = onGoToday,
+        onOpenDay = onOpenDay,
+        onLogStudy = onLogStudy,
+        onOpenTests = onOpenTests,
         onManageTarget = viewModel::openTargetManager,
         onCloseTargetManager = viewModel::closeTargetManager,
         onToggleSection = viewModel::toggleSectionTarget,
@@ -114,8 +143,12 @@ fun ProgressScreen(
     state: InsightsUiState,
     modifier: Modifier = Modifier,
     onPeriodSelected: (InsightPeriod) -> Unit = {},
+    onOpenPaywall: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     onGoToday: () -> Unit = {},
+    onOpenDay: (java.time.LocalDate) -> Unit = {},
+    onLogStudy: () -> Unit = {},
+    onOpenTests: () -> Unit = {},
     onManageTarget: () -> Unit = {},
     onCloseTargetManager: () -> Unit = {},
     onToggleSection: (String) -> Unit = {},
@@ -144,7 +177,7 @@ fun ProgressScreen(
 
     val data = state.data
     if (!data.hasStudyHistory) {
-        EmptyProgressScreen(data = data, onGoToday = onGoToday, modifier = modifier)
+        EmptyProgressScreen(data = data, onGoToday = onGoToday, onLogStudy = onLogStudy, onOpenTests = onOpenTests, modifier = modifier)
         return
     }
     Column(
@@ -163,16 +196,37 @@ fun ProgressScreen(
                 Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.insights_settings), tint = colors.textSecondary)
             }
         }
-        PeriodSelector(selected = state.period, onSelect = onPeriodSelected)
+        LogStudyButton(onClick = onLogStudy, modifier = Modifier.padding(top = Spacing.sm))
+        // Progress first (§5.5): what got done this week, then syllabus and revision. Hours come after.
+        InsightsSection(title = stringResource(R.string.insights_progress_week), subtitle = stringResource(R.string.insights_progress_week_subtitle)) {
+            WeekProgressCard(data)
+        }
+        InsightsSection(title = stringResource(R.string.insights_syllabus), subtitle = stringResource(R.string.insights_syllabus_subtitle)) {
+            SyllabusCard(data, onManageTarget)
+        }
+        InsightsSection(title = stringResource(R.string.insights_subjects), subtitle = stringResource(R.string.insights_subjects_subtitle)) {
+            SubjectsCard(data.subjects)
+        }
+        InsightsSection(title = stringResource(R.string.insights_revision), subtitle = stringResource(R.string.insights_revision_subtitle)) {
+            RevisionCard(data)
+        }
+        InsightsSection(title = stringResource(R.string.tests_title), subtitle = stringResource(R.string.insights_tests_subtitle)) {
+            TestsCard(state.mostLost, state.proUnlocked, onOpenTests, onOpenPaywall)
+        }
 
-        InsightsSection(title = stringResource(R.string.insights_this_week), subtitle = periodSubtitle(state.period)) {
+        PeriodSelector(
+            selected = state.period,
+            unlocked = state.proUnlocked,
+            onSelect = { period -> if (period.isProPeriod && !state.proUnlocked) onOpenPaywall() else onPeriodSelected(period) },
+        )
+        InsightsSection(title = stringResource(periodTitle(state.period)), subtitle = periodSubtitle(state.period)) {
             QuickStats(data)
         }
         InsightsSection(
             title = stringResource(R.string.insights_consistency),
             subtitle = stringResource(R.string.insights_consistency_subtitle),
         ) {
-            ConsistencyCard(data)
+            ConsistencyCard(data, onOpenDay)
         }
         InsightsSection(title = stringResource(R.string.insights_study_time), subtitle = stringResource(R.string.insights_study_time_subtitle)) {
             StudyTimeCard(data)
@@ -180,20 +234,23 @@ fun ProgressScreen(
         InsightsSection(title = stringResource(R.string.insights_plan_actual), subtitle = stringResource(R.string.insights_plan_actual_subtitle)) {
             PlanActualCard(data)
         }
-        InsightsSection(title = stringResource(R.string.insights_syllabus), subtitle = stringResource(R.string.insights_syllabus_subtitle)) {
-            SyllabusCard(data, onManageTarget)
-        }
-        InsightsSection(title = stringResource(R.string.insights_forecast), subtitle = stringResource(R.string.insights_forecast_subtitle)) {
-            ForecastCard(data)
-        }
-        InsightsSection(title = stringResource(R.string.insights_subjects), subtitle = stringResource(R.string.insights_subjects_subtitle)) {
-            SubjectsCard(data.subjects)
+        InsightsSection(
+            title = stringResource(if (data.forecast.hasTarget) R.string.insights_forecast else R.string.insights_forecast_steady),
+            subtitle = stringResource(if (data.forecast.hasTarget) R.string.insights_forecast_subtitle else R.string.insights_forecast_steady_subtitle),
+        ) {
+            if (state.proUnlocked) {
+                ForecastCard(data)
+            } else {
+                ProLockCard(
+                    title = stringResource(R.string.pro_lock_forecast_title),
+                    body = stringResource(R.string.pro_lock_forecast_body),
+                    actionLabel = stringResource(R.string.pro_lock_action),
+                    onUnlock = onOpenPaywall,
+                )
+            }
         }
         InsightsSection(title = stringResource(R.string.insights_remaining), subtitle = stringResource(R.string.insights_remaining_subtitle)) {
-            RemainingCard(data.subjects, data.syllabusRemainingTopics)
-        }
-        InsightsSection(title = stringResource(R.string.insights_revision), subtitle = stringResource(R.string.insights_revision_subtitle)) {
-            RevisionCard(data)
+            RemainingCard(data.subjects, data.syllabusRemainingSections)
         }
         InsightsSection(title = stringResource(R.string.insights_pattern), subtitle = stringResource(R.string.insights_pattern_subtitle)) {
             PatternCard(data)
@@ -211,7 +268,13 @@ fun ProgressScreen(
 }
 
 @Composable
-private fun EmptyProgressScreen(data: InsightsData, onGoToday: () -> Unit, modifier: Modifier = Modifier) {
+private fun EmptyProgressScreen(
+    data: InsightsData,
+    onGoToday: () -> Unit,
+    onLogStudy: () -> Unit,
+    onOpenTests: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val colors = AppTheme.colors
     Column(
         modifier = modifier
@@ -245,12 +308,16 @@ private fun EmptyProgressScreen(data: InsightsData, onGoToday: () -> Unit, modif
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             ProgressFact(
-                stringResource(R.string.progress_chapters_done),
-                stringResource(R.string.progress_fraction, data.syllabusCompletedTopics, data.syllabusTotalTopics),
+                stringResource(R.string.progress_sections_covered),
+                stringResource(R.string.progress_fraction, data.syllabusCompletedSections, data.syllabusTotalSections),
             )
             ProgressFact(stringResource(R.string.progress_days_studied), data.studyDaysInPeriod.toString())
             Button(onClick = onGoToday, modifier = Modifier.fillMaxWidth().height(Size.ctaHeight)) {
                 Text(stringResource(R.string.progress_start_next))
+            }
+            LogStudyButton(onClick = onLogStudy)
+            OutlinedButton(onClick = onOpenTests, modifier = Modifier.fillMaxWidth().height(Size.touchTarget)) {
+                Text(stringResource(R.string.tests_open))
             }
         }
         Spacer(Modifier.height(Spacing.xxl))
@@ -266,7 +333,7 @@ private fun ProgressFact(label: String, value: String) {
 }
 
 @Composable
-private fun PeriodSelector(selected: InsightPeriod, onSelect: (InsightPeriod) -> Unit) {
+private fun PeriodSelector(selected: InsightPeriod, unlocked: Boolean, onSelect: (InsightPeriod) -> Unit) {
     val colors = AppTheme.colors
     Surface(shape = RoundedCornerShape(Radius.md), color = colors.surfaceControl) {
         Row(modifier = Modifier.fillMaxWidth().padding(Spacing.xs)) {
@@ -279,7 +346,12 @@ private fun PeriodSelector(selected: InsightPeriod, onSelect: (InsightPeriod) ->
                         containerColor = if (period == selected) colors.selectionContainer else Color.Transparent,
                         contentColor = if (period == selected) colors.onSelectionContainer else colors.textMuted,
                     ),
-                ) { Text(periodLabel(period), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold) }
+                ) {
+                    if (period.isProPeriod && !unlocked) {
+                        ProLockIcon(Modifier.padding(end = Spacing.xs))
+                    }
+                    Text(periodLabel(period), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                }
             }
         }
     }
@@ -312,6 +384,23 @@ private fun QuickStats(data: InsightsData) {
     }
 }
 
+/** Chapters learned, lectures done (with coaching counts) and revisions done, all over the last 7 days. */
+@Composable
+private fun WeekProgressCard(data: InsightsData) {
+    AppCard {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+        ) {
+            StatItem(stringResource(R.string.insights_chapters_learned), data.chaptersLearnedThisWeek.toString(), Modifier.weight(1f))
+            data.lecturesDone?.let { lectures ->
+                StatItem(stringResource(R.string.insights_lectures_done), lectures.toString(), Modifier.weight(1f))
+            }
+            StatItem(stringResource(R.string.insights_revisions_done), data.revision.completedThisWeek.toString(), Modifier.weight(1f))
+        }
+    }
+}
+
 @Composable
 private fun StatLine(leftLabel: String, leftValue: String, rightLabel: String, rightValue: String, rightNote: String? = null) {
     val colors = AppTheme.colors
@@ -331,7 +420,7 @@ private fun StatItem(label: String, value: String, modifier: Modifier, note: Str
 }
 
 @Composable
-private fun ConsistencyCard(data: InsightsData) {
+private fun ConsistencyCard(data: InsightsData, onOpenDay: (java.time.LocalDate) -> Unit) {
     val colors = AppTheme.colors
     val weeks = remember(data.heatmapDays) { data.heatmapDays.chunked(7) }
     var selectedIndex by remember(data.period) { mutableIntStateOf(data.heatmapDays.indexOfLast { it.minutes > 0 }.coerceAtLeast(0)) }
@@ -384,6 +473,11 @@ private fun ConsistencyCard(data: InsightsData) {
                             }
                         }
                     }
+                    if (selected.sessions > 0) {
+                        TextButton(onClick = { onOpenDay(selected.date) }, contentPadding = androidx.compose.foundation.layout.PaddingValues(Spacing.none)) {
+                            Text(stringResource(R.string.insights_view_day), color = colors.brandSoft)
+                        }
+                    }
                 }
             } else {
                 EmptyData(text = stringResource(R.string.insights_empty_history))
@@ -394,7 +488,15 @@ private fun ConsistencyCard(data: InsightsData) {
             }
             HorizontalDivider(modifier = Modifier.padding(top = Spacing.md), color = colors.borderSubtle)
             Row(modifier = Modifier.fillMaxWidth().padding(top = Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-                SummaryItem(stringResource(R.string.insights_current_streak), if (data.hasStudyHistory) streakLabel(data.currentStreak) else stringResource(R.string.insights_no_value), Modifier.weight(1f))
+                SummaryItem(
+                    stringResource(R.string.insights_current_streak),
+                    when {
+                        data.streakBroken -> stringResource(R.string.insights_new_streak_today)
+                        data.hasStudyHistory -> streakLabel(data.currentStreak)
+                        else -> stringResource(R.string.insights_no_value)
+                    },
+                    Modifier.weight(1f),
+                )
                 SummaryItem(stringResource(R.string.insights_active_this_period), if (data.hasStudyInPeriod) pluralStringResource(R.plurals.insights_active_days_fraction, data.periodDays.size, data.studyDaysInPeriod, data.periodDays.size) else stringResource(R.string.insights_no_value), Modifier.weight(1f))
             }
         }
@@ -501,12 +603,6 @@ private fun PlanActualCard(data: InsightsData) {
                         modifier = Modifier.padding(top = Spacing.xs),
                     )
                 }
-                Text(
-                    text = if (data.planDeltaMinutes >= 0) stringResource(R.string.insights_ahead, insightDuration(data.planDeltaMinutes)) else stringResource(R.string.insights_behind, insightDuration(-data.planDeltaMinutes)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (data.planDeltaMinutes >= 0) colors.success else colors.warning,
-                    modifier = Modifier.padding(top = Spacing.sm),
-                )
             }
         }
     }
@@ -526,15 +622,15 @@ private fun SyllabusCard(data: InsightsData, onManageTarget: () -> Unit) {
     AppCard {
         Column(modifier = Modifier.padding(Spacing.lg)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-                Text(pluralStringResource(R.plurals.insights_topics_fraction, data.syllabusTotalTopics, data.syllabusCompletedTopics, data.syllabusTotalTopics), style = MaterialTheme.typography.headlineSmall, color = colors.text, fontWeight = FontWeight.Bold)
+                Text(pluralStringResource(R.plurals.insights_topics_fraction, data.syllabusTotalSections, data.syllabusCompletedSections, data.syllabusTotalSections), style = MaterialTheme.typography.headlineSmall, color = colors.text, fontWeight = FontWeight.Bold)
                 Text(stringResource(R.string.insights_covered, data.syllabusPercent), style = MaterialTheme.typography.titleMedium, color = colors.brandSoft, fontWeight = FontWeight.SemiBold)
             }
             Row(modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(pluralStringResource(R.plurals.insights_remaining_count, data.syllabusRemainingTopics, data.syllabusRemainingTopics), style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
+                Text(pluralStringResource(R.plurals.insights_remaining_count, data.syllabusRemainingSections, data.syllabusRemainingSections), style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
                 TextButton(onClick = onManageTarget, contentPadding = androidx.compose.foundation.layout.PaddingValues(Spacing.none)) { Text(stringResource(R.string.insights_manage_target), color = colors.brandSoft) }
             }
             ProgressBar(data.syllabusPercent, colors.brand, Modifier.padding(top = Spacing.xs))
-            if (data.excludedTopicCount > 0) Text(pluralStringResource(R.plurals.insights_target_of_official, data.officialTopicCount, data.syllabusTotalTopics, data.officialTopicCount), style = MaterialTheme.typography.labelSmall, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.sm))
+            if (data.excludedSectionCount > 0) Text(pluralStringResource(R.plurals.insights_target_of_official, data.officialSectionCount, data.syllabusTotalSections, data.officialSectionCount), style = MaterialTheme.typography.labelSmall, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.sm))
         }
     }
 }
@@ -543,10 +639,11 @@ private fun SyllabusCard(data: InsightsData, onManageTarget: () -> Unit) {
 private fun ForecastCard(data: InsightsData) {
     val colors = AppTheme.colors
     val forecast = data.forecast
-    Surface(shape = RoundedCornerShape(Radius.lg), color = colors.warningRow) {
+    Surface(shape = RoundedCornerShape(Radius.lg), color = if (forecast.hasTarget) colors.warningRow else colors.elevated) {
         Column(modifier = Modifier.padding(Spacing.lg)) {
+            PlanFitLines(data)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                MetricPair(stringResource(R.string.insights_target_date), formatInsightDate(forecast.targetDate))
+                if (forecast.hasTarget) MetricPair(stringResource(R.string.insights_target_date), formatInsightDate(forecast.targetDate))
                 val earliest = forecast.forecastEarliestDate
                 val latest = forecast.forecastLatestDate
                 val paceRange = if (earliest != null && latest != null) {
@@ -558,10 +655,23 @@ private fun ForecastCard(data: InsightsData) {
                 } else {
                     stringResource(R.string.insights_not_enough_history)
                 }
-                MetricPair(stringResource(R.string.insights_at_current_pace), paceRange, colors.warning, Alignment.End)
+                MetricPair(
+                    stringResource(R.string.insights_at_current_pace),
+                    paceRange,
+                    if (forecast.hasTarget) colors.warning else colors.text,
+                    if (forecast.hasTarget) Alignment.End else Alignment.Start,
+                )
             }
             if (!forecast.hasReliablePace) {
                 Text(stringResource(R.string.insights_forecast_insufficient), style = MaterialTheme.typography.bodySmall, color = colors.textSecondary, modifier = Modifier.padding(top = Spacing.lg))
+            } else if (!forecast.hasTarget) {
+                Text(
+                    stringResource(R.string.insights_forecast_evidence, forecast.evidenceActiveDays, forecast.evidenceWindowDays),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.textMuted,
+                    modifier = Modifier.padding(top = Spacing.lg),
+                )
+                Text(stringResource(R.string.insights_forecast_note), style = MaterialTheme.typography.labelSmall, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.md))
             } else {
                 val delta = forecast.daysDelta ?: 0
                 Text(
@@ -583,7 +693,7 @@ private fun ForecastCard(data: InsightsData) {
                 }
                 Row(modifier = Modifier.padding(top = Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.xl)) {
                     MetricPair(stringResource(R.string.insights_recent_average), insightDuration(forecast.recentAverageMinutesPerDay))
-                    MetricPair(stringResource(R.string.insights_required_pace), insightDuration(forecast.requiredMinutesPerDay), colors.warning)
+                    MetricPair(stringResource(R.string.insights_required_pace), insightDuration(forecast.requiredMinutesPerDay))
                 }
                 Text(
                     stringResource(
@@ -598,6 +708,44 @@ private fun ForecastCard(data: InsightsData) {
                 Text(stringResource(R.string.insights_forecast_note), style = MaterialTheme.typography.labelSmall, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.md))
             }
         }
+    }
+}
+
+/**
+ * What the plan says about finish-by (deadline mode only, never in steady mode), and how the hours are
+ * measured: the student's own pace once it is known, otherwise a plain "estimate" note.
+ */
+@Composable
+private fun PlanFitLines(data: InsightsData) {
+    val colors = AppTheme.colors
+    val fit = data.fit
+    Column(modifier = Modifier.padding(bottom = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        if (fit != null) {
+            val hours = ((fit.shortByMinutes / 60.0).roundToInt()).coerceAtLeast(1)
+            Text(
+                text = if (fit.fits) {
+                    stringResource(R.string.insights_fit_ok, formatInsightDate(fit.finishBy))
+                } else {
+                    stringResource(
+                        if (fit.calibrated) R.string.insights_fit_short_calibrated else R.string.insights_fit_short,
+                        hours,
+                        formatInsightDate(fit.finishBy),
+                    )
+                },
+                style = MaterialTheme.typography.titleSmall,
+                color = if (fit.fits) colors.success else colors.warning,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        Text(
+            text = if (data.calibration.active) {
+                stringResource(R.string.insights_calibration_pace, String.format(java.util.Locale.getDefault(), "%.1f", data.calibration.rounded))
+            } else {
+                stringResource(R.string.insights_estimate_note)
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.textSecondary,
+        )
     }
 }
 
@@ -623,11 +771,13 @@ private fun SubjectRow(subject: SubjectInsight) {
             Text(subject.name, style = MaterialTheme.typography.titleSmall, color = colors.text, fontWeight = FontWeight.SemiBold)
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text(stringResource(R.string.insights_percent_value, subject.percent), style = MaterialTheme.typography.bodySmall, color = colors.textSecondary)
-                Text(subjectStatusLabel(subject.status), style = MaterialTheme.typography.bodySmall, color = subjectStatusColor(subject.status), fontWeight = FontWeight.SemiBold)
+                subject.status?.let { status ->
+                    Text(subjectStatusLabel(status), style = MaterialTheme.typography.bodySmall, color = subjectStatusColor(status), fontWeight = FontWeight.SemiBold)
+                }
             }
         }
-        ProgressBar(subject.percent, subjectStatusColor(subject.status), Modifier.padding(top = Spacing.sm))
-        if (expanded) Text(pluralStringResource(R.plurals.insights_subject_detail, subject.totalTopics, subject.completedTopics, subject.totalTopics), style = MaterialTheme.typography.labelSmall, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.sm))
+        ProgressBar(subject.percent, subject.status?.let { subjectStatusColor(it) } ?: colors.brandSoft, Modifier.padding(top = Spacing.sm))
+        if (expanded) Text(pluralStringResource(R.plurals.insights_subject_detail, subject.totalSections, subject.completedSections, subject.totalSections), style = MaterialTheme.typography.labelSmall, color = colors.textMuted, modifier = Modifier.padding(top = Spacing.sm))
     }
 }
 
@@ -640,7 +790,7 @@ private fun RemainingCard(subjects: List<SubjectInsight>, totalRemaining: Int) {
             subjects.forEach { subject ->
                 Row(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.md), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(subject.name, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
-                    Text(pluralStringResource(R.plurals.insights_left, subject.remainingTopics, subject.remainingTopics), style = MaterialTheme.typography.bodyMedium, color = colors.text, fontWeight = FontWeight.SemiBold)
+                    Text(pluralStringResource(R.plurals.insights_left, subject.remainingSections, subject.remainingSections), style = MaterialTheme.typography.bodyMedium, color = colors.text, fontWeight = FontWeight.SemiBold)
                 }
                 if (subject != subjects.last()) HorizontalDivider(color = colors.borderSubtle)
             }
@@ -659,6 +809,14 @@ private fun RevisionCard(data: InsightsData) {
                 RevisionMetric(stringResource(R.string.insights_due_week), data.revision.dueThisWeek, Modifier.weight(1f))
                 RevisionMetric(stringResource(R.string.insights_completed_week), data.revision.completedThisWeek, Modifier.weight(1f))
             }
+            if (data.revision.overdue > 0) {
+                Text(
+                    text = pluralStringResource(R.plurals.insights_revision_overdue, data.revision.overdue, data.revision.overdue),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.warning,
+                    modifier = Modifier.padding(top = Spacing.sm),
+                )
+            }
             if (data.revision.onTimePercent == null) {
                 EmptyData(text = stringResource(R.string.insights_no_revision_history))
             } else {
@@ -673,6 +831,66 @@ private fun RevisionCard(data: InsightsData) {
                 TextButton(onClick = { showDue = !showDue }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.insights_revision_action)) }
                 if (showDue) data.revision.dueTitles.forEach { title -> Text(stringResource(R.string.insights_bullet_item, title), style = MaterialTheme.typography.bodySmall, color = colors.textSecondary, modifier = Modifier.padding(top = Spacing.xs)) }
             }
+        }
+    }
+}
+
+@Composable
+private fun TestsCard(mostLost: List<LostChapterUi>, unlocked: Boolean, onOpenTests: () -> Unit, onOpenPaywall: () -> Unit) {
+    AppCard {
+        Column(modifier = Modifier.padding(Spacing.lg)) {
+            if (unlocked) {
+                MostLostChapters(mostLost)
+            } else {
+                MostLostLocked(onOpenPaywall)
+            }
+            OutlinedButton(onClick = onOpenTests, modifier = Modifier.fillMaxWidth().padding(top = Spacing.md)) {
+                Text(stringResource(R.string.tests_open))
+            }
+        }
+    }
+}
+
+/** Free tier: what "most-lost chapters" is, and the way to unlock it. */
+@Composable
+private fun MostLostLocked(onOpenPaywall: () -> Unit) {
+    val colors = AppTheme.colors
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        ProLockIcon()
+        Text(stringResource(R.string.insights_most_lost), style = MaterialTheme.typography.titleSmall, color = colors.text, fontWeight = FontWeight.SemiBold)
+    }
+    Text(
+        stringResource(R.string.pro_lock_most_lost_body),
+        style = MaterialTheme.typography.bodySmall,
+        color = colors.textMuted,
+        modifier = Modifier.padding(top = Spacing.xs),
+    )
+    TextButton(onClick = onOpenPaywall) { Text(stringResource(R.string.pro_lock_action)) }
+}
+
+// Pro: shown only when unlocked (TestsCard).
+@Composable
+private fun MostLostChapters(mostLost: List<LostChapterUi>) {
+    val colors = AppTheme.colors
+    Text(stringResource(R.string.insights_most_lost), style = MaterialTheme.typography.titleSmall, color = colors.text, fontWeight = FontWeight.SemiBold)
+    if (mostLost.isEmpty()) {
+        Text(
+            stringResource(R.string.insights_most_lost_empty),
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.textMuted,
+            modifier = Modifier.padding(top = Spacing.xs),
+        )
+        return
+    }
+    mostLost.forEach { chapter ->
+        Row(modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(chapter.title, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary, modifier = Modifier.weight(1f))
+            Text(
+                pluralStringResource(R.plurals.insights_most_lost_count, chapter.count, chapter.count),
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.warning,
+                fontWeight = FontWeight.SemiBold,
+            )
         }
     }
 }
@@ -749,6 +967,14 @@ private fun TargetManagerDialog(sections: List<TargetSectionUi>, onToggle: (Stri
     )
 }
 
+private fun periodTitle(period: InsightPeriod): Int = when (period) {
+    InsightPeriod.DAY -> R.string.insights_section_day
+    InsightPeriod.WEEK -> R.string.insights_section_week
+    InsightPeriod.MONTH -> R.string.insights_section_month
+    InsightPeriod.THREE_MONTHS -> R.string.insights_section_three_months
+    InsightPeriod.ALL -> R.string.insights_section_all
+}
+
 @Composable
 private fun periodSubtitle(period: InsightPeriod): String = stringResource(when (period) {
     InsightPeriod.DAY -> R.string.insights_period_day
@@ -759,7 +985,7 @@ private fun periodSubtitle(period: InsightPeriod): String = stringResource(when 
 })
 
 @Composable
-private fun insightDuration(minutes: Int?): String = when {
+internal fun insightDuration(minutes: Int?): String = when {
     minutes == null -> stringResource(R.string.insights_no_value)
     minutes < 60 -> stringResource(R.string.insights_minutes_value, minutes)
     minutes % 60 == 0 -> stringResource(R.string.insights_hours_value, minutes / 60)

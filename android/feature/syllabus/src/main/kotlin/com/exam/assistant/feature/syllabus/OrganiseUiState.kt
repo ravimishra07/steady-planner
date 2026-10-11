@@ -1,6 +1,7 @@
 package com.exam.assistant.feature.syllabus
 
 import java.time.LocalDate
+import com.exam.assistant.domain.ChapterPriority
 import com.exam.assistant.domain.PlanningOrder
 
 data class OrganiseChapterRow(
@@ -8,9 +9,13 @@ data class OrganiseChapterRow(
     val subjectId: String,
     val subjectName: String,
     val title: String,
+    /** The bundled (or custom-added) title, for "Reset to original name". */
+    val originalTitle: String = title,
+    val renamed: Boolean = false,
     val estimatedMinutes: Int,
     val excluded: Boolean,
     val custom: Boolean,
+    val priority: ChapterPriority? = null,
 )
 
 data class OrganiseDaySummary(
@@ -38,15 +43,18 @@ data class OrganiseUiState(
     val week: List<OrganiseDaySummary> = emptyList(),
     val todaySessions: List<OrganisePlanRow> = emptyList(),
     val beforeIncludedCount: Int = 0,
-    val beforeTotalMinutes: Int = 0,
+    /** Uncovered minutes in the chapters in play, before and after the draft. */
+    val beforeRemainingMinutes: Int = 0,
+    val remainingMinutes: Int = 0,
     val changedChapterCount: Int = 0,
     val planningOrder: PlanningOrder = PlanningOrder.DEFAULT,
     val orderChanged: Boolean = false,
     val dirty: Boolean = false,
     val saved: Boolean = false,
+    val pyqFirstYear: Int = 0,
+    val pyqLastYear: Int = 0,
 ) {
     val includedCount: Int get() = chapters.count { !it.excluded }
     val excludedCount: Int get() = chapters.count { it.excluded }
-    val totalMinutes: Int get() = chapters.filterNot { it.excluded }.sumOf { it.estimatedMinutes }
     val exactChangeCount: Int get() = changedChapterCount + if (orderChanged) 1 else 0
 }

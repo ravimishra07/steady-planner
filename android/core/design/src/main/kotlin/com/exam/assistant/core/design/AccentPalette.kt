@@ -3,7 +3,10 @@ package com.exam.assistant.core.design
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 
-/** Five Material 3 accent families, matching Angular Material's generated roles. */
+/**
+ * Five Material 3 accent families. primary/onPrimary are equal intensity across
+ * hues: tone 40 + white on light, tone 80 + neutral near-black on dark.
+ */
 enum class AccentPalette(val id: String) {
     Blue("blue"), Purple("purple"), Green("green"), Amber("amber"), Rose("rose");
 
@@ -11,6 +14,12 @@ enum class AccentPalette(val id: String) {
     val brandSoft: Color get() = roles.dark.primary
     val brandDeep: Color get() = roles.light.primary
     val onSwatch: Color get() = Color.White
+
+    /** Accent fill as it renders on a light or dark background. */
+    fun primaryFor(dark: Boolean): Color = if (dark) roles.dark.primary else roles.light.primary
+
+    /** Text/icon colour on [primaryFor]. */
+    fun onPrimaryFor(dark: Boolean): Color = if (dark) roles.dark.onPrimary else roles.light.onPrimary
 
     internal val roles: AccentRolePair
         get() = when (this) {
@@ -60,7 +69,7 @@ internal data class AccentRolePair(val light: AccentRoles, val dark: AccentRoles
 
 private val blueRoles = AccentRolePair(
     light = AccentRoles(
-        primary = Color(0xFF005CBB), onPrimary = Color.White,
+        primary = Color(0xFF315CAA), onPrimary = Color(0xFFFFFFFF),
         primaryContainer = Color(0xFFD7E3FF), onPrimaryContainer = Color(0xFF00458F),
         inversePrimary = Color(0xFFABC7FF), primaryFixed = Color(0xFFD7E3FF),
         primaryFixedDim = Color(0xFFABC7FF), onPrimaryFixed = Color(0xFF001B3F),
@@ -71,7 +80,7 @@ private val blueRoles = AccentRolePair(
         onTertiaryContainer = Color(0xFF004F4F),
     ),
     dark = AccentRoles(
-        primary = Color(0xFFABC7FF), onPrimary = Color(0xFF002F65),
+        primary = Color(0xFFB3C4FF), onPrimary = Color(0xFF1C1B1F),
         primaryContainer = Color(0xFF00458F), onPrimaryContainer = Color(0xFFD7E3FF),
         inversePrimary = Color(0xFF005CBB), primaryFixed = Color(0xFFD7E3FF),
         primaryFixedDim = Color(0xFFABC7FF), onPrimaryFixed = Color(0xFF001B3F),
@@ -85,7 +94,7 @@ private val blueRoles = AccentRolePair(
 
 private val purpleRoles = AccentRolePair(
     light = AccentRoles(
-        primary = Color(0xFF7D00FA), onPrimary = Color.White,
+        primary = Color(0xFF734D99), onPrimary = Color(0xFFFFFFFF),
         primaryContainer = Color(0xFFECDCFF), onPrimaryContainer = Color(0xFF5F00C0),
         inversePrimary = Color(0xFFD5BAFF), primaryFixed = Color(0xFFECDCFF),
         primaryFixedDim = Color(0xFFD5BAFF), onPrimaryFixed = Color(0xFF270057),
@@ -96,7 +105,7 @@ private val purpleRoles = AccentRolePair(
         onTertiaryContainer = Color(0xFF0000EF),
     ),
     dark = AccentRoles(
-        primary = Color(0xFFD5BAFF), onPrimary = Color(0xFF42008A),
+        primary = Color(0xFFDCB9F9), onPrimary = Color(0xFF1C1B1F),
         primaryContainer = Color(0xFF5F00C0), onPrimaryContainer = Color(0xFFECDCFF),
         inversePrimary = Color(0xFF7D00FA), primaryFixed = Color(0xFFECDCFF),
         primaryFixedDim = Color(0xFFD5BAFF), onPrimaryFixed = Color(0xFF270057),
@@ -110,7 +119,7 @@ private val purpleRoles = AccentRolePair(
 
 private val greenRoles = AccentRolePair(
     light = AccentRoles(
-        primary = Color(0xFF026E00), onPrimary = Color.White,
+        primary = Color(0xFF2F6B23), onPrimary = Color(0xFFFFFFFF),
         primaryContainer = Color(0xFF77FF61), onPrimaryContainer = Color(0xFF015300),
         inversePrimary = Color(0xFF02E600), primaryFixed = Color(0xFF77FF61),
         primaryFixedDim = Color(0xFF02E600), onPrimaryFixed = Color(0xFF002200),
@@ -121,7 +130,7 @@ private val greenRoles = AccentRolePair(
         onTertiaryContainer = Color(0xFF005225),
     ),
     dark = AccentRoles(
-        primary = Color(0xFF02E600), onPrimary = Color(0xFF013A00),
+        primary = Color(0xFFA6D397), onPrimary = Color(0xFF1C1B1F),
         primaryContainer = Color(0xFF015300), onPrimaryContainer = Color(0xFF77FF61),
         inversePrimary = Color(0xFF026E00), primaryFixed = Color(0xFF77FF61),
         primaryFixedDim = Color(0xFF02E600), onPrimaryFixed = Color(0xFF002200),
@@ -135,7 +144,7 @@ private val greenRoles = AccentRolePair(
 
 private val amberRoles = AccentRolePair(
     light = AccentRoles(
-        primary = Color(0xFF964900), onPrimary = Color.White,
+        primary = Color(0xFF8F4D17), onPrimary = Color(0xFFFFFFFF),
         primaryContainer = Color(0xFFFFDCC7), onPrimaryContainer = Color(0xFF723600),
         inversePrimary = Color(0xFFFFB787), primaryFixed = Color(0xFFFFDCC7),
         primaryFixedDim = Color(0xFFFFB787), onPrimaryFixed = Color(0xFF311300),
@@ -146,7 +155,7 @@ private val amberRoles = AccentRolePair(
         onTertiaryContainer = Color(0xFF494900),
     ),
     dark = AccentRoles(
-        primary = Color(0xFFFFB787), onPrimary = Color(0xFF502400),
+        primary = Color(0xFFF9B98D), onPrimary = Color(0xFF1C1B1F),
         primaryContainer = Color(0xFF723600), onPrimaryContainer = Color(0xFFFFDCC7),
         inversePrimary = Color(0xFF964900), primaryFixed = Color(0xFFFFDCC7),
         primaryFixedDim = Color(0xFFFFB787), onPrimaryFixed = Color(0xFF311300),
@@ -160,7 +169,7 @@ private val amberRoles = AccentRolePair(
 
 private val roseRoles = AccentRolePair(
     light = AccentRoles(
-        primary = Color(0xFFBA005C), onPrimary = Color.White,
+        primary = Color(0xFFA3365D), onPrimary = Color(0xFFFFFFFF),
         primaryContainer = Color(0xFFFFD9E1), onPrimaryContainer = Color(0xFF8F0045),
         inversePrimary = Color(0xFFFFB1C5), primaryFixed = Color(0xFFFFD9E1),
         primaryFixedDim = Color(0xFFFFB1C5), onPrimaryFixed = Color(0xFF3F001B),
@@ -171,7 +180,7 @@ private val roseRoles = AccentRolePair(
         onTertiaryContainer = Color(0xFF810081),
     ),
     dark = AccentRoles(
-        primary = Color(0xFFFFB1C5), onPrimary = Color(0xFF65002F),
+        primary = Color(0xFFFFADC5), onPrimary = Color(0xFF1C1B1F),
         primaryContainer = Color(0xFF8F0045), onPrimaryContainer = Color(0xFFFFD9E1),
         inversePrimary = Color(0xFFBA005C), primaryFixed = Color(0xFFFFD9E1),
         primaryFixedDim = Color(0xFFFFB1C5), onPrimaryFixed = Color(0xFF3F001B),

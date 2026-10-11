@@ -4,6 +4,13 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Firebase is wired only once android/app/google-services.json exists, so the build stays green
+// without it. Without the file FirebaseApp never initialises and the app falls back to no-op analytics.
+if (file("google-services.json").exists()) {
+    pluginManager.apply(libs.plugins.google.services.get().pluginId)
+    pluginManager.apply(libs.plugins.firebase.crashlytics.get().pluginId)
+}
+
 android {
     namespace = "com.exam.assistant"
     compileSdk = 35
@@ -60,6 +67,13 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.navigation.compose)
     implementation(libs.coroutines.android)
+    implementation(libs.glance.appwidget)
+    // Glance runs on WorkManager; a direct dependency only to initialise it on demand (see SteadylineApp).
+    implementation(libs.work.runtime)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.crashlytics)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

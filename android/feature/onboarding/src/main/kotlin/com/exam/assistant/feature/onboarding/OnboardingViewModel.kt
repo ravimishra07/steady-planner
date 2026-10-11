@@ -1,5 +1,8 @@
 package com.exam.assistant.feature.onboarding
 
+import com.exam.assistant.core.common.Analytics
+import com.exam.assistant.core.common.AnalyticsEvent
+import com.exam.assistant.core.common.AnalyticsParam
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.SavedStateHandle
@@ -12,6 +15,7 @@ import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.SavedPlan
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.AvailabilityRepository
+import com.exam.assistant.core.data.repo.PlanDraft
 import com.exam.assistant.core.data.repo.PlanRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.core.data.repo.StudyPreferenceRepository
@@ -20,20 +24,39 @@ import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.domain.ExamAttempt
 import com.exam.assistant.domain.ExamAttemptStatus
 import com.exam.assistant.domain.ExamPack
+import com.exam.assistant.domain.PlanFitOption
+import com.exam.assistant.domain.PlanMode
 import com.exam.assistant.domain.NEET_EXAM_ID
+import com.exam.assistant.domain.MIN_FINISH_BY_DAYS_AHEAD
+import com.exam.assistant.domain.StartingPoint
 import com.exam.assistant.domain.StudyPreferences
 import com.exam.assistant.domain.TargetNodeState
 import com.exam.assistant.domain.TopicProgressStatus
 import com.exam.assistant.domain.WeeklyAvailability
-import com.exam.assistant.domain.availableHours
-import com.exam.assistant.domain.cushion
+import com.exam.assistant.domain.coerceFinishBy
+import com.exam.assistant.domain.defaultFinishByDate
 import com.exam.assistant.domain.leafIds
-import com.exam.assistant.domain.totalMinutes
+import com.exam.assistant.feature.onboarding.model.DAY_SHAPES
+import com.exam.assistant.feature.onboarding.model.ExamCatalog
+import com.exam.assistant.feature.onboarding.model.OnboardingCommitment
+import com.exam.assistant.feature.onboarding.model.OnboardingStep
+import com.exam.assistant.feature.onboarding.model.DEFAULT_SLEEP_MINUTE
+import com.exam.assistant.feature.onboarding.model.DEFAULT_WAKE_MINUTE
+import com.exam.assistant.feature.onboarding.model.OnboardingSyllabusChapter
+import com.exam.assistant.feature.onboarding.model.OnboardingSyllabusSubject
+import com.exam.assistant.feature.onboarding.model.OnboardingUiState
+import com.exam.assistant.feature.onboarding.model.commitmentsForStudyMode
+import com.exam.assistant.feature.onboarding.model.finishedAfterStartingPointChange
+import com.exam.assistant.feature.onboarding.model.toggleChapterFinished
+import com.exam.assistant.feature.onboarding.model.toggleClassFinished
+import com.exam.assistant.feature.onboarding.model.toggleSubjectFinished
+import com.exam.assistant.feature.onboarding.model.defaultCommitments
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -56,10 +79,24 @@ class OnboardingViewModel(
     private val rollingPlanRepository: RollingPlanRepository,
     private val dispatchers: AppDispatchers,
     private val savedStateHandle: SavedStateHandle,
+    examDate: LocalDate,
+    examDateOfficial: Boolean,
+    private val startAtPlan: Boolean,
+    private val analytics: Analytics = Analytics.NoOp,
 ) : ViewModel() {
 
     private var currentPack: ExamPack? = null
-    private val _state = MutableStateFlow(OnboardingUiState())
+    private var fitJob: Job? = null
+    /** Chapters that were fully finished when this screen opened, so only real changes are written back. */
+    private var initialCoveredChapterIds: Set<String> = emptySet()
+    private val _state = MutableStateFlow(
+        OnboardingUiState(
+            examDate = examDate,
+            examDateOfficial = examDateOfficial,
+            configExamDate = examDate,
+            targetDate = defaultFinishByDate(examDate, LocalDate.now()),
+        ),
+    )
     val state: StateFlow<OnboardingUiState> = _state.asStateFlow()
     private val _finished = MutableStateFlow(false)
     val finished: StateFlow<Boolean> = _finished.asStateFlow()
@@ -67,6 +104,7 @@ class OnboardingViewModel(
     val openOrganiseAfterFinish: StateFlow<Boolean> = _openOrganiseAfterFinish.asStateFlow()
 
     init {
+        analytics.log(AnalyticsEvent.ONBOARDING_STARTED)
         hydrate()
         viewModelScope.launch {
             state.drop(1).collect { current ->
@@ -86,8 +124,9 @@ class OnboardingViewModel(
         if (!canContinue(current)) return
         when (current.step) {
             OnboardingStep.Plan -> finish(current)
-            OnboardingStep.Syllabus -> _state.update {
-                it.copy(step = OnboardingStep.Plan, cushion = computeCushion(it))
+            OnboardingStep.Syllabus -> {
+                _state.update { it.copy(step = OnboardingStep.Plan, fit = null) }
+                refreshFit()
             }
             else -> advance()
         }
@@ -97,6 +136,7 @@ class OnboardingViewModel(
         OnboardingStep.Coaching -> state.coachingId.isNotBlank()
         OnboardingStep.Commitments -> commitmentIssues(state).isEmpty()
         OnboardingStep.Hours -> capacityIssues(state).isEmpty()
+        OnboardingStep.Start -> state.startingPoint != null
         OnboardingStep.Syllabus -> !state.useProvidedSyllabus || state.selectedChapterIds.isNotEmpty()
         OnboardingStep.Plan -> !state.finishing
         else -> true
@@ -125,11 +165,61 @@ class OnboardingViewModel(
         }
     }
 
+    /** "Do you have a date you want to finish the syllabus by?" Yes is deadline mode, Not yet is steady mode. */
+    fun setPlanMode(mode: PlanMode) {
+        _state.update { it.copy(planMode = mode) }
+        refreshFitIfOnPlanStep()
+    }
+
+    /** The exam date is editable. The finish-by date follows if the exam moves in front of it. */
+    fun setExamDate(date: LocalDate) {
+        val today = LocalDate.now()
+        val exam = date.coerceAtLeast(today.plusDays(MIN_FINISH_BY_DAYS_AHEAD.toLong()))
+        _state.update {
+            it.copy(
+                examDate = exam,
+                targetDate = coerceFinishBy(if (it.targetDate > exam) exam else it.targetDate, exam, today),
+            )
+        }
+        refreshFitIfOnPlanStep()
+    }
+
+    /** "Which class / attempt?" A dropper starts with most chapters finished once; the student unticks exceptions. */
+    fun selectStartingPoint(point: StartingPoint) {
+        val allIds = currentPack.topLevelNodeIds()
+        _state.update { current ->
+            val (covered, auto) = finishedAfterStartingPointChange(
+                point = point,
+                current = current.coveredChapterIds,
+                autoFilled = current.coveredIsAutoFilled,
+                keepExisting = current.editMode,
+                allChapterIds = allIds,
+            )
+            current.copy(startingPoint = point, coveredChapterIds = covered, coveredIsAutoFilled = auto)
+        }
+    }
+
+    fun toggleFinishedChapter(chapterId: String) = updateFinished { toggleChapterFinished(it, chapterId) }
+
+    fun toggleFinishedSubject(subjectId: String) {
+        val subject = _state.value.syllabusSubjects.firstOrNull { it.id == subjectId } ?: return
+        updateFinished { toggleSubjectFinished(it, subject) }
+    }
+
+    fun toggleFinishedClass(classNumber: Int) =
+        updateFinished { toggleClassFinished(it, _state.value.syllabusSubjects, classNumber) }
+
+    private fun updateFinished(change: (Set<String>) -> Set<String>) {
+        _state.update { it.copy(coveredChapterIds = change(it.coveredChapterIds), coveredIsAutoFilled = false) }
+        refreshFitIfOnPlanStep()
+    }
+
     fun setTargetDate(date: LocalDate) {
         val today = LocalDate.now()
         _state.update {
-            it.copy(targetDate = date.coerceIn(today.plusDays(7), today.plusDays(730))).refreshCushionIfNeeded()
+            it.copy(targetDate = coerceFinishBy(date, it.examDate, today))
         }
+        refreshFitIfOnPlanStep()
     }
 
     fun addCommitment(kind: String) {
@@ -185,11 +275,13 @@ class OnboardingViewModel(
     }
 
     fun setWeekdayHours(hours: Float) {
-        _state.update { it.copy(weekdayHours = hours.halfHourStep()).refreshCushionIfNeeded() }
+        _state.update { it.copy(weekdayHours = hours.halfHourStep()) }
+        refreshFitIfOnPlanStep()
     }
 
     fun setWeekendHours(hours: Float) {
-        _state.update { it.copy(weekendHours = hours.halfHourStep()).refreshCushionIfNeeded() }
+        _state.update { it.copy(weekendHours = hours.halfHourStep()) }
+        refreshFitIfOnPlanStep()
     }
 
     fun setStudyPlace(place: String) {
@@ -241,9 +333,6 @@ class OnboardingViewModel(
     fun dismissFinishError() {
         _state.update { it.copy(finishFailed = false) }
     }
-
-    fun totalHours(state: OnboardingUiState = _state.value): Int =
-        availableHours(state.daysUntilTarget, state.weekdayHours.toDouble(), state.weekendHours.toDouble())
 
     fun commitmentIssues(state: OnboardingUiState = _state.value): List<CommitmentIssue> =
         commitmentIssuesFor(state)
@@ -323,9 +412,15 @@ class OnboardingViewModel(
                         ?: defaultCommitments(),
                     wakeMinute = saved?.wakeMinute ?: current.wakeMinute,
                     sleepMinute = saved?.sleepMinute ?: current.sleepMinute,
-                    targetDate = attempt?.targetCompletionDate
-                        ?: saved?.targetDateEpochDay?.let(LocalDate::ofEpochDay)
-                        ?: current.targetDate,
+                    planMode = attempt?.planMode ?: current.planMode,
+                    examDate = attempt?.examDate ?: current.examDate,
+                    targetDate = coerceFinishBy(
+                        attempt?.targetCompletionDate
+                            ?: saved?.targetDateEpochDay?.let(LocalDate::ofEpochDay)
+                            ?: current.targetDate,
+                        attempt?.examDate ?: current.examDate,
+                        LocalDate.now(),
+                    ),
                     workId = saved?.workId ?: current.workId,
                     weekdayHours = preferences?.weekdayTargetMinutes?.div(60f) ?: saved?.weekdayHours ?: current.weekdayHours,
                     weekendHours = preferences?.weekendTargetMinutes?.div(60f) ?: saved?.weekendHours ?: current.weekendHours,
@@ -336,8 +431,15 @@ class OnboardingViewModel(
                         .filter { chapter -> chapter.leafIds().isNotEmpty() && chapter.leafIds().all { it in coveredLeafIds } }
                         .mapTo(mutableSetOf()) { it.id },
                     syllabusSubjects = subjects,
+                    startingPoint = attempt?.startingPoint,
                 )
+                initialCoveredChapterIds = hydrated.coveredChapterIds
                 savedStateHandle.get<String>(DRAFT_KEY)?.let { decodeDraft(it, hydrated) } ?: hydrated
+            }
+            // "Adjust plan" from Today lands on the plan, where the fit and its choices are.
+            if (startAtPlan && attempt != null && savedStateHandle.get<String>(DRAFT_KEY) == null) {
+                _state.update { it.copy(step = OnboardingStep.Plan, fit = null) }
+                refreshFit()
             }
         }
     }
@@ -348,28 +450,97 @@ class OnboardingViewModel(
         }
     }
 
+    /** Optional steps only: Theme keeps its defaults; Fixed times drops whatever was added. */
+    fun canSkip(state: OnboardingUiState = _state.value): Boolean =
+        state.step == OnboardingStep.Appearance || state.step == OnboardingStep.Commitments
+
+    fun skipCurrent() {
+        val current = _state.value
+        if (!canSkip(current)) return
+        if (current.step == OnboardingStep.Commitments) {
+            _state.update {
+                it.copy(
+                    commitments = emptyList(),
+                    wakeMinute = if (it.wakeMinute < it.sleepMinute) it.wakeMinute else DEFAULT_WAKE_MINUTE,
+                    sleepMinute = if (it.wakeMinute < it.sleepMinute) it.sleepMinute else DEFAULT_SLEEP_MINUTE,
+                )
+            }
+        }
+        advance()
+    }
+
     private fun advance() {
         _state.update { current -> current.step.next()?.let { current.copy(step = it) } ?: current }
     }
 
-    private fun OnboardingUiState.refreshCushionIfNeeded(): OnboardingUiState =
-        if (step == OnboardingStep.Plan) copy(cushion = computeCushion(this)) else this
+    private fun refreshFitIfOnPlanStep() {
+        if (_state.value.step == OnboardingStep.Plan) refreshFit()
+    }
 
-    private fun computeCushion(state: OnboardingUiState) = cushion(
-        rawHours = if (state.useProvidedSyllabus) {
-            currentPack?.subjects
-                ?.flatMap { it.nodes }
-                ?.filter { it.id in state.selectedChapterIds }
-                ?.sumOf { it.totalMinutes() }
-                ?.div(60.0)
-                ?: 0.0
-        } else {
-            0.0
-        },
-        days = state.daysUntilTarget,
-        weekdayHours = state.weekdayHours.toDouble(),
-        weekendHours = state.weekendHours.toDouble(),
-    )
+    /**
+     * Asks the planner whether the remaining work fits before finish-by. It is the same
+     * simulation that builds the plan, fed the same history, so the answer is what will be scheduled.
+     */
+    private fun refreshFit() {
+        fitJob?.cancel()
+        val draft = _state.value
+        if (!draft.useProvidedSyllabus) {
+            _state.update { it.copy(fit = null, fitLoading = false, projectedFinish = null, projectionLoading = false) }
+            return
+        }
+        _state.update { it.copy(fitLoading = true, projectionLoading = it.planMode == PlanMode.STEADY) }
+        fitJob = viewModelScope.launch {
+            val planDraft = PlanDraft(
+                mode = draft.planMode,
+                examDate = draft.examDate,
+                finishBy = draft.targetDate,
+                weekdayTargetMinutes = (draft.weekdayHours * 60).roundToInt(),
+                weekendTargetMinutes = (draft.weekendHours * 60).roundToInt(),
+                weeklyAvailability = freeWindowsFor(DRAFT_ATTEMPT_ID, draft),
+                includedChapterIds = draft.selectedChapterIds,
+                coveredChapterIds = draft.coveredChapterIds,
+                startingPoint = draft.startingPoint,
+            )
+            val fit = if (draft.planMode == PlanMode.DEADLINE) rollingPlanRepository.draftFit(planDraft) else null
+            val projected = if (draft.planMode == PlanMode.STEADY) rollingPlanRepository.draftProjection(planDraft) else null
+            _state.update { current ->
+                // A newer change started its own request; only the latest answer may land.
+                if (current.planMode == draft.planMode && current.examDate == draft.examDate &&
+                    current.targetDate == draft.targetDate && current.weekdayHours == draft.weekdayHours &&
+                    current.weekendHours == draft.weekendHours && current.selectedChapterIds == draft.selectedChapterIds &&
+                    current.coveredChapterIds == draft.coveredChapterIds
+                ) {
+                    current.copy(fit = fit, fitLoading = false, projectedFinish = projected, projectionLoading = false)
+                } else {
+                    current
+                }
+            }
+        }
+    }
+
+    /** Applies one of the choices shown when the plan is short. Each was verified by planning again. */
+    fun applyFitOption(option: PlanFitOption) {
+        when (option) {
+            is PlanFitOption.AddMinutesPerDay -> _state.update {
+                it.copy(
+                    weekdayHours = (it.weekdayHours + option.minutes / 60f).coerceAtMost(MAX_WEEKDAY_HOURS),
+                    weekendHours = (it.weekendHours + option.minutes / 60f).coerceAtMost(MAX_WEEKEND_HOURS),
+                )
+            }
+            is PlanFitOption.ParkChapters -> _state.update {
+                it.copy(selectedChapterIds = it.selectedChapterIds - option.chapterIds.toSet())
+            }
+            is PlanFitOption.MoveFinishBy -> {
+                val today = LocalDate.now()
+                _state.update { it.copy(targetDate = coerceFinishBy(option.date, it.examDate, today)) }
+            }
+            is PlanFitOption.AcceptCoverage -> {
+                continueFromCurrent()
+                return
+            }
+        }
+        refreshFitIfOnPlanStep()
+    }
 
     private fun finish(state: OnboardingUiState) {
         if (state.finishing) return
@@ -393,20 +564,22 @@ class OnboardingViewModel(
                     id = attemptId,
                     examId = state.examId,
                     syllabusVersion = pack.syllabusVersion,
-                    examDate = state.targetDate,
+                    examDate = state.examDate,
                     targetCompletionDate = state.targetDate,
                     createdAtEpochMs = existingAttempt?.createdAtEpochMs ?: now,
                     updatedAtEpochMs = now,
                     status = ExamAttemptStatus.ACTIVE,
+                    planMode = state.planMode,
+                    startingPoint = state.startingPoint,
                 )
 
                 attemptRepository.upsert(attempt)
+                saveFinishedChapters(attemptId, pack, state.coveredChapterIds, now)
 
                 val availability = freeWindowsFor(attemptId, state)
                 availabilityRepository.replaceWeekly(attemptId, availability)
                 studyPreferenceRepository.upsert(
-                    StudyPreferences(
-                        attemptId = attemptId,
+                    (previousPreferences ?: StudyPreferences(attemptId = attemptId)).copy(
                         weekdayTargetMinutes = (state.weekdayHours * 60).roundToInt(),
                         weekendTargetMinutes = (state.weekendHours * 60).roundToInt(),
                         autoScheduleRevision = true,
@@ -441,11 +614,20 @@ class OnboardingViewModel(
                     ),
                 )
                 rollingPlanRepository.replenish(fromDate = LocalDate.now(), nowMs = now)
+                analytics.log(
+                    AnalyticsEvent.ONBOARDING_COMPLETED,
+                    mapOf(
+                        AnalyticsParam.MODE to state.planMode.name,
+                        AnalyticsParam.STARTING_POINT to (state.startingPoint?.name ?: "none"),
+                    ),
+                )
+                analytics.log(AnalyticsEvent.PLAN_GENERATED, mapOf(AnalyticsParam.MODE to state.planMode.name))
                 savedStateHandle.remove<String>(DRAFT_KEY)
                 _state.update { it.copy(finishing = false) }
                 _openOrganiseAfterFinish.value = !state.useProvidedSyllabus || state.selectedChapterIds.isEmpty()
                 _finished.value = true
             } catch (_: Exception) {
+                runCatching { restoreFinishedChapters(attemptId, currentPack, state.coveredChapterIds) }
                 runCatching { planRepository.replaceAllForAttempt(attemptId, previousPlan) }
                 if (existingAttempt == null) {
                     runCatching { attemptRepository.deleteAttemptAndAllData(attemptId) }
@@ -472,6 +654,24 @@ class OnboardingViewModel(
         }
     }
 
+    /** Writes only what changed since the screen opened: newly finished chapters on, unticked ones off. */
+    private suspend fun saveFinishedChapters(attemptId: String, pack: ExamPack, covered: Set<String>, nowMs: Long) {
+        val chapters = pack.subjects.flatMap { it.nodes }.associateBy { it.id }
+        val added = (covered - initialCoveredChapterIds).mapNotNull { chapters[it] }
+        val removed = (initialCoveredChapterIds - covered).mapNotNull { chapters[it] }
+        topicProgressRepository.setCovered(attemptId, added.flatMap { it.leafIds() }, covered = true, nowMs = nowMs)
+        topicProgressRepository.setCovered(attemptId, removed.flatMap { it.leafIds() }, covered = false, nowMs = nowMs)
+    }
+
+    private suspend fun restoreFinishedChapters(attemptId: String, pack: ExamPack?, attempted: Set<String>) {
+        val chapters = pack?.subjects?.flatMap { it.nodes }?.associateBy { it.id } ?: return
+        val now = System.currentTimeMillis()
+        val added = (attempted - initialCoveredChapterIds).mapNotNull { chapters[it] }
+        val removed = (initialCoveredChapterIds - attempted).mapNotNull { chapters[it] }
+        topicProgressRepository.setCovered(attemptId, added.flatMap { it.leafIds() }, covered = false, nowMs = now)
+        topicProgressRepository.setCovered(attemptId, removed.flatMap { it.leafIds() }, covered = true, nowMs = now)
+    }
+
     class Factory(
         private val planStore: PlanStore,
         private val examPackRepository: ExamPackRepository,
@@ -483,6 +683,10 @@ class OnboardingViewModel(
         private val planRepository: PlanRepository,
         private val rollingPlanRepository: RollingPlanRepository,
         private val dispatchers: AppDispatchers,
+        private val examDate: LocalDate,
+        private val examDateOfficial: Boolean,
+        private val startAtPlan: Boolean = false,
+        private val analytics: Analytics = Analytics.NoOp,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T = OnboardingViewModel(
@@ -497,11 +701,18 @@ class OnboardingViewModel(
             rollingPlanRepository,
             dispatchers,
             extras.createSavedStateHandle(),
+            examDate,
+            examDateOfficial,
+            startAtPlan,
+            analytics,
         ) as T
     }
 
     private companion object {
         const val DRAFT_KEY = "onboarding_draft_v1"
+        const val DRAFT_ATTEMPT_ID = "draft"
+        const val MAX_WEEKDAY_HOURS = 14f
+        const val MAX_WEEKEND_HOURS = 16f
     }
 }
 
@@ -640,12 +851,17 @@ private fun encodeDraft(state: OnboardingUiState): String = JSONObject().apply {
     put("wake", state.wakeMinute)
     put("sleep", state.sleepMinute)
     put("date", state.targetDate.toEpochDay())
+    put("exam", state.examDate.toEpochDay())
+    put("mode", state.planMode.name)
     put("work", state.workId)
     put("weekday", state.weekdayHours.toDouble())
     put("weekend", state.weekendHours.toDouble())
     put("place", state.studyPlace)
     put("provided", state.useProvidedSyllabus)
     put("selected", JSONArray(state.selectedChapterIds.toList()))
+    put("covered", JSONArray(state.coveredChapterIds.toList()))
+    put("coveredAuto", state.coveredIsAutoFilled)
+    put("start", state.startingPoint?.name ?: "")
     put("commitments", JSONArray(state.commitments.map(::encodeCommitment)))
 }.toString()
 
@@ -661,6 +877,8 @@ private fun decodeDraft(raw: String, base: OnboardingUiState): OnboardingUiState
         coachingId = json.optString("coaching", base.coachingId),
         wakeMinute = json.optInt("wake", base.wakeMinute),
         sleepMinute = json.optInt("sleep", base.sleepMinute),
+        examDate = LocalDate.ofEpochDay(json.optLong("exam", base.examDate.toEpochDay())),
+        planMode = runCatching { PlanMode.valueOf(json.optString("mode")) }.getOrDefault(base.planMode),
         targetDate = LocalDate.ofEpochDay(json.optLong("date", base.targetDate.toEpochDay())),
         workId = json.optString("work", base.workId),
         weekdayHours = json.optDouble("weekday", base.weekdayHours.toDouble()).toFloat(),
@@ -668,6 +886,9 @@ private fun decodeDraft(raw: String, base: OnboardingUiState): OnboardingUiState
         studyPlace = json.optString("place", base.studyPlace),
         useProvidedSyllabus = json.optBoolean("provided", base.useProvidedSyllabus),
         selectedChapterIds = strings("selected").ifEmpty { base.selectedChapterIds },
+        coveredChapterIds = if (json.has("covered")) strings("covered") else base.coveredChapterIds,
+        coveredIsAutoFilled = json.optBoolean("coveredAuto", false),
+        startingPoint = runCatching { StartingPoint.valueOf(json.optString("start")) }.getOrDefault(base.startingPoint),
         commitments = restoredCommitments.ifEmpty { base.commitments },
     )
 }.getOrDefault(base)

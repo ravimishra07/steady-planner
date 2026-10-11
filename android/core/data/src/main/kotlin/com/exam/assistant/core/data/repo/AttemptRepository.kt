@@ -59,9 +59,14 @@ class AttemptRepository(
     suspend fun deleteAttemptAndAllData(attemptId: String) = withContext(dispatchers.io) {
         db.withTransaction {
             db.studySessionDao().deleteAllForAttempt(attemptId)
+            db.mockTestDao().deleteAllForAttempt(attemptId)
             db.studyPlanBlockDao().deleteForAttempt(attemptId)
             db.topicProgressDao().deleteForAttempt(attemptId)
             db.revisionStateDao().deleteForAttempt(attemptId)
+            db.chapterStageDao().deleteForAttempt(attemptId)
+            db.chapterOverrideDao().deleteForAttempt(attemptId)
+            db.coachingDao().deleteForAttempt(attemptId)
+            db.coachingDao().deletePositionForAttempt(attemptId)
             db.targetNodeOverrideDao().deleteForAttempt(attemptId)
             db.availabilityDao().deleteWeeklyForAttempt(attemptId)
             db.availabilityDao().deleteOverridesForAttempt(attemptId)

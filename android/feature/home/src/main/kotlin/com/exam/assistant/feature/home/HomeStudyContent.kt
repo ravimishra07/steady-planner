@@ -62,21 +62,28 @@ import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.domain.DayBlock
-import com.exam.assistant.domain.RevisionSuggestion
 import com.exam.assistant.domain.SyllabusSection
 import com.exam.assistant.domain.SyllabusTopicNode
 import com.exam.assistant.domain.StudyPlacementIssue
 import com.exam.assistant.domain.StudyActivityType
-import com.exam.assistant.domain.REVISION_INTERVAL_DAYS
 import com.exam.assistant.domain.currentMinuteOfDay
+import com.exam.assistant.domain.formatInsightDate
 import com.exam.assistant.domain.formatMinuteOfDay
 import com.exam.assistant.domain.topicHours
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun HomeStudyContent(
     state: HomeUiState,
+    onAdjustPlan: () -> Unit,
+    onRebalanceMissed: () -> Unit,
+    onStartFresh: () -> Unit,
+    onDismissMissed: () -> Unit,
+    onLogClass: (String, Int) -> Unit,
+    onNextLecture: () -> Unit,
     onEditPlan: () -> Unit,
+    onOpenDay: (java.time.LocalDate) -> Unit,
     onSelectDate: (java.time.LocalDate) -> Unit,
     onToggleCalendarExpanded: () -> Unit,
     onOpenAdd: () -> Unit,
@@ -86,7 +93,6 @@ internal fun HomeStudyContent(
     onOpenPickerSubtopics: (List<Int>) -> Unit,
     onSetPickerQuery: (String) -> Unit,
     onPickTopic: (nodeKey: String, title: String, sectionName: String, subjectId: String, topicPath: String) -> Unit,
-    onPickRevision: (RevisionSuggestion) -> Unit,
     onSetDuration: (Int) -> Unit,
     onSetActivityType: (StudyActivityType) -> Unit,
     onSetScheduledMinute: (Int) -> Unit,
@@ -140,7 +146,50 @@ internal fun HomeStudyContent(
                             modifier = Modifier.padding(bottom = Spacing.md),
                         )
                     }
-                    state.missedDayRecovery?.let { recovery ->
+                    if (state.canOpenDayLog) {
+                        TextButton(
+                            onClick = { onOpenDay(state.selectedDate) },
+                            modifier = Modifier.padding(bottom = Spacing.sm),
+                        ) { Text(stringResource(R.string.home_view_day_log)) }
+                    }
+                    if (state.selectedIsToday) {
+                        state.freshStart?.let {
+                            FreshStartCard(
+                                onStartFresh = onStartFresh,
+                                onNotNow = onDismissMissed,
+                                modifier = Modifier.padding(bottom = Spacing.lg),
+                            )
+                        }
+                        state.missedBlocks?.let { missed ->
+                            MissedBlocksPrompt(
+                                missed = missed,
+                                onRebalance = onRebalanceMissed,
+                                onNotNow = onDismissMissed,
+                                modifier = Modifier.padding(bottom = Spacing.lg),
+                            )
+                        }
+                        state.planFit?.let { fit ->
+                            PlanFitBanner(
+                                fit = fit,
+                                onAdjust = onAdjustPlan,
+                                modifier = Modifier.padding(bottom = Spacing.lg),
+                            )
+                        }
+                        state.coaching?.let { coaching ->
+                            TaughtTodayCard(
+                                coaching = coaching,
+                                onNextLecture = onNextLecture,
+                                onLogClass = onLogClass,
+                                modifier = Modifier.padding(bottom = Spacing.lg),
+                            )
+                            CoachingBacklogCard(
+                                coaching = coaching,
+                                modifier = Modifier.padding(bottom = Spacing.lg),
+                            )
+                        }
+                    }
+                    // One recovery surface at a time: start fresh, then the missed-days prompt, then today's.
+                    state.missedDayRecovery?.takeIf { state.freshStart == null && state.missedBlocks == null }?.let { recovery ->
                         MissedDayRecoveryPanel(
                             recovery = recovery,
                             onStartNextNow = { onStartMissedSession(recovery.nextSessionId) },
@@ -151,10 +200,8 @@ internal fun HomeStudyContent(
                     DayTimelineSection(
                         entries = state.dayTimeline,
                         activeSprint = state.activeSprint,
-                        revisionItems = state.revisionItems,
                         onStartScheduled = onStartScheduledSession,
                         onStartMissed = onStartMissedSession,
-                        onStartAutoRevision = onPickRevision,
                         onRequestReschedule = { block -> rescheduleTarget = block },
                         onOpenAdd = onOpenAdd,
                         onOpenAddInGap = onOpenAddInGap,
@@ -414,6 +461,7 @@ private fun StudyPickerFrame(
                         customEndMinuteOfDay = state.customEndMinuteOfDay,
                         onSelectEndMinute = onSetScheduledMinute,
                         placementIssue = state.placementIssue,
+                        revisionDue = state.pendingRevisionDue,
                     )
                 }
             }
@@ -550,7 +598,7 @@ private fun subjectRows(resources: Resources, sections: List<SyllabusSection>): 
                 R.plurals.home_picker_subject_summary,
                 section.topics.size,
                 section.topics.size,
-                section.topics.sumOf { topicHours(it).toInt() },
+                section.topics.sumOf { topicHours(it) }.roundToInt(),
             ),
             sectionIndex = index,
             path = emptyList(),
@@ -657,6 +705,7 @@ private fun DurationPickerContent(
     customEndMinuteOfDay: Int?,
     onSelectEndMinute: (Int) -> Unit,
     placementIssue: StudyPlacementIssue?,
+    revisionDue: java.time.LocalDate?,
 ) {
     val colors = AppTheme.colors
     val options = listOf(15, 30, 45)
@@ -664,9 +713,6 @@ private fun DurationPickerContent(
 
     val liveEndMinute = (customEndMinuteOfDay ?: (currentMinuteOfDay() + selectedMinutes))
         .coerceIn(0, 24 * 60 - 1)
-    val revisionDue = remember {
-        java.time.LocalDate.now().plusDays(REVISION_INTERVAL_DAYS.toLong())
-    }
     val revisionPattern = stringResource(R.string.home_revision_date_pattern)
     val revisionFormatter = remember(revisionPattern) {
         java.time.format.DateTimeFormatter.ofPattern(revisionPattern, java.util.Locale.getDefault())
@@ -753,24 +799,26 @@ private fun DurationPickerContent(
                         color = colors.text,
                     )
                 }
-                HorizontalDivider(color = colors.textMuted.copy(alpha = 0.14f))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(Spacing.lg),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = stringResource(R.string.home_revision_due),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = colors.textMuted,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(
-                        text = revisionDue.format(revisionFormatter),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = colors.text,
-                    )
+                if (revisionDue != null) {
+                    HorizontalDivider(color = colors.textMuted.copy(alpha = 0.14f))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Spacing.lg),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.home_revision_due),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = colors.textMuted,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(
+                            text = revisionDue.format(revisionFormatter),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = colors.text,
+                        )
+                    }
                 }
             }
         }
@@ -837,6 +885,100 @@ private fun PlacementIssueMessage(
         color = AppTheme.colors.warning,
         modifier = modifier,
     )
+}
+
+@Composable
+private fun MissedBlocksPrompt(
+    missed: MissedBlocksUi,
+    onRebalance: () -> Unit,
+    onNotNow: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = AppTheme.colors
+    Surface(shape = RoundedCornerShape(Radius.lg), color = colors.elevated, modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text(
+                text = pluralStringResource(R.plurals.home_missed_blocks_title, missed.count, missed.count),
+                style = MaterialTheme.typography.titleMedium,
+                color = colors.text,
+            )
+            Text(
+                text = stringResource(R.string.home_missed_blocks_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.textSecondary,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Button(
+                    onClick = onRebalance,
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.brandDeep, contentColor = colors.onBrand),
+                    shape = RoundedCornerShape(Radius.pill),
+                ) { Text(stringResource(R.string.home_missed_blocks_yes)) }
+                TextButton(onClick = onNotNow) { Text(stringResource(R.string.home_missed_blocks_not_now)) }
+            }
+        }
+    }
+}
+
+/** "Start fresh from today" (§5.5). No count and no warning colour: it is a restart, not a reckoning. */
+@Composable
+private fun FreshStartCard(
+    onStartFresh: () -> Unit,
+    onNotNow: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = AppTheme.colors
+    Surface(shape = RoundedCornerShape(Radius.lg), color = colors.elevated, modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text(
+                text = stringResource(R.string.home_fresh_start_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = colors.text,
+            )
+            Text(
+                text = stringResource(R.string.home_fresh_start_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.textSecondary,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Button(
+                    onClick = onStartFresh,
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.brandDeep, contentColor = colors.onBrand),
+                    shape = RoundedCornerShape(Radius.pill),
+                ) { Text(stringResource(R.string.home_fresh_start_action)) }
+                TextButton(onClick = onNotNow) { Text(stringResource(R.string.home_missed_blocks_not_now)) }
+            }
+        }
+    }
+}
+
+/** Deadline mode only: part of the remaining work cannot be placed before finish-by. */
+@Composable
+private fun PlanFitBanner(
+    fit: PlanFitUi,
+    onAdjust: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = AppTheme.colors
+    val hours = ((fit.shortByMinutes / 60.0).roundToInt()).coerceAtLeast(1)
+    Surface(shape = RoundedCornerShape(Radius.lg), color = colors.elevated, modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            Text(
+                text = stringResource(
+                    if (fit.calibrated) R.string.home_fit_banner_calibrated else R.string.home_fit_banner,
+                    hours,
+                    formatInsightDate(fit.finishBy),
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.text,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onAdjust) { Text(stringResource(R.string.home_fit_adjust)) }
+        }
+    }
 }
 
 @Composable
@@ -908,5 +1050,5 @@ private fun pathOf(resources: Resources, parts: List<String>): String =
 
 private fun formatTopicHours(resources: Resources, node: SyllabusTopicNode): String {
     val hours = topicHours(node)
-    return if (hours > 0) resources.getString(R.string.home_estimated_hours, hours.toInt()) else ""
+    return if (hours > 0) resources.getString(R.string.home_estimated_hours, hours.roundToInt().coerceAtLeast(1)) else ""
 }

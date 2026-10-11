@@ -2,25 +2,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission
-        android:name="android.permission.PACKAGE_USAGE_STATS"
-        tools:ignore="ProtectedPermissions" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
-    <!--
-        Android 11+ package visibility: without this, PackageManager only returns a
-        handful of always-visible packages (Play Store, carrier apps) — not the
-        student's actual installed apps. This is the specific query the app picker uses.
-    -->
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.MAIN" />
-            <category android:name="android.intent.category.LAUNCHER" />
-        </intent>
-    </queries>
+    <!-- Focus end alarm. Without the grant the app falls back to an inexact alarm (no foreground service). -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- Re-arm the Focus end alarm and ongoing notification after a reboot. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- End-of-session vibration on Android 7.x, where notifications have no channels. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Firebase Analytics merges these in. No advertising ID or ad attribution, ever (§11.3, §11.4). -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" tools:node="remove" />
 
     <application
         android:name=".SteadylineApp"
@@ -31,6 +23,17 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.Steadyline.Splash">
+
+        <!-- Firebase Analytics (§11.3): no advertising ID, no SSAID, no ad personalisation. Many users are minors. -->
+        <meta-data
+            android:name="google_analytics_adid_collection_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="google_analytics_default_allow_ad_personalization_signals"
+            android:value="false" />
+        <meta-data
+            android:name="google_analytics_ssaid_collection_enabled"
+            android:value="false" />
 
         <activity
             android:name=".MainActivity"
@@ -44,20 +47,72 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".focuslock.BlockingActivity"
-            android:exported="false"
-            android:launchMode="singleTask"
-            android:excludeFromRecents="true"
-            android:theme="@style/Theme.Steadyline.Splash" />
+        <receiver
+            android:name=".focus.FocusActionReceiver"
+            android:exported="false" />
 
-        <service
-            android:name=".focuslock.FocusLockService"
+        <receiver
+            android:name=".focus.FocusAlarmReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".reminder.DailyReminderReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".widget.StatusWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_status_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_status_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.NextBlockWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_next_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_next_block_info" />
+        </receiver>
+
+        <!-- Widget refresh tick, plus clock and time-zone changes (system-protected broadcasts). -->
+        <receiver
+            android:name=".widget.WidgetTickReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- WorkManager (used by Glance) initialises on demand, off the cold-start path. -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
             android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="app-blocking-during-study-session" />
-        </service>
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
+        <!-- Exported only so the system can deliver these protected broadcasts. -->
+        <receiver
+            android:name=".focus.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

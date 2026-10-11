@@ -1,6 +1,16 @@
 package com.exam.assistant.feature.settings
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.ui.platform.LocalContext
+import java.time.LocalTime
+import java.time.format.FormatStyle
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,14 +24,34 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.heightIn
+import com.exam.assistant.domain.MIN_FINISH_BY_DAYS_AHEAD
+import com.exam.assistant.domain.PlanMode
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -36,11 +66,18 @@ import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.SettingsStore
 import com.exam.assistant.core.data.StudySessionStore
 import com.exam.assistant.core.data.SyllabusStore
+import com.exam.assistant.core.data.backup.BackupRepository
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.AppValueStepper
+import com.exam.assistant.core.design.LengthPicker
+import com.exam.assistant.core.design.LengthPickerLabels
+import com.exam.assistant.domain.FOCUS_LENGTH_MAX_MINUTES
+import com.exam.assistant.domain.FOCUS_LENGTH_MIN_MINUTES
+import com.exam.assistant.domain.FOCUS_LENGTH_PRESETS_MINUTES
+import com.exam.assistant.domain.focusLengthMinutesOrNull
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
@@ -56,8 +93,13 @@ fun SettingsDetailRoute(
     attemptRepository: AttemptRepository,
     studyPreferenceRepository: StudyPreferenceRepository,
     rollingPlanRepository: RollingPlanRepository,
+    configExamDate: LocalDate,
+    examDateOfficial: Boolean,
     onBack: () -> Unit,
     onCleared: () -> Unit,
+    onReminderChanged: suspend () -> Unit,
+    backupRepository: BackupRepository,
+    onImported: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsDetailViewModel = viewModel(
         factory = SettingsDetailViewModel.Factory(
@@ -70,10 +112,34 @@ fun SettingsDetailRoute(
             attemptRepository = attemptRepository,
             studyPreferenceRepository = studyPreferenceRepository,
             rollingPlanRepository = rollingPlanRepository,
+            configExamDate = configExamDate,
+            examDateOfficial = examDateOfficial,
+            onReminderChanged = onReminderChanged,
+            backupRepository = backupRepository,
         ),
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    // Asked in context (§10.1): only when the student turns the reminder on, never at launch.
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) viewModel.setReminderEnabled(true) else viewModel.onReminderPermissionDenied()
+    }
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(BACKUP_MIME)) { uri ->
+        uri?.let(viewModel::exportBackup)
+    }
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(viewModel::requestImport)
+    }
+    val onReminderToggle: (Boolean) -> Unit = { enabled ->
+        if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            viewModel.setReminderEnabled(enabled)
+        }
+    }
     val requestBack = {
         if (viewModel.requestBack()) onBack()
     }
@@ -86,6 +152,13 @@ fun SettingsDetailRoute(
         onWeekendChange = viewModel::setWeekendHours,
         onStudyPlaceChange = viewModel::setStudyPlace,
         onFocusDuration = viewModel::setFocusDurationMinutes,
+        onFocusEndAlert = viewModel::setFocusEndAlert,
+        onReminderToggle = onReminderToggle,
+        onReminderTime = viewModel::setReminderTime,
+        onShareUsageData = viewModel::setShareUsageData,
+        onPlanMode = viewModel::setPlanMode,
+        onExamDate = viewModel::setExamDate,
+        onFinishBy = viewModel::setFinishBy,
         onSave = viewModel::save,
         onDismissSaveResult = viewModel::dismissSaveResult,
         onDismissDiscard = viewModel::dismissDiscard,
@@ -93,6 +166,11 @@ fun SettingsDetailRoute(
             viewModel.confirmDiscard()
             onBack()
         },
+        onExportBackup = { exportLauncher.launch(backupFileName(LocalDate.now())) },
+        onImportBackup = { importLauncher.launch(BACKUP_OPEN_MIMES) },
+        onConfirmImport = { viewModel.confirmImport(onImported) },
+        onDismissImport = viewModel::dismissImport,
+        onDismissBackupMessage = viewModel::dismissBackupMessage,
         onRequestClear = viewModel::requestClear,
         onConfirmClear = { viewModel.confirmClear(onCleared) },
         onDismissClear = viewModel::dismissClear,
@@ -110,10 +188,22 @@ fun SettingsDetailScreen(
     onWeekendChange: (Float) -> Unit,
     onStudyPlaceChange: (String) -> Unit,
     onFocusDuration: (Int) -> Unit,
+    onFocusEndAlert: (Boolean) -> Unit,
+    onReminderToggle: (Boolean) -> Unit,
+    onReminderTime: (Int) -> Unit,
+    onPlanMode: (PlanMode) -> Unit,
+    onExamDate: (LocalDate) -> Unit,
+    onFinishBy: (LocalDate) -> Unit,
     onSave: () -> Unit,
     onDismissSaveResult: () -> Unit,
+    onShareUsageData: (Boolean) -> Unit = {},
     onDismissDiscard: () -> Unit,
     onConfirmDiscard: () -> Unit,
+    onExportBackup: () -> Unit,
+    onImportBackup: () -> Unit,
+    onConfirmImport: () -> Unit,
+    onDismissImport: () -> Unit,
+    onDismissBackupMessage: () -> Unit,
     onRequestClear: () -> Unit,
     onConfirmClear: () -> Unit,
     onDismissClear: () -> Unit,
@@ -149,6 +239,26 @@ fun SettingsDetailScreen(
             confirmButton = {
                 TextButton(onClick = onDismissClearError) {
                     Text(stringResource(R.string.settings_ok))
+                }
+            },
+        )
+    }
+    if (state.pendingImport != null) {
+        AlertDialog(
+            onDismissRequest = onDismissImport,
+            title = { Text(stringResource(R.string.settings_import_confirm_title)) },
+            text = { Text(stringResource(R.string.settings_import_confirm_body)) },
+            confirmButton = {
+                TextButton(onClick = onConfirmImport, enabled = !state.backupBusy) {
+                    Text(
+                        if (state.backupBusy) stringResource(R.string.settings_importing)
+                        else stringResource(R.string.settings_import_yes),
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissImport, enabled = !state.backupBusy) {
+                    Text(stringResource(R.string.settings_cancel))
                 }
             },
         )
@@ -214,8 +324,18 @@ fun SettingsDetailScreen(
                     onWeekendChange = onWeekendChange,
                     onStudyPlaceChange = onStudyPlaceChange,
                     onFocusDuration = onFocusDuration,
+                    onFocusEndAlert = onFocusEndAlert,
+                    onReminderToggle = onReminderToggle,
+                    onReminderTime = onReminderTime,
+                    onShareUsageData = onShareUsageData,
+                    onPlanMode = onPlanMode,
+                    onExamDate = onExamDate,
+                    onFinishBy = onFinishBy,
                     onSave = onSave,
                     onDismissSaveResult = onDismissSaveResult,
+                    onExportBackup = onExportBackup,
+                    onImportBackup = onImportBackup,
+                    onDismissBackupMessage = onDismissBackupMessage,
                     onRequestClear = onRequestClear,
                 )
             }
@@ -230,11 +350,22 @@ private fun SettingsEditor(
     onWeekendChange: (Float) -> Unit,
     onStudyPlaceChange: (String) -> Unit,
     onFocusDuration: (Int) -> Unit,
+    onFocusEndAlert: (Boolean) -> Unit,
+    onReminderToggle: (Boolean) -> Unit,
+    onReminderTime: (Int) -> Unit,
+    onShareUsageData: (Boolean) -> Unit,
+    onPlanMode: (PlanMode) -> Unit,
+    onExamDate: (LocalDate) -> Unit,
+    onFinishBy: (LocalDate) -> Unit,
     onSave: () -> Unit,
     onDismissSaveResult: () -> Unit,
+    onExportBackup: () -> Unit,
+    onImportBackup: () -> Unit,
+    onDismissBackupMessage: () -> Unit,
     onRequestClear: () -> Unit,
 ) {
     val colors = AppTheme.colors
+    PlanSection(state, onPlanMode, onExamDate, onFinishBy)
     SectionTitle(stringResource(R.string.settings_hours))
     AppValueStepper(
         label = stringResource(R.string.settings_weekdays),
@@ -279,15 +410,40 @@ private fun SettingsEditor(
     )
     SectionTitle(stringResource(R.string.settings_focus))
     Text(stringResource(R.string.settings_focus_length), style = MaterialTheme.typography.bodyMedium)
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        listOf(25, 50, 90).forEach { minutes ->
-            FilterChip(
-                selected = state.focusDurationMinutes == minutes,
-                onClick = { onFocusDuration(minutes) },
-                enabled = !state.saving,
-                label = { Text(stringResource(R.string.settings_focus_minutes, minutes)) },
-            )
-        }
+    val minutesLabel = stringResource(R.string.settings_focus_minutes)
+    LengthPicker(
+        presets = FOCUS_LENGTH_PRESETS_MINUTES,
+        selectedMinutes = state.focusDurationMinutes,
+        onSelect = onFocusDuration,
+        parseCustom = ::focusLengthMinutesOrNull,
+        enabled = !state.saving,
+        labels = LengthPickerLabels(
+            minutes = { minutesLabel.format(it) },
+            custom = stringResource(R.string.settings_focus_custom),
+            dialogTitle = stringResource(R.string.settings_focus_custom_title),
+            fieldLabel = stringResource(R.string.settings_focus_custom_field, FOCUS_LENGTH_MIN_MINUTES, FOCUS_LENGTH_MAX_MINUTES),
+            ok = stringResource(R.string.settings_ok),
+            cancel = stringResource(R.string.settings_cancel),
+        ),
+    )
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = Size.touchTarget)
+            .toggleable(
+                value = state.focusEndAlert,
+                role = Role.Switch,
+                onValueChange = onFocusEndAlert,
+            ),
+    ) {
+        Text(
+            text = stringResource(R.string.settings_focus_end_alert),
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.text,
+            modifier = Modifier.weight(1f),
+        )
+        Switch(checked = state.focusEndAlert, onCheckedChange = null)
     }
     Button(
         onClick = onSave,
@@ -319,7 +475,66 @@ private fun SettingsEditor(
             )
         }
     }
+    ReminderSection(state, onReminderToggle, onReminderTime)
+    SectionTitle(stringResource(R.string.settings_privacy))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = Size.touchTarget)
+            .toggleable(value = state.shareUsageData, role = Role.Switch, onValueChange = onShareUsageData),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.settings_share_usage),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.text,
+            )
+            Text(
+                text = stringResource(R.string.settings_share_usage_detail),
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.textSecondary,
+            )
+        }
+        Switch(checked = state.shareUsageData, onCheckedChange = null)
+    }
     SectionTitle(stringResource(R.string.settings_data))
+    Text(
+        text = stringResource(R.string.settings_backup_detail),
+        style = MaterialTheme.typography.bodySmall,
+        color = colors.textSecondary,
+        modifier = Modifier.padding(bottom = Spacing.sm),
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = onExportBackup,
+            enabled = !state.backupBusy && !state.saving,
+            modifier = Modifier.weight(1f).heightIn(min = Size.touchTarget),
+            shape = RoundedCornerShape(Radius.lg),
+        ) { Text(stringResource(R.string.settings_export_backup)) }
+        OutlinedButton(
+            onClick = onImportBackup,
+            enabled = !state.backupBusy && !state.saving,
+            modifier = Modifier.weight(1f).heightIn(min = Size.touchTarget),
+            shape = RoundedCornerShape(Radius.lg),
+        ) { Text(stringResource(R.string.settings_import_backup)) }
+    }
+    state.backupMessage?.let { message ->
+        TextButton(onClick = onDismissBackupMessage, modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = stringResource(
+                    when (message) {
+                        BackupMessage.EXPORTED -> R.string.settings_backup_exported
+                        BackupMessage.EXPORT_FAILED -> R.string.settings_backup_export_failed
+                        BackupMessage.IMPORT_TOO_NEW -> R.string.settings_backup_too_new
+                        BackupMessage.IMPORT_INCOMPATIBLE -> R.string.settings_backup_incompatible
+                        BackupMessage.IMPORT_FAILED -> R.string.settings_backup_import_failed
+                    },
+                ),
+                color = if (message == BackupMessage.EXPORTED) colors.success else colors.danger,
+            )
+        }
+    }
     Button(
         onClick = onRequestClear,
         enabled = !state.saving && !state.clearing,
@@ -335,6 +550,212 @@ private fun SettingsEditor(
         Text(stringResource(R.string.settings_clear_plan))
     }
 }
+
+/** Settings → Plan: switch mode, edit the exam date and the finish-by date. Saving regenerates future planner-made blocks only. */
+@Composable
+private fun PlanSection(
+    state: SettingsDetailUiState,
+    onPlanMode: (PlanMode) -> Unit,
+    onExamDate: (LocalDate) -> Unit,
+    onFinishBy: (LocalDate) -> Unit,
+) {
+    val colors = AppTheme.colors
+    SectionTitle(stringResource(R.string.settings_plan))
+    Text(
+        stringResource(R.string.settings_plan_question),
+        style = MaterialTheme.typography.bodyMedium,
+        color = colors.textSecondary,
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.padding(top = Spacing.sm)) {
+        FilterChip(
+            selected = state.planMode == PlanMode.DEADLINE,
+            onClick = { onPlanMode(PlanMode.DEADLINE) },
+            enabled = !state.saving,
+            label = { Text(stringResource(R.string.settings_plan_yes)) },
+        )
+        FilterChip(
+            selected = state.planMode == PlanMode.STEADY,
+            onClick = { onPlanMode(PlanMode.STEADY) },
+            enabled = !state.saving,
+            label = { Text(stringResource(R.string.settings_plan_not_yet)) },
+        )
+    }
+    Text(
+        stringResource(
+            if (state.planMode == PlanMode.DEADLINE) R.string.settings_plan_deadline_detail else R.string.settings_plan_steady_detail,
+        ),
+        style = MaterialTheme.typography.bodySmall,
+        color = colors.textSecondary,
+        modifier = Modifier.padding(top = Spacing.sm),
+    )
+    val exam = state.examDate
+    if (exam != null) {
+        DateRow(
+            title = stringResource(R.string.settings_plan_exam_date),
+            date = exam,
+            note = if (state.examDateIsConfigured && !state.examDateOfficial) stringResource(R.string.settings_plan_exam_expected) else null,
+            minDate = LocalDate.now().plusDays(MIN_FINISH_BY_DAYS_AHEAD.toLong()),
+            maxDate = LocalDate.now().plusYears(3),
+            enabled = !state.saving,
+            onDate = onExamDate,
+        )
+    }
+    val finishBy = state.finishBy
+    if (state.planMode == PlanMode.DEADLINE && finishBy != null) {
+        DateRow(
+            title = stringResource(R.string.settings_plan_finish_by),
+            date = finishBy,
+            note = null,
+            minDate = LocalDate.now().plusDays(MIN_FINISH_BY_DAYS_AHEAD.toLong()),
+            maxDate = maxOf(exam ?: finishBy, LocalDate.now().plusDays(MIN_FINISH_BY_DAYS_AHEAD.toLong())),
+            enabled = !state.saving,
+            onDate = onFinishBy,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DateRow(
+    title: String,
+    date: LocalDate,
+    note: String?,
+    minDate: LocalDate,
+    maxDate: LocalDate,
+    enabled: Boolean,
+    onDate: (LocalDate) -> Unit,
+) {
+    val colors = AppTheme.colors
+    var editing by remember { mutableStateOf(false) }
+    val formatter = remember { DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()) }
+    Row(
+        modifier = Modifier.fillMaxWidth().heightIn(min = Size.touchTarget),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, color = colors.text)
+            Text(
+                text = date.format(formatter) + (note?.let { " · $it" }.orEmpty()),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.textSecondary,
+            )
+        }
+        TextButton(onClick = { editing = true }, enabled = enabled, modifier = Modifier.heightIn(min = Size.touchTarget)) {
+            Text(stringResource(R.string.settings_plan_change))
+        }
+    }
+    if (editing) {
+        val minMillis = minDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        val maxMillis = maxDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        val pickerState = rememberDatePickerState(
+            initialSelectedDateMillis = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean = utcTimeMillis in minMillis..maxMillis
+            },
+        )
+        DatePickerDialog(
+            onDismissRequest = { editing = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { onDate(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
+                    editing = false
+                }) { Text(stringResource(R.string.settings_ok)) }
+            },
+            dismissButton = { TextButton(onClick = { editing = false }) { Text(stringResource(R.string.settings_cancel)) } },
+        ) { DatePicker(state = pickerState, showModeToggle = false) }
+    }
+}
+
+/** Settings → Reminders: the one optional daily "Today's plan" note and its time. Saved immediately. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReminderSection(
+    state: SettingsDetailUiState,
+    onReminderToggle: (Boolean) -> Unit,
+    onReminderTime: (Int) -> Unit,
+) {
+    val colors = AppTheme.colors
+    val context = LocalContext.current
+    var pickingTime by remember { mutableStateOf(false) }
+    val time = LocalTime.of(state.reminderMinuteOfDay / 60, state.reminderMinuteOfDay % 60)
+    val timeLabel = remember(time) { time.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)) }
+    SectionTitle(stringResource(R.string.settings_reminders))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = Size.touchTarget)
+            .toggleable(
+                value = state.reminderEnabled,
+                role = Role.Switch,
+                onValueChange = onReminderToggle,
+            ),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.settings_reminder_daily),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.text,
+            )
+            Text(
+                text = stringResource(R.string.settings_reminder_daily_detail),
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.textSecondary,
+            )
+        }
+        Switch(checked = state.reminderEnabled, onCheckedChange = null)
+    }
+    if (state.reminderPermissionDenied) {
+        Text(
+            text = stringResource(R.string.settings_reminder_denied),
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.textSecondary,
+            modifier = Modifier.padding(bottom = Spacing.sm),
+        )
+    }
+    if (state.reminderEnabled) {
+        Row(
+            modifier = Modifier.fillMaxWidth().heightIn(min = Size.touchTarget),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.settings_reminder_time), style = MaterialTheme.typography.bodyLarge, color = colors.text)
+                Text(timeLabel, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
+            }
+            TextButton(onClick = { pickingTime = true }, modifier = Modifier.heightIn(min = Size.touchTarget)) {
+                Text(stringResource(R.string.settings_plan_change))
+            }
+        }
+    }
+    if (pickingTime) {
+        val pickerState = rememberTimePickerState(
+            initialHour = time.hour,
+            initialMinute = time.minute,
+            is24Hour = android.text.format.DateFormat.is24HourFormat(context),
+        )
+        AlertDialog(
+            onDismissRequest = { pickingTime = false },
+            title = { Text(stringResource(R.string.settings_reminder_time)) },
+            text = { TimePicker(state = pickerState) },
+            confirmButton = {
+                TextButton(onClick = {
+                    onReminderTime(pickerState.hour * 60 + pickerState.minute)
+                    pickingTime = false
+                }) { Text(stringResource(R.string.settings_ok)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pickingTime = false }) { Text(stringResource(R.string.settings_cancel)) }
+            },
+        )
+    }
+}
+
+private const val BACKUP_MIME = "application/json"
+
+/** Some file managers label .json as octet-stream or plain text. */
+private val BACKUP_OPEN_MIMES = arrayOf(BACKUP_MIME, "application/octet-stream", "text/plain")
+
+private fun backupFileName(today: LocalDate): String = "neet-planner-backup-$today.json"
 
 @Composable
 private fun SectionTitle(text: String) {

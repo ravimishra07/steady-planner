@@ -18,6 +18,10 @@ class RevisionRepository(
     suspend fun byNode(attemptId: String, nodeId: String): RevisionState? =
         withContext(dispatchers.io) { dao.byNode(attemptId, nodeId)?.toDomain() }
 
+    /** Every enabled schedule for the attempt: the one input to every due/overdue/week count. */
+    suspend fun allFor(attemptId: String): List<RevisionState> =
+        withContext(dispatchers.io) { dao.allEnabled(attemptId).map { it.toDomain() } }
+
     suspend fun dueBy(attemptId: String, date: LocalDate): List<RevisionState> =
         withContext(dispatchers.io) { dao.dueBy(attemptId, date.toEpochDay()).map { it.toDomain() } }
 }

@@ -102,6 +102,19 @@ interface StudyPlanBlockDao {
     @Query("DELETE FROM study_plan_block WHERE attemptId = :attemptId")
     suspend fun deleteForAttempt(attemptId: String)
 
-    @Query("DELETE FROM study_plan_block WHERE attemptId = :attemptId AND scheduledDateEpochDay >= :startEpochDay AND source = 'AUTO' AND status = 'PLANNED'")
-    suspend fun deleteFutureAuto(attemptId: String, startEpochDay: Long)
+    /**
+     * Deletes what a replan from ([fromEpochDay], [fromMinute]) recreates: still-planned blocks the
+     * planner made itself and the student has not moved. Mirrors `StudyPlanBlock.isReplacedByReplanFrom`.
+     * Engine revision blocks are told apart from ones the student added by the `rev_` id prefix.
+     */
+    @Query(
+        "DELETE FROM study_plan_block WHERE attemptId = :attemptId AND status = 'PLANNED' " +
+            "AND rescheduledFromId IS NULL " +
+            "AND (source = 'AUTO' OR (source = 'REVISION_ENGINE' AND id LIKE 'rev\\_%' ESCAPE '\\')) " +
+            "AND (scheduledDateEpochDay > :fromEpochDay OR (scheduledDateEpochDay = :fromEpochDay AND startMinuteOfDay >= :fromMinute))",
+    )
+    suspend fun deleteReplaceable(attemptId: String, fromEpochDay: Long, fromMinute: Int)
+
+    @Query("UPDATE study_plan_block SET status = 'SKIPPED', updatedAtEpochMs = :nowMs WHERE id IN (:ids)")
+    suspend fun markSkipped(ids: List<String>, nowMs: Long)
 }

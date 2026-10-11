@@ -1,10 +1,7 @@
 package com.exam.assistant.domain
 
 import java.time.LocalDate
-import java.time.temporal.ChronoUnit
 
-/** Minutes a scheduled-but-unstarted revision occupies once auto-placed on the timeline. */
-const val AUTO_REVISION_MINUTES = 30
 const val MIN_ACTIONABLE_GAP_MINUTES = 30
 
 const val DAY_TIMELINE_START = 6 * 60
@@ -25,7 +22,7 @@ data class DayBlock(
     val isRevision: Boolean,
     val completed: Boolean,
     val subtopics: List<SubtopicSlot>,
-    val lastStudiedDaysAgo: Int? = null,
+    val revisionCount: Int = 0,
 ) {
     val durationMinutes: Int get() = endMinuteOfDay - startMinuteOfDay
 }
@@ -181,19 +178,19 @@ private fun sessionToDayBlock(session: StudySessionRecord, sections: List<Syllab
         isRevision = session.isRevision,
         completed = session.completed,
         subtopics = if (session.isRevision) emptyList() else subtopicsFor(node, start, end),
+        revisionCount = session.revisionCount,
     )
 }
 
 /**
- * The day as one continuous schedule: real sessions in their real slots, plus — for
- * today only — one auto-placed block per pending [pendingRevisions] item dropped into
- * the earliest free gap of at least [AUTO_REVISION_MINUTES]. A `NowMarker` is inserted
- * at [nowMinuteOfDay] when [date] is today.
+ * The day as one continuous schedule: the plan's blocks in their real slots, the fixed
+ * commitments, and the gaps between them. Due revisions are real plan blocks (placed by
+ * the planner), so nothing is synthesised here. A `NowMarker` is inserted at
+ * [nowMinuteOfDay] when [date] is today.
  */
 fun buildDayTimeline(
     sessions: List<StudySessionRecord>,
     sections: List<SyllabusSection>,
-    pendingRevisions: List<RevisionSuggestion>,
     date: LocalDate,
     today: LocalDate,
     nowMinuteOfDay: Int,
@@ -228,38 +225,7 @@ fun buildDayTimeline(
     }
     if (dayEnd > cursor) gaps += Slot(cursor, dayEnd)
 
-    val autoBlocks = mutableListOf<DayBlock>()
-    if (isToday && pendingRevisions.isNotEmpty()) {
-        pendingRevisions.forEach { suggestion ->
-            gaps.sortBy { it.start }
-            val gapIndex = gaps.indexOfFirst { slot ->
-                maxOf(slot.start, nowMinuteOfDay) + AUTO_REVISION_MINUTES <= slot.end
-            }
-            if (gapIndex >= 0) {
-                val slot = gaps[gapIndex]
-                val blockStart = maxOf(slot.start, nowMinuteOfDay)
-                val blockEnd = blockStart + AUTO_REVISION_MINUTES
-                val daysAgo = ChronoUnit.DAYS.between(suggestion.studiedOn, today).toInt()
-                autoBlocks += DayBlock(
-                    id = "auto-revision-${suggestion.nodeKey}",
-                    subjectId = suggestion.subjectId,
-                    subjectLabel = suggestion.sectionName,
-                    title = suggestion.title,
-                    startMinuteOfDay = blockStart,
-                    endMinuteOfDay = blockEnd,
-                    isRevision = true,
-                    completed = false,
-                    subtopics = emptyList(),
-                    lastStudiedDaysAgo = daysAgo,
-                )
-                gaps.removeAt(gapIndex)
-                if (blockStart > slot.start) gaps.add(gapIndex, Slot(slot.start, blockStart))
-                if (blockEnd < slot.end) gaps.add(Slot(blockEnd, slot.end))
-            }
-        }
-    }
-
-    val allBlocks = (realBlocks + autoBlocks).sortedBy { it.startMinuteOfDay }
+    val allBlocks = realBlocks.sortedBy { it.startMinuteOfDay }
     val timelineGaps = gaps.filter { it.end > it.start }.sortedBy { it.start }
 
     val entries = buildList<DayTimelineEntry> {

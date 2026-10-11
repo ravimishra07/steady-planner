@@ -1,5 +1,12 @@
 package com.exam.assistant.feature.settings
 
+import com.exam.assistant.core.design.Stroke
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.Dialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,16 +30,25 @@ import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.Restore
+import androidx.compose.material.icons.outlined.WorkspacePremium
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.Switch
+import androidx.compose.ui.semantics.Role
+import com.exam.assistant.core.data.ProStatus
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -50,6 +66,7 @@ import com.exam.assistant.core.design.BackgroundAppearance
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.core.design.Radius
+import kotlin.math.roundToInt
 
 @Composable
 fun MoreScreen(
@@ -57,6 +74,8 @@ fun MoreScreen(
     loadFailed: Boolean,
     planExamLabel: String?,
     examDateLabel: String?,
+    examDateOfficial: Boolean,
+    finishByLabel: String?,
     weekdayHours: Float?,
     weekendHours: Float?,
     fixedBlockCount: Int,
@@ -69,9 +88,20 @@ fun MoreScreen(
     onRedoOnboarding: () -> Unit,
     onOpenPolicy: (String) -> Unit,
     modifier: Modifier = Modifier,
+    liveBacklogSplit: Int? = null,
+    onLiveBacklogSplit: (Int) -> Unit = {},
+    pro: ProRowState = ProRowState(),
+    onOpenPaywall: () -> Unit = {},
+    onRestorePurchase: () -> Unit = {},
+    onDismissProStatus: () -> Unit = {},
+    onDebugForcePro: (Boolean) -> Unit = {},
+    onLogOut: () -> Unit = {},
 ) {
     val colors = AppTheme.colors
     var showRedoDialog by remember { mutableStateOf(false) }
+    var showLogOutDialog by remember { mutableStateOf(false) }
+    var loggingOut by remember { mutableStateOf(false) }
+    var showSplitDialog by remember { mutableStateOf(false) }
     if (loading) {
         SettingsStatusScreen(
             title = stringResource(R.string.more_title),
@@ -105,10 +135,10 @@ fun MoreScreen(
         )
         AccountCard(
             title = planExamLabel ?: stringResource(R.string.more_your_plan),
-            subtitle = if (examDateLabel != null && weekdayHours != null) {
+            subtitle = if (finishByLabel != null && weekdayHours != null) {
                 stringResource(
                     R.string.more_plan_card_subtitle,
-                    examDateLabel,
+                    finishByLabel,
                     compactHours(weekdayHours),
                 )
             } else {
@@ -121,8 +151,17 @@ fun MoreScreen(
         ProfileGroup {
             SettingsValueRow(
                 icon = Icons.Outlined.Event,
+                title = stringResource(R.string.more_finish_by_date),
+                value = finishByLabel.orEmpty(),
+                onClick = { showRedoDialog = true },
+            )
+            AppListDivider()
+            SettingsValueRow(
+                icon = Icons.Outlined.Event,
                 title = stringResource(R.string.more_exam_date),
-                value = examDateLabel.orEmpty(),
+                value = examDateLabel?.let { date ->
+                    if (examDateOfficial) date else stringResource(R.string.more_exam_date_expected, date)
+                }.orEmpty(),
                 onClick = { showRedoDialog = true },
             )
             AppListDivider()
@@ -145,6 +184,19 @@ fun MoreScreen(
                 value = pluralStringResource(R.plurals.more_blocks, fixedBlockCount, fixedBlockCount),
                 onClick = { showRedoDialog = true },
             )
+            if (liveBacklogSplit != null) {
+                AppListDivider()
+                SettingsValueRow(
+                    icon = Icons.Outlined.School,
+                    title = stringResource(R.string.more_backlog_split),
+                    value = stringResource(R.string.more_backlog_split_value, liveBacklogSplit, 100 - liveBacklogSplit),
+                    onClick = { showSplitDialog = true },
+                )
+            }
+        }
+        SectionLabel(stringResource(R.string.more_section_pro))
+        ProfileGroup {
+            ProSection(pro, onOpenPaywall, onRestorePurchase, onDismissProStatus, onDebugForcePro)
         }
         SectionLabel(stringResource(R.string.more_section_app_short))
         ProfileGroup {
@@ -176,11 +228,58 @@ fun MoreScreen(
                 onClick = { onOpenPolicy("about") },
             )
         }
+        OutlinedButton(
+            onClick = { showLogOutDialog = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = Spacing.xxl)
+                .height(Size.ctaHeight),
+            border = BorderStroke(Stroke.hairline, colors.danger),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.danger),
+        ) {
+            Text(stringResource(R.string.more_log_out), style = MaterialTheme.typography.labelLarge)
+        }
         Text(
             text = stringResource(R.string.more_footer),
             style = MaterialTheme.typography.bodySmall,
             color = colors.textMuted,
             modifier = Modifier.padding(vertical = Spacing.xl),
+        )
+    }
+    if (showLogOutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogOutDialog = false },
+            title = { Text(stringResource(R.string.more_log_out_title)) },
+            text = { Text(stringResource(R.string.more_log_out_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogOutDialog = false
+                        loggingOut = true
+                        onLogOut()
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = colors.danger),
+                ) { Text(stringResource(R.string.more_log_out)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogOutDialog = false }) { Text(stringResource(R.string.more_redo_confirm_no)) }
+            },
+        )
+    }
+    if (loggingOut) {
+        // Stays up until the app relaunches into onboarding.
+        Dialog(
+            onDismissRequest = {},
+            properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
+        ) {
+            CircularProgressIndicator()
+        }
+    }
+    if (showSplitDialog && liveBacklogSplit != null) {
+        BacklogSplitDialog(
+            initial = liveBacklogSplit,
+            onSave = onLiveBacklogSplit,
+            onDismiss = { showSplitDialog = false },
         )
     }
     if (showRedoDialog) {
@@ -204,6 +303,63 @@ fun MoreScreen(
                 }
             },
         )
+    }
+}
+
+/** Settings → Pro: status or buy, restore, and in debug builds a switch that forces Pro. */
+@Composable
+private fun ProSection(
+    pro: ProRowState,
+    onOpenPaywall: () -> Unit,
+    onRestorePurchase: () -> Unit,
+    onDismissProStatus: () -> Unit,
+    onDebugForcePro: (Boolean) -> Unit,
+) {
+    AppListRow(
+        icon = Icons.Outlined.WorkspacePremium,
+        title = stringResource(R.string.more_pro),
+        subtitle = when {
+            !pro.paywallEnabled -> stringResource(R.string.more_pro_unlocked_free)
+            pro.isPro -> stringResource(R.string.more_pro_active)
+            else -> stringResource(R.string.more_pro_buy, pro.price ?: stringResource(R.string.paywall_price_fallback))
+        },
+        onClick = onOpenPaywall,
+    )
+    AppListDivider()
+    AppListRow(
+        icon = Icons.Outlined.Restore,
+        title = stringResource(R.string.more_restore),
+        subtitle = stringResource(R.string.more_restore_sub),
+        onClick = onRestorePurchase,
+        trailing = if (pro.status == ProStatus.BUSY) {
+            { CircularProgressIndicator(modifier = Modifier.size(Size.standardIcon)) }
+        } else {
+            null
+        },
+    )
+    statusMessage(pro.status)?.let { message ->
+        TextButton(onClick = onDismissProStatus, modifier = Modifier.fillMaxWidth()) {
+            Text(message, style = MaterialTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
+        }
+    }
+    if (pro.showDebugToggle) {
+        AppListDivider()
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = Size.touchTarget)
+                .toggleable(value = pro.debugForcePro, role = Role.Switch, onValueChange = onDebugForcePro)
+                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        ) {
+            Text(
+                stringResource(R.string.more_debug_force_pro),
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppTheme.colors.text,
+                modifier = Modifier.weight(1f),
+            )
+            Switch(checked = pro.debugForcePro, onCheckedChange = null)
+        }
     }
 }
 
@@ -404,3 +560,45 @@ private fun SettingsStatusScreen(
         }
     }
 }
+
+/** Live vs backlog share of each day (§5.4), in steps of 5. */
+@Composable
+private fun BacklogSplitDialog(
+    initial: Int,
+    onSave: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var live by remember { mutableIntStateOf(initial) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.more_backlog_split)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(
+                    text = stringResource(R.string.more_backlog_split_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                )
+                Text(
+                    text = stringResource(R.string.more_backlog_split_value, live, 100 - live),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = AppTheme.colors.text,
+                )
+                Slider(
+                    value = live.toFloat(),
+                    onValueChange = { live = ((it / SPLIT_STEP).roundToInt() * SPLIT_STEP).coerceIn(0, 100) },
+                    valueRange = 0f..100f,
+                    steps = 100 / SPLIT_STEP - 1,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(live); onDismiss() }) { Text(stringResource(R.string.more_backlog_split_save)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.more_redo_confirm_no)) }
+        },
+    )
+}
+
+private const val SPLIT_STEP = 5

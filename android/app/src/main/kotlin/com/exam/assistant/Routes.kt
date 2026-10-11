@@ -20,4 +20,32 @@ sealed interface Route {
     data object Appearance : Route { override val path = "settings/appearance" }
     data object SettingsDetail : Route { override val path = "settings/detail" }
     data object Policy : Route { override val path = "policy/{policyId}" }
+
+    /** "What did I study" for one day; the argument is the date's epoch day. */
+    data object DayLog : Route {
+        const val ARG = "epochDay"
+        override val path = "day/{$ARG}"
+        fun pathFor(date: java.time.LocalDate) = "day/${date.toEpochDay()}"
+    }
+
+    /** Log an offline session, or edit one when [ARG_SESSION] is set (PRODUCTION_V1_PLAN §6.3). */
+    data object LogSession : Route {
+        const val ARG_SESSION = "sessionId"
+        const val ARG_DAY = "epochDay"
+        override val path = "log-session?$ARG_SESSION={$ARG_SESSION}&$ARG_DAY={$ARG_DAY}"
+        fun newOn(date: java.time.LocalDate?) = "log-session?$ARG_DAY=${date?.toEpochDay() ?: NO_DAY}"
+        fun edit(sessionId: String) = "log-session?$ARG_SESSION=$sessionId"
+        const val NO_DAY = Long.MIN_VALUE
+    }
+
+    /** The mock and test log (PRODUCTION_V1_PLAN §8.1). */
+    data object Tests : Route { override val path = "tests" }
+
+    /** Add a mock, or edit one when [ARG] is set. */
+    data object MockForm : Route {
+        const val ARG = "mockId"
+        override val path = "mock-form?$ARG={$ARG}"
+        val new = "mock-form"
+        fun edit(mockId: String) = "mock-form?$ARG=$mockId"
+    }
 }

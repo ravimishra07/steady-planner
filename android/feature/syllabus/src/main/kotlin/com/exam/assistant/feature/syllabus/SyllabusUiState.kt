@@ -1,5 +1,9 @@
 package com.exam.assistant.feature.syllabus
 
+import com.exam.assistant.domain.ChapterCoaching
+import com.exam.assistant.domain.ChapterPriority
+import com.exam.assistant.domain.ChapterStage
+import com.exam.assistant.domain.StageLabels
 import com.exam.assistant.domain.SyllabusTickState
 
 data class SyllabusTreeRow(
@@ -23,6 +27,24 @@ data class SyllabusTreeRow(
     val classNumber: Int? = null,
     val isClassGroup: Boolean = false,
     val excluded: Boolean = false,
+    /** Set on chapter rows once the PYQ table has loaded. Never zero for "no data": see [ChapterPriority]. */
+    val priority: ChapterPriority? = null,
+    /** A top-level chapter row: carries the chapter menu (rename, park, coaching). */
+    val isChapter: Boolean = false,
+    /** Coaching lecture/DPP counts (§5.4), when the student entered any. */
+    val coaching: ChapterCoaching? = null,
+    /** The student renamed this chapter; [originalName] is the bundled title. */
+    val renamed: Boolean = false,
+    val originalName: String = "",
+    /** Chapter rows only: the student's visible stages, in order. */
+    val stageChips: List<StageChipUi> = emptyList(),
+)
+
+/** One stage chip on a chapter row. [count] is 0/1 for ticks, N for Revised. Null label = default name. */
+data class StageChipUi(
+    val stage: ChapterStage,
+    val customLabel: String?,
+    val count: Int,
 )
 
 data class SyllabusChapterStat(
@@ -35,7 +57,6 @@ data class SyllabusSubjectCard(
     val name: String,
     val subjectId: String,
     val percent: Int,
-    val timeSpentMinutes: Int,
     val expanded: Boolean,
     val rows: List<SyllabusTreeRow>,
     /** The subject's first topic — what "play" on the card itself jumps into. */
@@ -55,6 +76,11 @@ data class SyllabusUiState(
     val allCount: Int = 0,
     val dueCount: Int = 0,
     val completedPercent: Int = 0,
-    val timeSpentMinutes: Int = 0,
     val isEmpty: Boolean = false,
+    /** Years the PYQ counts cover, for the "(2021–25)" label. Zero until loaded. */
+    val pyqFirstYear: Int = 0,
+    val pyqLastYear: Int = 0,
+    val stageLabels: StageLabels = StageLabels(),
+    /** Pro, or the paywall switched off remotely. Adding the custom stage needs it. */
+    val proUnlocked: Boolean = false,
 )

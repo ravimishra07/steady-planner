@@ -72,7 +72,6 @@ import com.exam.assistant.domain.DayBlock
 import com.exam.assistant.domain.DAY_TIMELINE_START
 import com.exam.assistant.domain.DayTimelineEntry
 import com.exam.assistant.domain.FixedCommitmentBlock
-import com.exam.assistant.domain.RevisionSuggestion
 import com.exam.assistant.domain.formatGap
 import com.exam.assistant.domain.isActionableStudyGap
 
@@ -246,52 +245,6 @@ private fun SummaryFact(icon: androidx.compose.ui.graphics.vector.ImageVector, l
 }
 
 @Composable
-internal fun DaySummaryHeader(
-    plannedMinutes: Int,
-    completedMinutes: Int,
-    daysUntilExam: Int,
-    syllabusPercent: Int,
-    modifier: Modifier = Modifier,
-) {
-    val colors = AppTheme.colors
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Column {
-            if (plannedMinutes > 0) {
-                Text(
-                    text = formatDuration(plannedMinutes),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colors.text,
-                )
-                Text(
-                    text = stringResource(R.string.home_completed_caption, formatDuration(completedMinutes)),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = colors.textSecondary,
-                    modifier = Modifier.padding(top = TimelineMetrics.microOffset),
-                )
-            }
-        }
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                text = pluralStringResource(R.plurals.home_days_to_exam, daysUntilExam, daysUntilExam),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium,
-                color = colors.textSecondary,
-            )
-            Text(
-                text = stringResource(R.string.home_syllabus_progress, syllabusPercent),
-                style = MaterialTheme.typography.labelMedium,
-                color = colors.textMuted,
-                modifier = Modifier.padding(top = TimelineMetrics.microOffset),
-            )
-        }
-    }
-}
-
-@Composable
 private fun DashedVerticalLine(color: Color, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val dash = TimelineMetrics.dash.toPx()
@@ -434,7 +387,11 @@ private fun StudyBlockContent(
                 }
                 Text(
                     text = if (block.isRevision) {
-                        stringResource(R.string.home_revision_tag).uppercase() + " · " + block.subjectLabel
+                        listOfNotNull(
+                            stringResource(R.string.home_revision_tag).uppercase(),
+                            block.subjectLabel.ifBlank { null },
+                            block.revisionCount.takeIf { it > 0 }?.let { stringResource(R.string.home_revised_count, it) },
+                        ).joinToString(" · ")
                     } else {
                         block.subjectLabel
                     },
@@ -498,19 +455,6 @@ private fun StudyBlockContent(
                             ),
                             tint = colors.textMuted,
                             modifier = Modifier.size(Size.compactIcon),
-                        )
-                    }
-                    val lastStudiedDaysAgo = block.lastStudiedDaysAgo
-                    if (block.isRevision && lastStudiedDaysAgo != null) {
-                        Text(
-                            text = if (lastStudiedDaysAgo == 1) {
-                                stringResource(R.string.home_last_studied_day_one)
-                            } else {
-                                pluralStringResource(R.plurals.home_last_studied_days, lastStudiedDaysAgo, lastStudiedDaysAgo)
-                            },
-                            style = MaterialTheme.typography.labelMedium,
-                            color = colors.textSecondary,
-                            modifier = Modifier.padding(top = Spacing.xxs),
                         )
                     }
                 }
@@ -775,10 +719,8 @@ private fun EmptyDayTimeline(onPlanMyDay: () -> Unit, modifier: Modifier = Modif
 internal fun DayTimelineSection(
     entries: List<DayTimelineEntry>,
     activeSprint: ActiveSprintUi?,
-    revisionItems: List<RevisionSuggestion>,
     onStartScheduled: (String) -> Unit,
     onStartMissed: (String) -> Unit,
-    onStartAutoRevision: (RevisionSuggestion) -> Unit,
     onRequestReschedule: (DayBlock) -> Unit,
     onOpenAdd: () -> Unit,
     onOpenAddInGap: (Int, Int) -> Unit,
@@ -839,9 +781,6 @@ internal fun DayTimelineSection(
                             onStart = {
                                 if (isMissed) {
                                     onStartMissed(block.id)
-                                } else if (block.id.startsWith(AUTO_REVISION_ID_PREFIX)) {
-                                    val nodeKey = block.id.removePrefix(AUTO_REVISION_ID_PREFIX)
-                                    revisionItems.firstOrNull { it.nodeKey == nodeKey }?.let(onStartAutoRevision)
                                 } else {
                                     onStartScheduled(block.id)
                                 }
@@ -933,4 +872,3 @@ private fun fixedCommitmentLabel(kind: String): String = stringResource(
     },
 )
 
-private const val AUTO_REVISION_ID_PREFIX = "auto-revision-"
