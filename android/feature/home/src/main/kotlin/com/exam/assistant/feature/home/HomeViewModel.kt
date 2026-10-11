@@ -51,6 +51,7 @@ import com.exam.assistant.domain.findNextFreeSlot
 import com.exam.assistant.domain.planMissedDayRecovery
 import com.exam.assistant.domain.todayBudgetMinutes
 import com.exam.assistant.domain.weekAround
+import com.exam.assistant.domain.daysFromWeekStart
 import com.exam.assistant.domain.weekStatusForDayMinutes
 import com.exam.assistant.domain.validateStudyPlacement
 import kotlinx.coroutines.channels.Channel
@@ -311,6 +312,11 @@ class HomeViewModel(
 
     fun selectDate(date: LocalDate) {
         _state.update { it.copy(selectedDate = date, placementIssue = null).rebuild() }
+    }
+
+    fun setWeekStart(day: java.time.DayOfWeek) {
+        if (_state.value.weekStart == day) return
+        _state.update { it.copy(weekStart = day).rebuild() }
     }
 
     fun toggleCalendarExpanded() {
@@ -886,7 +892,7 @@ class HomeViewModel(
         }
 
         val monthAnchor = selectedDate.withDayOfMonth(1)
-        val leadingBlanks = monthAnchor.dayOfWeek.value - 1
+        val leadingBlanks = daysFromWeekStart(monthAnchor, weekStart)
         val monthCells = mutableListOf<WeekDayUi?>()
         repeat(leadingBlanks) { monthCells += null }
         for (day in 0 until monthAnchor.lengthOfMonth()) {
@@ -895,7 +901,7 @@ class HomeViewModel(
         }
 
         return copy(
-            weekDays = weekAround(selectedDate).map(::dayUi),
+            weekDays = weekAround(selectedDate, weekStart).map(::dayUi),
             monthDays = monthCells,
             selectedIsToday = selectedIsToday,
             selectedDayLabel = "",

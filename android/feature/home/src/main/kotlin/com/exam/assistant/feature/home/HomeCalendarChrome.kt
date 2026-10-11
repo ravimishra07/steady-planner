@@ -51,6 +51,7 @@ internal fun HomeCalendarChrome(
     monthDays: List<WeekDayUi?>,
     expanded: Boolean,
     onToggleExpanded: () -> Unit,
+    weekStart: java.time.DayOfWeek = java.time.DayOfWeek.MONDAY,
     onSelectDate: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -98,15 +99,15 @@ internal fun HomeCalendarChrome(
             )
         }
         if (expanded) {
-            HomeMonthGrid(days = monthDays, onSelectDate = onSelectDate)
+            HomeMonthGrid(days = monthDays, weekStart = weekStart, onSelectDate = onSelectDate)
         } else {
-            HomeWeekStrip(days = weekDays, onSelectDate = onSelectDate)
+            HomeWeekStrip(days = weekDays, weekStart = weekStart, onSelectDate = onSelectDate)
         }
     }
 }
 
 @Composable
-private fun WeekdayHeaderRow() {
+private fun WeekdayHeaderRow(weekStart: java.time.DayOfWeek) {
     val colors = AppTheme.colors
     Row(
         modifier = Modifier
@@ -114,7 +115,7 @@ private fun WeekdayHeaderRow() {
             .padding(horizontal = Spacing.sm),
         horizontalArrangement = Arrangement.spacedBy(CalendarMetrics.gridGap),
     ) {
-        listOf(
+        val labels = listOf(
             R.string.home_weekday_monday,
             R.string.home_weekday_tuesday,
             R.string.home_weekday_wednesday,
@@ -122,7 +123,8 @@ private fun WeekdayHeaderRow() {
             R.string.home_weekday_friday,
             R.string.home_weekday_saturday,
             R.string.home_weekday_sunday,
-        ).forEach { labelRes ->
+        )
+        (0 until 7).map { labels[(weekStart.value - 1 + it) % 7] }.forEach { labelRes ->
             Text(
                 text = stringResource(labelRes),
                 style = MaterialTheme.typography.labelMedium,
@@ -138,11 +140,12 @@ private fun WeekdayHeaderRow() {
 @Composable
 private fun HomeWeekStrip(
     days: List<WeekDayUi>,
+    weekStart: java.time.DayOfWeek,
     onSelectDate: (LocalDate) -> Unit,
 ) {
     val colors = AppTheme.colors
     Column {
-        WeekdayHeaderRow()
+        WeekdayHeaderRow(weekStart)
         Spacer(Modifier.height(Spacing.xs))
         Row(
             modifier = Modifier
@@ -167,11 +170,12 @@ private fun HomeWeekStrip(
 @Composable
 private fun HomeMonthGrid(
     days: List<WeekDayUi?>,
+    weekStart: java.time.DayOfWeek,
     onSelectDate: (LocalDate) -> Unit,
 ) {
     val colors = AppTheme.colors
     Column {
-        WeekdayHeaderRow()
+        WeekdayHeaderRow(weekStart)
         Spacer(Modifier.height(Spacing.xs))
         days.chunked(7).forEach { week ->
             Row(

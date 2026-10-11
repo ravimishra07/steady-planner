@@ -103,6 +103,8 @@ data class HomeUiState(
     val monthTitle: String = "",
     val weekDays: List<WeekDayUi> = emptyList(),
     val monthDays: List<WeekDayUi?> = emptyList(),
+    /** Settings → Start of week. */
+    val weekStart: java.time.DayOfWeek = java.time.DayOfWeek.MONDAY,
     val calendarExpanded: Boolean = false,
     val selectedIsToday: Boolean = true,
     val selectedDayLabel: String = "",

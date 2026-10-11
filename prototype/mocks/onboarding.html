@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Onboarding flow</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/*
+  Clickable onboarding, one screen at a time. 1 CSS px = 1 dp.
+  Every control maps to a stock Compose Material 3 component (ListItem + RadioButton/Checkbox,
+  SingleChoiceSegmentedButtonRow, DatePicker, TimePicker field, IconButton stepper, Button).
+  Type: 28 title / 22 answer / 16 rows / 14 secondary. Spacing: 4dp grid.
+*/
+:root { --h: 300; }
+.phone[data-bg="dark"], .phone[data-bg="system"] {
+  --bg: oklch(0.17 0.008 var(--h)); --text: #FFFFFF; --text-2: #FFFFFF; /* rule: no grey text on dark */
+  --disabled: oklch(0.48 0.010 var(--h)); --outline: oklch(0.60 0.012 var(--h)); --divider: oklch(0.27 0.010 var(--h));
+  --raised: oklch(0.22 0.010 var(--h)); --accent: oklch(0.84 0.085 var(--h)); --on-accent: oklch(0.26 0.090 var(--h));
+  --error: oklch(0.80 0.10 25);
+}
+.phone[data-bg="slate"] {
+  --bg: oklch(0.24 0.018 250); --text: #FFFFFF; --text-2: #FFFFFF; /* rule: no grey text on dark */
+  --disabled: oklch(0.52 0.012 250); --outline: oklch(0.64 0.014 250); --divider: oklch(0.33 0.014 250);
+  --raised: oklch(0.29 0.016 250); --accent: oklch(0.84 0.085 var(--h)); --on-accent: oklch(0.26 0.090 var(--h));
+  --error: oklch(0.82 0.10 25);
+}
+.phone[data-bg="light"] {
+  --bg: oklch(0.985 0.004 var(--h)); --text: oklch(0.22 0.010 var(--h)); --text-2: oklch(0.42 0.012 var(--h));
+  --disabled: oklch(0.70 0.008 var(--h)); --outline: oklch(0.58 0.012 var(--h)); --divider: oklch(0.90 0.006 var(--h));
+  --raised: oklch(0.95 0.006 var(--h)); --accent: oklch(0.48 0.17 var(--h)); --on-accent: oklch(0.99 0.004 var(--h));
+  --error: oklch(0.52 0.18 25);
+}
+.phone[data-bg="grey"] {
+  --bg: oklch(0.93 0.004 var(--h)); --text: oklch(0.22 0.010 var(--h)); --text-2: oklch(0.40 0.012 var(--h));
+  --disabled: oklch(0.66 0.008 var(--h)); --outline: oklch(0.55 0.012 var(--h)); --divider: oklch(0.84 0.006 var(--h));
+  --raised: oklch(0.89 0.006 var(--h)); --accent: oklch(0.46 0.17 var(--h)); --on-accent: oklch(0.99 0.004 var(--h));
+  --error: oklch(0.50 0.18 25);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: oklch(0.30 0.008 300); font-family: Roboto, system-ui, sans-serif; min-height: 100vh; display: grid; place-items: center; padding: 16px 0; }
+button { all: unset; cursor: pointer; box-sizing: border-box; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ic { width: 24px; height: 24px; flex: none; display: block; }
+
+.phone { width: min(360px, 100vw - 16px); height: min(780px, 100vh - 32px); background: var(--bg); color: var(--text); border-radius: 28px; overflow: hidden; display: flex; flex-direction: column; position: relative; transition: background-color .2s cubic-bezier(.22,1,.36,1); }
+.bar { height: 64px; display: flex; align-items: center; padding: 0 4px; gap: 8px; flex: none; }
+.icon-btn { width: 48px; height: 48px; display: grid; place-items: center; color: var(--text); border-radius: 24px; }
+.icon-btn.hidden { visibility: hidden; }
+.progress { flex: 1; display: flex; gap: 4px; }
+.progress i { flex: 1; height: 4px; border-radius: 2px; background: var(--divider); }
+.progress i.on { background: var(--accent); }
+.skip { min-width: 56px; height: 48px; display: grid; place-items: center; font: 500 14px/20px Roboto; color: var(--text-2); padding: 0 12px; }
+.skip.hidden { visibility: hidden; }
+
+.scroll { flex: 1; overflow-y: auto; padding: 8px 16px 24px; scrollbar-width: none; }
+.title { font: 400 28px/36px Roboto; }
+.sub { font: 400 14px/20px Roboto; color: var(--text-2); margin-top: 8px; }
+.label { font: 500 14px/20px Roboto; color: var(--text-2); margin: 32px 0 12px; }
+.label.first { margin-top: 32px; }
+
+/* list rows (ListItem): full width, divider between, no cards */
+.list { margin-top: 24px; border-top: 1px solid var(--divider); }
+.label + .list { margin-top: 0; }
+.row { display: flex; align-items: center; gap: 16px; min-height: 56px; padding: 8px 0; border-bottom: 1px solid var(--divider); width: 100%; }
+.row .main { flex: 1; min-width: 0; }
+.row .t { font: 400 16px/24px Roboto; }
+.row .s { font: 400 14px/20px Roboto; color: var(--text-2); }
+.row .v { font: 400 16px/24px Roboto; color: var(--text-2); }
+.row .lead { color: var(--text-2); }
+.row.on .lead { color: var(--accent); }
+.radio, .check { width: 24px; height: 24px; flex: none; color: var(--outline); }
+.row.on .radio, .check.on, .check.some { color: var(--accent); }
+.indent { padding-left: 40px; }
+.group-label { font: 500 12px/16px Roboto; color: var(--text-2); padding: 12px 0 4px 40px; letter-spacing: .5px; }
+
+/* accent swatches */
+.swatches { display: flex; justify-content: space-between; }
+.sw { width: 48px; display: flex; flex-direction: column; align-items: center; gap: 8px; font: 400 12px/16px Roboto; color: var(--text-2); }
+.swatches { padding: 0; }
+.sw .dot { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; color: oklch(0.99 0 0); }
+.sw.on { color: var(--text); font-weight: 500; }
+.bgchip { width: 24px; height: 24px; border-radius: 6px; flex: none; border: 1px solid var(--outline); }
+
+
+/* theme step: same layout as the app */
+.tiles { display: flex; gap: 8px; }
+.tiles.bg { gap: 16px; margin-bottom: 16px; }
+.tile { flex: 1; min-width: 0; background: var(--raised); border-radius: 12px; padding: 12px 4px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.tiles.bg .tile { padding: 0; background: none; border-radius: 0; box-shadow: none; }
+.tiles.bg .tile.on .mini { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
+.tiles.bg .tile { gap: 8px; }
+.tiles.bg .tile .tl { font-weight: 400; color: var(--text-2); }
+.tiles.bg .tile.on .tl { font-weight: 500; color: var(--text); }
+.tile.on { box-shadow: inset 0 0 0 2px var(--accent); }
+.tile.ghost { visibility: hidden; }
+.tile .dot { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: #fff; }
+.tile .tl { font: 500 12px/16px Roboto; color: var(--text); }
+/* Today screen thumbnail: content drawn large enough to read at this size */
+.mini { width: 100%; aspect-ratio: 360 / 780; border-radius: 12px; border: 1px solid var(--outline); padding: 16px 0 0; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+.mini > i { display: block; flex: none; margin: 0 10px; }
+.mini b { display: block; }
+.mini .h { height: 10px; width: 62%; border-radius: 5px; background: var(--ink); }
+.mini .l { height: 6px; width: 38%; border-radius: 3px; background: var(--ink); opacity: .45; margin-top: 6px; }
+.mini .hero { margin-top: 16px; height: 88px; border-radius: 8px; background: color-mix(in oklch, var(--ink) 9%, transparent); padding: 12px; display: flex; flex-direction: column; justify-content: space-between; }
+.mini .hero b { height: 6px; width: 72%; border-radius: 3px; background: var(--acc); }
+.mini .hero b.t { width: 48%; background: var(--ink); opacity: .45; }
+.mini .item { margin-top: 8px; height: 36px; border-radius: 8px; background: color-mix(in oklch, var(--ink) 9%, transparent); display: flex; align-items: center; gap: 8px; padding: 0 10px; }
+.mini .item .d { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--acc); flex: none; }
+.mini .item .t { height: 5px; width: 62%; border-radius: 3px; background: var(--ink); opacity: .6; }
+.mini .item .t.s { width: 46%; }
+.mini .nav { position: absolute; left: 0; right: 0; bottom: 0; margin: 0; height: 40px; background: color-mix(in oklch, var(--ink) 7%, transparent); display: flex; justify-content: space-around; align-items: center; padding: 0 10px; }
+.mini .nav b { width: 10px; height: 10px; border-radius: 3px; background: var(--ink); opacity: .45; }
+.mini .nav b.on { width: 22px; height: 10px; border-radius: 5px; background: var(--acc); opacity: 1; }
+
+
+/* background carousel: centered slide, neighbours peek, scale + fade by distance (Compose: HorizontalPager + graphicsLayer) */
+.carousel { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
+  margin: 24px -16px 0; padding: 8px calc(50% - 72px) 8px; }
+.carousel::-webkit-scrollbar { display: none; }
+.slide { flex: none; width: 144px; scroll-snap-align: center; transform-origin: center; will-change: transform, opacity; }
+.slide .mini { width: 100%; }
+.slide.center .mini { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
+.slide-name { text-align: center; font: 500 14px/20px Roboto; margin-top: 12px; }
+.dots { display: flex; justify-content: center; gap: 8px; margin-top: 8px; }
+.dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--divider); transition: width .25s cubic-bezier(.22,1,.36,1), background-color .25s; }
+.dots i.on { width: 16px; background: var(--accent); }
+
+
+/* theme step: accent dock above Continue. Border top/left/right, open at the screen bottom. */
+.cta-wrap.dock .label { margin: 0 0 12px 8px; }
+.cta-wrap.dock .swatches { border: 1px solid var(--outline); border-radius: 999px; padding: 4px 12px; margin-bottom: 12px; }
+.cta-wrap.dock .sw { height: 48px; justify-content: center; }
+.cta-wrap.dock .sw .dot { width: 36px; height: 36px; }
+.cta-wrap.dock .sw .dot .ic { width: 20px; height: 20px; }
+
+
+/* grouped list (M3 Expressive): rows joined by 2dp gaps, big outer corners, small inner ones */
+.group { margin-top: 32px; display: flex; flex-direction: column; gap: 2px; }
+.gi { width: 100%; min-height: 56px; padding: 8px 16px; background: var(--raised); border-radius: 4px; display: flex; align-items: center; gap: 16px; }
+.gi:first-child { border-radius: 20px 20px 4px 4px; }
+.gi:last-child { border-radius: 4px 4px 20px 20px; }
+.gi .ico { width: 24px; height: 24px; flex: none; color: var(--text-2); }
+.gi.on .ico { color: var(--accent); }
+.gi .main { flex: 1; min-width: 0; text-align: left; }
+.gi .t { font: 400 16px/24px Roboto; }
+.gi.on .t { font-weight: 500; }
+.gi .radio { color: var(--outline); }
+.gi.on .radio { color: var(--accent); }
+
+
+/* busy-times screen */
+.daybar { margin-top: 32px; }
+.track { position: relative; height: 40px; border-radius: 8px; background: var(--raised); overflow: hidden; }
+.track .busy { position: absolute; top: 0; bottom: 0; background: color-mix(in oklch, var(--text) 30%, var(--raised)); display: grid; place-items: center; font: 500 12px/16px Roboto; color: var(--text); white-space: nowrap; overflow: hidden; }
+.ends { display: flex; align-items: center; justify-content: space-between; min-height: 48px; }
+.ends button { font: 500 14px/20px Roboto; color: var(--accent); padding: 14px 0; }
+.ends .free { font: 400 14px/20px Roboto; color: var(--text-2); }
+.fields.awake { margin-top: 4px; }
+.gi .s2 { display: block; font: 400 14px/20px Roboto; color: var(--text-2); }
+.gi.add { color: var(--accent); }
+.gi.add .t { font-weight: 500; }
+.gi-edit { background: var(--raised); border-radius: 4px; padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 16px; }
+.gi-edit .remove { align-self: flex-start; font: 500 14px/20px Roboto; color: var(--error); padding: 10px 0; }
+.presets2 { flex-direction: row; flex-wrap: wrap; gap: 8px; padding: 12px 16px 16px; }
+.presets2 button { height: 32px; padding: 0 16px; border: 1px solid var(--outline); border-radius: 8px; font: 500 14px/20px Roboto; color: var(--text); display: grid; place-items: center; }
+.group .gi:last-child, .group > :last-child { border-radius: 4px 4px 20px 20px; }
+
+
+/* Fixed times: same as the Android app today */
+.cstack { display: flex; flex-direction: column; gap: 16px; margin-top: 24px; }
+.clede { font: 400 14px/20px Roboto; color: var(--text-2); }
+.crow { display: flex; align-items: center; justify-content: space-between; }
+.clabel { font: 500 14px/20px Roboto; color: var(--text-2); }
+.cadd { height: 40px; padding: 0 24px 0 16px; border: 1px solid var(--outline); border-radius: 20px; display: flex; align-items: center; gap: 8px; font: 500 14px/20px Roboto; color: var(--accent); }
+.ic.sm { width: 18px; height: 18px; }
+.ic.acc { color: var(--accent); }
+.cpresets { display: flex; flex-wrap: wrap; gap: 8px; }
+.cpresets button { padding: 8px 12px; border: 1px solid var(--outline); border-radius: 999px; font: 500 14px/20px Roboto; color: var(--text); }
+.cempty { border: 1px solid var(--divider); border-radius: 12px; padding: 16px; display: flex; gap: 8px; align-items: center; font: 400 16px/24px Roboto; }
+.ccard { background: var(--raised); border-radius: 12px; padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; }
+.chead { display: flex; align-items: center; }
+.cname { flex: 1; padding-left: 8px; font: 500 16px/24px Roboto; }
+.cdur { font: 500 12px/16px Roboto; color: var(--text-2); }
+.cbtn { width: 36px; height: 36px; display: grid; place-items: center; color: var(--text); }
+.tfs { display: flex; gap: 12px; padding-top: 8px; }
+.tf { position: relative; flex: 1; min-width: 0; height: 56px; border: 1px solid var(--outline); border-radius: 4px; padding: 0 12px 0 16px; display: flex; align-items: center; gap: 8px; color: var(--text); }
+.tf .tfl { position: absolute; top: -9px; left: 12px; padding: 0 4px; background: var(--raised); font: 400 12px/16px Roboto; color: var(--text); }
+.cstack > .tfs .tf .tfl { background: var(--bg); }
+.tf .tfv { flex: 1; font: 400 16px/24px Roboto; text-align: left; }
+/* M3 time picker dialog */
+.scrim { position: absolute; inset: 0; background: rgba(0,0,0,.5); display: grid; place-items: center; z-index: 10; }
+.tp { width: 312px; background: var(--raised); border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 20px; color: var(--text); }
+.tp .tpt { font: 500 12px/16px Roboto; letter-spacing: .5px; }
+.tp .hm { display: flex; align-items: center; gap: 6px; }
+.tp .box { width: 96px; height: 80px; border-radius: 8px; background: color-mix(in oklch, var(--text) 10%, transparent); display: grid; place-items: center; font: 400 52px/64px Roboto; }
+.tp .box.on { background: var(--accent); color: var(--on-accent); }
+.tp .colon { font: 400 52px/64px Roboto; width: 18px; text-align: center; }
+.tp .ap { margin-left: 8px; width: 52px; height: 80px; border: 1px solid var(--outline); border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; }
+.tp .ap button { flex: 1; display: grid; place-items: center; font: 500 14px/20px Roboto; }
+.tp .ap button + button { border-top: 1px solid var(--outline); }
+.tp .ap button.on { background: var(--accent); color: var(--on-accent); }
+.tp .dial { position: relative; width: 256px; height: 256px; border-radius: 50%; align-self: center; background: color-mix(in oklch, var(--text) 10%, transparent); }
+.tp .dial .n { position: absolute; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 50%; display: grid; place-items: center; font: 400 16px/24px Roboto; z-index: 2; }
+.tp .dial .n.on { background: var(--accent); color: var(--on-accent); }
+.tp .dial .hand { position: absolute; left: 50%; top: 50%; height: 2px; background: var(--accent); transform-origin: 0 50%; z-index: 1; }
+.tp .dial .dot { position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: var(--accent); }
+.tp .acts { display: flex; justify-content: flex-end; gap: 8px; }
+.tp .acts button { height: 40px; padding: 0 12px; font: 500 14px/20px Roboto; color: var(--accent); border-radius: 20px; }
+.cdays { display: flex; gap: 4px; }
+.cdays button { flex: 1; height: 36px; border-radius: 18px; border: 1px solid var(--outline); display: grid; place-items: center; font: 500 14px/20px Roboto; color: var(--text); }
+.cdays button.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.cfoot { display: flex; align-items: center; gap: 8px; font: 400 14px/20px Roboto; color: var(--text-2); }
+
+
+/* fixed hours, simplified rows */
+.gi .lead { color: var(--text); display: grid; }
+.gi .chev { color: var(--text); }
+.trow { display: flex; align-items: center; gap: 8px; }
+.tbtn2 { position: relative; flex: none; height: 40px; padding: 0 16px; border: 1px solid var(--outline); border-radius: 20px; display: grid; place-items: center; font: 500 16px/24px Roboto; color: var(--text); cursor: pointer; }
+.trow .to { font: 400 14px/20px Roboto; color: var(--text); }
+.trow .rm { margin-left: auto; display: flex; align-items: center; gap: 4px; font: 500 14px/20px Roboto; color: var(--text); padding: 10px 0 10px 8px; }
+.tbtn2 input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.ic.arr { color: var(--text); }
+.pats { display: flex; gap: 8px; }
+.pats button { flex: 1; white-space: nowrap; padding: 0 6px !important; }
+.pats button { height: 32px; padding: 0 12px; border: 1px solid var(--outline); border-radius: 8px; display: grid; place-items: center; font: 500 14px/20px Roboto; color: var(--text); }
+.pats button.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.days.sm button { width: 32px; height: 32px; font-size: 13px; }
+.cstack .group { margin-top: 0; }
+
+/* segmented */
+.seg { display: flex; margin-top: 24px; height: 48px; }
+.seg button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; font: 500 14px/20px Roboto; color: var(--text); border: 1px solid var(--outline); }
+.seg button:first-child { border-radius: 24px 0 0 24px; }
+.seg button:last-child { border-radius: 0 24px 24px 0; border-left: none; }
+.seg button.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.seg .ic { width: 18px; height: 18px; }
+
+.answer { margin-top: 32px; }
+.answer .big { font: 400 22px/28px Roboto; }
+.answer .s { font: 400 14px/20px Roboto; color: var(--text-2); margin-top: 4px; }
+.answer .big.err { color: var(--error); }
+
+/* calendar */
+.cal { margin-top: 16px; }
+.cal-head { height: 48px; display: flex; align-items: center; justify-content: space-between; }
+.cal-head .m { font: 500 14px/20px Roboto; color: var(--text-2); padding-left: 8px; }
+.cal-head .nav { display: flex; }
+.grid { display: grid; grid-template-columns: repeat(7, 1fr); justify-items: center; }
+.grid > * { width: 44px; height: 44px; display: grid; place-items: center; font: 400 16px/24px Roboto; }
+.grid button b { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-weight: 400; }
+.grid button.sel b { background: var(--accent); color: var(--on-accent); }
+.grid button.today b { box-shadow: inset 0 0 0 1px var(--accent); color: var(--accent); }
+.grid button:disabled, .grid span.dis { color: var(--disabled); cursor: default; }
+
+.inline-row { display: flex; align-items: center; gap: 16px; min-height: 56px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--divider); }
+.inline-row .txt { flex: 1; font: 400 14px/20px Roboto; color: var(--text-2); }
+.inline-row .txt b { font-weight: 500; color: var(--text); }
+.tbtn { font: 500 14px/20px Roboto; color: var(--accent); padding: 14px 12px; margin-right: -12px; border-radius: 20px; }
+
+/* fixed times */
+.editor { padding: 8px 0 16px 40px; border-bottom: 1px solid var(--divider); display: flex; flex-direction: column; gap: 16px; }
+.fields { display: flex; gap: 12px; }
+.field { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.field span { font: 400 12px/16px Roboto; color: var(--text-2); }
+.field input { all: unset; height: 48px; border: 1px solid var(--outline); border-radius: 4px; padding: 0 12px; font: 400 16px/24px Roboto; color: var(--text); color-scheme: dark; }
+.phone[data-bg="light"] .field input, .phone[data-bg="grey"] .field input { color-scheme: light; }
+.days { display: flex; justify-content: space-between; }
+.days button { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--outline); display: grid; place-items: center; font: 500 14px/20px Roboto; color: var(--text); }
+.days button.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.editor .remove { align-self: flex-start; font: 500 14px/20px Roboto; color: var(--error); padding: 10px 0; }
+.addrow { display: flex; align-items: center; gap: 16px; min-height: 56px; width: 100%; color: var(--accent); font: 500 16px/24px Roboto; border-bottom: 1px solid var(--divider); }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0 16px 40px; border-bottom: 1px solid var(--divider); }
+.presets button { height: 32px; padding: 0 16px; border: 1px solid var(--outline); border-radius: 8px; font: 500 14px/20px Roboto; color: var(--text); display: grid; place-items: center; }
+
+/* stepper */
+.stepper { display: flex; align-items: center; gap: 4px; }
+.stepper .val { min-width: 56px; text-align: center; font: 400 22px/28px Roboto; }
+.stepper button { width: 48px; height: 48px; border-radius: 24px; border: 1px solid var(--outline); display: grid; place-items: center; color: var(--text); }
+.stepper button:disabled { color: var(--disabled); border-color: var(--divider); cursor: default; }
+.error-line { margin-top: 16px; display: flex; gap: 12px; align-items: flex-start; font: 400 14px/20px Roboto; color: var(--error); }
+
+.chev { color: var(--text-2); transition: transform .2s cubic-bezier(.22,1,.36,1); }
+.chev.open { transform: rotate(180deg); }
+
+.cta-wrap { padding: 12px 16px 24px; flex: none; }
+.cta { width: 100%; height: 56px; border-radius: 28px; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; font: 500 16px/24px Roboto; }
+.cta:disabled { background: var(--divider); color: var(--disabled); cursor: default; }
+
+.done { flex: 1; display: grid; place-items: center; text-align: center; padding: 32px; }
+.done .title { margin-bottom: 8px; }
+
+.screen { animation: enter .22s cubic-bezier(.22,1,.36,1); }
+.screen.back { animation-name: enter-back; }
+@keyframes enter { from { opacity: 0; transform: translateX(16px); } }
+@keyframes enter-back { from { opacity: 0; transform: translateX(-16px); } }
+@media (prefers-reduced-motion: reduce) { .screen { animation: none; } }
+</style>
+</head>
+<body>
+<div class="phone" id="phone" data-bg="dark">
+  <div class="bar">
+    <button class="icon-btn" id="back" aria-label="Back"></button>
+    <div class="progress" id="progress"></div>
+    <button class="skip" id="skip">Skip</button>
+  </div>
+  <div class="scroll" id="scroll"></div>
+  <div class="cta-wrap" id="ctaWrap"><div id="dockTop"></div><button class="cta" id="cta">Continue</button></div>
+</div>
+
+<script>
+const SYL = [{"id":"physics","n":"Physics","ch":[["Units and Measurements",11],["Motion in a Straight Line",11],["Motion in a Plane",11],["Laws of Motion",11],["Work, Energy and Power",11],["System of Particles and Rotational Motion",11],["Gravitation",11],["Mechanical Properties of Solids",11],["Mechanical Properties of Fluids",11],["Thermal Properties of Matter",11],["Thermodynamics",11],["Kinetic Theory",11],["Oscillations",11],["Waves",11],["Electric Charges and Fields",12],["Electrostatic Potential and Capacitance",12],["Current Electricity",12],["Moving Charges and Magnetism",12],["Magnetism and Matter",12],["Electromagnetic Induction",12],["Alternating Current",12],["Electromagnetic Waves",12],["Ray Optics and Optical Instruments",12],["Wave Optics",12],["Dual Nature of Radiation and Matter",12],["Atoms",12],["Nuclei",12],["Semiconductor Electronics",12]]},{"id":"chemistry","n":"Chemistry","ch":[["Some Basic Concepts of Chemistry",11],["Structure of Atom",11],["Classification of Elements and Periodicity in Properties",11],["Chemical Bonding and Molecular Structure",11],["Thermodynamics",11],["Equilibrium",11],["Redox Reactions",11],["Organic Chemistry - Some Basic Principles and Techniques",11],["Hydrocarbons",11],["Solutions",12],["Electrochemistry",12],["Chemical Kinetics",12],["The d- and f-Block Elements",12],["Coordination Compounds",12],["Haloalkanes and Haloarenes",12],["Alcohols, Phenols and Ethers",12],["Aldehydes, Ketones and Carboxylic Acids",12],["Amines",12],["Biomolecules",12]]},{"id":"botany","n":"Botany","ch":[["The Living World",11],["Biological Classification",11],["Plant Kingdom",11],["Morphology of Flowering Plants",11],["Anatomy of Flowering Plants",11],["Cell: The Unit of Life",11],["Biomolecules",11],["Cell Cycle and Cell Division",11],["Photosynthesis in Higher Plants",11],["Respiration in Plants",11],["Plant Growth and Development",11],["Sexual Reproduction in Flowering Plants",12],["Principles of Inheritance and Variation",12],["Molecular Basis of Inheritance",12],["Evolution",12],["Biotechnology: Principles and Processes",12],["Biotechnology and its Applications",12],["Organisms and Populations",12],["Ecosystem",12],["Biodiversity and Conservation",12]]},{"id":"zoology","n":"Zoology","ch":[["Animal Kingdom",11],["Structural Organisation in Animals",11],["Breathing and Exchange of Gases",11],["Body Fluids and Circulation",11],["Excretory Products and their Elimination",11],["Locomotion and Movement",11],["Neural Control and Coordination",11],["Chemical Coordination and Integration",11],["Human Reproduction",12],["Reproductive Health",12],["Human Health and Disease",12],["Microbes in Human Welfare",12]]}];
+const ICON = {
+  back: '<path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>',
+  prev: '<path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>',
+  next: '<path d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>',
+  check: '<path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>',
+  radioOn: '<path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/>',
+  radioOff: '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/>',
+  boxOn: '<path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>',
+  boxOff: '<path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>',
+  boxSome: '<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10H7v-2h10v2z"/>',
+  down: '<path d="M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z"/>',
+  minus: '<path d="M19 13H5v-2h14v2z"/>',
+  plus: '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>',
+  self: '<path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>',
+  school: '<path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3 1 9l11 6 9-4.91V17h2V9L12 3z"/>',
+  group: '<path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>',
+  cal: '<path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/>',
+  add: '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>',
+  meal: '<path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/>',
+  bus: '<path d="M4 16c0 .88.39 1.67 1 2.22V20c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4s-8 .5-8 4v10zm3.5 1c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm1.5-6H6V6h12v5z"/>',
+  book: '<path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/>',
+  laptop: '<path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/>',
+  work: '<path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/>',
+  arrow: '<path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>',
+  bin: '<path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM8 9h8v10H8V9zm7.5-5-1-1h-5l-1 1H5v2h14V4z"/>',
+  warn: '<path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>',
+};
+const svg = (k, cls = 'ic') => `<svg class="${cls}" viewBox="0 0 24 24"><path fill="currentColor" d="${ICON[k].match(/d="([^"]+)"/)[1]}"/></svg>`;
+
+const TODAY = new Date(2026, 9, 7);
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const fmt = d => `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+const days = (a, b) => Math.round((b - a) / 864e5);
+const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const clock = m => { const h = Math.floor(m / 60) % 24, mm = m % 60; return `${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`; };
+const toMin = s => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
+const hrs = n => (Math.round(n * 10) / 10).toString().replace(/\.0$/, '');
+const ampm = m => { const h = Math.floor(m / 60) % 24, mm = m % 60, h12 = h % 12 || 12; return `${h12}${mm ? ':' + String(mm).padStart(2, '0') : ''} ${h < 12 ? 'am' : 'pm'}`; };
+const range = (a, b) => { const A = ampm(a), B = ampm(b); return A.slice(-2) === B.slice(-2) ? `${A.slice(0, -3)} to ${B}` : `${A} to ${B}`; };
+const ampm12 = m => { const h = Math.floor(m / 60) % 24, mm = m % 60; return `${h % 12 || 12}:${String(mm).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`; };
+const DAYL = ['S','M','T','W','T','F','S'];
+const DAYN = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const daysLabel = ds => {
+  const s = [...ds].sort();
+  if (s.length === 7) return 'Every day';
+  if (s.join() === '1,2,3,4,5,6') return 'Mon to Sat';
+  if (s.join() === '1,2,3,4,5') return 'Mon to Fri';
+  return s.map(d => DAYN[d]).join(', ') || 'No days';
+};
+
+// Material tonal roles at equal tone AND equal chroma, so every accent has the same intensity and
+// the same text contrast. Dark: fill tone 80 / neutral near-black text #1C1B1F (~11:1). Light: fill tone 40 / white text (~6.5:1).
+// [id, name, neutral hue, light fill, light text, dark fill, dark text]
+const ACCENTS = [
+  ['purple','Purple',300,'#734D99','#FFFFFF','#DCB9F9','#1C1B1F'],
+  ['blue','Blue',255,'#315CAA','#FFFFFF','#B3C4FF','#1C1B1F'],
+  ['green','Green',150,'#2F6B23','#FFFFFF','#A6D397','#1C1B1F'],
+  ['amber','Amber',65,'#8F4D17','#FFFFFF','#F9B98D','#1C1B1F'],
+  ['rose','Rose',10,'#A3365D','#FFFFFF','#FFADC5','#1C1B1F'],
+];
+const darkBg = () => ['dark','system','slate'].includes(S.bg);
+const fillOf = a => darkBg() ? a[5] : a[3];
+const textOf = a => darkBg() ? a[6] : a[4];
+const curAccent = () => ACCENTS.find(a => a[0] === S.accent);
+const BGS = [['system','System','#D8D7DD','#343239'],['light','Light','#FCFCFF','#191C25'],['dark','Dark','#0A0A0F','#F4F3F8'],['grey','Grey','#F3F4F6','#1B1C20'],['slate','Slate','#111820','#F0F4F8']];
+const PRESETS = { School: [480, 840, [1,2,3,4,5,6]], Coaching: [960, 1140, [1,2,3,4,5,6]], Lecture: [1140, 1260, [1,2,3,4,5]], Tuition: [1080, 1200, [1,3,5]], Job: [540, 1020, [1,2,3,4,5]], Meals: [780, 840, [0,1,2,3,4,5,6]], Travel: [420, 480, [1,2,3,4,5,6]], Other: [1200, 1260, [1,2,3,4,5]] };
+
+const S = {
+  step: 0, dir: 1,
+  accent: 'purple', bg: 'dark',
+  study: 'coaching',
+  // Same defaults as the app: Lunch and Dinner for everyone, plus the seed for the study mode.
+  blocks: [{ id: 'seed-coaching', name: 'Coaching class', start: 960, end: 1140, days: [1,2,3,4,5,6] },
+    { id: 'seed-lunch', name: 'Lunch', start: 780, end: 840, days: [0,1,2,3,4,5,6] },
+    { id: 'seed-dinner', name: 'Dinner', start: 1230, end: 1290, days: [0,1,2,3,4,5,6] }],
+  open: null, adding: false, wake: 360, sleep: 1380,
+  mode: 'date', finish: new Date(2027, 2, 2), exam: new Date(2027, 4, 2), view: new Date(2027, 2, 1),
+  weekday: 4, weekend: 7,
+  cls: null,
+  picked: new Set(SYL.flatMap(s => s.ch.map((c, i) => s.id + i))), expanded: null,
+  fixApplied: null,
+};
+const STEPS = ['theme','study','fixed','finish','hours','cls','syllabus','plan'];
+const PROGRESS = [0,1,2,3,4,5,6,6];
+
+/* free hours on the tightest weekday / weekend day */
+function freeHours(weekend) {
+  const set = weekend ? [0,6] : [1,2,3,4,5];
+  return Math.min(...set.map(d => {
+    const busy = S.blocks.filter(b => b.days.includes(d)).reduce((a, b) => a + ((b.end - b.start + 1440) % 1440), 0);
+    return Math.max(0, (S.sleep - S.wake - busy) / 60 - 2);
+  }));
+}
+function plan() {
+  const n = S.picked.size;
+  const learn = n * 6, practice = n * 2, need = learn + practice;
+  const perDay = (S.weekday * 5 + S.weekend * 2) / 7;
+  const daysLeft = days(TODAY, S.finish);
+  const have = Math.round(daysLeft * perDay);
+  return { n, learn, practice, need, have, short: Math.max(0, need - have), perDay,
+    projected: addDays(TODAY, Math.ceil(need / perDay)) };
+}
+
+const screens = {
+  theme() {
+    // Same as the app (OnboardingAppearanceStep after d76d2c8): accent tiles, background preview grid.
+    const tile = (on, inner, act, v) => `<button class="tile ${on ? 'on' : ''}" data-act="${act}" data-v="${v}">${inner}</button>`;
+    return `<h1 class="title">Choose a theme</h1>
+      <div class="carousel" id="carousel">${BGS.map(([id, n, bg, ink]) => `
+        <button class="slide" data-act="slide" data-v="${id}" aria-label="${n}">
+          <span class="mini" style="background:${bg};--ink:${ink};--acc:${fillOf(curAccent())}">
+            <i class="h"></i><i class="l"></i><i class="hero"><b></b><b class="t"></b></i><i class="item"><b class="d"></b><b class="t"></b></i><i class="item"><b class="d"></b><b class="t s"></b></i><i class="nav"><b class="on"></b><b></b><b></b><b></b></i>
+          </span>
+        </button>`).join('')}
+      </div>
+      <div class="slide-name" id="slideName">${BGS.find(x => x[0] === S.bg)[1]}</div>
+      <div class="dots" id="dots">${BGS.map(([id]) => `<i class="${S.bg === id ? 'on' : ''}"></i>`).join('')}</div>`;
+  },
+  study() {
+    // M3 Expressive grouped list: connected rounded rows, no dividers.
+    const opts = [['self','Self-study','self'],['school','School or college','school'],['coaching','Coaching','group']];
+    return `<h1 class="title">How do you study?</h1>
+      <div class="group">${opts.map(([id, n, ic]) => `
+        <button class="gi ${S.study === id ? 'on' : ''}" data-act="study" data-v="${id}">
+          <span class="ico">${svg(ic)}</span>
+          <span class="main"><span class="t">${n}</span></span>
+          ${svg(S.study === id ? 'radioOn' : 'radioOff', 'radio')}
+        </button>`).join('')}
+      </div>`;
+  },
+  fixed() {
+    // Mirrors the Android app's OnboardingCommitmentsStep as it is today.
+    const KINDS = [['School','School / college'],['Coaching','Coaching class'],['Lecture','Online lectures'],['Tuition','Tuition'],['Job','Job'],['Meals','Meal break'],['Travel','Travel'],['Other','Other fixed time']];
+    // M3 outlined text field (label in the border notch), opens the M3 time picker dialog.
+    const tf = (label, m, act, v) => `<button class="tf" data-act="openPicker" data-k="${act}" data-v="${v || ''}" data-m="${m}"><span class="tfl">${label}</span><span class="tfv">${ampm12(m)}</span><svg class="ic" viewBox="0 0 24 24"><path fill="currentColor" d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></button>`;
+    const cards = S.blocks.map(b => `
+      <div class="ccard">
+        <div class="chead">
+          ${svg('group', 'ic acc')}<span class="cname">${b.name}</span>
+          <span class="cdur">${hrs(((b.end - b.start + 1440) % 1440) / 60)} h</span>
+          <button class="cbtn" aria-label="Rename ${b.name}"><svg class="ic" viewBox="0 0 24 24"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
+          <button class="cbtn" data-act="removeBlock" data-v="${b.id}" aria-label="Remove ${b.name}"><svg class="ic" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+        </div>
+        <div class="tfs">${tf('Starts', b.start, 'blockStart', b.id)}${tf('Ends', b.end, 'blockEnd', b.id)}</div>
+        <div class="cdays">${DAYL.map((d, i) => `<button class="${b.days.includes(i) ? 'on' : ''}" data-act="blockDay" data-v="${b.id}" data-d="${i}" aria-label="${DAYN[i]}">${d}</button>`).join('')}</div>
+      </div>`).join('');
+    return `<h1 class="title">Fixed non-study hours</h1>
+      <div class="cstack">
+        <div class="crow"><span class="clabel" style="display:flex;align-items:center;gap:8px"><svg class="ic sm" viewBox="0 0 24 24"><path fill="currentColor" d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1-.85.6V16h-4v-2.3l-.85-.6A4.997 4.997 0 0 1 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z"/></svg>Suggested</span>
+          <button class="cadd" data-act="toggleAdd">${svg('add', 'ic sm')}Add</button></div>
+        ${S.adding ? `<div class="cpresets">${KINDS.map(([k, n]) => `<button data-act="addBlock" data-v="${k}">${n}</button>`).join('')}</div>` : ''}
+        ${S.blocks.length ? cards : `<div class="cempty">${svg('cal')}Nothing added</div>`}
+        <span class="clabel">Awake between</span>
+        <div class="tfs">${tf('Up at', S.wake, 'wake')}${tf('Lights out', S.sleep, 'sleep')}</div>
+        <div class="cfoot">${svg('cal', 'ic acc')}Study fills the gaps.</div>
+      </div>`;
+  },
+  finish() {
+    const left = days(TODAY, S.finish);
+    return `<h1 class="title">Finish the syllabus by</h1>
+      <div class="seg" role="group">
+        <button class="${S.mode === 'date' ? 'on' : ''}" data-act="mode" data-v="date">${S.mode === 'date' ? svg('check') : ''}Pick a date</button>
+        <button class="${S.mode === 'none' ? 'on' : ''}" data-act="mode" data-v="none">${S.mode === 'none' ? svg('check') : ''}Not sure yet</button>
+      </div>
+      ${S.mode === 'date' ? `
+        <div class="answer"><div class="big">${fmt(S.finish)}</div><div class="s">${left} days to go</div></div>
+        ${calendar()}
+      ` : ''}
+      <div class="inline-row" ${S.mode === 'none' ? 'style="margin-top:24px"' : ''}>
+        ${svg('cal')}<div class="txt"><b>NEET</b> ${fmt(S.exam)} (expected)</div><button class="tbtn" data-act="noop">Change</button>
+      </div>`;
+  },
+  hours() {
+    const wk = S.weekday * 5 + S.weekend * 2;
+    const fd = freeHours(false), fe = freeHours(true);
+    const err = S.weekday > fd ? `Only ${hrs(fd)} h free on weekdays` : S.weekend > fe ? `Only ${hrs(fe)} h free on weekends` : '';
+    const stepper = (k, min, max) => `<div class="stepper">
+        <button data-act="step" data-v="${k}" data-d="-0.5" ${S[k] <= min ? 'disabled' : ''} aria-label="Less">${svg('minus')}</button>
+        <span class="val">${hrs(S[k])} h</span>
+        <button data-act="step" data-v="${k}" data-d="0.5" ${S[k] >= max ? 'disabled' : ''} aria-label="More">${svg('plus')}</button></div>`;
+    return `<h1 class="title">Daily study hours</h1>
+      <p class="sub">${hrs(wk)} h a week</p>
+      <div class="list">
+        <div class="row"><span class="main"><span class="t">Weekdays</span></span>${stepper('weekday', 1, 14)}</div>
+        <div class="row"><span class="main"><span class="t">Weekends</span></span>${stepper('weekend', 1, 16)}</div>
+      </div>
+      ${err ? `<div class="error-line">${svg('warn')}<span>${err}</span></div>` : ''}`;
+  },
+  cls() {
+    const opts = [['11','Class 11'],['12','Class 12'],['drop','Dropper']];
+    return `<h1 class="title">Which class are you in?</h1>
+      <div class="list">${opts.map(([id, n]) => `
+        <button class="row ${S.cls === id ? 'on' : ''}" data-act="cls" data-v="${id}">
+          <span class="main"><span class="t">${n}</span></span>
+          ${svg(S.cls === id ? 'radioOn' : 'radioOff', 'radio')}
+        </button>`).join('')}
+      </div>`;
+  },
+  syllabus() {
+    const total = SYL.reduce((a, s) => a + s.ch.length, 0);
+    return `<h1 class="title">Chapters to cover</h1>
+      <p class="sub">${S.picked.size} of ${total} selected</p>
+      <div class="list">${SYL.map(s => {
+        const ids = s.ch.map((c, i) => s.id + i);
+        const on = ids.filter(id => S.picked.has(id)).length;
+        const state = on === ids.length ? 'boxOn' : on ? 'boxSome' : 'boxOff';
+        const open = S.expanded === s.id;
+        const group = cls => s.ch.map((c, i) => [c, i]).filter(([c]) => c[1] === cls);
+        return `<div class="row">
+            <button data-act="subject" data-v="${s.id}" aria-label="Select all ${s.n}">${svg(state, 'check ' + (on === ids.length ? 'on' : on ? 'some' : ''))}</button>
+            <button class="main" data-act="expand" data-v="${s.id}" style="display:flex;align-items:center;gap:16px">
+              <span style="flex:1"><span class="t">${s.n}</span></span>
+              <span class="v">${on}/${ids.length}</span>${svg('down', 'ic chev' + (open ? ' open' : ''))}
+            </button>
+          </div>
+          ${open ? [11, 12].map(cls => `<div class="group-label">CLASS ${cls}</div>` + group(cls).map(([c, i]) => `
+            <button class="row indent" data-act="chapter" data-v="${s.id + i}" style="min-height:48px">
+              ${svg(S.picked.has(s.id + i) ? 'boxOn' : 'boxOff', 'check ' + (S.picked.has(s.id + i) ? 'on' : ''))}
+              <span class="main"><span class="t" style="font-size:14px;line-height:20px">${c[0]}</span></span>
+            </button>`).join('')).join('') : ''}`;
+      }).join('')}
+      </div>`;
+  },
+  plan() {
+    const p = plan();
+    if (S.mode === 'none') {
+      return `<h1 class="title">Your plan</h1>
+        <div class="answer"><div class="big">Done about ${fmt(p.projected)}</div><div class="s">At ${hrs(p.perDay)} h a day</div></div>
+        ${planRows(p)}`;
+    }
+    const fits = p.short === 0;
+    return `<h1 class="title">Your plan</h1>
+      <div class="answer">
+        <div class="big ${fits ? '' : 'err'}">${fits ? `Fits by ${fmt(S.finish)}` : `Short by ${p.short} h`}</div>
+        <div class="s">${p.need} h of work, ${p.have} h available</div>
+      </div>
+      ${fits ? '' : `<div class="label">Fix it</div><div class="list">
+        <button class="row" data-act="fix" data-v="time"><span class="main"><span class="t">Add ${Math.ceil(p.short / days(TODAY, S.finish) * 60 / 15) * 15} min a day</span></span><span class="tbtn">Apply</span></button>
+        <button class="row" data-act="fix" data-v="date"><span class="main"><span class="t">Finish by ${fmt(p.projected)}</span></span><span class="tbtn">Apply</span></button>
+        <button class="row" data-act="fix" data-v="drop"><span class="main"><span class="t">Drop ${Math.ceil(p.short / 8)} lowest-yield chapters</span></span><span class="tbtn">Apply</span></button>
+      </div>`}
+      ${planRows(p)}`;
+  },
+};
+function planRows(p) {
+  return `<div class="label">Plan</div><div class="list">
+    <div class="row"><span class="main"><span class="t">Learn</span></span><span class="v">~${p.learn} h</span></div>
+    <div class="row"><span class="main"><span class="t">Practice</span></span><span class="v">~${p.practice} h</span></div>
+    <button class="row" data-act="goto" data-v="4"><span class="main"><span class="t">Weekdays</span></span><span class="v">${hrs(S.weekday)} h</span>${svg('next', 'ic chev')}</button>
+    <button class="row" data-act="goto" data-v="4"><span class="main"><span class="t">Weekends</span></span><span class="v">${hrs(S.weekend)} h</span>${svg('next', 'ic chev')}</button>
+    ${S.mode === 'date' ? `<button class="row" data-act="goto" data-v="3"><span class="main"><span class="t">Finish by</span></span><span class="v">${fmt(S.finish)}</span>${svg('next', 'ic chev')}</button>` : ''}
+  </div>`;
+}
+function calendar() {
+  const y = S.view.getFullYear(), m = S.view.getMonth();
+  const first = new Date(y, m, 1).getDay(), n = new Date(y, m + 1, 0).getDate();
+  const min = addDays(TODAY, 7), max = S.exam;
+  const canPrev = new Date(y, m, 1) > new Date(min.getFullYear(), min.getMonth(), 1);
+  const canNext = new Date(y, m + 1, 1) <= max;
+  let cells = DAYL.map(d => `<span>${d}</span>`).join('') + '<span></span>'.repeat(first);
+  for (let d = 1; d <= n; d++) {
+    const dt = new Date(y, m, d), ok = dt >= min && dt <= max;
+    const cls = [+dt === +S.finish ? 'sel' : '', +dt === +TODAY ? 'today' : ''].join(' ');
+    cells += `<button class="${cls}" ${ok ? '' : 'disabled'} data-act="pick" data-v="${dt.getTime()}"><b>${d}</b></button>`;
+  }
+  return `<div class="cal"><div class="cal-head"><span class="m">${MONTHS_FULL[m]} ${y}</span><span class="nav">
+      <button class="icon-btn" data-act="month" data-v="-1" ${canPrev ? '' : 'disabled style="color:var(--disabled)"'} aria-label="Previous month">${svg('prev')}</button>
+      <button class="icon-btn" data-act="month" data-v="1" ${canNext ? '' : 'disabled style="color:var(--disabled)"'} aria-label="Next month">${svg('next')}</button></span></div>
+    <div class="grid">${cells}</div></div>`;
+}
+
+
+function initCarousel() {
+  const c = document.getElementById('carousel'); if (!c) return;
+  const slides = [...c.children];
+  const paint = () => {
+    const mid = c.scrollLeft + c.clientWidth / 2;
+    let best = 0, bestD = 1e9;
+    slides.forEach((el, i) => {
+      const d = Math.abs(el.offsetLeft + el.offsetWidth / 2 - mid) / (el.offsetWidth + 12);
+      if (d < bestD) { bestD = d; best = i; }
+      const k = Math.min(d, 1.5);
+      el.style.transform = `scale(${1 - 0.18 * k})`;
+      el.style.opacity = 1 - 0.45 * Math.min(k, 1);
+    });
+    slides.forEach((el, i) => el.classList.toggle('center', i === best));
+    return best;
+  };
+  const settle = () => {
+    const i = paint(), id = BGS[i][0];
+    if (S.bg !== id) { S.bg = id; render(true); return; }
+    document.getElementById('slideName').textContent = BGS[i][1];
+    [...document.getElementById('dots').children].forEach((d, j) => d.classList.toggle('on', j === i));
+  };
+  let t; c.addEventListener('scroll', () => { paint(); clearTimeout(t); t = setTimeout(settle, 90); }, { passive: true });
+  const start = slides[BGS.findIndex(x => x[0] === S.bg)];
+  c.scrollLeft = start.offsetLeft + start.offsetWidth / 2 - c.clientWidth / 2;
+  paint();
+}
+const phone = document.getElementById('phone');
+
+function renderPicker() {
+  document.querySelector('.scrim')?.remove();
+  const P = S.picker; if (!P) return;
+  const h12 = P.h % 12 || 12, pm = P.h >= 12;
+  const vals = P.mode === 'hour' ? [12,1,2,3,4,5,6,7,8,9,10,11] : [0,5,10,15,20,25,30,35,40,45,50,55];
+  const cur = P.mode === 'hour' ? h12 : Math.round(P.m / 5) * 5 % 60;
+  const nums = vals.map((v, i) => { const a = (i / 12) * 2 * Math.PI - Math.PI / 2, r = 100;
+    return `<button class="n ${v === cur ? 'on' : ''}" data-pk="${P.mode}" data-pv="${v}" style="left:${128 + r * Math.cos(a)}px;top:${128 + r * Math.sin(a)}px">${P.mode === 'hour' ? v : String(v).padStart(2, '0')}</button>`; }).join('');
+  const ang = (vals.indexOf(cur) / 12) * 360 - 90;
+  const el = document.createElement('div'); el.className = 'scrim';
+  el.innerHTML = `<div class="tp" role="dialog" aria-label="Select time">
+    <div class="tpt">Select time</div>
+    <div class="hm"><button class="box ${P.mode === 'hour' ? 'on' : ''}" data-pk="mode" data-pv="hour">${String(h12).padStart(2, '0')}</button><span class="colon">:</span><button class="box ${P.mode === 'minute' ? 'on' : ''}" data-pk="mode" data-pv="minute">${String(P.m).padStart(2, '0')}</button>
+      <div class="ap"><button class="${pm ? '' : 'on'}" data-pk="ap" data-pv="am">AM</button><button class="${pm ? 'on' : ''}" data-pk="ap" data-pv="pm">PM</button></div></div>
+    <div class="dial"><span class="hand" style="width:76px;transform:rotate(${ang}deg)"></span><span class="dot"></span>${nums}</div>
+    <div class="acts"><button data-pk="cancel">Cancel</button><button data-pk="ok">OK</button></div></div>`;
+  phone.appendChild(el);
+}
+phone.addEventListener('click', e => {
+  const b = e.target.closest('[data-pk]'); if (!b || !S.picker) return;
+  const P = S.picker, k = b.dataset.pk, v = b.dataset.pv;
+  if (k === 'mode') P.mode = v;
+  if (k === 'ap') { if (v === 'pm' && P.h < 12) P.h += 12; if (v === 'am' && P.h >= 12) P.h -= 12; }
+  if (k === 'hour') { const pm = P.h >= 12; P.h = (+v % 12) + (pm ? 12 : 0); P.mode = 'minute'; }
+  if (k === 'minute') P.m = +v;
+  if (k === 'cancel') S.picker = null;
+  if (k === 'ok') {
+    const m = P.h * 60 + P.m;
+    if (P.key === 'wake') S.wake = m; else if (P.key === 'sleep') S.sleep = m;
+    else { const blk = S.blocks.find(x => x.id == P.id); if (blk) blk[P.key === 'blockStart' ? 'start' : 'end'] = m; }
+    S.picker = null; renderPicker(); render(true); return;
+  }
+  renderPicker();
+});
+
+const scroll = document.getElementById('scroll');
+function render(keepScroll) {
+  const step = STEPS[S.step];
+  phone.style.setProperty('--h', curAccent()[2]);
+  phone.dataset.bg = S.bg;
+  phone.style.setProperty('--accent', fillOf(curAccent()));
+  phone.style.setProperty('--on-accent', textOf(curAccent()));
+  document.getElementById('back').innerHTML = svg('back');
+  document.getElementById('back').classList.toggle('hidden', S.step === 0);
+  document.getElementById('skip').classList.toggle('hidden', !['theme','fixed'].includes(step));
+  document.getElementById('progress').innerHTML = Array.from({ length: 7 }, (_, i) => `<i class="${i <= PROGRESS[S.step] ? 'on' : ''}"></i>`).join('');
+  const top = scroll.scrollTop;
+  scroll.innerHTML = `<div class="screen ${keepScroll ? '' : S.dir < 0 ? 'back' : ''}" style="${keepScroll ? 'animation:none' : ''}">${screens[step]()}</div>`;
+  scroll.scrollTop = keepScroll ? top : 0;
+  const wrap = document.getElementById('ctaWrap');
+  wrap.classList.toggle('dock', step === 'theme');
+  document.getElementById('dockTop').innerHTML = step === 'theme' ? `<div class="swatches">${ACCENTS.map(a => { const [id, n] = a; return `
+        <button class="sw ${S.accent === id ? 'on' : ''}" data-act="accent" data-v="${id}" aria-pressed="${S.accent === id}" aria-label="${n}">
+          <span class="dot" style="background:${fillOf(a)};color:${textOf(a)}">${S.accent === id ? svg('check') : ''}</span></button>`; }).join('')}</div>` : '';
+  if (step === 'theme') initCarousel();
+  const cta = document.getElementById('cta');
+  cta.textContent = step === 'syllabus' ? 'Build plan' : step === 'plan' ? 'Start day 1' : 'Continue';
+  cta.disabled = (step === 'cls' && !S.cls) || (step === 'syllabus' && !S.picked.size)
+    || (step === 'hours' && (S.weekday > freeHours(false) || S.weekend > freeHours(true)));
+}
+function go(to) {
+  if (to >= STEPS.length) {
+    scroll.innerHTML = `<div class="done screen"><div><h1 class="title">You're set</h1><p class="sub">Day 1 starts today</p></div></div>`;
+    document.getElementById('ctaWrap').innerHTML = '<button class="cta" onclick="location.reload()">Restart prototype</button>';
+    return;
+  }
+  S.dir = to > S.step ? 1 : -1; S.step = Math.max(0, to); S.open = null; S.adding = false; render();
+}
+document.getElementById('back').onclick = () => go(S.step - 1);
+document.getElementById('skip').onclick = () => { if (STEPS[S.step] === 'fixed') S.blocks = []; go(S.step + 1); };
+document.getElementById('cta').onclick = () => go(S.step + 1);
+document.getElementById('dockTop').addEventListener('click', e => {
+  const el = e.target.closest('[data-act="accent"]'); if (!el) return;
+  S.accent = el.dataset.v; render(true);
+});
+
+scroll.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if (!el || el.tagName === 'INPUT') return;
+  const v = el.dataset.v, a = el.dataset.act;
+  const block = () => S.blocks.find(b => b.id == v);
+  switch (a) {
+    case 'accent': S.accent = v; break;
+    case 'bg': S.bg = v; break;
+    case 'slide': el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); return;
+    case 'study': {
+      S.study = v;
+      // commitmentsForStudyMode: swap only the mode seed, keep everything else.
+      const rest = S.blocks.filter(b => b.id !== 'seed-school' && b.id !== 'seed-coaching');
+      const seed = v === 'school' ? { id: 'seed-school', name: 'School / college', start: 480, end: 840, days: [1,2,3,4,5,6] }
+        : v === 'coaching' ? { id: 'seed-coaching', name: 'Coaching class', start: 960, end: 1140, days: [1,2,3,4,5,6] } : null;
+      S.blocks = seed ? [seed, ...rest] : rest;
+      break;
+    }
+    case 'openBlock': S.open = S.open == v ? null : v; S.adding = false; break;
+    case 'blockDay': { const b = block(), d = +el.dataset.d; b.days = b.days.includes(d) ? b.days.filter(x => x !== d) : [...b.days, d]; break; }
+    case 'removeBlock': S.blocks = S.blocks.filter(b => b.id != v); S.open = null; break;
+    case 'toggleAdd': S.adding = !S.adding; S.open = null; break;
+    case 'editAwake': S.editAwake = !S.editAwake; break;
+    case 'openPicker': { const m = +el.dataset.m; S.picker = { key: el.dataset.k, id: v, h: Math.floor(m / 60), m: m % 60, mode: 'hour' }; renderPicker(); return; }
+    case 'pattern': {
+      const b = block(), n = el.dataset.d;
+      const map = { 'Daily': [0,1,2,3,4,5,6], 'Mon–Sat': [1,2,3,4,5,6], 'Mon–Fri': [1,2,3,4,5] };
+      if (map[n]) { b.days = [...map[n]]; S.custom = null; } else S.custom = b.id;
+      break;
+    }
+    case 'addBlock': { const p = PRESETS[v]; const id = 'b' + Date.now(); const names = { School: 'School / college', Coaching: 'Coaching class', Lecture: 'Online lectures', Tuition: 'Tuition', Job: 'Job', Meals: 'Meal break', Travel: 'Travel', Other: 'Other fixed time' }; S.blocks.push({ id, name: names[v] || v, start: p[0], end: p[1], days: [...p[2]] }); S.adding = false; S.open = id; break; }
+    case 'mode': S.mode = v; break;
+    case 'month': S.view = new Date(S.view.getFullYear(), S.view.getMonth() + +v, 1); break;
+    case 'pick': S.finish = new Date(+v); break;
+    case 'step': S[v] = Math.round((S[v] + +el.dataset.d) * 2) / 2; break;
+    case 'cls': S.cls = v; break;
+    case 'subject': {
+      const s = SYL.find(x => x.id === v), ids = s.ch.map((c, i) => s.id + i);
+      const all = ids.every(id => S.picked.has(id)); ids.forEach(id => all ? S.picked.delete(id) : S.picked.add(id)); break;
+    }
+    case 'expand': S.expanded = S.expanded === v ? null : v; break;
+    case 'chapter': S.picked.has(v) ? S.picked.delete(v) : S.picked.add(v); break;
+    case 'fix': {
+      const p = plan();
+      if (v === 'time') { const add = Math.ceil(p.short / days(TODAY, S.finish) * 4) / 4; S.weekday += add; S.weekend += add; }
+      if (v === 'date') { S.finish = p.projected > S.exam ? S.exam : p.projected; S.view = new Date(S.finish.getFullYear(), S.finish.getMonth(), 1); }
+      if (v === 'drop') { [...S.picked].slice(-Math.ceil(p.short / 8)).forEach(id => S.picked.delete(id)); }
+      break;
+    }
+    case 'goto': go(+v); return;
+    default: return;
+  }
+  render(true);
+});
+scroll.addEventListener('change', e => {
+  const el = e.target, a = el.dataset.act, v = el.dataset.v;
+  const b = S.blocks.find(x => x.id == v);
+  if (a === 'blockStart') b.start = toMin(el.value);
+  if (a === 'blockEnd') b.end = toMin(el.value);
+  if (a === 'wake') S.wake = toMin(el.value);
+  if (a === 'sleep') S.sleep = toMin(el.value);
+  render(true);
+});
+render();
+</script>
+</body>
+</html>

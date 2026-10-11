@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.remember
@@ -19,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -30,7 +30,6 @@ import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.ProRepository
 import com.exam.assistant.core.data.ProStatus
 import com.exam.assistant.core.data.SavedPlan
-import com.exam.assistant.core.data.decodedCommitments
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.ChapterStageRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
@@ -206,11 +205,9 @@ fun MoreRoute(
     appVersion: String,
     background: BackgroundAppearance,
     onOpenAppearance: () -> Unit,
-    onEditCommitments: () -> Unit,
-    onRedoOnboarding: () -> Unit,
     onOpenPolicy: (String) -> Unit,
     onReminderChanged: suspend () -> Unit,
-    onImported: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
     proRepository: ProRepository? = null,
     isDebugBuild: Boolean = false,
@@ -258,26 +255,16 @@ fun MoreRoute(
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) detailViewModel.setReminderEnabled(true) else detailViewModel.onReminderPermissionDenied()
     }
-    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(BACKUP_MIME)) { uri ->
-        uri?.let(detailViewModel::exportBackup)
-    }
-    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let(detailViewModel::requestImport)
-    }
-    val supportEmail = stringResource(R.string.support_email)
-    val supportSubject = stringResource(R.string.more_support_subject)
-    val actions = remember(viewModel, detailViewModel, supportEmail) {
+    val actions = remember(viewModel, detailViewModel) {
         SettingsActions(
             onRetry = {
                 viewModel.refresh()
                 detailViewModel.refresh()
             },
+            onBack = onBack,
             onWeekdayHours = { detailViewModel.setWeekdayHours(it); detailViewModel.commit() },
             onWeekendHours = { detailViewModel.setWeekendHours(it); detailViewModel.commit() },
             onFinishBy = { detailViewModel.setFinishBy(it); detailViewModel.commit() },
-            onExamDate = { detailViewModel.setExamDate(it); detailViewModel.commit() },
-            onEditCommitments = onEditCommitments,
-            onLiveBacklogSplit = viewModel::setLiveBacklogSplit,
             onDismissSaveResult = detailViewModel::dismissSaveResult,
             onFocusLength = { detailViewModel.setFocusDurationMinutes(it); detailViewModel.commit() },
             onReminderToggle = { enabled ->
@@ -290,43 +277,27 @@ fun MoreRoute(
                 }
             },
             onReminderTime = detailViewModel::setReminderTime,
-            onFocusEndAlert = detailViewModel::setFocusEndAlert,
+            onSessionSounds = detailViewModel::setFocusEndAlert,
+            onWeekStart = detailViewModel::setWeekStart,
+            onOpenNotifications = {
+                // The system page for this app's notifications; app info before Android 8.
+                val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                } else {
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}"))
+                }
+                runCatching { context.startActivity(intent) }
+            },
             onOpenPaywall = onOpenPaywall,
-            onRestorePurchase = viewModel::restorePurchase,
-            onDismissProStatus = viewModel::clearProStatus,
             onDebugForcePro = viewModel::setDebugForcePro,
             onOpenAppearance = onOpenAppearance,
-            onShareUsageData = detailViewModel::setShareUsageData,
-            onExportBackup = { exportLauncher.launch(backupFileName(LocalDate.now())) },
-            onImportBackup = { importLauncher.launch(BACKUP_OPEN_MIMES) },
-            onConfirmImport = { detailViewModel.confirmImport(onImported) },
-            onDismissImport = detailViewModel::dismissImport,
-            onDismissBackupMessage = detailViewModel::dismissBackupMessage,
-            onRedoSetup = onRedoOnboarding,
             onEraseAll = onLogOut,
-            onContactSupport = supportEmail.takeIf { it.isNotBlank() }?.let { email ->
-                {
-                    val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:")).apply {
-                        putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
-                        putExtra(Intent.EXTRA_SUBJECT, supportSubject)
-                    }
-                    runCatching { context.startActivity(intent) }
-                }
-            },
-            onRateApp = {
-                val pkg = context.packageName.removeSuffix(".debug")
-                val market = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$pkg"))
-                val web = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$pkg"))
-                runCatching { context.startActivity(market) }.onFailure { runCatching { context.startActivity(web) } }
-            },
             onOpenPolicy = onOpenPolicy,
         )
     }
     MoreScreen(
         detail = detail,
         pro = state.pro,
-        fixedBlockCount = state.plan?.decodedCommitments()?.size ?: 0,
-        liveBacklogSplit = state.liveBacklogSplit,
         background = background,
         appVersion = appVersion,
         actions = actions,

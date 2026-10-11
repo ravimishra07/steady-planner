@@ -102,10 +102,14 @@ fun todayBudgetMinutes(weekdayHours: Float, weekendHours: Float, date: LocalDate
     return (((if (weekend) weekendHours else weekdayHours) * 60f).roundToInt()).coerceAtLeast(0)
 }
 
-fun weekAround(anchor: LocalDate): List<LocalDate> {
-    val start = anchor.minusDays((anchor.dayOfWeek.value - DayOfWeek.MONDAY.value).toLong())
+/** The 7 days containing [anchor], starting on [firstDay]. */
+fun weekAround(anchor: LocalDate, firstDay: DayOfWeek = DayOfWeek.MONDAY): List<LocalDate> {
+    val start = anchor.minusDays(daysFromWeekStart(anchor, firstDay).toLong())
     return (0 until 7).map { start.plusDays(it.toLong()) }
 }
+
+/** 0 when [date] is [firstDay], up to 6. */
+fun daysFromWeekStart(date: LocalDate, firstDay: DayOfWeek): Int = (date.dayOfWeek.value - firstDay.value + 7) % 7
 
 fun dayStatus(offsetFromToday: Int): WeekDayStatus = when {
     offsetFromToday < 0 -> if (offsetFromToday == -1) WeekDayStatus.PARTIAL else WeekDayStatus.DONE

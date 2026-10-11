@@ -184,7 +184,9 @@ fun SteadylineNavHost(
                 )
             }
             composable(Route.Home.path) {
+                val weekStart by container.settings.weekStart.collectAsStateWithLifecycle(java.time.DayOfWeek.MONDAY)
                 HomeRoute(
+                    weekStart = weekStart,
                     examPackRepository = container.examPackRepository,
                     attemptRepository = container.attemptRepository,
                     availabilityRepository = container.availabilityRepository,
@@ -359,14 +361,9 @@ fun SteadylineNavHost(
                     appVersion = BuildConfig.VERSION_NAME,
                     background = background,
                     onOpenAppearance = { navController.navigate(Route.Appearance.path) },
-                    onEditCommitments = {
-                        container.onboardingStartAt.value = OnboardingStep.Commitments
-                        navController.navigate(Route.Onboarding.path)
-                    },
-                    onRedoOnboarding = { navController.navigate(Route.Onboarding.path) },
                     onOpenPolicy = { id -> navController.navigate("policy/$id") },
                     onReminderChanged = { container.rearmDailyReminder() },
-                    onImported = { container.appScope.launch { container.onBackupImported() } },
+                    onBack = { navController.navigateToTab(Route.Home) },
                     proRepository = container.proRepository,
                     isDebugBuild = BuildConfig.DEBUG,
                     onOpenPaywall = container::openPaywall,
