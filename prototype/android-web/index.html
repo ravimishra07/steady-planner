@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>NEET Planner</title>
+<link rel="preload" href="platform/fonts/roboto-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="platform/fonts/roboto-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="design/tokens.css">
+<style>
+  /* Device frame: 412×915dp phone centred on desktop; the whole viewport under 500px. */
+  :root { --status-bar-height: 24px; --gesture-bar-height: 24px; --frame-bg: #0A0A0F; }
+  html, body { background: #202124; }
+  body { display: flex; align-items: center; justify-content: center; min-height: 100%; overflow: hidden; }
+  #app { display: contents; }
+  .device {
+    width: 412px; height: 915px; max-height: calc(100vh - 32px); border-radius: 28px; overflow: hidden;
+    box-shadow: 0 0 0 10px #111, 0 24px 64px rgba(0,0,0,.5); position: relative; flex: none;
+    background: var(--frame-bg);
+  }
+  @media (max-width: 499px) {
+    html, body { background: var(--frame-bg); }
+    .device { width: 100vw; height: 100dvh; max-height: none; border-radius: 0; box-shadow: none; }
+  }
+  .screen {
+    position: absolute; inset: 0; overflow: hidden; background: var(--c-bg); color: var(--c-onSurface);
+    font-family: var(--font-family);
+  }
+  .app-layer { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  .scaffold { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: var(--c-bg); color: var(--c-onSurface); }
+  .nav-area { flex: 1 1 auto; min-height: 0; position: relative; display: flex; flex-direction: column; overflow: hidden; }
+  .nav-area > * { flex: 1 1 auto; min-height: 0; }
+  .bottom-bar-slot { flex: none; }
+  .overlay-root { position: absolute; inset: 0; pointer-events: none; z-index: 20; }
+  .overlay-root > * { pointer-events: auto; }
+
+  /* Fake system bars (edge-to-edge: transparent, the app draws behind them). */
+  .status-bar {
+    position: absolute; top: 0; left: 0; right: 0; height: var(--status-bar-height); z-index: 30; pointer-events: none;
+    display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
+    font: 500 14px/20px var(--font-family); letter-spacing: 0.1px; color: #FFFFFF;
+  }
+  .status-bar .sb-icons { display: flex; gap: 2px; align-items: center; }
+  .gesture-bar {
+    position: absolute; bottom: 0; left: 0; right: 0; height: var(--gesture-bar-height); z-index: 30; pointer-events: none;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .gesture-handle { width: 108px; height: 4px; border-radius: 2px; background: #FFFFFF; opacity: .9; }
+  .screen[data-light-bars="true"] .status-bar { color: #1F1F1F; }
+  .screen[data-light-bars="true"] .gesture-handle { background: #1F1F1F; opacity: .6; }
+
+  /* System splash (Theme.Steadyline.Splash): splash_bg + adaptive icon, 240dp icon / 160dp mask. */
+  .splash { position: absolute; inset: 0; background: #0A0A0F; display: flex; align-items: center; justify-content: center; }
+  .splash-icon { width: 160px; height: 160px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+  .splash-icon > svg { flex: none; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module" src="app/shell.js"></script>
+</body>
+</html>

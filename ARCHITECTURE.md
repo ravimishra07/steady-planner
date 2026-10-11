@@ -4,9 +4,8 @@ Kotlin + Jetpack Compose, Android only.
 
 `:domain` is a plain Kotlin/JVM Gradle module with no Android dependency. That is
 ordinary clean architecture, not a KMP construct — there is no `commonMain` here.
-It earns its place three ways: JVM-only tests run in milliseconds instead of
-needing Robolectric, the build physically prevents `Context` leaking into the
-scheduler, and it skips resource and manifest processing so it compiles faster.
+It earns its place two ways: the build physically prevents `Context` leaking
+into the scheduler, and it skips resource and manifest processing so it compiles faster.
 That it could later become a KMP source set is a free side effect, not the
 reason for it.
 
@@ -356,7 +355,7 @@ An agent doing any of these has broken the architecture:
 - Blocking the critical path on remote config, network, or analytics
 - `Dispatchers.IO` / `Dispatchers.Default` written inline in a ViewModel or composable
 - `GlobalScope`
-- `runBlocking` anywhere outside tests
+- `runBlocking` anywhere
 - A feature module importing another feature module
 - Android imports inside `:domain`
 - Hardcoded colours, font sizes, radii or spacing in UI code
@@ -386,7 +385,7 @@ open -R app/build/outputs/apk/debug/app-debug.apk
 Never suggest enabling Developer options or wireless debugging — that breaks
 banking apps on the device. No emulator, no adb.
 
-Claim only what the build proves — it compiles, tests pass, APK size — and
+Claim only what the build proves — it compiles, APK size — and
 never that a screen "works" without having seen it.
 
 `gradle/wrapper/gradle-wrapper.properties` points at the `-all` distribution
