@@ -666,7 +666,7 @@ connection is available (§11.3). Verify by testing in airplane mode.
 
 - **Application ID:** keep `com.exam.assistant`.
 - **Analytics:** Firebase Analytics + Crashlytics. Not PostHog.
-- **Pricing:** Pro = **₹59 lifetime**, a one-time non-consumable.
+- **Pricing:** Pro = **₹49 lifetime**, a one-time non-consumable.
   - No subscription, so no trial. The free tier is the trial.
   - This supersedes the price hypothesis in §11.2.
 - **Git:** commit locally only. Ravi pushes.

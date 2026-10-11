@@ -49,8 +49,6 @@ export const OnboardingUiState = dataClass(
     syllabusSubjects: [],
     /** Deadline mode: PlanFit | null. */
     fit: null,
-    /** { week: [{ title, subject }], month: [{ subject, count }] } | null. */
-    targets: null,
     fitLoading: false,
     /** Steady mode: projected finish date | null. */
     projectedFinish: null,

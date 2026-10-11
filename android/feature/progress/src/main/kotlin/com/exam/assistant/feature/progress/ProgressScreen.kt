@@ -18,7 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.ShowChart
 import androidx.compose.material3.AlertDialog
@@ -82,8 +82,9 @@ import com.exam.assistant.domain.StudyDayInsight
 import com.exam.assistant.domain.formatInsightDate
 import kotlin.math.ceil
 
+/** Every Insights section, with the period selector: "All insights" from the Progress overview. */
 @Composable
-fun ProgressRoute(
+fun InsightsRoute(
     examPackRepository: ExamPackRepository,
     attemptRepository: AttemptRepository,
     planRepository: PlanRepository,
@@ -99,7 +100,7 @@ fun ProgressRoute(
     proRepository: ProRepository,
     modifier: Modifier = Modifier,
     onOpenPaywall: () -> Unit = {},
-    onOpenSettings: () -> Unit = {},
+    onBack: () -> Unit = {},
     onGoToday: () -> Unit = {},
     onOpenDay: (java.time.LocalDate) -> Unit = {},
     onLogStudy: () -> Unit = {},
@@ -115,18 +116,11 @@ fun ProgressRoute(
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.refresh() }
-    androidx.compose.runtime.LaunchedEffect(state.showSoftPrompt) {
-        if (state.showSoftPrompt) {
-            viewModel.onSoftPromptShown()
-            onOpenPaywall()
-        }
-    }
-    ProgressScreen(
+    InsightsScreen(
         state = state,
         onPeriodSelected = viewModel::selectPeriod,
         onOpenPaywall = onOpenPaywall,
-        onOpenSettings = onOpenSettings,
+        onBack = onBack,
         onGoToday = onGoToday,
         onOpenDay = onOpenDay,
         onLogStudy = onLogStudy,
@@ -139,12 +133,12 @@ fun ProgressRoute(
 }
 
 @Composable
-fun ProgressScreen(
+fun InsightsScreen(
     state: InsightsUiState,
     modifier: Modifier = Modifier,
     onPeriodSelected: (InsightPeriod) -> Unit = {},
     onOpenPaywall: () -> Unit = {},
-    onOpenSettings: () -> Unit = {},
+    onBack: () -> Unit = {},
     onGoToday: () -> Unit = {},
     onOpenDay: (java.time.LocalDate) -> Unit = {},
     onLogStudy: () -> Unit = {},
@@ -189,12 +183,12 @@ fun ProgressScreen(
         Row(
             modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
-            Text(stringResource(R.string.insights_title), style = MaterialTheme.typography.headlineLarge, color = colors.text, fontWeight = FontWeight.Bold)
-            IconButton(onClick = onOpenSettings) {
-                Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.insights_settings), tint = colors.textSecondary)
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.insights_back), tint = colors.text)
             }
+            Text(stringResource(R.string.insights_title), style = MaterialTheme.typography.headlineLarge, color = colors.text, fontWeight = FontWeight.Bold)
         }
         LogStudyButton(onClick = onLogStudy, modifier = Modifier.padding(top = Spacing.sm))
         // Progress first (§5.5): what got done this week, then syllabus and revision. Hours come after.
@@ -1012,7 +1006,7 @@ private fun trendLabel(point: StudyDayInsight, period: InsightPeriod): String = 
 private fun streakLabel(days: Int): String = pluralStringResource(R.plurals.insights_days_count, days, days)
 
 @Composable
-private fun subjectStatusLabel(status: SubjectStatus): String = stringResource(
+internal fun subjectStatusLabel(status: SubjectStatus): String = stringResource(
     when (status) {
         SubjectStatus.AHEAD -> R.string.insights_ahead_label
         SubjectStatus.ON_TRACK -> R.string.insights_on_track_label
@@ -1021,7 +1015,7 @@ private fun subjectStatusLabel(status: SubjectStatus): String = stringResource(
 )
 
 @Composable
-private fun subjectStatusColor(status: SubjectStatus): Color = when (status) {
+internal fun subjectStatusColor(status: SubjectStatus): Color = when (status) {
     SubjectStatus.AHEAD -> AppTheme.colors.success
     SubjectStatus.ON_TRACK -> AppTheme.colors.brandSoft
     SubjectStatus.BEHIND -> AppTheme.colors.warning

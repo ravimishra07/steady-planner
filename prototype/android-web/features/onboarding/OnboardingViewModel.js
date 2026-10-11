@@ -404,15 +404,13 @@ export class OnboardingViewModel {
       if (job.cancelled) return;
       const projected = draft.planMode === PlanMode.STEADY ? await this.rollingPlanRepository.draftProjection(planDraft) : null;
       if (job.cancelled) return;
-      const targets = await this.rollingPlanRepository.draftTargets(planDraft);
-      if (job.cancelled) return;
       this._update((current) => {
         // A newer change started its own request; only the latest answer may land.
         if (current.planMode === draft.planMode && current.examDate === draft.examDate &&
           current.targetDate === draft.targetDate && current.weekdayHours === draft.weekdayHours &&
           current.weekendHours === draft.weekendHours && deepEquals(current.selectedChapterIds, draft.selectedChapterIds) &&
           deepEquals(current.coveredChapterIds, draft.coveredChapterIds)) {
-          return current.copy({ fit, targets, fitLoading: false, projectedFinish: projected, projectionLoading: false });
+          return current.copy({ fit, fitLoading: false, projectedFinish: projected, projectionLoading: false });
         }
         return current;
       });

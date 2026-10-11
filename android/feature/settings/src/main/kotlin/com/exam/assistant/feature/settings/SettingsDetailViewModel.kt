@@ -254,6 +254,20 @@ class SettingsDetailViewModel(
         copy(finishBy = coerceFinishBy(date, exam, LocalDate.now()))
     }
 
+    private var resaveRequested = false
+
+    /** Settings edits in place: each change saves at once; a change during a save saves again after it. */
+    fun commit() {
+        if (_state.value.saving) resaveRequested = true else save()
+    }
+
+    private fun saveAgainIfRequested() {
+        if (resaveRequested) {
+            resaveRequested = false
+            save()
+        }
+    }
+
     fun save() {
         val draft = _state.value
         if (draft.loading || draft.saving || !draft.hasUnsavedChanges) return
@@ -298,8 +312,10 @@ class SettingsDetailViewModel(
                         studyPlace = draft.studyPlace.trim(),
                     )
                 }
+                saveAgainIfRequested()
             }.onFailure {
                 _state.update { it.copy(saving = false, saveFailed = true) }
+                saveAgainIfRequested()
             }
         }
     }

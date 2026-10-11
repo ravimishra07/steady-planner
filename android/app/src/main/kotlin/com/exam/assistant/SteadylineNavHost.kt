@@ -1,7 +1,9 @@
 package com.exam.assistant
 
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -24,6 +26,8 @@ import androidx.navigation.navArgument
 import com.exam.assistant.core.design.AccentPalette
 import com.exam.assistant.core.design.BackgroundAppearance
 import com.exam.assistant.core.design.AppTheme
+import com.exam.assistant.core.design.Motion
+import com.exam.assistant.core.design.rememberHaptics
 import com.exam.assistant.domain.BlockTag
 import com.exam.assistant.domain.FocusBlockRef
 import com.exam.assistant.domain.FocusSession
@@ -33,11 +37,13 @@ import com.exam.assistant.core.data.neetExamDate
 import com.exam.assistant.core.data.neetExamDateOfficial
 import com.exam.assistant.feature.home.HomeRoute
 import com.exam.assistant.feature.onboarding.OnboardingRoute
+import com.exam.assistant.feature.onboarding.model.OnboardingStep
 import com.exam.assistant.feature.progress.DayLogRoute
 import com.exam.assistant.feature.progress.LogSessionRoute
 import com.exam.assistant.feature.progress.MockFormRoute
 import com.exam.assistant.feature.progress.TestsRoute
 import com.exam.assistant.feature.progress.ProgressRoute
+import com.exam.assistant.feature.progress.InsightsRoute
 import com.exam.assistant.feature.settings.MoreRoute
 import com.exam.assistant.feature.settings.AppearanceScreen
 import com.exam.assistant.feature.settings.PolicyScreen
@@ -63,6 +69,7 @@ fun SteadylineNavHost(
     val currentPath = backStackEntry?.destination?.route
     val tab = Tab.entries.firstOrNull { it.route.path == currentPath }
     val context = LocalContext.current
+    val haptics = rememberHaptics()
     val openFocus by container.openFocusRequest.collectAsStateWithLifecycle()
     LaunchedEffect(openFocus) {
         if (openFocus) {
@@ -93,6 +100,14 @@ fun SteadylineNavHost(
     LaunchedEffect(paywallRequested, paywallBlocked) {
         if (paywallRequested && paywallBlocked && currentPath != null) container.paywallRequest.value = false
     }
+    // Every onboarding completion (for now, even with Pro): the paywall on the first screen past setup.
+    val paywallAfterSetup by container.paywallAfterSetup.collectAsStateWithLifecycle()
+    LaunchedEffect(paywallAfterSetup, paywallBlocked) {
+        if (paywallAfterSetup && !paywallBlocked) {
+            container.paywallAfterSetup.value = false
+            container.paywallRequest.value = true
+        }
+    }
     if (paywallRequested && !paywallBlocked) {
         PaywallHost(proRepository = container.proRepository, analytics = container.analytics, onDismiss = { container.paywallRequest.value = false })
     }
@@ -105,11 +120,8 @@ fun SteadylineNavHost(
                 SteadylineBottomBar(
                     selected = tab,
                     onSelect = { target ->
-                        navController.navigate(target.route.path) {
-                            popUpTo(Route.Home.path) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
+                        if (target != tab) haptics.select()
+                        navController.navigateToTab(target.route)
                     },
                 )
             }
@@ -119,12 +131,31 @@ fun SteadylineNavHost(
             navController = navController,
             startDestination = if (startInOnboarding) Route.Onboarding.path else Route.Home.path,
             modifier = Modifier.fillMaxSize(),
-            enterTransition = { EnterTransition.None },
-            exitTransition = { ExitTransition.None },
+            // Tab to tab: crossfade. Into a detail screen: short shared-axis slide; back reverses it.
+            enterTransition = {
+                if (isTabSwitch(initialState.destination.route, targetState.destination.route)) fadeIn(tween(Motion.medium))
+                else slideIntoContainer(SlideDirection.Start, tween(Motion.medium, easing = Motion.emphasizedDecelerate)) { it / 5 } +
+                    fadeIn(tween(Motion.medium))
+            },
+            exitTransition = {
+                if (isTabSwitch(initialState.destination.route, targetState.destination.route)) fadeOut(tween(Motion.short))
+                else slideOutOfContainer(SlideDirection.Start, tween(Motion.short, easing = Motion.emphasizedAccelerate)) { it / 5 } +
+                    fadeOut(tween(Motion.short))
+            },
+            popEnterTransition = {
+                if (isTabSwitch(initialState.destination.route, targetState.destination.route)) fadeIn(tween(Motion.medium))
+                else slideIntoContainer(SlideDirection.End, tween(Motion.medium, easing = Motion.emphasizedDecelerate)) { it / 5 } +
+                    fadeIn(tween(Motion.medium))
+            },
+            popExitTransition = {
+                if (isTabSwitch(initialState.destination.route, targetState.destination.route)) fadeOut(tween(Motion.short))
+                else slideOutOfContainer(SlideDirection.End, tween(Motion.short, easing = Motion.emphasizedAccelerate)) { it / 5 } +
+                    fadeOut(tween(Motion.short))
+            },
         ) {
             composable(Route.Onboarding.path) {
-                val startAtPlan = remember { container.onboardingStartAtPlan.value }
-                LaunchedEffect(Unit) { container.onboardingStartAtPlan.value = false }
+                val startAt = remember { container.onboardingStartAt.value }
+                LaunchedEffect(Unit) { container.onboardingStartAt.value = null }
                 OnboardingRoute(
                     planStore = container.planStore,
                     examPackRepository = container.examPackRepository,
@@ -138,13 +169,14 @@ fun SteadylineNavHost(
                     dispatchers = container.dispatchers,
                     examDate = container.remoteConfig.neetExamDate(),
                     examDateOfficial = container.remoteConfig.neetExamDateOfficial(),
-                    startAtPlan = startAtPlan,
+                    startAt = startAt,
                     background = background,
                     onBackground = onBackground,
                     accentPalette = accentPalette,
                     onAccentPalette = onAccentPalette,
                     analytics = container.analytics,
                     onFinished = { openOrganise ->
+                        container.paywallAfterSetup.value = true
                         navController.navigate(if (openOrganise) Route.Organise.path else Route.Home.path) {
                             popUpTo(Route.Onboarding.path) { inclusive = true }
                         }
@@ -166,7 +198,7 @@ fun SteadylineNavHost(
                     chapterStageRepository = container.chapterStageRepository,
                     onSetupPlan = { navController.navigate(Route.Onboarding.path) },
                     onAdjustPlan = {
-                        container.onboardingStartAtPlan.value = true
+                        container.onboardingStartAt.value = OnboardingStep.Plan
                         navController.navigate(Route.Onboarding.path)
                     },
                     onEditPlan = { navController.navigate(Route.Organise.path) },
@@ -274,8 +306,33 @@ fun SteadylineNavHost(
                     mockTestRepository = container.mockTestRepository,
                     proRepository = container.proRepository,
                     onOpenPaywall = container::openPaywall,
-                    onOpenSettings = { navController.navigate(Route.Settings.path) },
-                    onGoToday = { navController.navigate(Route.Home.path) { launchSingleTop = true } },
+                    onOpenSyllabus = { navController.navigateToTab(Route.Syllabus) },
+                    onOpenInsights = { navController.navigate(Route.Insights.path) },
+                    onGoToday = { navController.navigateToTab(Route.Home) },
+                    onOpenDay = { date -> navController.navigate(Route.DayLog.pathFor(date)) },
+                    onLogStudy = { navController.navigate(Route.LogSession.newOn(null)) },
+                    onOpenTests = { navController.navigate(Route.Tests.path) },
+                    modifier = Modifier.padding(padding).consumeWindowInsets(padding),
+                )
+            }
+            composable(Route.Insights.path) {
+                InsightsRoute(
+                    examPackRepository = container.examPackRepository,
+                    attemptRepository = container.attemptRepository,
+                    planRepository = container.planRepository,
+                    studySessionRepository = container.studySessionRepository,
+                    topicProgressRepository = container.topicProgressRepository,
+                    targetSyllabusRepository = container.targetSyllabusRepository,
+                    rollingPlanRepository = container.rollingPlanRepository,
+                    studyPreferenceRepository = container.studyPreferenceRepository,
+                    revisionRepository = container.revisionRepository,
+                    availabilityRepository = container.availabilityRepository,
+                    chapterStageRepository = container.chapterStageRepository,
+                    mockTestRepository = container.mockTestRepository,
+                    proRepository = container.proRepository,
+                    onOpenPaywall = container::openPaywall,
+                    onBack = { navController.popBackStack() },
+                    onGoToday = { navController.navigateToTab(Route.Home) },
                     onOpenDay = { date -> navController.navigate(Route.DayLog.pathFor(date)) },
                     onLogStudy = { navController.navigate(Route.LogSession.newOn(null)) },
                     onOpenTests = { navController.navigate(Route.Tests.path) },
@@ -285,19 +342,31 @@ fun SteadylineNavHost(
             composable(Route.Settings.path) {
                 MoreRoute(
                     planStore = container.planStore,
+                    settingsStore = container.settings,
+                    focusStore = container.focusStore,
+                    syllabusStore = container.syllabusStore,
+                    studySessionStore = container.studySessionStore,
                     examPackRepository = container.examPackRepository,
                     attemptRepository = container.attemptRepository,
+                    studyPreferenceRepository = container.studyPreferenceRepository,
                     topicProgressRepository = container.topicProgressRepository,
                     targetSyllabusRepository = container.targetSyllabusRepository,
                     rollingPlanRepository = container.rollingPlanRepository,
                     chapterStageRepository = container.chapterStageRepository,
+                    backupRepository = container.backupRepository,
+                    configExamDate = container.remoteConfig.neetExamDate(),
                     examDateOfficial = container.remoteConfig.neetExamDateOfficial(),
                     appVersion = BuildConfig.VERSION_NAME,
                     background = background,
                     onOpenAppearance = { navController.navigate(Route.Appearance.path) },
-                    onOpenSettings = { navController.navigate(Route.SettingsDetail.path) },
+                    onEditCommitments = {
+                        container.onboardingStartAt.value = OnboardingStep.Commitments
+                        navController.navigate(Route.Onboarding.path)
+                    },
                     onRedoOnboarding = { navController.navigate(Route.Onboarding.path) },
                     onOpenPolicy = { id -> navController.navigate("policy/$id") },
+                    onReminderChanged = { container.rearmDailyReminder() },
+                    onImported = { container.appScope.launch { container.onBackupImported() } },
                     proRepository = container.proRepository,
                     isDebugBuild = BuildConfig.DEBUG,
                     onOpenPaywall = container::openPaywall,
@@ -417,3 +486,14 @@ fun SteadylineNavHost(
         }
     }
 }
+
+/** Bottom-bar navigation: one copy of each tab, each keeping its own state. */
+private fun NavHostController.navigateToTab(route: Route) = navigate(route.path) {
+    popUpTo(Route.Home.path) { saveState = true }
+    launchSingleTop = true
+    restoreState = true
+}
+
+private val TAB_ROUTES = Tab.entries.map { it.route.path }.toSet()
+
+private fun isTabSwitch(from: String?, to: String?): Boolean = from in TAB_ROUTES && to in TAB_ROUTES

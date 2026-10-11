@@ -741,96 +741,133 @@ function HoursRow(id, label, value, options, onChange) {
 // =============================================================================================
 // Plan step
 // =============================================================================================
-export function OnboardingPlanStep({ state, onApplyFitOption }) {
-  if (!state.useProvidedSyllabus) {
-    return Text({ text: stringResource('onboarding_plan_verdict_empty'), style: 'titleMedium', color: C.text });
+export function OnboardingPlanStep({ state, onWeekdayChange, onWeekendChange, onDate, onExamDate, onApplyFitOption }) {
+  const editing = rememberLocal('Plan/editing', false);
+  const shortDatePattern = stringResource('onboarding_plan_short_date_pattern');
+  const targetLabel = formatDate(state.targetDate, shortDatePattern);
+  const todayLabel = formatDate(localToday(), shortDatePattern);
+  const fit = state.fit;
+  const children = [];
+
+  if (!state.useProvidedSyllabus) children.push(PlanVerdict(stringResource('onboarding_plan_verdict_empty')));
+  else if (state.planMode === PlanMode.STEADY) {
+    children.push(PlanVerdict(stringResource('onboarding_plan_steady')));
+    if (state.projectionLoading) children.push(CircularProgressIndicator());
+    else if (state.projectedFinish != null) {
+      children.push(PlanStatRow(stringResource('onboarding_plan_projected_finish'),
+        stringResource('onboarding_plan_projected_value', formatDate(state.projectedFinish, shortDatePattern))));
+    } else children.push(Text({ text: stringResource('onboarding_plan_projected_none'), style: 'bodyMedium', color: C.textSecondary }));
+  } else if (fit == null) children.push(CircularProgressIndicator());
+  else {
+    const estimateLabel = stringResource(fit.calibrated ? 'onboarding_plan_at_your_pace' : 'onboarding_plan_estimate_label');
+    children.push(PlanVerdict(fit.fits
+      ? stringResource('onboarding_plan_fits', targetLabel)
+      : stringResource('onboarding_plan_short', planHour(fit.shortByMinutes / 60), estimateLabel, targetLabel)));
+    children.push(Column({ class: 'fill-w', css: { alignItems: 'stretch' }, verticalArrangement: { spacedBy: 'var(--space-sm)' } },
+      PlanStatRow(stringResource('onboarding_plan_stat_learn'), stringResource('onboarding_plan_hours_value', planHour(fit.learnMinutes / 60))),
+      PlanStatRow(stringResource('onboarding_plan_stat_practice'), stringResource('onboarding_plan_hours_value', planHour(fit.practiceMinutes / 60))),
+      PlanStatRow(stringResource('onboarding_plan_stat_revision'), fit.revisionWindowDays > 0
+        ? pluralStringResource('onboarding_plan_revision_days', fit.revisionWindowDays, fit.revisionWindowDays)
+        : stringResource('onboarding_plan_revision_none'))));
+    if (!fit.fits) children.push(FitOptions(fit, targetLabel, shortDatePattern, state.fitLoading, onApplyFitOption));
   }
-  const pattern = stringResource('onboarding_plan_short_date_pattern');
-  const steady = state.planMode === PlanMode.STEADY;
-  const finish = steady ? state.projectedFinish : state.targetDate;
-  if (state.fitLoading || state.targets == null) return Box({ class: 'fill-w', contentAlignment: 'Center' }, CircularProgressIndicator());
 
-  // Short plan: one fix — a little more time a day if that is enough, else a later finish.
-  const options = !steady && state.fit && !state.fit.fits ? state.fit.options : [];
-  const fix = options.find((it) => it.type === 'AddMinutesPerDay' && it.minutes <= 60)
-    ?? options.find((it) => it.type === 'MoveFinishBy')
-    ?? options.find((it) => it.type === 'AddMinutesPerDay')
-    ?? options[0] ?? null;
-
-  const hero = Column({ class: 'fill-w', css: { alignItems: 'stretch' }, verticalArrangement: { spacedBy: 'var(--space-xs)' } },
-    Text({ text: stringResource(fix ? 'onboarding_plan_tight' : 'onboarding_plan_on_track'), style: 'headlineMedium', color: C.text }),
-    fix
-      ? Row({ class: 'fill-w', verticalAlignment: 'CenterVertically' },
-        Text({ text: fixLabel(fix, pattern), class: 'weight', style: 'bodyLarge', color: C.text }),
-        TextButton({ onClick: () => onApplyFitOption(fix), children: Text({ text: stringResource('onboarding_plan_fix') }) }))
-      : null);
-
-  return Column({ class: 'fill-w', css: { alignItems: 'stretch' }, verticalArrangement: { spacedBy: 'var(--space-xxl)' } },
-    hero,
-    Roadmap(localToday(), finish, state.examDate, pattern),
-    WeekTarget(state.targets.week),
-    MonthTarget(state.targets.month),
-    // §11.3: the usage-data disclosure, on the last step before the plan is made.
-    Text({ text: stringResource('onboarding_usage_data_note'), style: 'bodySmall', color: C.text }));
+  const weekdaysLabel = stringResource('onboarding_hours_weekdays');
+  const weekendsLabel = stringResource('onboarding_hours_weekends');
+  children.push(Column({ class: 'fill-w', css: { alignItems: 'stretch' }, verticalArrangement: { spacedBy: 'var(--space-sm)' } },
+    PlanSummaryRow('Filled.CalendarToday', stringResource('onboarding_plan_every_weekday'), stringResource('onboarding_plan_hour_value', planHour(state.weekdayHours)), editing.value,
+      () => AppStepperControl({
+        value: stringResource('onboarding_plan_hour_value', planHour(state.weekdayHours)),
+        decreaseContentDescription: stringResource('onboarding_hours_decrease', weekdaysLabel),
+        increaseContentDescription: stringResource('onboarding_hours_increase', weekdaysLabel),
+        onDecrease: () => onWeekdayChange(coerceAtLeast(state.weekdayHours - 0.5, 1)),
+        onIncrease: () => onWeekdayChange(coerceAtMost(state.weekdayHours + 0.5, 14)),
+        decreaseEnabled: state.weekdayHours > 1,
+        increaseEnabled: state.weekdayHours < 14,
+      })),
+    PlanSummaryRow('Filled.Weekend', stringResource('onboarding_plan_every_weekend'), stringResource('onboarding_plan_hour_value', planHour(state.weekendHours)), editing.value,
+      () => AppStepperControl({
+        value: stringResource('onboarding_plan_hour_value', planHour(state.weekendHours)),
+        decreaseContentDescription: stringResource('onboarding_hours_decrease', weekendsLabel),
+        increaseContentDescription: stringResource('onboarding_hours_increase', weekendsLabel),
+        onDecrease: () => onWeekendChange(coerceAtLeast(state.weekendHours - 0.5, 1)),
+        onIncrease: () => onWeekendChange(coerceAtMost(state.weekendHours + 0.5, 16)),
+        decreaseEnabled: state.weekendHours > 1,
+        increaseEnabled: state.weekendHours < 16,
+      })),
+    PlanSummaryRow('Filled.Flag', stringResource('onboarding_plan_starts_ends', todayLabel), targetLabel, editing.value,
+      () => OnboardingTargetDateStep('Plan', state.targetDate, state.examDate, state.examDateOfficial, state.examDateIsConfigured, onDate, onExamDate))));
+  children.push(OutlinedButton({
+    onClick: () => { editing.value = !editing.value; },
+    css: { width: '100%', height: 'var(--size-ctaHeight)' },
+    shape: CircleShape,
+    children: [
+      Icon({ imageVector: editing.value ? 'Filled.Check' : 'Filled.Edit' }),
+      Text({ text: stringResource(editing.value ? 'onboarding_plan_done_editing' : 'onboarding_plan_edit'), css: { paddingLeft: 'var(--space-sm)' } }),
+    ],
+  }));
+  // §11.3: the usage-data disclosure, on the last step before the plan is made.
+  children.push(Text({ text: stringResource('onboarding_usage_data_note'), style: 'bodySmall', color: C.textMuted }));
+  return Column({ class: 'fill-w', css: { alignItems: 'stretch' }, verticalArrangement: { spacedBy: 'var(--space-xxl)' } }, ...children);
 }
 
-function fixLabel(option, pattern) {
-  switch (option.type) {
-    case 'AddMinutesPerDay': return option.minutes < 60
-      ? stringResource('onboarding_plan_option_add', option.minutes)
-      : stringResource('onboarding_plan_option_add_hours', planHour(Math.round(option.minutes / 30) / 2));
-    case 'ParkChapters': return pluralStringResource('onboarding_plan_option_park', option.count, option.count);
-    case 'MoveFinishBy': return stringResource('onboarding_plan_option_move', formatDate(option.date, pattern));
-    default: return stringResource('onboarding_plan_option_accept', option.percent);
-  }
+function PlanVerdict(text) {
+  return Text({ text, style: 'titleMedium', color: C.textSecondary });
 }
 
-/** Today → syllabus done → exam, drawn to scale. */
-function Roadmap(today, finish, exam, pattern) {
-  const total = Math.max(daysBetween(today, exam), 1);
-  const learnDays = finish ? Math.min(Math.max(daysBetween(today, finish), 0), total) : total;
-  const share = learnDays / total;
-  const segment = (flex, color, radius) => Box({ css: { flex: `${flex} 1 0`, height: '12px', background: color, borderRadius: radius } });
-  const label = (text, align) => Text({ text, style: 'labelLarge', color: C.text, css: { textAlign: align } });
+function PlanStatRow(label, value) {
+  return Row({ class: 'fill-w', verticalAlignment: 'CenterVertically' },
+    Text({ text: label, class: 'weight', style: 'bodyMedium', color: C.textSecondary }),
+    Text({ text: value, style: 'titleSmall', color: C.text }));
+}
+
+/** The four ways out of a plan that is short. Each button applies a choice the planner has already verified. */
+function FitOptions(fit, targetLabel, datePattern, loading, onApply) {
   return Column({ class: 'fill-w', css: { alignItems: 'stretch' }, verticalArrangement: { spacedBy: 'var(--space-sm)' } },
-    Row({ class: 'fill-w' },
-      Box({ css: { flex: `${share} 1 0`, minWidth: '0' } }, label(stringResource('onboarding_plan_phase_learn'), 'left')),
-      share < 1 ? Box({ css: { flex: `${1 - share} 1 0`, minWidth: '0' } }, label(stringResource('onboarding_plan_phase_revise'), 'left')) : null),
-    Row({ class: 'fill-w', css: { gap: '4px' } },
-      segment(share, C.primary, share < 1 ? '6px 2px 2px 6px' : '6px'),
-      share < 1 ? segment(1 - share, C.tertiary, '2px 6px 6px 2px') : null),
-    Row({ class: 'fill-w', horizontalArrangement: 'SpaceBetween' },
-      label(stringResource('onboarding_plan_today'), 'left'),
-      finish && share < 1 ? label(formatDate(finish, pattern), 'center') : null,
-      label(stringResource('onboarding_plan_exam_on', formatDate(exam, pattern)), 'right')));
+    Text({ text: stringResource('onboarding_plan_options_title'), style: 'titleSmall' }),
+    fit.options.map((option) => {
+      let title, detail, action;
+      switch (option.type) {
+        case 'AddMinutesPerDay':
+          title = stringResource('onboarding_plan_option_add', option.minutes);
+          detail = stringResource('onboarding_plan_option_add_detail', targetLabel);
+          action = 'onboarding_plan_option_apply'; break;
+        case 'ParkChapters':
+          title = pluralStringResource('onboarding_plan_option_park', option.count, option.count);
+          detail = stringResource('onboarding_plan_option_park_detail', planHour(option.minutesFreed / 60));
+          action = 'onboarding_plan_option_apply'; break;
+        case 'MoveFinishBy':
+          title = stringResource('onboarding_plan_option_move', formatDate(option.date, datePattern));
+          detail = stringResource('onboarding_plan_option_move_detail');
+          action = 'onboarding_plan_option_apply'; break;
+        default:
+          title = stringResource('onboarding_plan_option_accept', option.percent);
+          detail = stringResource('onboarding_plan_option_accept_detail');
+          action = 'onboarding_plan_option_continue';
+      }
+      return Surface({
+        class: 'fill-w', shape: 'var(--radius-md)', color: C.elevated,
+        children: Row({ class: 'fill-w', css: { padding: 'var(--space-md) var(--space-lg)' }, verticalAlignment: 'CenterVertically', horizontalArrangement: { spacedBy: 'var(--space-md)' } },
+          Column({ class: 'weight' },
+            Text({ text: title, style: 'titleSmall', color: C.text }),
+            Text({ text: detail, style: 'bodySmall', color: C.textSecondary })),
+          TextButton({ onClick: () => onApply(option), enabled: !loading, children: Text({ text: stringResource(action) }) })),
+      });
+    }));
 }
 
-function TargetCard(title, count, rows) {
-  return Column({ class: 'fill-w', css: { alignItems: 'stretch' }, verticalArrangement: { spacedBy: 'var(--space-md)' } },
-    Row({ class: 'fill-w', verticalAlignment: 'CenterVertically' },
-      Text({ text: title, class: 'weight', style: 'titleMedium', color: C.text }),
-      Text({ text: pluralStringResource('onboarding_plan_chapters', count, count), style: 'titleMedium', color: C.text })),
-    rows.length ? Surface({
-      class: 'fill-w', shape: 'var(--radius-lg)', color: C.elevated,
-      children: Column({ class: 'fill-w', css: { alignItems: 'stretch' } },
-        rows.map((row, i) => [i ? HorizontalDivider({ color: C.hairline }) : null, row]).flat()),
-    }) : null);
-}
-
-/** This week: the chapters to finish, by name. */
-function WeekTarget(week) {
-  return TargetCard(stringResource('onboarding_plan_this_week'), week.length, week.map((c) =>
-    Row({ class: 'fill-w', css: { padding: 'var(--space-md) var(--space-lg)', gap: 'var(--space-md)', minHeight: '56px' }, verticalAlignment: 'CenterVertically' },
-      Text({ text: c.title, class: 'weight', style: 'bodyLarge', color: C.text }),
-      Text({ text: c.subject, style: 'bodyMedium', color: C.text }))));
-}
-
-/** This month: chapters to finish per subject. */
-function MonthTarget(month) {
-  return TargetCard(stringResource('onboarding_plan_this_month'), month.reduce((sum, it) => sum + it.count, 0), month.map((it) =>
-    Row({ class: 'fill-w', css: { padding: 'var(--space-md) var(--space-lg)', minHeight: '56px' }, verticalAlignment: 'CenterVertically' },
-      Text({ text: it.subject, class: 'weight', style: 'bodyLarge', color: C.text }),
-      Text({ text: pluralStringResource('onboarding_plan_chapters', it.count, it.count), style: 'bodyLarge', color: C.text }))));
+function PlanSummaryRow(icon, label, value, editing, editor) {
+  return Surface({
+    class: 'fill-w', shape: 'var(--radius-md)', color: C.elevated,
+    children: Column({ class: 'fill-w', css: { alignItems: 'stretch' } },
+      Row({ class: 'fill-w', css: { height: 'var(--size-ctaHeight)', padding: '0 var(--space-lg)' }, verticalAlignment: 'CenterVertically', horizontalArrangement: { spacedBy: 'var(--space-lg)' } },
+        Icon({ imageVector: icon, tint: C.textSecondary }),
+        Text({ text: label, class: 'weight', style: 'bodyLarge' }),
+        Text({ text: value, style: 'titleMedium', color: C.brand })),
+      editing
+        ? Row({ class: 'fill-w', css: { padding: 'var(--space-md) var(--space-lg)' }, horizontalArrangement: 'End' }, ...slot(editor))
+        : null),
+  });
 }
 
 // =============================================================================================

@@ -18,6 +18,8 @@ data class InsightsUiState(
     val proUnlocked: Boolean = false,
     /** One-shot: open the soft Pro prompt now. */
     val showSoftPrompt: Boolean = false,
+    /** "NEET UG 2027": the pack's name and the exam year; null until loaded. */
+    val examLabel: String? = null,
 )
 
 /** Day and 7 days are free; longer Insights periods are Pro (§11.2). */

@@ -26,18 +26,13 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.LocalFlorist
-import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.CircularProgressIndicator
@@ -63,7 +58,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.drawscope.Stroke as DrawStroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
@@ -78,6 +72,7 @@ import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
+import com.exam.assistant.core.design.rememberHaptics
 import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.AppCard
 import com.exam.assistant.core.design.AppCardTone
@@ -86,6 +81,7 @@ import com.exam.assistant.core.design.Opacity
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
 import com.exam.assistant.core.design.Spacing
+import com.exam.assistant.core.design.subjectIcon
 import com.exam.assistant.core.design.Stroke
 import com.exam.assistant.domain.ChapterCoaching
 import com.exam.assistant.domain.ChapterStage
@@ -123,12 +119,13 @@ fun SyllabusRoute(
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val haptics = rememberHaptics()
     LaunchedEffect(Unit) { viewModel.refresh() }
     SyllabusScreen(
         state = state,
         onToggleExpand = viewModel::toggleExpand,
-        onToggleTick = viewModel::toggleTick,
-        onTapStage = viewModel::tapStage,
+        onToggleTick = { key -> haptics.select(); viewModel.toggleTick(key) },
+        onTapStage = { chapterId, stage -> haptics.select(); viewModel.tapStage(chapterId, stage) },
         onUndoRevision = viewModel::undoRevision,
         onSaveStageLabels = viewModel::saveStageLabels,
         onRenameChapter = viewModel::renameChapter,
@@ -547,14 +544,6 @@ private fun SyllabusFilterPopup(
             }
         }
     }
-}
-
-private fun subjectIcon(subjectId: String): ImageVector = when (subjectId.lowercase()) {
-    "physics" -> Icons.Filled.Bolt
-    "chemistry" -> Icons.Filled.Science
-    "botany" -> Icons.Filled.LocalFlorist
-    "zoology" -> Icons.Filled.Pets
-    else -> Icons.AutoMirrored.Filled.MenuBook
 }
 
 @Composable

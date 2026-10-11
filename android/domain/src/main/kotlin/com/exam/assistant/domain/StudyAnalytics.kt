@@ -55,6 +55,8 @@ data class RevisionInsight(
     val dueThisWeek: Int = 0,
     /** Revision sessions completed in the last 7 days. */
     val completedThisWeek: Int = 0,
+    /** Revision sessions completed in the last 30 days. */
+    val completedThisMonth: Int = 0,
     /** Over the selected period; null with nothing due in it. */
     val onTimePercent: Int? = null,
     val dueTitles: List<String> = emptyList(),
@@ -123,9 +125,19 @@ data class InsightsData(
     val lecturesDone: Int? = null,
     /** History exists but no streak today: shown as "New streak starts today", never as a loss. */
     val streakBroken: Boolean = false,
+    /** Percentage points of the target covered in the last 30 days (same [Coverage] rounding as [syllabusPercent]). */
+    val syllabusPercentGainedThisMonth: Int = 0,
+    /** Always the last 7 days ending today, whatever the selected period. */
+    val lastSevenDays: List<StudyDayInsight> = emptyList(),
+    val lastSevenDaysMinutes: Int = 0,
+    /** Study time the plan allows over the same 7 days ([availableStudyTime]); 0 when no free time is set. */
+    val weeklyGoalMinutes: Int = 0,
 )
 
 const val HEATMAP_DAYS = 84
+
+/** "This month" on Progress: the last 30 days. */
+private const val MONTH_DAYS = 30
 
 /**
  * Calculates all Insights values from prepared local state. Each number comes
@@ -188,12 +200,15 @@ fun computeInsights(
     val forecast = forecastInsight(sessions, remaining, plan, today)
 
     val weekStart = today.minusDays((REVISION_WEEK_DAYS - 1).toLong())
+    val monthStart = today.minusDays((MONTH_DAYS - 1).toLong())
+    val learnedThisMonth = chaptersLearnedBetween(progress, syllabus.targetLeafIds, monthStart, today, zone)
     val dueNow = revisionsDueNow(revisionStates, today)
     val revision = RevisionInsight(
         dueNow = dueNow.size,
         overdue = revisionsOverdue(revisionStates, today).size,
         dueThisWeek = revisionsDueThisWeek(revisionStates, today).size,
         completedThisWeek = revisionsCompleted(sessions, weekStart, today),
+        completedThisMonth = revisionsCompleted(sessions, monthStart, today),
         onTimePercent = revisionOnTime(sessions, revisionStates, periodStart, today, today).percent,
         dueTitles = dueNow.mapNotNull { pack.findNode(it.nodeId)?.title },
     )
@@ -238,6 +253,18 @@ fun computeInsights(
         chaptersLearnedThisWeek = chaptersLearnedBetween(progress, syllabus.targetLeafIds, weekStart, today, zone),
         lecturesDone = coaching.takeIf { list -> list.any { !it.isEmpty } }?.let(::lecturesDone),
         streakBroken = streakBroken(dates, today),
+        syllabusPercentGainedThisMonth =
+            overall.percent - Coverage((overall.covered - learnedThisMonth).coerceAtLeast(0), overall.total).percent,
+        lastSevenDays = heatmapDays.takeLast(REVISION_WEEK_DAYS),
+        lastSevenDaysMinutes = studiedMinutes(sessions, weekStart, today),
+        weeklyGoalMinutes = availableStudyTime(
+            from = weekStart,
+            to = today,
+            weekly = plan.weeklyAvailability,
+            overrides = plan.availabilityOverrides,
+            weekdayTargetMinutes = plan.weekdayTargetMinutes,
+            weekendTargetMinutes = plan.weekendTargetMinutes,
+        ).minutes,
     )
 }
 

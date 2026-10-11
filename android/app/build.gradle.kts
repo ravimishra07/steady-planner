@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -15,22 +17,50 @@ android {
     namespace = "com.exam.assistant"
     compileSdk = 35
 
+    // RevenueCat keys from android/local.properties (gitignored). Empty means RevenueCat is off:
+    // the paywall stays closed. Debug uses the Test Store key (revenuecat.testApiKey) when set;
+    // release only ever uses the Play key (revenuecat.apiKey) — a Test Store key must never ship.
+    val local = Properties().apply {
+        rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+    }
+    val playKey = local.getProperty("revenuecat.apiKey", "")
+    val testKey = local.getProperty("revenuecat.testApiKey", "").ifBlank { playKey }
+
     defaultConfig {
         applicationId = "com.exam.assistant"
         minSdk = 24
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.1.2"
+        versionCode = 4
+        versionName = "1.0.0"
+
+        buildConfigField("String", "REVENUECAT_API_KEY", "\"$playKey\"")
+    }
+
+    // Release signing comes from android/keystore.properties (storeFile, storePassword, keyAlias,
+    // keyPassword), which is gitignored. Without the file the release build is left unsigned.
+    val keystorePropsFile = rootProject.file("keystore.properties")
+    val releaseSigning = if (keystorePropsFile.exists()) {
+        val props = Properties().apply { keystorePropsFile.inputStream().use { load(it) } }
+        signingConfigs.create("release") {
+            storeFile = rootProject.file(props.getProperty("storeFile"))
+            storePassword = props.getProperty("storePassword")
+            keyAlias = props.getProperty("keyAlias")
+            keyPassword = props.getProperty("keyPassword")
+        }
+    } else {
+        null
     }
 
     buildTypes {
         release {
+            signingConfig = releaseSigning
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         debug {
             applicationIdSuffix = ".debug"
+            buildConfigField("String", "REVENUECAT_API_KEY", "\"$testKey\"")
         }
     }
 
@@ -70,6 +100,7 @@ dependencies {
     implementation(libs.glance.appwidget)
     // Glance runs on WorkManager; a direct dependency only to initialise it on demand (see SteadylineApp).
     implementation(libs.work.runtime)
+    implementation(libs.revenuecat.purchases.ui)
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)

@@ -135,7 +135,6 @@
     <string name="paywall_feature_stage">Your own custom chapter stage</string>
     <string name="paywall_free_note">Your plan, syllabus, Focus, revision and backup stay free forever.</string>
     <string name="paywall_buy">Buy Pro · %1$s</string>
-    <string name="paywall_price_fallback">₹59 one-time</string>
     <string name="paywall_restore">Restore purchase</string>
     <string name="paywall_working">Talking to Google Play…</string>
     <string name="paywall_close">Close</string>
@@ -149,7 +148,7 @@
     <string name="more_pro">Pro</string>
     <string name="more_pro_active">Unlocked</string>
     <string name="more_pro_unlocked_free">Everything is unlocked</string>
-    <string name="more_pro_buy">Unlock · %1$s</string>
+    <string name="more_pro_get">See Pro plans</string>
     <string name="more_restore">Restore purchase</string>
     <string name="more_restore_sub">Already bought Pro on another phone</string>
     <string name="more_debug_force_pro">Force Pro (debug build only)</string>
@@ -159,4 +158,17 @@
     <string name="more_log_out">Log out</string>
     <string name="more_log_out_title">Log out?</string>
     <string name="more_log_out_body">Erases all data on this phone.</string>
+    <string name="more_weekday_hours">Weekday hours</string>
+    <string name="more_weekend_hours">Weekend hours</string>
+    <string name="more_section_study">Study</string>
+    <string name="more_section_data">Data</string>
+    <string name="more_section_help">Help</string>
+    <string name="more_redo_setup">Redo setup</string>
+    <string name="more_erase_all">Erase all data</string>
+    <string name="more_erase_all_title">Erase all data?</string>
+    <string name="more_contact_support">Contact support</string>
+    <string name="more_rate_app">Rate on Play Store</string>
+    <string name="more_support_subject">NEET Planner support</string>
+    <!-- Support address for "Contact support". Empty hides the row. -->
+    <string name="support_email" translatable="false"></string>
 </resources>

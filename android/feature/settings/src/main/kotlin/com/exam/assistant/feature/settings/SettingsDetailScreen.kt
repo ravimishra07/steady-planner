@@ -750,12 +750,12 @@ private fun ReminderSection(
     }
 }
 
-private const val BACKUP_MIME = "application/json"
+internal const val BACKUP_MIME = "application/json"
 
 /** Some file managers label .json as octet-stream or plain text. */
-private val BACKUP_OPEN_MIMES = arrayOf(BACKUP_MIME, "application/octet-stream", "text/plain")
+internal val BACKUP_OPEN_MIMES = arrayOf(BACKUP_MIME, "application/octet-stream", "text/plain")
 
-private fun backupFileName(today: LocalDate): String = "neet-planner-backup-$today.json"
+internal fun backupFileName(today: LocalDate): String = "neet-planner-backup-$today.json"
 
 @Composable
 private fun SectionTitle(text: String) {

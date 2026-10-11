@@ -1,5 +1,20 @@
 package com.exam.assistant.feature.settings
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import com.exam.assistant.core.data.FocusStore
+import com.exam.assistant.core.data.SettingsStore
+import com.exam.assistant.core.data.StudySessionStore
+import com.exam.assistant.core.data.SyllabusStore
+import com.exam.assistant.core.data.backup.BackupRepository
+import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,7 +66,6 @@ data class MoreUiState(
 data class ProRowState(
     val isPro: Boolean = false,
     val paywallEnabled: Boolean = true,
-    val price: String? = null,
     val status: ProStatus = ProStatus.IDLE,
     val debugForcePro: Boolean = false,
     val showDebugToggle: Boolean = false,
@@ -76,11 +90,10 @@ class MoreViewModel(
     init {
         proRepository?.let { pro ->
             viewModelScope.launch {
-                combine(pro.isPro, pro.formattedPrice, pro.status, pro.debugForcePro) { isPro, price, status, force ->
-                    _state.value.pro.copy(isPro = isPro, price = price, status = status, debugForcePro = force)
+                combine(pro.isPro, pro.status, pro.debugForcePro) { isPro, status, force ->
+                    _state.value.pro.copy(isPro = isPro, status = status, debugForcePro = force)
                 }.collect { row -> _state.update { it.copy(pro = row) } }
             }
-            viewModelScope.launch { pro.loadProduct() }
         }
     }
 
@@ -176,19 +189,28 @@ class MoreViewModel(
 @Composable
 fun MoreRoute(
     planStore: PlanStore,
+    settingsStore: SettingsStore,
+    focusStore: FocusStore,
+    syllabusStore: SyllabusStore,
+    studySessionStore: StudySessionStore,
     examPackRepository: ExamPackRepository,
     attemptRepository: AttemptRepository,
+    studyPreferenceRepository: StudyPreferenceRepository,
     topicProgressRepository: TopicProgressRepository,
     targetSyllabusRepository: TargetSyllabusRepository,
     rollingPlanRepository: RollingPlanRepository,
     chapterStageRepository: ChapterStageRepository,
+    backupRepository: BackupRepository,
+    configExamDate: LocalDate,
     examDateOfficial: Boolean,
     appVersion: String,
     background: BackgroundAppearance,
     onOpenAppearance: () -> Unit,
-    onOpenSettings: () -> Unit,
+    onEditCommitments: () -> Unit,
     onRedoOnboarding: () -> Unit,
     onOpenPolicy: (String) -> Unit,
+    onReminderChanged: suspend () -> Unit,
+    onImported: () -> Unit,
     modifier: Modifier = Modifier,
     proRepository: ProRepository? = null,
     isDebugBuild: Boolean = false,
@@ -207,42 +229,107 @@ fun MoreRoute(
             isDebugBuild = isDebugBuild,
         ),
     ),
+    detailViewModel: SettingsDetailViewModel = composeViewModel(
+        factory = SettingsDetailViewModel.Factory(
+            planStore = planStore,
+            settingsStore = settingsStore,
+            focusStore = focusStore,
+            syllabusStore = syllabusStore,
+            studySessionStore = studySessionStore,
+            examPackRepository = examPackRepository,
+            attemptRepository = attemptRepository,
+            studyPreferenceRepository = studyPreferenceRepository,
+            rollingPlanRepository = rollingPlanRepository,
+            configExamDate = configExamDate,
+            examDateOfficial = examDateOfficial,
+            onReminderChanged = onReminderChanged,
+            backupRepository = backupRepository,
+        ),
+    ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    LaunchedEffect(Unit) { viewModel.refresh() }
-    val plan = state.plan
+    val detail by detailViewModel.state.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) {
+        viewModel.refresh()
+        detailViewModel.refresh()
+    }
+    val context = LocalContext.current
+    // Asked in context (§10.1): only when the student turns the reminder on, never at launch.
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) detailViewModel.setReminderEnabled(true) else detailViewModel.onReminderPermissionDenied()
+    }
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(BACKUP_MIME)) { uri ->
+        uri?.let(detailViewModel::exportBackup)
+    }
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(detailViewModel::requestImport)
+    }
+    val supportEmail = stringResource(R.string.support_email)
+    val supportSubject = stringResource(R.string.more_support_subject)
+    val actions = remember(viewModel, detailViewModel, supportEmail) {
+        SettingsActions(
+            onRetry = {
+                viewModel.refresh()
+                detailViewModel.refresh()
+            },
+            onWeekdayHours = { detailViewModel.setWeekdayHours(it); detailViewModel.commit() },
+            onWeekendHours = { detailViewModel.setWeekendHours(it); detailViewModel.commit() },
+            onFinishBy = { detailViewModel.setFinishBy(it); detailViewModel.commit() },
+            onExamDate = { detailViewModel.setExamDate(it); detailViewModel.commit() },
+            onEditCommitments = onEditCommitments,
+            onLiveBacklogSplit = viewModel::setLiveBacklogSplit,
+            onDismissSaveResult = detailViewModel::dismissSaveResult,
+            onFocusLength = { detailViewModel.setFocusDurationMinutes(it); detailViewModel.commit() },
+            onReminderToggle = { enabled ->
+                if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    detailViewModel.setReminderEnabled(enabled)
+                }
+            },
+            onReminderTime = detailViewModel::setReminderTime,
+            onFocusEndAlert = detailViewModel::setFocusEndAlert,
+            onOpenPaywall = onOpenPaywall,
+            onRestorePurchase = viewModel::restorePurchase,
+            onDismissProStatus = viewModel::clearProStatus,
+            onDebugForcePro = viewModel::setDebugForcePro,
+            onOpenAppearance = onOpenAppearance,
+            onShareUsageData = detailViewModel::setShareUsageData,
+            onExportBackup = { exportLauncher.launch(backupFileName(LocalDate.now())) },
+            onImportBackup = { importLauncher.launch(BACKUP_OPEN_MIMES) },
+            onConfirmImport = { detailViewModel.confirmImport(onImported) },
+            onDismissImport = detailViewModel::dismissImport,
+            onDismissBackupMessage = detailViewModel::dismissBackupMessage,
+            onRedoSetup = onRedoOnboarding,
+            onEraseAll = onLogOut,
+            onContactSupport = supportEmail.takeIf { it.isNotBlank() }?.let { email ->
+                {
+                    val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:")).apply {
+                        putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
+                        putExtra(Intent.EXTRA_SUBJECT, supportSubject)
+                    }
+                    runCatching { context.startActivity(intent) }
+                }
+            },
+            onRateApp = {
+                val pkg = context.packageName.removeSuffix(".debug")
+                val market = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$pkg"))
+                val web = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$pkg"))
+                runCatching { context.startActivity(market) }.onFailure { runCatching { context.startActivity(web) } }
+            },
+            onOpenPolicy = onOpenPolicy,
+        )
+    }
     MoreScreen(
-        loading = state.loading,
-        loadFailed = state.loadFailed,
-        planExamLabel = plan?.takeIf { it.examId == NEET_EXAM_ID }?.let {
-            stringResource(R.string.settings_exam_neet)
-        },
-        examDateLabel = state.examDate?.let { date ->
-            date.format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()))
-        },
-        examDateOfficial = examDateOfficial,
-        finishByLabel = (state.finishByDate ?: plan?.targetDateEpochDay?.let(LocalDate::ofEpochDay))?.let { date ->
-            date.format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()))
-        },
-        weekdayHours = plan?.weekdayHours,
-        weekendHours = plan?.weekendHours,
-        fixedBlockCount = plan?.decodedCommitments()?.size ?: 0,
-        coveragePercent = state.coveragePercent,
-        liveBacklogSplit = state.liveBacklogSplit,
-        onLiveBacklogSplit = viewModel::setLiveBacklogSplit,
-        appVersion = appVersion,
-        background = background,
-        onRetry = viewModel::refresh,
-        onOpenAppearance = onOpenAppearance,
-        onOpenSettings = onOpenSettings,
-        onRedoOnboarding = onRedoOnboarding,
-        onOpenPolicy = onOpenPolicy,
+        detail = detail,
         pro = state.pro,
-        onOpenPaywall = onOpenPaywall,
-        onRestorePurchase = viewModel::restorePurchase,
-        onDismissProStatus = viewModel::clearProStatus,
-        onDebugForcePro = viewModel::setDebugForcePro,
-        onLogOut = onLogOut,
+        fixedBlockCount = state.plan?.decodedCommitments()?.size ?: 0,
+        liveBacklogSplit = state.liveBacklogSplit,
+        background = background,
+        appVersion = appVersion,
+        actions = actions,
         modifier = modifier,
     )
 }

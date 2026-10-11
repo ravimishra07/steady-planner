@@ -28,6 +28,7 @@ import com.exam.assistant.core.design.AppTheme
 import com.exam.assistant.core.design.AppType
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
+import com.exam.assistant.core.design.rememberHaptics
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.feature.onboarding.R
 
@@ -43,6 +44,7 @@ internal fun OnboardingSelectableCard(
     trailing: @Composable (() -> Unit)? = null,
 ) {
     val colors = AppTheme.colors
+    val haptics = rememberHaptics()
     val interactive = enabled
     val background = when {
         !interactive -> colors.surfaceControl
@@ -53,7 +55,10 @@ internal fun OnboardingSelectableCard(
         else -> colors.text
     }
     Surface(
-        onClick = onClick,
+        onClick = {
+            haptics.select()
+            onClick()
+        },
         enabled = interactive,
         modifier = modifier
             .fillMaxWidth()
