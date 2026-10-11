@@ -35,6 +35,7 @@ import com.exam.assistant.core.data.repo.StudySessionRepository
 import com.exam.assistant.core.data.repo.TargetSyllabusRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
 import com.exam.assistant.domain.PendingSyllabusPick
+import com.exam.assistant.feature.onboarding.model.OnboardingStep
 import com.exam.assistant.focus.AppFocusEffects
 import com.exam.assistant.focus.FocusAlarm
 import com.exam.assistant.focus.FocusNotifier
@@ -90,9 +91,12 @@ class AppContainer(private val context: Context) {
     /** Firebase Analytics + Crashlytics when google-services.json was present at build time, else a no-op. */
     val analytics: Analytics by lazy { FirebaseAppAnalytics.createOrNoOp(context) }
 
-    /** Pro entitlement (Play Billing, cached). The billing client is built on first use, never at startup. */
+    /** Pro entitlement (RevenueCat, cached). The SDK is configured on first use, never at startup. */
     val proRepository: ProRepository by lazy {
-        ProRepository(context, dispatchers, remoteConfig, appScope, isDebugBuild = BuildConfig.DEBUG, analytics = analytics)
+        ProRepository(
+            context, dispatchers, remoteConfig, appScope,
+            isDebugBuild = BuildConfig.DEBUG, apiKey = BuildConfig.REVENUECAT_API_KEY, analytics = analytics,
+        )
     }
 
     /** One-shot: something asked for the paywall. The nav host drops it during onboarding and Focus. */
@@ -102,6 +106,9 @@ class AppContainer(private val context: Context) {
     fun openPaywall() {
         if (proRepository.paywallEnabled) paywallRequest.value = true
     }
+
+    /** Set when onboarding finishes; the nav host opens the paywall once the first screen after setup is up. */
+    val paywallAfterSetup = MutableStateFlow(false)
 
     /** The one path for Focus session changes: screen, notification actions, end alarm, boot, cold start. */
     val focusController: FocusController by lazy {
@@ -163,7 +170,7 @@ class AppContainer(private val context: Context) {
     val openTodayRequest = MutableStateFlow(false)
 
     /** One-shot: Today's "adjust plan" opens the setup flow on its Plan step. */
-    val onboardingStartAtPlan = MutableStateFlow(false)
+    val onboardingStartAt = MutableStateFlow<OnboardingStep?>(null)
 
     /** Runs the one-time legacy-store migration off the critical path. Safe to call every launch — no-ops once done. */
     fun runMigrationInBackground() {
@@ -179,7 +186,7 @@ class AppContainer(private val context: Context) {
         }
         appScope.launch {
             // Restore on launch: picks up a purchase from another device, or a refund.
-            runCatching { proRepository.refreshPurchases() }
+            runCatching { proRepository.start() }
         }
         appScope.launch {
             // The medium widget locks and unlocks with Pro.

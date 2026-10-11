@@ -18,7 +18,7 @@ cd android && ./gradlew --no-daemon :domain:test testDebugUnitTest lintDebug ass
 - **Support line / helpline (§10.5) is removed.** Do not build it.
 - App ID stays `com.exam.assistant`.
 - Analytics: Firebase Analytics + Crashlytics.
-- Pro is **₹59 lifetime**, one-time. No subscription, no trial.
+- Pro is **₹49 lifetime**, one-time. No subscription, no trial.
 - Commit locally only. Ravi pushes.
 
 ## Done (committed, build green when committed)
@@ -102,7 +102,7 @@ pre-existing local changes.
 **Phase F** — §11.2, §11.3
 
 - Play Billing:
-  - one non-consumable "pro_lifetime" at ₹59;
+  - one non-consumable "pro_lifetime" at ₹49;
   - entitlement cached offline;
   - restore on launch and from Settings;
   - acknowledge and handle refunds.
@@ -129,7 +129,7 @@ pre-existing local changes.
     choices, mode picker);
   - timer with the screen off on an aggressive-OEM phone;
   - offline use.
-- Play Console app, the `pro_lifetime` ₹59 product, license testers.
+- Play Console app, the `pro_lifetime` ₹49 product, license testers.
 - Upload keystore plus 2 backups.
 - `google-services.json` for Analytics/Crashlytics.
 - Hosting the privacy policy.

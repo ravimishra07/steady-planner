@@ -210,7 +210,7 @@ export const R = Object.freeze({
     "onboarding_plan_done_editing": "Done editing",
     "onboarding_plan_settings_note": "You can edit your plan any time in Settings.",
     "onboarding_plan_add_chapters": "Add chapters",
-    "onboarding_start_day_one": "Start week 1",
+    "onboarding_start_day_one": "Start day 1",
     "onboarding_finish_failed": "Couldn't save. Try again.",
     "onboarding_dismiss": "Dismiss",
     "onboarding_usage_data_note": "Anonymous usage data on. Change in Settings.",

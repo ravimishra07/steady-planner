@@ -71,6 +71,7 @@ import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import com.exam.assistant.core.data.repo.StudySessionRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
 import com.exam.assistant.core.data.repo.TopicProgressRepository
+import com.exam.assistant.core.design.rememberHaptics
 import com.exam.assistant.core.design.LengthPicker
 import com.exam.assistant.core.design.LengthPickerLabels
 import com.exam.assistant.domain.FOCUS_LENGTH_MAX_MINUTES
@@ -125,7 +126,9 @@ fun FocusRoute(
     val notificationPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { viewModel.startSession() }
+    val haptics = rememberHaptics()
     val onStart: () -> Unit = {
+        haptics.confirm()
         val needsAsk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             state.askNotificationPermission &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
@@ -143,18 +146,18 @@ fun FocusRoute(
         remainingSeconds = remaining,
         onClose = onClose,
         onStart = onStart,
-        onPause = viewModel::pause,
-        onResume = viewModel::resume,
-        onExtend = viewModel::extendFiveMinutes,
-        onSelectQueueItem = viewModel::selectQueueItem,
-        onDuration = viewModel::setDuration,
+        onPause = { haptics.select(); viewModel.pause() },
+        onResume = { haptics.select(); viewModel.resume() },
+        onExtend = { haptics.select(); viewModel.extendFiveMinutes() },
+        onSelectQueueItem = { item -> haptics.select(); viewModel.selectQueueItem(item) },
+        onDuration = { minutes -> haptics.select(); viewModel.setDuration(minutes) },
         onRequestStop = viewModel::requestStop,
-        onSavePartialAndStop = viewModel::savePartialAndStop,
+        onSavePartialAndStop = { haptics.confirm(); viewModel.savePartialAndStop() },
         onDiscardAndStop = viewModel::discardAndStop,
         onDismissStop = viewModel::dismissStopDialog,
         onStartAnother = viewModel::startAnother,
-        onOutcome = viewModel::recordOutcome,
-        onMarkLearned = viewModel::markChapterLearned,
+        onOutcome = { outcome -> haptics.select(); viewModel.recordOutcome(outcome) },
+        onMarkLearned = { haptics.confirm(); viewModel.markChapterLearned() },
         onDismissLearnPrompt = viewModel::dismissLearnPrompt,
         onBackToday = onClose,
         modifier = modifier,

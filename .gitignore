@@ -62,3 +62,10 @@ android/.kotlin/
 # IDE
 .idea/
 .vscode/
+
+# release signing and Firebase config: never commit
+android/keystore.properties
+*.jks
+*.keystore
+android/app/google-services.json
+.claude/.build-ok

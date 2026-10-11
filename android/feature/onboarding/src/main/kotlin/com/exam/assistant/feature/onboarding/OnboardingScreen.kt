@@ -67,7 +67,7 @@ fun OnboardingRoute(
     dispatchers: AppDispatchers,
     examDate: LocalDate,
     examDateOfficial: Boolean,
-    startAtPlan: Boolean,
+    startAt: OnboardingStep?,
     background: BackgroundAppearance,
     onBackground: (BackgroundAppearance) -> Unit,
     accentPalette: AccentPalette,
@@ -89,7 +89,7 @@ fun OnboardingRoute(
             dispatchers,
             examDate,
             examDateOfficial,
-            startAtPlan,
+            startAt,
             analytics,
         ),
     ),
@@ -186,18 +186,6 @@ fun OnboardingScreen(
         }
         return
     }
-    val title = stringResource(
-        when (state.step) {
-            OnboardingStep.Appearance -> R.string.onboarding_appearance_title
-            OnboardingStep.Coaching -> R.string.onboarding_coaching_title
-            OnboardingStep.Commitments -> R.string.onboarding_commitments_title
-            OnboardingStep.Date -> R.string.onboarding_date_title
-            OnboardingStep.Hours -> R.string.onboarding_hours_title
-            OnboardingStep.Start -> R.string.onboarding_start_title
-            OnboardingStep.Syllabus -> if (state.useProvidedSyllabus) R.string.onboarding_syllabus_title else R.string.onboarding_syllabus_custom_title
-            OnboardingStep.Plan -> R.string.onboarding_plan_title
-        },
-    )
     val cta = stringResource(
         when (state.step) {
             OnboardingStep.Syllabus -> R.string.onboarding_build_plan
@@ -207,7 +195,22 @@ fun OnboardingScreen(
     )
 
     OnboardingShell(
-        title = title,
+        step = state.step,
+        title = { step ->
+            stringResource(
+                when (step) {
+                    OnboardingStep.Appearance -> R.string.onboarding_appearance_title
+                    OnboardingStep.Coaching -> R.string.onboarding_coaching_title
+                    OnboardingStep.Commitments -> R.string.onboarding_commitments_title
+                    OnboardingStep.Date -> R.string.onboarding_date_title
+                    OnboardingStep.Hours -> R.string.onboarding_hours_title
+                    OnboardingStep.Start -> R.string.onboarding_start_title
+                    OnboardingStep.Syllabus ->
+                        if (state.useProvidedSyllabus) R.string.onboarding_syllabus_title else R.string.onboarding_syllabus_custom_title
+                    OnboardingStep.Plan -> R.string.onboarding_plan_title
+                },
+            )
+        },
         progressIndex = state.step.progressIndex,
         canGoBack = state.canGoBack,
         ctaLabel = cta,
@@ -221,8 +224,8 @@ fun OnboardingScreen(
         } else {
             null
         },
-    ) {
-        when (state.step) {
+    ) { step ->
+        when (step) {
             OnboardingStep.Appearance -> OnboardingAppearanceStep(background, accentPalette, onBackground)
             OnboardingStep.Coaching -> OnboardingCoachingStep(state.coachingId, onSelectCoaching)
             OnboardingStep.Commitments -> OnboardingCommitmentsStep(
@@ -242,7 +245,6 @@ fun OnboardingScreen(
                 OnboardingHoursParityStep(
                     state = state,
                     capacityIssues = capacityIssues,
-                    onSelectWork = onSelectWork,
                     onWeekdayChange = onWeekdayChange,
                     onWeekendChange = onWeekendChange,
                 )

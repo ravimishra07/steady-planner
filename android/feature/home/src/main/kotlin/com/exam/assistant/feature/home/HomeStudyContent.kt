@@ -119,6 +119,7 @@ internal fun HomeStudyContent(
                     monthDays = state.monthDays,
                     expanded = state.calendarExpanded,
                     onToggleExpanded = onToggleCalendarExpanded,
+                    weekStart = state.weekStart,
                     onSelectDate = onSelectDate,
                 )
 

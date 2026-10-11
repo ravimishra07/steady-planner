@@ -37,6 +37,8 @@ import androidx.compose.ui.window.DialogProperties
 import com.exam.assistant.core.design.ThemePreviewMetrics
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -62,6 +64,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -115,11 +118,11 @@ import androidx.compose.ui.semantics.semantics
 import com.exam.assistant.core.design.AccentPalette
 import com.exam.assistant.core.design.AppStepperControl
 import com.exam.assistant.core.design.AppTheme
-import com.exam.assistant.core.design.AppValueStepper
 import com.exam.assistant.core.design.BackgroundAppearance
 import com.exam.assistant.core.design.CalendarMetrics
 import com.exam.assistant.core.design.Radius
 import com.exam.assistant.core.design.Size
+import com.exam.assistant.core.design.rememberHaptics
 import com.exam.assistant.core.design.Spacing
 import com.exam.assistant.core.design.Stroke
 import com.exam.assistant.domain.PlanFit
@@ -129,10 +132,10 @@ import com.exam.assistant.domain.StartingPoint
 import com.exam.assistant.feature.onboarding.CapacityIssuesCard
 import com.exam.assistant.feature.onboarding.CapacityIssue
 import com.exam.assistant.feature.onboarding.CommitmentIssue
+import com.exam.assistant.feature.onboarding.freeMinutesOnDay
 import com.exam.assistant.feature.onboarding.R
 import com.exam.assistant.feature.onboarding.components.OnboardingSelectableCard
 import com.exam.assistant.feature.onboarding.components.selectionBorder
-import com.exam.assistant.feature.onboarding.model.DAY_SHAPES
 import com.exam.assistant.feature.onboarding.model.ExamCatalog
 import com.exam.assistant.feature.onboarding.model.OnboardingCommitment
 import com.exam.assistant.feature.onboarding.model.OnboardingUiState
@@ -145,6 +148,7 @@ import java.time.format.FormatStyle
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.roundToInt
 
 /**
@@ -158,6 +162,7 @@ internal fun OnboardingAppearanceStep(
     accent: AccentPalette,
     onBackground: (BackgroundAppearance) -> Unit,
 ) {
+    val haptics = rememberHaptics()
     val options = BackgroundAppearance.entries
     val pagerState = rememberPagerState(initialPage = options.indexOf(background)) { options.size }
     val scope = rememberCoroutineScope()
@@ -201,7 +206,7 @@ internal fun OnboardingAppearanceStep(
                         .selectable(
                             selected = centered,
                             role = Role.RadioButton,
-                            onClick = { scope.launch { pagerState.animateScrollToPage(page) } },
+                            onClick = { haptics.select(); scope.launch { pagerState.animateScrollToPage(page) } },
                         )
                         .semantics { contentDescription = name },
                 ) {
@@ -241,6 +246,7 @@ internal fun OnboardingAccentPicker(
     onAccent: (AccentPalette) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val haptics = rememberHaptics()
     val dark = AppTheme.colors.isDark
     Row(
         modifier = modifier
@@ -258,7 +264,7 @@ internal fun OnboardingAccentPicker(
                 modifier = Modifier
                     .size(Size.touchTarget)
                     .clip(CircleShape)
-                    .selectable(selected = selected, role = Role.RadioButton, onClick = { onAccent(option) })
+                    .selectable(selected = selected, role = Role.RadioButton, onClick = { haptics.select(); onAccent(option) })
                     .semantics { contentDescription = name },
                 contentAlignment = Alignment.Center,
             ) {
@@ -434,6 +440,7 @@ private fun groupShape(index: Int, count: Int): RoundedCornerShape {
 
 @Composable
 private fun CoachingRow(choice: CoachingChoice, selected: Boolean, shape: RoundedCornerShape, onClick: () -> Unit) {
+    val haptics = rememberHaptics()
     val primary = MaterialTheme.colorScheme.primary
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -443,7 +450,7 @@ private fun CoachingRow(choice: CoachingChoice, selected: Boolean, shape: Rounde
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+                .selectable(selected = selected, role = Role.RadioButton, onClick = { haptics.select(); onClick() })
                 .heightIn(min = Size.listRow)
                 .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
@@ -487,6 +494,7 @@ internal fun OnboardingCommitmentsStep(
     onWake: (Int) -> Unit,
     onSleep: (Int) -> Unit,
 ) {
+    val haptics = rememberHaptics()
     var showAddOptions by remember { mutableStateOf(false) }
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
@@ -525,6 +533,7 @@ internal fun OnboardingCommitmentsStep(
                     val preset = commitmentKindLabel(kind)
                     Surface(
                         onClick = {
+                            haptics.select()
                             onAdd(kind)
                             showAddOptions = false
                         },
@@ -590,70 +599,83 @@ private fun CommitmentCard(
     onStart: (String, Int) -> Unit,
     onEnd: (String, Int) -> Unit,
 ) {
+    val haptics = rememberHaptics()
     val defaultLabel = stringResource(commitment.labelRes)
     val label = commitment.customLabel ?: defaultLabel
     var showRename by remember(commitment.id) { mutableStateOf(false) }
     var draftLabel by remember(commitment.id) { mutableStateOf(label) }
-    Surface(shape = RoundedCornerShape(Radius.md), color = AppTheme.colors.elevated) {
-        Column(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.Groups, null, tint = AppTheme.colors.brand)
-                Text(label, modifier = Modifier.weight(1f).padding(start = Spacing.sm), style = MaterialTheme.typography.titleMedium)
-                Text(
-                    // Start and end are already in the fields below; the header shows only the length.
-                    stringResource(
-                        R.string.onboarding_commitments_duration,
-                        planHour(((commitment.endMinute - commitment.startMinute + 24 * 60) % (24 * 60)) / 60f),
-                    ),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = AppTheme.colors.textSecondary,
-                )
-                IconButton(
-                    onClick = {
+    val colors = AppTheme.colors
+    Surface(shape = RoundedCornerShape(Radius.lg), color = colors.elevated) {
+        Column(Modifier.padding(Spacing.lg)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Box(
+                    Modifier.size(Size.swatch).clip(RoundedCornerShape(Radius.md)).background(colors.glassTint),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Filled.Groups, null, tint = colors.brand)
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(label, style = MaterialTheme.typography.titleMedium, color = colors.text)
+                    Text(
+                        // Start and end are already in the fields below; the header shows only the length.
+                        stringResource(
+                            R.string.onboarding_commitments_duration,
+                            planHour(((commitment.endMinute - commitment.startMinute + 24 * 60) % (24 * 60)) / 60f),
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.text,
+                    )
+                }
+                // Plain icon buttons; edge-to-edge spacing comes from their 48dp touch targets.
+                Row {
+                    IconButton(onClick = {
                         draftLabel = label
                         showRename = true
-                    },
-                    modifier = Modifier.size(Size.dayControl),
-                ) {
-                    Icon(Icons.Filled.Edit, stringResource(R.string.onboarding_commitments_rename, label))
-                }
-                IconButton(onClick = { onRemove(commitment.id) }, modifier = Modifier.size(Size.dayControl)) {
-                    Icon(Icons.Filled.Close, stringResource(R.string.onboarding_commitments_remove, label))
+                    }) {
+                        Icon(Icons.Filled.Edit, stringResource(R.string.onboarding_commitments_rename, label), tint = colors.text)
+                    }
+                    IconButton(onClick = { onRemove(commitment.id) }) {
+                        Icon(Icons.Filled.Close, stringResource(R.string.onboarding_commitments_remove, label), tint = colors.text)
+                    }
                 }
             }
+            Spacer(Modifier.height(Spacing.md))
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 TimeField(stringResource(R.string.onboarding_commitments_starts), commitment.startMinute, { onStart(commitment.id, it) }, Modifier.weight(1f))
                 TimeField(stringResource(R.string.onboarding_commitments_ends), commitment.endMinute, { onEnd(commitment.id, it) }, Modifier.weight(1f))
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                dayOptions.forEach { (day, labelRes) ->
-                    val selected = day in commitment.days
-                    val dayName = stringResource(dayNames[day])
-                    Surface(
-                        onClick = { onToggleDay(commitment.id, day) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(Size.dayControl)
-                            .semantics {
-                                role = Role.Checkbox
-                                this.selected = selected
-                                contentDescription = dayName
-                            },
-                        shape = CircleShape,
-                        color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                        border = if (selected) null else BorderStroke(Stroke.hairline, AppTheme.colors.outline),
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                stringResource(labelRes),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = if (selected) MaterialTheme.colorScheme.onPrimary else AppTheme.colors.text,
-                            )
+            Spacer(Modifier.height(Spacing.xxl))
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(stringResource(R.string.onboarding_commitments_repeat_on), style = MaterialTheme.typography.bodyMedium, color = colors.text)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    dayOptions.forEach { (day, labelRes) ->
+                        val selected = day in commitment.days
+                        val dayName = stringResource(dayNames[day])
+                        Surface(
+                            onClick = { haptics.select(); onToggleDay(commitment.id, day) },
+                            modifier = Modifier
+                                .size(Size.dayControl)
+                                .semantics {
+                                    role = Role.Checkbox
+                                    this.selected = selected
+                                    contentDescription = dayName
+                                },
+                            shape = CircleShape,
+                            color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            border = if (selected) null else BorderStroke(Stroke.hairline, colors.text),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    stringResource(labelRes),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (selected) MaterialTheme.colorScheme.onPrimary else colors.text,
+                                )
+                            }
                         }
                     }
                 }
+                issues.forEach { issue -> InlineCommitmentIssue(issue) }
             }
-            issues.forEach { issue -> InlineCommitmentIssue(issue) }
         }
     }
     if (showRename) {
@@ -722,8 +744,8 @@ private fun TimeField(label: String, minute: Int, onChange: (Int) -> Unit, modif
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = colors.text,
                 unfocusedTextColor = colors.text,
-                focusedBorderColor = colors.outline,
-                unfocusedBorderColor = colors.outline,
+                focusedBorderColor = colors.text,
+                unfocusedBorderColor = colors.text,
                 focusedLabelColor = colors.text,
                 unfocusedLabelColor = colors.text,
                 focusedTrailingIconColor = colors.text,
@@ -970,6 +992,7 @@ internal fun OnboardingSyllabusStep(
     onToggleSubject: (String) -> Unit,
     onToggleChapter: (String) -> Unit,
 ) {
+    val haptics = rememberHaptics()
     var expandedSubjectId by remember(state.examId) { mutableStateOf<String?>(null) }
     val chapterCount = state.syllabusSubjects.sumOf { it.chapters.size }
     val selectedCount = state.selectedChapterIds.size
@@ -1002,7 +1025,7 @@ internal fun OnboardingSyllabusStep(
                                     color = AppTheme.colors.textSecondary,
                                 )
                             }
-                            TextButton(onClick = { onToggleSubject(subject.id) }) {
+                            TextButton(onClick = { haptics.select(); onToggleSubject(subject.id) }) {
                                 Text(stringResource(if (allSubjectSelected) R.string.onboarding_syllabus_clear_all else R.string.onboarding_syllabus_select_all))
                             }
                             IconButton(onClick = {
@@ -1031,7 +1054,7 @@ internal fun OnboardingSyllabusStep(
                                     OnboardingSelectableCard(
                                         title = chapter.name,
                                         selected = chapter.id in state.selectedChapterIds,
-                                        onClick = { onToggleChapter(chapter.id) },
+                                        onClick = { haptics.select(); onToggleChapter(chapter.id) },
                                         modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                                         showUnselectedIndicator = true,
                                     )
@@ -1054,56 +1077,38 @@ internal fun OnboardingSyllabusStep(
 internal fun OnboardingHoursParityStep(
     state: OnboardingUiState,
     capacityIssues: List<CapacityIssue>,
-    onSelectWork: (String) -> Unit,
     onWeekdayChange: (Float) -> Unit,
     onWeekendChange: (Float) -> Unit,
 ) {
+    val weekdayFree = (1..5).minOf { day -> freeMinutesOnDay(day, state) } / 60f
+    val weekendFree = listOf(0, 6).minOf { day -> freeMinutesOnDay(day, state) } / 60f
     val weeklyHours = state.weekdayHours * 5 + state.weekendHours * 2
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxl)) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            AppearanceLabel(R.string.onboarding_hours_start_schedule)
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                DAY_SHAPES.forEach { shape ->
-                    val selected = shape.id == state.workId
-                    Surface(
-                        onClick = { onSelectWork(shape.id) },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(Radius.md),
-                        color = Color.Transparent,
-                        border = selectionBorder(selected) ?: BorderStroke(Stroke.hairline, AppTheme.colors.outline),
-                    ) {
-                        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                            Text(stringResource(shape.labelRes), style = MaterialTheme.typography.labelLarge)
-                            Text(
-                                stringResource(R.string.onboarding_shape_weekday_hours, planHour(shape.weekdayHours)),
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                            Text(
-                                stringResource(R.string.onboarding_shape_weekend_hours, planHour(shape.weekendHours)),
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
-                    }
-                }
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
+        Surface(shape = RoundedCornerShape(Radius.md), color = AppTheme.colors.elevated) {
+            Column {
+                HoursRow(
+                    label = stringResource(R.string.onboarding_hours_weekdays),
+                    value = state.weekdayHours,
+                    options = hourOptions(weekdayFree, MAX_WEEKDAY_HOURS, state.weekdayHours),
+                    onChange = onWeekdayChange,
+                )
+                HorizontalDivider(color = AppTheme.colors.hairline)
+                HoursRow(
+                    label = stringResource(R.string.onboarding_hours_weekends),
+                    value = state.weekendHours,
+                    options = hourOptions(weekendFree, MAX_WEEKEND_HOURS, state.weekendHours),
+                    onChange = onWeekendChange,
+                )
             }
         }
-        HoursStepper(
-            label = stringResource(R.string.onboarding_hours_weekdays),
-            value = state.weekdayHours,
-            minimum = 1f,
-            maximum = 14f,
-            onChange = onWeekdayChange,
-        )
-        HoursStepper(
-            label = stringResource(R.string.onboarding_hours_weekends),
-            value = state.weekendHours,
-            minimum = 1f,
-            maximum = 16f,
-            onChange = onWeekendChange,
-        )
         Surface(shape = RoundedCornerShape(Radius.md), color = AppTheme.colors.elevated) {
             Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.onboarding_hours_each_week), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    stringResource(R.string.onboarding_hours_each_week),
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = AppTheme.colors.text,
+                )
                 Text(
                     stringResource(R.string.onboarding_hours_weekly_value, planHour(weeklyHours)),
                     style = MaterialTheme.typography.titleMedium,
@@ -1115,24 +1120,59 @@ internal fun OnboardingHoursParityStep(
     }
 }
 
+private const val MAX_WEEKDAY_HOURS = 14f
+private const val MAX_WEEKEND_HOURS = 16f
+
+/** Whole-hour choices up to the free time that day allows, plus the current value if it is off-grid. */
+private fun hourOptions(freeHours: Float, maximum: Float, current: Float): List<Float> {
+    val top = floor(minOf(freeHours, maximum)).toInt().coerceAtLeast(1)
+    return ((1..top).map { it.toFloat() } + current).distinct().sorted()
+}
+
 @Composable
-private fun HoursStepper(
-    label: String,
-    value: Float,
-    minimum: Float,
-    maximum: Float,
-    onChange: (Float) -> Unit,
-) {
-    AppValueStepper(
-        label = label,
-        value = stringResource(R.string.onboarding_hours_value, planHour(value)),
-        decreaseContentDescription = stringResource(R.string.onboarding_hours_decrease, label),
-        increaseContentDescription = stringResource(R.string.onboarding_hours_increase, label),
-        onDecrease = { onChange((value - .5f).coerceAtLeast(minimum)) },
-        onIncrease = { onChange((value + .5f).coerceAtMost(maximum)) },
-        decreaseEnabled = value > minimum,
-        increaseEnabled = value < maximum,
-    )
+private fun hoursLabel(hours: Float): String =
+    if (hours == 1f) stringResource(R.string.onboarding_hours_value_one)
+    else stringResource(R.string.onboarding_hours_value, planHour(hours))
+
+/** One row: label, then the hours; tapping anywhere opens a menu of hour choices. */
+@Composable
+private fun HoursRow(label: String, value: Float, options: List<Float>, onChange: (Float) -> Unit) {
+    val haptics = rememberHaptics()
+    var open by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = Size.onboardingHoursRow)
+            .clickable { open = true }
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, color = AppTheme.colors.text)
+        Box {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text(hoursLabel(value), style = MaterialTheme.typography.titleMedium, color = AppTheme.colors.text)
+                Icon(Icons.Filled.ArrowDropDown, contentDescription = null, tint = AppTheme.colors.text)
+            }
+            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                options.forEach { hours ->
+                    DropdownMenuItem(
+                        text = { Text(hoursLabel(hours)) },
+                        onClick = {
+                            open = false
+                            haptics.select()
+                            onChange(hours)
+                        },
+                        trailingIcon = if (hours == value) {
+                            { Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                        } else {
+                            null
+                        },
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -1289,6 +1329,7 @@ private fun FitOptions(
     loading: Boolean,
     onApply: (PlanFitOption) -> Unit,
 ) {
+    val haptics = rememberHaptics()
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(stringResource(R.string.onboarding_plan_options_title), style = MaterialTheme.typography.titleSmall)
         fit.options.forEach { option ->
@@ -1324,7 +1365,7 @@ private fun FitOptions(
                         Text(title, style = MaterialTheme.typography.titleSmall, color = AppTheme.colors.text)
                         Text(detail, style = MaterialTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
                     }
-                    TextButton(onClick = { onApply(option) }, enabled = !loading) { Text(stringResource(action)) }
+                    TextButton(onClick = { haptics.confirm(); onApply(option) }, enabled = !loading) { Text(stringResource(action)) }
                 }
             }
         }

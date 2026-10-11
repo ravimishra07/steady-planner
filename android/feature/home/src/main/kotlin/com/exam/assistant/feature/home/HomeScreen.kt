@@ -44,6 +44,7 @@ fun HomeRoute(
     pendingSyllabusPick: StateFlow<PendingSyllabusPick?>,
     onConsumedSyllabusPick: () -> Unit,
     modifier: Modifier = Modifier,
+    weekStart: java.time.DayOfWeek = java.time.DayOfWeek.MONDAY,
     viewModel: HomeViewModel = viewModel(
         factory = HomeViewModel.Factory(
             examPackRepository,
@@ -61,6 +62,7 @@ fun HomeRoute(
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    androidx.compose.runtime.LaunchedEffect(weekStart) { viewModel.setWeekStart(weekStart) }
 
     LaunchedEffect(Unit) {
         viewModel.refresh()

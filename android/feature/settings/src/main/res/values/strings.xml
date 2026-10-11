@@ -135,7 +135,6 @@
     <string name="paywall_feature_stage">Your own custom chapter stage</string>
     <string name="paywall_free_note">Your plan, syllabus, Focus, revision and backup stay free forever.</string>
     <string name="paywall_buy">Buy Pro · %1$s</string>
-    <string name="paywall_price_fallback">₹59 one-time</string>
     <string name="paywall_restore">Restore purchase</string>
     <string name="paywall_working">Talking to Google Play…</string>
     <string name="paywall_close">Close</string>
@@ -149,7 +148,7 @@
     <string name="more_pro">Pro</string>
     <string name="more_pro_active">Unlocked</string>
     <string name="more_pro_unlocked_free">Everything is unlocked</string>
-    <string name="more_pro_buy">Unlock · %1$s</string>
+    <string name="more_pro_get">See Pro plans</string>
     <string name="more_restore">Restore purchase</string>
     <string name="more_restore_sub">Already bought Pro on another phone</string>
     <string name="more_debug_force_pro">Force Pro (debug build only)</string>
@@ -159,4 +158,44 @@
     <string name="more_log_out">Log out</string>
     <string name="more_log_out_title">Log out?</string>
     <string name="more_log_out_body">Erases all data on this phone.</string>
+    <string name="more_weekday_hours">Weekday hours</string>
+    <string name="more_weekend_hours">Weekend hours</string>
+    <string name="more_section_study">Study</string>
+    <string name="more_section_data">Data</string>
+    <string name="more_section_help">Help</string>
+    <string name="more_redo_setup">Redo setup</string>
+    <string name="more_erase_all">Erase all data</string>
+    <string name="more_erase_all_title">Erase all data?</string>
+    <string name="more_contact_support">Contact support</string>
+    <string name="more_rate_app">Rate on Play Store</string>
+    <string name="more_support_subject">NEET Planner support</string>
+    <!-- Support address for "Contact support". Empty hides the row. -->
+    <string name="support_email" translatable="false"></string>
+    <!-- Settings (grouped list) -->
+    <string name="settings_section_general">General</string>
+    <string name="settings_section_study_plan">Study plan</string>
+    <string name="settings_section_experience">Study experience</string>
+    <string name="settings_section_account">Account &amp; data</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_start_of_week">Start of week</string>
+    <string name="settings_daily_goal">Daily study goal</string>
+    <string name="settings_daily_goal_value">Weekdays %1$sh · Weekends %2$sh</string>
+    <string name="settings_daily_goal_body">Hours you can study each day. Your plan updates from today.</string>
+    <string name="settings_target_date">Target completion date</string>
+    <string name="settings_study_reminders">Study reminders</string>
+    <string name="settings_reminder_daily_at">Daily at %1$s</string>
+    <string name="settings_off">Off</string>
+    <string name="settings_session_sounds">Session sounds</string>
+    <string name="settings_focus_timer">Focus timer</string>
+    <string name="settings_terms">Terms of service</string>
+    <string name="settings_privacy_policy">Privacy policy</string>
+    <string name="settings_reset_data">Reset study data</string>
+    <string name="settings_reset_title">Reset study data?</string>
+    <string name="settings_reset_body">Erases your plan, progress, sessions and settings on this phone and starts setup again. This cannot be undone.</string>
+    <string name="settings_reset_confirm">Reset</string>
+    <string name="settings_get_pro">Get Pro</string>
+    <string name="settings_get_pro_sub">Unlock advanced study tools</string>
+    <string name="settings_pro_active">Pro</string>
+    <string name="settings_pro_active_sub">All study tools unlocked</string>
+    <string name="settings_done">Done</string>
 </resources>

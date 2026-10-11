@@ -1,66 +1,67 @@
 package com.exam.assistant.paywall
 
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import com.exam.assistant.core.common.Analytics
 import com.exam.assistant.core.common.AnalyticsEvent
 import com.exam.assistant.core.data.ProRepository
-import androidx.compose.runtime.LaunchedEffect
-import com.exam.assistant.feature.settings.PaywallSheet
-import com.exam.assistant.feature.settings.PaywallUiState
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import com.revenuecat.purchases.CustomerInfo
+import com.revenuecat.purchases.Package
+import com.revenuecat.purchases.models.StoreTransaction
+import com.revenuecat.purchases.ui.revenuecatui.PaywallDialog
+import com.revenuecat.purchases.ui.revenuecatui.PaywallDialogOptions
+import com.revenuecat.purchases.ui.revenuecatui.PaywallListener
 import kotlinx.coroutines.launch
 
+/** Forwards RevenueCat paywall events to [ProRepository]; outlives one showing so a purchase is never dropped. */
 class PaywallViewModel(
     private val proRepository: ProRepository,
     private val analytics: Analytics,
-) : ViewModel() {
+) : ViewModel(), PaywallListener {
 
-    val state: StateFlow<PaywallUiState> =
-        combine(proRepository.isPro, proRepository.formattedPrice, proRepository.status) { isPro, price, status ->
-            PaywallUiState(price = price, isPro = isPro, status = status)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), PaywallUiState())
+    /** Null while RevenueCat is being configured; false when it cannot be (no API key). */
+    private val _ready = MutableStateFlow<Boolean?>(if (proRepository.isConfigured) true else null)
+    val ready: StateFlow<Boolean?> = _ready.asStateFlow()
 
     init {
-        viewModelScope.launch { proRepository.loadProduct() }
+        if (_ready.value == null) viewModelScope.launch { _ready.value = proRepository.ensureReady() }
     }
 
-    fun buy(activity: Activity) {
-        viewModelScope.launch { proRepository.launchPurchase(activity) }
+    override fun onPurchaseStarted(rcPackage: Package) = proRepository.onPurchaseStarted()
+
+    override fun onPurchaseCompleted(customerInfo: CustomerInfo, storeTransaction: StoreTransaction) {
+        viewModelScope.launch { proRepository.onPurchaseCompleted(customerInfo) }
     }
 
-    fun restore() {
-        viewModelScope.launch { proRepository.refreshPurchases(userInitiated = true) }
+    override fun onRestoreCompleted(customerInfo: CustomerInfo) {
+        viewModelScope.launch { proRepository.onRestoreCompleted(customerInfo) }
     }
 
-    fun onDismissed() = proRepository.clearStatus()
-
-    /** Each time the sheet opens; the ViewModel itself outlives one showing. */
+    /** Each time the paywall opens. */
     fun onShown() = analytics.log(AnalyticsEvent.PAYWALL_VIEWED)
 
     class Factory(private val proRepository: ProRepository, private val analytics: Analytics) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T = PaywallViewModel(proRepository, analytics) as T
     }
-
-    private companion object {
-        const val STOP_TIMEOUT_MS = 5_000L
-    }
 }
 
-/** The paywall sheet over whatever screen asked for it. Shown by the nav host, never in onboarding or Focus. */
+/**
+ * RevenueCat's paywall (designed in the RevenueCat dashboard, offering "default") over whatever screen
+ * asked for it. Shown by the nav host, never in onboarding or Focus. If startup has not configured
+ * RevenueCat yet, it does so first; with no API key at all it closes at once.
+ */
 @Composable
 fun PaywallHost(
     proRepository: ProRepository,
@@ -68,22 +69,24 @@ fun PaywallHost(
     onDismiss: () -> Unit,
     viewModel: PaywallViewModel = viewModel(factory = PaywallViewModel.Factory(proRepository, analytics)),
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val currentOnDismiss by rememberUpdatedState(onDismiss)
+    val ready by viewModel.ready.collectAsStateWithLifecycle()
+    when (ready) {
+        null -> return
+        false -> {
+            LaunchedEffect(Unit) { currentOnDismiss() }
+            return
+        }
+        true -> Unit
+    }
     LaunchedEffect(Unit) { viewModel.onShown() }
-    val activity = LocalContext.current.findActivity()
-    PaywallSheet(
-        state = state,
-        onBuy = { activity?.let(viewModel::buy) },
-        onRestore = viewModel::restore,
-        onDismiss = {
-            viewModel.onDismissed()
-            onDismiss()
-        },
-    )
-}
-
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
+    val options = remember(viewModel) {
+        PaywallDialogOptions.Builder()
+            .setListener(viewModel)
+            // Legacy templates draw an X from this; dashboard (V2) paywalls carry their own close button.
+            .setShouldDisplayDismissButton(true)
+            .setDismissRequest { currentOnDismiss() }
+            .build()
+    }
+    PaywallDialog(options)
 }

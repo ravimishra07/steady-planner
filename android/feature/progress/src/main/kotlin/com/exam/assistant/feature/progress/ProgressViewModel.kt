@@ -102,7 +102,11 @@ class ProgressViewModel(
             attemptId = attempt.id
             val today = LocalDate.now()
             val preferences = studyPreferenceRepository.forAttempt(attempt.id)
-            pack = examPackRepository.examPackFor(attempt.examId, attempt.id)
+            val loadedPack = examPackRepository.examPackFor(attempt.examId, attempt.id)
+            pack = loadedPack
+            _state.update { state ->
+                state.copy(examLabel = listOfNotNull(loadedPack.displayName, attempt.examDate?.year?.toString()).joinToString(" "))
+            }
             val start = (studySessionRepository.earliestStudyDate(attempt.id) ?: today).coerceAtMost(today.minusDays(83))
             sessions = studySessionRepository.between(attempt.id, start, today)
             planBlocks = planRepository.planBetween(attempt.id, start, today)

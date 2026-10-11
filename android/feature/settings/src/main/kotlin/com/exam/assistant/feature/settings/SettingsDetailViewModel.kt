@@ -52,6 +52,8 @@ data class SettingsDetailUiState(
     val showDiscardDialog: Boolean = false,
     /** End-of-session sound and vibration. Saved immediately, not part of the draft. */
     val focusEndAlert: Boolean = true,
+    /** Settings → Start of week. Saved immediately. */
+    val weekStart: java.time.DayOfWeek = java.time.DayOfWeek.MONDAY,
     /** The daily "Today's plan" reminder. Saved immediately, not part of the draft. Off by default. */
     val reminderEnabled: Boolean = false,
     val reminderMinuteOfDay: Int = DailyReminderSetting.DEFAULT_MINUTE_OF_DAY,
@@ -98,6 +100,9 @@ class SettingsDetailViewModel(
         refresh()
         viewModelScope.launch {
             settingsStore.focusEndAlert.collect { enabled -> _state.update { it.copy(focusEndAlert = enabled) } }
+        }
+        viewModelScope.launch {
+            settingsStore.weekStart.collect { day -> _state.update { it.copy(weekStart = day) } }
         }
         viewModelScope.launch {
             settingsStore.shareUsageData.collect { enabled -> _state.update { it.copy(shareUsageData = enabled) } }
@@ -180,13 +185,19 @@ class SettingsDetailViewModel(
         }
     }
 
+    fun setWeekStart(day: java.time.DayOfWeek) {
+        _state.update { it.copy(weekStart = day) }
+        viewModelScope.launch { settingsStore.setWeekStart(day) }
+    }
+
     fun setFocusEndAlert(enabled: Boolean) {
         _state.update { it.copy(focusEndAlert = enabled) }
         viewModelScope.launch { settingsStore.setFocusEndAlert(enabled) }
     }
 
     fun refresh() {
-        _state.update { it.copy(loading = true, loadFailed = false, saveFailed = false) }
+        // No loading state on re-entry: the values on screen stay while the local read refreshes them.
+        _state.update { it.copy(loadFailed = false, saveFailed = false) }
         viewModelScope.launch {
             runCatching {
                 val attempt = attemptRepository.activeAttempt()
@@ -254,6 +265,20 @@ class SettingsDetailViewModel(
         copy(finishBy = coerceFinishBy(date, exam, LocalDate.now()))
     }
 
+    private var resaveRequested = false
+
+    /** Settings edits in place: each change saves at once; a change during a save saves again after it. */
+    fun commit() {
+        if (_state.value.saving) resaveRequested = true else save()
+    }
+
+    private fun saveAgainIfRequested() {
+        if (resaveRequested) {
+            resaveRequested = false
+            save()
+        }
+    }
+
     fun save() {
         val draft = _state.value
         if (draft.loading || draft.saving || !draft.hasUnsavedChanges) return
@@ -298,8 +323,10 @@ class SettingsDetailViewModel(
                         studyPlace = draft.studyPlace.trim(),
                     )
                 }
+                saveAgainIfRequested()
             }.onFailure {
                 _state.update { it.copy(saving = false, saveFailed = true) }
+                saveAgainIfRequested()
             }
         }
     }

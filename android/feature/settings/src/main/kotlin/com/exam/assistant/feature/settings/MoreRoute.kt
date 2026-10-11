@@ -1,10 +1,25 @@
 package com.exam.assistant.feature.settings
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import com.exam.assistant.core.data.FocusStore
+import com.exam.assistant.core.data.SettingsStore
+import com.exam.assistant.core.data.StudySessionStore
+import com.exam.assistant.core.data.SyllabusStore
+import com.exam.assistant.core.data.backup.BackupRepository
+import com.exam.assistant.core.data.repo.StudyPreferenceRepository
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -15,7 +30,6 @@ import com.exam.assistant.core.data.PlanStore
 import com.exam.assistant.core.data.ProRepository
 import com.exam.assistant.core.data.ProStatus
 import com.exam.assistant.core.data.SavedPlan
-import com.exam.assistant.core.data.decodedCommitments
 import com.exam.assistant.core.data.repo.AttemptRepository
 import com.exam.assistant.core.data.repo.ChapterStageRepository
 import com.exam.assistant.core.data.repo.RollingPlanRepository
@@ -51,7 +65,6 @@ data class MoreUiState(
 data class ProRowState(
     val isPro: Boolean = false,
     val paywallEnabled: Boolean = true,
-    val price: String? = null,
     val status: ProStatus = ProStatus.IDLE,
     val debugForcePro: Boolean = false,
     val showDebugToggle: Boolean = false,
@@ -76,11 +89,10 @@ class MoreViewModel(
     init {
         proRepository?.let { pro ->
             viewModelScope.launch {
-                combine(pro.isPro, pro.formattedPrice, pro.status, pro.debugForcePro) { isPro, price, status, force ->
-                    _state.value.pro.copy(isPro = isPro, price = price, status = status, debugForcePro = force)
+                combine(pro.isPro, pro.status, pro.debugForcePro) { isPro, status, force ->
+                    _state.value.pro.copy(isPro = isPro, status = status, debugForcePro = force)
                 }.collect { row -> _state.update { it.copy(pro = row) } }
             }
-            viewModelScope.launch { pro.loadProduct() }
         }
     }
 
@@ -176,19 +188,26 @@ class MoreViewModel(
 @Composable
 fun MoreRoute(
     planStore: PlanStore,
+    settingsStore: SettingsStore,
+    focusStore: FocusStore,
+    syllabusStore: SyllabusStore,
+    studySessionStore: StudySessionStore,
     examPackRepository: ExamPackRepository,
     attemptRepository: AttemptRepository,
+    studyPreferenceRepository: StudyPreferenceRepository,
     topicProgressRepository: TopicProgressRepository,
     targetSyllabusRepository: TargetSyllabusRepository,
     rollingPlanRepository: RollingPlanRepository,
     chapterStageRepository: ChapterStageRepository,
+    backupRepository: BackupRepository,
+    configExamDate: LocalDate,
     examDateOfficial: Boolean,
     appVersion: String,
     background: BackgroundAppearance,
     onOpenAppearance: () -> Unit,
-    onOpenSettings: () -> Unit,
-    onRedoOnboarding: () -> Unit,
     onOpenPolicy: (String) -> Unit,
+    onReminderChanged: suspend () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
     proRepository: ProRepository? = null,
     isDebugBuild: Boolean = false,
@@ -207,42 +226,81 @@ fun MoreRoute(
             isDebugBuild = isDebugBuild,
         ),
     ),
+    detailViewModel: SettingsDetailViewModel = composeViewModel(
+        factory = SettingsDetailViewModel.Factory(
+            planStore = planStore,
+            settingsStore = settingsStore,
+            focusStore = focusStore,
+            syllabusStore = syllabusStore,
+            studySessionStore = studySessionStore,
+            examPackRepository = examPackRepository,
+            attemptRepository = attemptRepository,
+            studyPreferenceRepository = studyPreferenceRepository,
+            rollingPlanRepository = rollingPlanRepository,
+            configExamDate = configExamDate,
+            examDateOfficial = examDateOfficial,
+            onReminderChanged = onReminderChanged,
+            backupRepository = backupRepository,
+        ),
+    ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    LaunchedEffect(Unit) { viewModel.refresh() }
-    val plan = state.plan
+    val detail by detailViewModel.state.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) {
+        viewModel.refresh()
+        detailViewModel.refresh()
+    }
+    val context = LocalContext.current
+    // Asked in context (§10.1): only when the student turns the reminder on, never at launch.
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) detailViewModel.setReminderEnabled(true) else detailViewModel.onReminderPermissionDenied()
+    }
+    val actions = remember(viewModel, detailViewModel) {
+        SettingsActions(
+            onRetry = {
+                viewModel.refresh()
+                detailViewModel.refresh()
+            },
+            onBack = onBack,
+            onWeekdayHours = { detailViewModel.setWeekdayHours(it); detailViewModel.commit() },
+            onWeekendHours = { detailViewModel.setWeekendHours(it); detailViewModel.commit() },
+            onFinishBy = { detailViewModel.setFinishBy(it); detailViewModel.commit() },
+            onDismissSaveResult = detailViewModel::dismissSaveResult,
+            onFocusLength = { detailViewModel.setFocusDurationMinutes(it); detailViewModel.commit() },
+            onReminderToggle = { enabled ->
+                if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    detailViewModel.setReminderEnabled(enabled)
+                }
+            },
+            onReminderTime = detailViewModel::setReminderTime,
+            onSessionSounds = detailViewModel::setFocusEndAlert,
+            onWeekStart = detailViewModel::setWeekStart,
+            onOpenNotifications = {
+                // The system page for this app's notifications; app info before Android 8.
+                val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                } else {
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}"))
+                }
+                runCatching { context.startActivity(intent) }
+            },
+            onOpenPaywall = onOpenPaywall,
+            onDebugForcePro = viewModel::setDebugForcePro,
+            onOpenAppearance = onOpenAppearance,
+            onEraseAll = onLogOut,
+            onOpenPolicy = onOpenPolicy,
+        )
+    }
     MoreScreen(
-        loading = state.loading,
-        loadFailed = state.loadFailed,
-        planExamLabel = plan?.takeIf { it.examId == NEET_EXAM_ID }?.let {
-            stringResource(R.string.settings_exam_neet)
-        },
-        examDateLabel = state.examDate?.let { date ->
-            date.format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()))
-        },
-        examDateOfficial = examDateOfficial,
-        finishByLabel = (state.finishByDate ?: plan?.targetDateEpochDay?.let(LocalDate::ofEpochDay))?.let { date ->
-            date.format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()))
-        },
-        weekdayHours = plan?.weekdayHours,
-        weekendHours = plan?.weekendHours,
-        fixedBlockCount = plan?.decodedCommitments()?.size ?: 0,
-        coveragePercent = state.coveragePercent,
-        liveBacklogSplit = state.liveBacklogSplit,
-        onLiveBacklogSplit = viewModel::setLiveBacklogSplit,
-        appVersion = appVersion,
-        background = background,
-        onRetry = viewModel::refresh,
-        onOpenAppearance = onOpenAppearance,
-        onOpenSettings = onOpenSettings,
-        onRedoOnboarding = onRedoOnboarding,
-        onOpenPolicy = onOpenPolicy,
+        detail = detail,
         pro = state.pro,
-        onOpenPaywall = onOpenPaywall,
-        onRestorePurchase = viewModel::restorePurchase,
-        onDismissProStatus = viewModel::clearProStatus,
-        onDebugForcePro = viewModel::setDebugForcePro,
-        onLogOut = onLogOut,
+        background = background,
+        appVersion = appVersion,
+        actions = actions,
         modifier = modifier,
     )
 }

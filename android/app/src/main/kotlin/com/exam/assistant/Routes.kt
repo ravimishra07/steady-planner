@@ -16,6 +16,8 @@ sealed interface Route {
     data object Organise : Route { override val path = "organise" }
     data object Focus : Route { override val path = "focus" }
     data object Progress : Route { override val path = "progress" }
+    /** Every Insights section, opened from Progress ("All insights"). */
+    data object Insights : Route { override val path = "progress/insights" }
     data object Settings : Route { override val path = "settings" }
     data object Appearance : Route { override val path = "settings/appearance" }
     data object SettingsDetail : Route { override val path = "settings/detail" }

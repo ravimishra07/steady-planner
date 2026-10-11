@@ -138,6 +138,7 @@ object Size {
     val themePreview = 72.dp
     val appearanceModeSwatch = 36.dp
     val appearanceRow = 64.dp
+    val onboardingHoursRow = 64.dp
     /** Accent circle inside the theme picker pill (48dp touch target around it). */
     val accentDot = 36.dp
     /** Check mark drawn inside a selected accent circle. */

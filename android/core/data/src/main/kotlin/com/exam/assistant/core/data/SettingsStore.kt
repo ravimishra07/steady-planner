@@ -32,6 +32,7 @@ class SettingsStore(
     private val dailyReminderEnabledKey = booleanPreferencesKey("daily_reminder_enabled")
     private val dailyReminderMinuteKey = intPreferencesKey("daily_reminder_minute")
     private val shareUsageDataKey = booleanPreferencesKey("share_usage_data")
+    private val weekStartKey = stringPreferencesKey("week_start")
 
     /** Emits on every change, for the settings screen. */
     /** Null means no personal choice yet, so Remote Config defaults may be used. */
@@ -99,6 +100,16 @@ class SettingsStore(
 
     suspend fun setShareUsageData(enabled: Boolean) = withContext(dispatchers.io) {
         context.dataStore.edit { it[shareUsageDataKey] = enabled }
+        Unit
+    }
+
+    /** Settings → "Start of week": the first column of Today's week strip and month grid. Monday by default. */
+    val weekStart: Flow<java.time.DayOfWeek> = context.dataStore.data.map { preferences ->
+        preferences[weekStartKey]?.let { runCatching { java.time.DayOfWeek.valueOf(it) }.getOrNull() } ?: java.time.DayOfWeek.MONDAY
+    }
+
+    suspend fun setWeekStart(day: java.time.DayOfWeek) = withContext(dispatchers.io) {
+        context.dataStore.edit { it[weekStartKey] = day.name }
         Unit
     }
 

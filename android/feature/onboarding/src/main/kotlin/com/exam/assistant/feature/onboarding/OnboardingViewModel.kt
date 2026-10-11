@@ -81,7 +81,8 @@ class OnboardingViewModel(
     private val savedStateHandle: SavedStateHandle,
     examDate: LocalDate,
     examDateOfficial: Boolean,
-    private val startAtPlan: Boolean,
+    /** Edit mode lands here instead of the first step: Plan from "Adjust plan", Commitments from Settings. */
+    private val startAt: OnboardingStep?,
     private val analytics: Analytics = Analytics.NoOp,
 ) : ViewModel() {
 
@@ -436,10 +437,10 @@ class OnboardingViewModel(
                 initialCoveredChapterIds = hydrated.coveredChapterIds
                 savedStateHandle.get<String>(DRAFT_KEY)?.let { decodeDraft(it, hydrated) } ?: hydrated
             }
-            // "Adjust plan" from Today lands on the plan, where the fit and its choices are.
-            if (startAtPlan && attempt != null && savedStateHandle.get<String>(DRAFT_KEY) == null) {
-                _state.update { it.copy(step = OnboardingStep.Plan, fit = null) }
-                refreshFit()
+            // "Adjust plan" from Today lands on the plan; "Fixed commitments" in Settings on that step.
+            if (startAt != null && attempt != null && savedStateHandle.get<String>(DRAFT_KEY) == null) {
+                _state.update { it.copy(step = startAt, fit = null) }
+                if (startAt == OnboardingStep.Plan) refreshFit()
             }
         }
     }
@@ -685,7 +686,7 @@ class OnboardingViewModel(
         private val dispatchers: AppDispatchers,
         private val examDate: LocalDate,
         private val examDateOfficial: Boolean,
-        private val startAtPlan: Boolean = false,
+        private val startAt: OnboardingStep? = null,
         private val analytics: Analytics = Analytics.NoOp,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
@@ -703,7 +704,7 @@ class OnboardingViewModel(
             extras.createSavedStateHandle(),
             examDate,
             examDateOfficial,
-            startAtPlan,
+            startAt,
             analytics,
         ) as T
     }

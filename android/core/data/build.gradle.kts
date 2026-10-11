@@ -30,6 +30,6 @@ dependencies {
     api(libs.datastore.preferences)
     api(libs.room.runtime)
     implementation(libs.room.ktx)
-    implementation(libs.billing.ktx)
+    api(libs.revenuecat.purchases)
     ksp(libs.room.compiler)
 }
