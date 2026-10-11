@@ -342,7 +342,8 @@ export class OnboardingViewModel {
 
   /** Optional steps only: Theme keeps its defaults; Fixed times drops whatever was added. */
   canSkip(state = this._state.value) {
-    return state.step === OnboardingStep.Appearance || state.step === OnboardingStep.Commitments;
+    return state.step === OnboardingStep.Appearance || state.step === OnboardingStep.Commitments
+      || (state.step === OnboardingStep.Syllabus && state.useProvidedSyllabus);
   }
 
   skipCurrent() {
@@ -354,6 +355,13 @@ export class OnboardingViewModel {
         wakeMinute: it.wakeMinute < it.sleepMinute ? it.wakeMinute : DEFAULT_WAKE_MINUTE,
         sleepMinute: it.wakeMinute < it.sleepMinute ? it.sleepMinute : DEFAULT_SLEEP_MINUTE,
       }));
+    }
+    if (current.step === OnboardingStep.Syllabus) {
+      // Skip keeps the whole syllabus; chapters can be removed later.
+      const all = new Set(current.syllabusSubjects.flatMap((it) => it.chapters.map((c) => c.id)));
+      this._update((it) => it.copy({ selectedChapterIds: all, step: OnboardingStep.Plan, fit: null }));
+      this.refreshFit();
+      return;
     }
     this.advance();
   }
@@ -396,13 +404,15 @@ export class OnboardingViewModel {
       if (job.cancelled) return;
       const projected = draft.planMode === PlanMode.STEADY ? await this.rollingPlanRepository.draftProjection(planDraft) : null;
       if (job.cancelled) return;
+      const targets = await this.rollingPlanRepository.draftTargets(planDraft);
+      if (job.cancelled) return;
       this._update((current) => {
         // A newer change started its own request; only the latest answer may land.
         if (current.planMode === draft.planMode && current.examDate === draft.examDate &&
           current.targetDate === draft.targetDate && current.weekdayHours === draft.weekdayHours &&
           current.weekendHours === draft.weekendHours && deepEquals(current.selectedChapterIds, draft.selectedChapterIds) &&
           deepEquals(current.coveredChapterIds, draft.coveredChapterIds)) {
-          return current.copy({ fit, fitLoading: false, projectedFinish: projected, projectionLoading: false });
+          return current.copy({ fit, targets, fitLoading: false, projectedFinish: projected, projectionLoading: false });
         }
         return current;
       });

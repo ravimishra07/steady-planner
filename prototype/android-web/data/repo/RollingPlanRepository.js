@@ -164,6 +164,40 @@ export class RollingPlanRepository {
     return projectedFinish(inputs, nowMs);
   }
 
+  /**
+   * Weekly and monthly targets for a draft plan: chapters worked on in the next 7 days, and
+   * chapters whose learning finishes within 30 days. { week: [{ title, subject }], month: [{ subject, count }] }.
+   */
+  async draftTargets(draft, nowMs = clockNowMs()) {
+    const inputs = await this.draftInputs(draft, nowMs);
+    const chapters = new Map();
+    const chapterOf = new Map();
+    inputs.pack.subjects.forEach((subject) => subject.nodes.forEach((chapter) => {
+      chapters.set(chapter.id, { id: chapter.id, title: chapter.title, subject: subject.shortName ?? subject.name, order: subject.order });
+      const walk = (node) => { chapterOf.set(node.id, chapter.id); (node.children ?? []).forEach(walk); };
+      walk(chapter);
+    }));
+    const touchedWithin = (days) => {
+      const result = inputs.plan(days, nowMs);
+      const touched = new Set(result.blocks.map((b) => chapterOf.get(b.nodeId)).filter(Boolean));
+      const open = new Set(result.remainingWork.filter((w) => w.remainingMinutes > 0).map((w) => chapterOf.get(w.nodeId)));
+      return { touched: [...touched].map((id) => chapters.get(id)), finished: [...touched].filter((id) => !open.has(id)).map((id) => chapters.get(id)) };
+    };
+    const finishedWithin = (days) => touchedWithin(days).finished;
+    // The week names every chapter it works on; the planner runs subjects side by side, so few finish in 7 days.
+    const week = touchedWithin(7).touched;
+    const bySubject = new Map();
+    finishedWithin(30).forEach((c) => {
+      const row = bySubject.get(c.subject) ?? { subject: c.subject, order: c.order, count: 0 };
+      row.count += 1;
+      bySubject.set(c.subject, row);
+    });
+    return {
+      week: week.sort((x, y) => x.order - y.order).map(({ title, subject }) => ({ title, subject })),
+      month: [...bySubject.values()].sort((x, y) => x.order - y.order).map(({ subject, count }) => ({ subject, count })),
+    };
+  }
+
   /** private */
   async draftInputs(draft, nowMs) {
     const active = this.activeAttemptOnce();
