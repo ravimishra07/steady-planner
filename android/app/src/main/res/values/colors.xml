@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches the dark background token so the splash does not flash. -->
+    <color name="splash_bg">#0A0A0F</color>
+    <color name="brand">#6D35C8</color>
+</resources>
